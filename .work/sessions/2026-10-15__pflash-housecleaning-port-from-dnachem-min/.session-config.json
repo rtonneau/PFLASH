@@ -54,13 +54,212 @@
       "detail": {
         "tickets": 6
       }
+    },
+    {
+      "at": "2026-10-15T18:13:24.096Z",
+      "event": "auto_started",
+      "phase": "ship",
+      "detail": {
+        "target": "finish",
+        "steps": "ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-15T18:13:38.084Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-remove-dnachem-history.md",
+        "03-implement/01-remove-dnachem-history/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-remove-dnachem-history"
+      }
+    },
+    {
+      "at": "2026-10-15T18:15:13.573Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-remove-dnachem-history/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-remove-dnachem-history",
+        "commit": "f4c31cb"
+      }
+    },
+    {
+      "at": "2026-10-15T18:15:17.549Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-rename-executable-pflash.md",
+        "03-implement/02-rename-executable-pflash/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rename-executable-pflash"
+      }
+    },
+    {
+      "at": "2026-10-15T18:18:35.369Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-rename-executable-pflash/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rename-executable-pflash",
+        "commit": "9026a72"
+      }
+    },
+    {
+      "at": "2026-10-15T18:18:38.775Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-rename-skill-and-living-docs.md",
+        "03-implement/03-rename-skill-and-living-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-rename-skill-and-living-docs"
+      }
+    },
+    {
+      "at": "2026-10-15T18:20:28.313Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-rename-skill-and-living-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-rename-skill-and-living-docs",
+        "commit": "6faa9f6"
+      }
+    },
+    {
+      "at": "2026-10-15T18:20:32.290Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-move-farokhi-macros.md",
+        "03-implement/04-move-farokhi-macros/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-move-farokhi-macros"
+      }
+    },
+    {
+      "at": "2026-10-15T18:21:08.652Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-move-farokhi-macros/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-move-farokhi-macros",
+        "commit": "60c2609"
+      }
+    },
+    {
+      "at": "2026-10-15T18:21:12.947Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-rewrite-scope-docs.md",
+        "03-implement/05-rewrite-scope-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-rewrite-scope-docs"
+      }
+    },
+    {
+      "at": "2026-10-15T18:22:20.099Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/05-rewrite-scope-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-rewrite-scope-docs",
+        "commit": "58d7af7"
+      }
+    },
+    {
+      "at": "2026-10-15T18:22:25.945Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/06-final-verification.md",
+        "03-implement/06-final-verification/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-final-verification"
+      }
+    },
+    {
+      "at": "2026-10-15T18:26:01.480Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/06-final-verification/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-final-verification",
+        "commit": "c041e85"
+      }
+    },
+    {
+      "at": "2026-10-15T18:26:09.687Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/02-rename-executable-pflash/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rename-executable-pflash",
+        "commit": "9026a72"
+      }
+    },
+    {
+      "at": "2026-10-15T18:26:21.830Z",
+      "event": "changelog_written",
+      "phase": "finish-pending",
+      "detail": {
+        "bump": "minor"
+      }
+    },
+    {
+      "at": "2026-10-15T18:26:25.281Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/PFLASH/pull/1"
+      }
+    },
+    {
+      "at": "2026-10-15T18:26:25.284Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
     }
   ],
-  "current_phase": "ship",
+  "current_phase": "finished",
   "git": {
     "branch": "chore/pflash-housecleaning",
     "base_branch": "main",
     "branch_created_at": "2026-10-15T16:31:45.667Z",
-    "pr_url": null
-  }
+    "pr_url": "https://github.com/rtonneau/PFLASH/pull/1"
+  },
+  "ship_mode": "subagent+inline",
+  "changelog": {
+    "bump": "minor",
+    "floor": "minor",
+    "reason": null,
+    "bullets": 5,
+    "path": ".work/changelog/2026-10-15__pflash-housecleaning-port-from-dnachem-min.md",
+    "written_at": "2026-10-15T18:26:21.820Z"
+  },
+  "finished_at": "2026-10-15T18:26:25.284Z"
 }
