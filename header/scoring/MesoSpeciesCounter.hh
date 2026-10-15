@@ -3,7 +3,7 @@
 /// mesoscopic stage's record times
 ///
 /// Self-contained, project-agnostic unit: standard library only, no Geant4
-/// or other dnachem-min includes. Copy-paste portable to another Geant4-DNA
+/// or other PFLASH includes. Copy-paste portable to another Geant4-DNA
 /// project (adjust the include path prefix on copy). Same shape as
 /// PhysicsInteractionCounter.
 ///

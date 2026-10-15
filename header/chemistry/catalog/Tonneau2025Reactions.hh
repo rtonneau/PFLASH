@@ -8,7 +8,7 @@
 /// stage (particle-based IRT_syn stage, then the mesoscopic stage).
 ///
 /// Self-contained, project-agnostic unit: no DnaChemistryWorld, DnaLogger, or
-/// other dnachem-min-specific includes -- only standard Geant4/Geant4-DNA
+/// other PFLASH-specific includes -- only standard Geant4/Geant4-DNA
 /// headers. Needs ChemistryTypes.hh and Tonneau2025Table.{hh,cc}; copy them
 /// together to port this unit (adjust the include path prefix on copy).
 ///

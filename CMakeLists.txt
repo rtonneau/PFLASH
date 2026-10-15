@@ -62,7 +62,7 @@ target_include_directories(ReactionCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME ReactionCounterTest COMMAND ReactionCounterTest)
 
 # Standalone unit test for PhysicsInteractionCounter (fully generic,
-# portable, no dnachem-min-specific dependency -- no OutputDir.cc needed).
+# portable, no PFLASH-specific dependency -- no OutputDir.cc needed).
 add_executable(PhysicsInteractionCounterTest test/PhysicsInteractionCounterTest.cc src/scoring/PhysicsInteractionCounter.cc)
 target_link_libraries(PhysicsInteractionCounterTest ${Geant4_LIBRARIES})
 target_include_directories(PhysicsInteractionCounterTest PRIVATE ${project_include_dirs})

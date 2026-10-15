@@ -40,7 +40,7 @@ Either way, `AvailableForStates(G4State_PreInit, ...)` (plain style) or
 states the command can be issued in; issuing it outside those states is a
 `fIllegalApplicationState` from the UI manager, not a C++ exception.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 **Plain `G4UImessenger`, attaching to a directory another component already
 created:**
@@ -236,7 +236,7 @@ command.
 - [`create-a-scorer.md`](create-a-scorer.md) — the MT story for a
   per-thread scorer/counter is different (merge after the run, not replay
   before it); contrast with the mechanism above.
-- [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md)
+- [`pflash-macro-command-reference.md`](pflash-macro-command-reference.md)
   — every macro command this project defines, including the ones built in
   this recipe's reference implementations.
 - [`docs/adr/0008-selectable-chemistry-modes.md`](../adr/0008-selectable-chemistry-modes.md)

@@ -32,9 +32,9 @@ and the current time, so user code can read the mesh's per-cell molecule
 counts at that instant. Reading the mesh and folding species counts into an
 external counter — rather than relying on the scheduler's own counter map —
 is what this recipe's `G4UserMeshAction` subclass does; the reasons to
-bypass the scheduler's own map are in the dnachem-min section below.
+bypass the scheduler's own map are in the PFLASH section below.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 - `src/chemistry/TimeStepAction.cc` drives both chemistry stages per event.
   `StartProcessing` (`TimeStepAction.cc:388-458`) decides whether the
@@ -121,7 +121,7 @@ not written at all when the mesoscopic stage is off
 (`/chem/meso/enable false`, or the SBS time-step model). File formats,
 column semantics, dump/prefix rules and the per-dump `Manifest.json` entry
 are covered by [`docs/output/README.md`](../output/README.md) and the
-`sim-output` skill — see those rather than this recipe for the output-file
+`pflash-output` skill — see those rather than this recipe for the output-file
 conventions.
 
 ## Serial vs MT

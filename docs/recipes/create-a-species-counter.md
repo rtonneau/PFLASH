@@ -23,7 +23,7 @@ the chemistry itself — it is a passive scorer that reads the
 set of time points, and folds the result into a per-event G-value
 (radiochemical yield) normalised by that event's energy deposit.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 - `src/actions/ActionInitialization.cc:80-98` (`BuildMoleculeCounters`) is
   where the counter itself is set up, once per thread (called from `Build()`
@@ -95,7 +95,7 @@ on the `G4MultiFunctionalDetector` rather than through `RunAccumulator`
 (species data is already persistent inside the scorer itself, across
 `/run/beamOn` calls, until a dump clears it). File formats, dump/prefix
 rules, the hand-over-time cutoff and the per-dump `Manifest.json` entry are
-covered by `docs/output/README.md` and the `sim-output` skill — see those
+covered by `docs/output/README.md` and the `pflash-output` skill — see those
 rather than this recipe for the output-file conventions.
 
 ## Serial vs MT
@@ -119,7 +119,7 @@ scorer instance and no merge step.
 - [`create-a-scorer.md`](create-a-scorer.md) — the generic
   `G4VPrimitiveScorer` mechanics (registration, lifecycle hooks, MT merge)
   this recipe builds on.
-- `docs/output/README.md` and the `sim-output` skill — `Species.Txt` /
+- `docs/output/README.md` and the `pflash-output` skill — `Species.Txt` /
   `Species_nt_species.csv` file formats, dump/prefix rules and the
   hand-over-time cutoff.
 - [`mesoscopic-3d-species-counting.md`](mesoscopic-3d-species-counting.md) —

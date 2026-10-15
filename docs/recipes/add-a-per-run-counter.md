@@ -36,7 +36,7 @@ convention" note in each file's header comment), sharing one convention:
   into `fCounts[bin][label]` per bin/label pair, which is also why `Merge`
   is safe to call repeatedly: it is pure addition, not a replace.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 Two actual examples, read from source rather than assumed from the class
 names:
@@ -227,6 +227,6 @@ master-merge pattern in this codebase; `create-a-scorer.md` and
   for the full `Run::Merge` timing rather than repeating it.
 - [`create-a-species-counter.md`](create-a-species-counter.md) — likewise
   links here for the same mechanism applied to `ScoreSpecies`.
-- `docs/output/README.md` and the `sim-output` skill — file formats,
+- `docs/output/README.md` and the `pflash-output` skill — file formats,
   dump/prefix rules and the manifest, for the files a counter's
   `WriteAscii`/`WriteCsv` ultimately produce.

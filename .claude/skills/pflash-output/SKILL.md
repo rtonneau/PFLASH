@@ -1,5 +1,5 @@
 ---
-name: sim-output
+name: pflash-output
 description: Use when running pflash.exe, writing macros that dump output (/run/dumpDataAndReset, /run/dumpDataAndResetToDir, /run/outputDir, --dir), analyzing its output files, or changing output/scoring code (RunAccumulator, OutputDir, counters).
 ---
 

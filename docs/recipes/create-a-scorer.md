@@ -55,7 +55,7 @@ named hits collection. One `G4MultiFunctionalDetector` is then handed to
 `G4VUserDetectorConstruction::SetSensitiveDetector` for a named logical
 volume, in `ConstructSDandField()`.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 `DetectorConstruction::ConstructSDandField()`
 (`src/geometry/DetectorConstruction.cc:124-146`) is this project's

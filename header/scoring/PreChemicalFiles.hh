@@ -2,7 +2,7 @@
 /// \brief Staging-folder helpers for the per-event pre-chemical files.
 ///
 /// Portable and project-agnostic: standard library only, no dependency on
-/// other dnachem-min classes (adjust the include path prefix on copy).
+/// other PFLASH classes (adjust the include path prefix on copy).
 /// Design record: the addendum of docs/adr/0005-manifest-per-dump.md.
 ///
 /// Each event writes PreChemical_run<R>_event<E>.txt into a staging folder

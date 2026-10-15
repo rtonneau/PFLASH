@@ -3,7 +3,7 @@
 /// the output directory that lists every dump written so far.
 ///
 /// Portable, project-agnostic unit: standard library and DataNode only (no
-/// Geant4, no other dnachem-min class); adjust the include path prefix on
+/// Geant4, no other PFLASH class); adjust the include path prefix on
 /// copy. RunManifest feeds it and writes the tree with JsonWriter.
 ///
 /// Layout (top level): `schemaVersion`, `kind` ("resultsIndex"),

@@ -1,8 +1,8 @@
-# dnachem-min macro command reference
+# PFLASH macro command reference
 
 ## What this is
 
-A reference listing of every custom `/command` dnachem-min defines, grouped
+A reference listing of every custom `/command` PFLASH defines, grouped
 by directory, with each command's allowed application state(s) and the
 source file that creates it. This is reference content, not a how-to — see
 [`create-a-macro-command.md`](create-a-macro-command.md) for how to add a new
@@ -145,7 +145,7 @@ already apply before any macro overrides them.
 | `/process/chem/TimeStepModel SBS\|IRT_syn` | PreInit, before `/run/initialize`. Read by `DnaChemistryList::CheckTimeStepModel()` (`DnaChemistryList.cc:316-345`, called from `ConstructProcess` at `/run/initialize`) via `G4EmParameters::Instance()->GetTimeStepModel()`; any value other than `IRT_syn`/`SBS` is a fatal `G4Exception`. An explicit `/chem/meso/enable true` together with `SBS` is also fatal (`DnaChemistryList.cc:335-338`). |
 | `/scheduler/endTime <value> <unit>` | Must be issued *after* `/run/initialize`: `CheckTimeStepModel()` hardcodes the default end time (1 s with the mesoscopic stage, 1 us without) via `G4Scheduler::Instance()->SetEndTime(...)` at that point (`DnaChemistryList.cc:344`, also set again in `ActionInitialization.cc:66`) — a value set earlier is overwritten. |
 
-These are not dnachem-min commands (no project messenger creates them); they
+These are not PFLASH commands (no project messenger creates them); they
 are standard Geant4-DNA chemistry-kernel commands this project depends on at
 specific points in the macro, as already documented narratively in
 `CLAUDE.md`.

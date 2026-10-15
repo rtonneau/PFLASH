@@ -18,7 +18,7 @@ not repeated here.
    is a smaller worked example (26 reactions, no acid-base buffer). Copy both
    files, rename the pair, and adjust the include-path prefix — each file is
    deliberately self-contained (no `DnaChemistryWorld`, `DnaLogger`, or other
-   dnachem-min-specific include; only `chemistry/ChemistryTypes.hh` plus
+   PFLASH-specific include; only `chemistry/ChemistryTypes.hh` plus
    standard Geant4/Geant4-DNA headers), so it is copy-paste portable to
    another Geant4-DNA project (`PureWaterReactions.hh:9-11`).
 
@@ -225,5 +225,5 @@ above), not cross-thread races.
   attaching to the pre-existing `/chem/` directory) and the MT broadcast
   mechanism that replays a PreInit command like `/chem/select` on every
   worker thread.
-- [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md)
+- [`pflash-macro-command-reference.md`](pflash-macro-command-reference.md)
   — `/chem/select` and `/chem/list` alongside every other macro command.

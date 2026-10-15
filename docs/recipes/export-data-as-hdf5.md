@@ -52,13 +52,13 @@ whether the file exists yet) handles the actual group/dataset creation; this
 recipe is about the surrounding staging/move/validate logic, not the HDF5 API
 itself.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 `src/scoring/MesoSpatialFile.cc` (+ `header/scoring/MesoSpatialFile.hh`) is
 this project's only HDF5 writer, serialising the mesoscopic stage's per-event
 spatial snapshots (`/chem/meso/spatialOutput`) to `SpeciesMesoSpatial.h5`. It
 is marked portable (standard library and HDF5 C++ only, no dependency on
-other dnachem-min classes beyond the data it's handed — adjust the include
+other PFLASH classes beyond the data it's handed — adjust the include
 path prefix on copy), so it is the template to copy for a new kind of
 per-event HDF5 data, not a one-off tied to the mesoscopic stage. Verified
 against the actual source:

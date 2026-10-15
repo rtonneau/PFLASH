@@ -2,7 +2,7 @@
 /// \brief Portable per-event table of primary and secondary track lengths
 ///
 /// Self-contained, project-agnostic unit: standard library only, no Geant4
-/// kernel and no other dnachem-min class. Copy-paste portable to another
+/// kernel and no other PFLASH class. Copy-paste portable to another
 /// Geant4-DNA project (adjust the include path prefix on copy).
 ///
 /// One Row per event. Lengths in nm, energies in keV. Callers fill the rows;
