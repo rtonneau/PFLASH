@@ -8,7 +8,7 @@ The `Manifest.json` here is special. It is the **results index** (`kind: "result
 
 ```bash
 cd build
-./sim <macro>.in
+./pflash <macro>.in
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -42,7 +42,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 
 ```bash
 cd build
-./sim <macro>.in
+./pflash <macro>.in
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -79,7 +79,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 
 ```bash
 cd build
-./sim <macro>.in
+./pflash <macro>.in
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`). The `/scheduler/endTime` line is left out: with the mesoscopic stage off the end time defaults to 1 us (a 1 ms end time would also work, it only runs longer):

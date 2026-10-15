@@ -22,7 +22,7 @@ class G4UIcmdWithAString;
     created if missing, relative and without "..", unique per process (see
     OutputDir::ConfigureSubdir, RunAccumulator::TryReserveSubdir).
 
-    Also exposes FlushIfPending(), called once from sim.cc right before the
+    Also exposes FlushIfPending(), called once from pflash.cc right before the
     run manager is destroyed, as a safety net so data accumulated but never
     manually flushed isn't silently lost.
 */

@@ -7,7 +7,7 @@ section skeleton:
 
 - **What this is** — the task in one or two sentences.
 - **Generic pattern** — the Geant4/Geant4-DNA-level shape of the task, independent of this project.
-- **dnachem-min reference implementation** — where it is done here, with file paths.
+- **PFLASH reference implementation** — where it is done here, with file paths.
 - **Serial vs MT** — what changes, if anything, between the Serial and MT run managers.
 - **See also** — related recipes, ADRs and docs.
 
@@ -18,7 +18,7 @@ section skeleton:
 - [`mesoscopic-3d-species-counting.md`](mesoscopic-3d-species-counting.md) — count species per cell on the mesoscopic mesh, including spatial snapshots.
 - [`export-data-as-hdf5.md`](export-data-as-hdf5.md) — write structured per-event data to HDF5 following the `MesoSpatialFile` pattern.
 - [`create-a-macro-command.md`](create-a-macro-command.md) — add a new `/command` via a messenger class.
-- [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md) — reference listing of every macro command this project defines.
+- [`pflash-macro-command-reference.md`](pflash-macro-command-reference.md) — reference listing of every macro command this project defines.
 - [`add-a-new-chemistry.md`](add-a-new-chemistry.md) — add a new named Chemistry (molecule set, reactions, bulk reactions) to the registry.
 - [`add-a-reaction-or-molecule.md`](add-a-reaction-or-molecule.md) — extend an existing Chemistry's reaction table or molecule set.
 - [`add-a-per-run-counter.md`](add-a-per-run-counter.md) — add an accumulator fed from `RunAction::EndOfRunAction` and persisted across `/run/beamOn` calls.

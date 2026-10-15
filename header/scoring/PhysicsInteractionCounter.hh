@@ -2,7 +2,7 @@
 /// \brief Portable string-frequency counter for physical interaction counts
 ///
 /// Self-contained, project-agnostic unit: no OutputDir, DnaLogger, or other
-/// dnachem-min-specific includes -- only globals.hh (G4String) and the
+/// PFLASH-specific includes -- only globals.hh (G4String) and the
 /// standard library. Copy-paste portable to another Geant4-DNA project.
 ///
 /// Counts occurrences of whatever label callers pass to Record() -- it has

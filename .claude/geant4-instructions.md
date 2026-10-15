@@ -64,7 +64,7 @@ cmake --build <dir> --config <type> --target <build.executable>
   found, typically Qt), prepend the directory holding those DLLs to `PATH` in
   the same command. Machine-specific; on the current dev machine:
   ```powershell
-  $env:PATH = "E:\miniconda3\envs\qt5\Library\bin;$env:PATH"; .\sim.exe <macro> > run.log 2>&1
+  $env:PATH = "E:\miniconda3\envs\qt5\Library\bin;$env:PATH"; .\pflash.exe <macro> > run.log 2>&1
   ```
 - Macro argument: see `run.cli.syntax` and `run.macroArgIsFilenameOnly`.
 - If `run.macroCopiedAtBuild`, macros are copied into the build dir only when

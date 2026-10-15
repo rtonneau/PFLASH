@@ -4,7 +4,7 @@ Reference output of the SBS build before the IRT-syn work, kept to validate late
 
 - Commit: `1d047c4` (SBS chemistry time-step model; source unchanged by this capture).
 - Macro: `macro/validate_o2.in` (PureWater, `/chem/env/scavenger O2 21 %` = 2.73e-4 M, pH 7, seeds `12345 67890`, `/scheduler/endTime 1 us`, 10 keV e-).
-- Run: `./sim validate_o2.in --threads 10 --dir <dir>` from `build/` (RelWithDebInfo), MT, 10 threads.
+- Run: `./pflash validate_o2.in --threads 10 --dir <dir>` from `build/` (RelWithDebInfo), MT, 10 threads.
 - N: 1500 events, 1 `/run/beamOn`, one dump.
 - Wall time: 5227.3 s (`The simulation took`). Exit 0, no `EEEE`/`WWWW`.
 - Files: `Species_nt_species.csv`, `Manifest.json`. The output is not bit-reproducible, even with the seed (MT).

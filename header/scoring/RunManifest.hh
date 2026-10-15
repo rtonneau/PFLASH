@@ -23,11 +23,11 @@ class Run;
 namespace RunManifest
 {
   /// Records the macro file the process was started with, for the manifest
-  /// (called once from sim.cc; empty if never set, e.g. GUI mode).
+  /// (called once from pflash.cc; empty if never set, e.g. GUI mode).
   void SetMacroName(const G4String &macro);
 
   /// Marks the process start (steady clock), the origin of the manifest's
-  /// elapsedSinceStart_s. Called once at the top of main() in sim.cc.
+  /// elapsedSinceStart_s. Called once at the top of main() in pflash.cc.
   void MarkProcessStart();
 
   /// Builds this run's manifest entry (run id, events, beam or nulls,

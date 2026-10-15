@@ -24,7 +24,7 @@ Measured (500 keV e-, eLossMin 12.5 keV, 250 events, 0 % O2, e_aq G at 1 ps):
 | Run | Solvation | G(e_aq, 1 ps) |
 |---|---|---|
 | dnachem-min, original | Ritchie1994 | 4.036 |
-| dnachem-min, `beam_farokhi_electron_o2_0pct_meesungnoen.in` | Meesungnoen2002 | 4.150 +/- 0.006 |
+| dnachem-min, `farokhi2023/beam_farokhi_electron_o2_0pct_meesungnoen.in` | Meesungnoen2002 | 4.150 +/- 0.006 |
 | stock scavenger example | Meesungnoen2002 | 4.176 +/- 0.006 |
 
 The solvation subtype accounts for 0.114 of the 0.140 gap (81 %). The remaining 0.026 (0.6 %) is inside the 1 % target and is

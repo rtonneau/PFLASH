@@ -2,7 +2,7 @@
 /// \brief Plain-assert unit tests for RunAccumulator (no test framework, no
 /// Geant4 runtime -- exercises pure accumulation/prefix-bookkeeping logic
 /// only. DumpAndReset's file-writing/species lookup lives in
-/// RunAccumulatorMessenger and is integration-verified via sim.exe instead.)
+/// RunAccumulatorMessenger and is integration-verified via pflash.exe instead.)
 
 #include "scoring/RunAccumulator.hh"
 

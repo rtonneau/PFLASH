@@ -1,12 +1,12 @@
 # Output files and directory layout
 
-What `sim` writes, where, and when. File names and sizes below come from real
+What `pflash` writes, where, and when. File names and sizes below come from real
 runs (10 keV e-, `/run/beamOn 2`, Serial, `/scheduler/endTime 1 ms`, default
 Chemistry `PureWater`, default 5 ns hand-over, mesoscopic stage on unless stated). Sizes scale with the number of
 events and with the chemistry end time, so read them as orders of magnitude.
 
 Detailed semantics (columns, units, commands, failure modes) are in the
-`sim-output` skill: [`.claude/skills/sim-output/SKILL.md`](../../.claude/skills/sim-output/SKILL.md).
+`pflash-output` skill: [`.claude/skills/pflash-output/SKILL.md`](../../.claude/skills/pflash-output/SKILL.md).
 The HDF5 layout has its own page: [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md).
 
 ## When files are written
@@ -151,5 +151,5 @@ where those two files do not exist.
 
 ## See also
 
-- [`sim-output` skill](../../.claude/skills/sim-output/SKILL.md): commands, file semantics, prefix and subfolder rules, failure modes.
+- [`pflash-output` skill](../../.claude/skills/pflash-output/SKILL.md): commands, file semantics, prefix and subfolder rules, failure modes.
 - [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md): HDF5 layout, attributes, reading example.

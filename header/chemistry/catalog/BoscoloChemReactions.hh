@@ -7,7 +7,7 @@
 /// reactants/products dropped (water is not tracked).
 ///
 /// Self-contained, project-agnostic unit: no DnaChemistryWorld, DnaLogger, or
-/// other dnachem-min-specific includes -- only standard Geant4/Geant4-DNA
+/// other PFLASH-specific includes -- only standard Geant4/Geant4-DNA
 /// headers. Copy-paste portable to another Geant4-DNA project.
 ///
 /// The paper treats dissolved O2 as a continuum while (xvi), (xvii), (xxv) and

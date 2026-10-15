@@ -13,7 +13,7 @@
 /// separate from the configured directory. ConfigureSubdir() adds an
 /// optional subfolder between the two: <dir>/<subdir>/<prefix><filename>.
 ///
-/// Default directory: SetDefaultDir() (called from sim.cc with
+/// Default directory: SetDefaultDir() (called from pflash.cc with
 /// <exeDir>/results) names a directory used only when no Configure() /
 /// ConfigureFromMacro() directory is set. It is applied lazily -- created
 /// at the first Resolve()/GetDirectory()/ConfigureSubdir() that needs it,

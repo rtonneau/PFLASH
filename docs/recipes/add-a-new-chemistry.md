@@ -18,7 +18,7 @@ not repeated here.
    is a smaller worked example (26 reactions, no acid-base buffer). Copy both
    files, rename the pair, and adjust the include-path prefix — each file is
    deliberately self-contained (no `DnaChemistryWorld`, `DnaLogger`, or other
-   dnachem-min-specific include; only `chemistry/ChemistryTypes.hh` plus
+   PFLASH-specific include; only `chemistry/ChemistryTypes.hh` plus
    standard Geant4/Geant4-DNA headers), so it is copy-paste portable to
    another Geant4-DNA project (`PureWaterReactions.hh:9-11`).
 
@@ -147,9 +147,9 @@ Geant4-kernel question, not a project one, so it was checked against the
 kernel source rather than assumed from general MT familiarity with "physics
 lists are built per thread."
 
-1. `sim.cc` constructs the project's `PhysicsList` **exactly once**,
+1. `pflash.cc` constructs the project's `PhysicsList` **exactly once**,
    regardless of Serial or MT: `runManager->SetUserInitialization(new
-   PhysicsList);` (`sim.cc:144`) runs on the master thread only, before any
+   PhysicsList);` (`pflash.cc:144`) runs on the master thread only, before any
    worker exists. `PhysicsList`'s constructor in turn does `fEmDNAChemistryList(new
    DnaChemistryList)` (`src/physics/PhysicsList.cc:15-21`) — so there is
    exactly one `DnaChemistryList` C++ object for the whole process, built
@@ -225,5 +225,5 @@ above), not cross-thread races.
   attaching to the pre-existing `/chem/` directory) and the MT broadcast
   mechanism that replays a PreInit command like `/chem/select` on every
   worker thread.
-- [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md)
+- [`pflash-macro-command-reference.md`](pflash-macro-command-reference.md)
   — `/chem/select` and `/chem/list` alongside every other macro command.

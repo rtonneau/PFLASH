@@ -34,7 +34,7 @@ In Geant4-DNA, the chemical stage is driven by:
   default `G4MolecularConfiguration`, created once and looked up afterwards
   (not reconstructed every time something references it by name).
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 Verified against the current `src/chemistry/catalog/PureWaterReactions.cc`.
 

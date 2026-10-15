@@ -8,7 +8,7 @@
 /// PDF, which has OCR artifacts.
 ///
 /// Self-contained, project-agnostic unit: no DnaChemistryWorld, DnaLogger, or
-/// other dnachem-min-specific includes -- only standard Geant4/Geant4-DNA
+/// other PFLASH-specific includes -- only standard Geant4/Geant4-DNA
 /// headers. Copy-paste portable to another Geant4-DNA project.
 ///
 /// No acid-base buffer: the paper's network has no bulk H3Op(B)/OHm(B)

@@ -40,7 +40,7 @@ Either way, `AvailableForStates(G4State_PreInit, ...)` (plain style) or
 states the command can be issued in; issuing it outside those states is a
 `fIllegalApplicationState` from the UI manager, not a C++ exception.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 **Plain `G4UImessenger`, attaching to a directory another component already
 created:**
@@ -211,7 +211,7 @@ each worker calls `SetNewValue` again on the *same*, single messenger
 object, not on a new, per-thread instance — `MesoMessenger`, like
 `DnaChemistryList`/`PhysicsList`, is constructed exactly once per process,
 before any worker thread exists (`PhysicsList`'s constructor builds
-`DnaChemistryList` once, `sim.cc:144`; the kernel then hands that one
+`DnaChemistryList` once, `pflash.cc:144`; the kernel then hands that one
 object's pointer to every worker rather than rebuilding it — see
 [`add-a-new-chemistry.md`](add-a-new-chemistry.md#serial-vs-mt) for the
 full, source-traced proof, including the exact `G4MTRunManagerKernel.cc`
@@ -219,7 +219,7 @@ lines that share the pointer). The replay is harmless because each worker's
 call writes the same value into whatever process-wide state the messenger
 is bound to (e.g. `MesoSettings::Current()`) — it is a repeated write to
 shared state, not N independently-constructed objects converging on a
-value. This project runs Serial by default (`sim.cc`,
+value. This project runs Serial by default (`pflash.cc`,
 `G4RunManagerType::MT` only with `--threads N`, N > 0, per `CLAUDE.md`), so
 in the common case there is exactly one `G4UImanager` and no replay step at
 all — the mechanism above only matters once `--threads` is used.
@@ -236,7 +236,7 @@ command.
 - [`create-a-scorer.md`](create-a-scorer.md) — the MT story for a
   per-thread scorer/counter is different (merge after the run, not replay
   before it); contrast with the mechanism above.
-- [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md)
+- [`pflash-macro-command-reference.md`](pflash-macro-command-reference.md)
   — every macro command this project defines, including the ones built in
   this recipe's reference implementations.
 - [`docs/adr/0008-selectable-chemistry-modes.md`](../adr/0008-selectable-chemistry-modes.md)
