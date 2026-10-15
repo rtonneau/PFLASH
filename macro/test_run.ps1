@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Runs sim.exe once per dissolved-O2 level, one after another.
+  Runs pflash.exe once per dissolved-O2 level, one after another.
 .EXAMPLE
   ./Scan-O2.ps1                          # 0 % and 21 %
   ./Scan-O2.ps1 -Levels 0,2.5,5,21 -Events 10
@@ -11,18 +11,18 @@ param(
   [string]   $Chemistry = 'BoscoloChem',
   [string]   $Energy    = '10 keV',
   [int]      $Events    = 2,
-  [string]   $RunDir    = (Get-Location).Path,  # holds sim.exe and macro/
+  [string]   $RunDir    = (Get-Location).Path,  # holds pflash.exe and macro/
   [string]   $Results   = 'results',            # created inside RunDir
   [switch]   $Force                             # overwrite existing level folders
 )
 
 $ErrorActionPreference = 'Stop'
 
-$sim = Join-Path $RunDir 'sim.exe'
-if (-not (Test-Path $sim))                     { throw "sim.exe not found in $RunDir" }
+$pflash = Join-Path $RunDir 'pflash.exe'
+if (-not (Test-Path $pflash))                     { throw "pflash.exe not found in $RunDir" }
 if (-not (Test-Path (Join-Path $RunDir 'macro'))) { throw "macro/ not found in $RunDir" }
 
-# sim.exe prepends macro/ to its argument, relative to the working directory.
+# pflash.exe prepends macro/ to its argument, relative to the working directory.
 Push-Location $RunDir
 try {
   New-Item -ItemType Directory -Force $Results | Out-Null   # --dir needs the parent
@@ -54,7 +54,7 @@ try {
 "@ | Set-Content -Encoding ascii (Join-Path 'macro' $macro)
 
     Write-Host "=== O2 = $o2Text % -> $out"
-    $t = Measure-Command { & $sim $macro --dir $out *> $log }
+    $t = Measure-Command { & $pflash $macro --dir $out *> $log }
     if ($LASTEXITCODE -eq 0 -and (Select-String -Quiet -Path $log -Pattern 'dumped and reset')) {
       Write-Host ("    done in {0:n0} s" -f $t.TotalSeconds)
     } else {

@@ -5,7 +5,7 @@
 /// AddStringFlag / AddBoolFlag (each Int/String flag taking an optional
 /// validator for flag-specific rules), then Parse(argc, argv) fills
 /// everything in. Tokens that aren't a registered flag name are ignored
-/// (e.g. sim.cc's argv[1] macro-file convention). On failure, GetError()
+/// (e.g. pflash.cc's argv[1] macro-file convention). On failure, GetError()
 /// returns one message already prefixed with the flag name.
 
 #ifndef ArgParser_h

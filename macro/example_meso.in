@@ -9,7 +9,7 @@
 # 1 s default, which is slow). Remove that line for the full 1 s run.
 #
 # Run from the build dir (the build copies macro/ there):
-#   sim example_meso.in
+#   pflash example_meso.in
 # Results: <exeDir>/results/Manifest.json (index) and results/sub_01/, sub_02/.
 /run/verbose 0
 /tracking/verbose 0

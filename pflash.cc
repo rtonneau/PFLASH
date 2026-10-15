@@ -1,4 +1,4 @@
-/// \file sim.cc
+/// \file pflash.cc
 /// \brief Basic common implementation of water radiolysis for CONV and UHDR
 // Created: 2026-08-19
 

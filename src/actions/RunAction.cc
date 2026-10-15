@@ -100,7 +100,7 @@ void RunAction::EndOfRunAction(const G4Run *run)
         // every beamOn -- so fold this run's totals into RunAccumulator's
         // persistent, cross-run storage instead. Nothing is written to disk
         // here: issue /run/dumpDataAndReset (or let the exit-time safety net
-        // in sim.cc fire) to flush everything.
+        // in pflash.cc fire) to flush everything.
         RunAccumulator::Accumulate(masterRun->GetSumDose(), nofEvents,
                                     *masterRun->GetReactionCounter(),
                                     *masterRun->GetInteractionCounter(),

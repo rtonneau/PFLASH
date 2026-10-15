@@ -9,7 +9,7 @@
     "generator": "Ninja",
     "environment": "msvc-x64",
     "cxxStandard": 20,
-    "executable": "sim",
+    "executable": "pflash",
     "runBuildDir": "build",
     "runBuildType": "RelWithDebInfo",
     "testBuildDir": "build-ninja",

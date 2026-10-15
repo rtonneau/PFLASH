@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.16...3.27)
 
 # Name the project
-project(Simulation)
+project(PFLASH)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -24,15 +24,15 @@ file(GLOB_RECURSE headers CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/header/*.hh)
 set(project_include_dirs ${PROJECT_SOURCE_DIR}/header)
 
 # Tell CMake the name of the executable to produce.
-# sim.cc will be the main source code.
-add_executable(sim sim.cc ${sources} ${headers})
+# pflash.cc will be the main source code.
+add_executable(pflash pflash.cc ${sources} ${headers})
 
 # Still need to link all Geant4 lib
-target_link_libraries(sim ${Geant4_LIBRARIES} hdf5::hdf5-shared
+target_link_libraries(pflash ${Geant4_LIBRARIES} hdf5::hdf5-shared
     hdf5::hdf5_cpp-shared)
-target_include_directories(sim PRIVATE ${project_include_dirs})
+target_include_directories(pflash PRIVATE ${project_include_dirs})
 
-add_custom_target(Simulation DEPENDS sim)
+add_custom_target(PFLASHApp DEPENDS pflash)
 
 # Standalone unit test for ArgParser (no Geant4 runtime init required).
 enable_testing()
@@ -140,10 +140,10 @@ add_test(NAME Tonneau2025TableTest COMMAND Tonneau2025TableTest)
 # Reason: file(COPY) runs at configure time, but
 # CMAKE_BUILD_TYPE is known at build time with MSVC.
 add_custom_command(
-    TARGET sim POST_BUILD
+    TARGET pflash POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${PROJECT_SOURCE_DIR}/macro/"
-    "$<TARGET_FILE_DIR:sim>/macro"
+    "$<TARGET_FILE_DIR:pflash>/macro"
     COMMENT "Copying macro files to output directory..."
 )
 

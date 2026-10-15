@@ -1,9 +1,9 @@
 ---
 name: sim-output
-description: Use when running sim.exe, writing macros that dump output (/run/dumpDataAndReset, /run/dumpDataAndResetToDir, /run/outputDir, --dir), analyzing its output files, or changing output/scoring code (RunAccumulator, OutputDir, counters).
+description: Use when running pflash.exe, writing macros that dump output (/run/dumpDataAndReset, /run/dumpDataAndResetToDir, /run/outputDir, --dir), analyzing its output files, or changing output/scoring code (RunAccumulator, OutputDir, counters).
 ---
 
-# sim.exe output files and dump commands
+# pflash.exe output files and dump commands
 
 Species/reaction/energy/physical-interaction data accumulates across `/run/beamOn`
 calls rather than being written and reset after every run — species yields
@@ -108,7 +108,7 @@ resets all counters to empty/zero:
 
 `prefix` (optional, default none) is prepended literally to every filename
 above — no separator is inserted, so pass e.g. `run1_` if you want one.
-Reusing a prefix already used earlier in the same `sim.exe` process is a
+Reusing a prefix already used earlier in the same `pflash.exe` process is a
 fatal error (`RunAccumulator::TryReservePrefix`), to catch accidental
 overwrites. Each dump also calls `G4AnalysisManager::Clear()` after writing
 its CSV ntuples — without it, a later dump cycle reusing the same ntuple
@@ -135,7 +135,7 @@ subfolder like the other data files.
 If a macro never issues `/run/dumpDataAndReset` and there is still accumulated
 data pending when the program is about to exit, a safety-net flush fires
 automatically with the fixed prefix `EndOfRun_` (see
-`RunAccumulatorMessenger::FlushIfPending`, called from `sim.cc` just before
+`RunAccumulatorMessenger::FlushIfPending`, called from `pflash.cc` just before
 the run manager is destroyed) — so data is never silently lost even if the
 operator forgets the manual call. The `[RunAccumulatorMessenger] dumped and
 reset...` line is a plain, always-visible `G4cout` line (unlike most of this
@@ -143,7 +143,7 @@ project's diagnostics, which go through `DnaLogger` and are silent by
 default) — see `RunAccumulatorMessenger.cc`.
 
 Without `--dir` or `/run/outputDir`, output goes to `<exeDir>/results`
-(`OutputDir::SetDefaultDir` from `sim.cc`, created lazily at the first output,
+(`OutputDir::SetDefaultDir` from `pflash.cc`, created lazily at the first output,
 so a run that sets either never creates it; a `/run/outputDir` issued after the
 default was already used is refused). `<outdir>/Manifest.json` is also the
 **results index** (`ResultsIndex`, rewritten at every dump, the `EndOfRun_`
@@ -156,13 +156,13 @@ is that dump's manifest plus a top-level `dumps` array (no `kind`).
 
 Pass `--dir <path>` to redirect every output file above (plus the
 `/chem/reaction/dump` target, if the macro sets one) into `<path>` instead of
-the default directory — useful for isolating each run's output when scripting many `sim.exe`
+the default directory — useful for isolating each run's output when scripting many `pflash.exe`
 invocations. `<path>` itself is created if missing; its parent must already
 exist. `--dir` can appear anywhere on the command line, but the macro
 filename must still come first (`argv[1]`):
 
 ```bash
-./sim beam.in --dir runs/001
+./pflash beam.in --dir runs/001
 ```
 
 The macro command `/run/outputDir <path>` (`PreInit` only) is a second way
