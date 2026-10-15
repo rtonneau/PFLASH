@@ -3,7 +3,7 @@
 
 Usage: compare_reference.py <reference_dir> <new_dir> [--tol 0.10] [--plot out.png]
 
-Each directory holds Species_nt_species.csv and Manifest.json (a dump of sim).
+Each directory holds Species_nt_species.csv and Manifest.json (a dump of pflash).
 A dump whose Manifest.json has "mesoEnabled": true (older dumps: "chemistryModel") also has
 SpeciesMeso.csv: Species_nt_species.csv stops at the hand-over time and the
 mesoscopic output (time_ns,species,count, counts summed over events) covers

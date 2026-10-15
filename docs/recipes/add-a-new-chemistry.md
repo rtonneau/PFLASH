@@ -147,9 +147,9 @@ Geant4-kernel question, not a project one, so it was checked against the
 kernel source rather than assumed from general MT familiarity with "physics
 lists are built per thread."
 
-1. `sim.cc` constructs the project's `PhysicsList` **exactly once**,
+1. `pflash.cc` constructs the project's `PhysicsList` **exactly once**,
    regardless of Serial or MT: `runManager->SetUserInitialization(new
-   PhysicsList);` (`sim.cc:144`) runs on the master thread only, before any
+   PhysicsList);` (`pflash.cc:144`) runs on the master thread only, before any
    worker exists. `PhysicsList`'s constructor in turn does `fEmDNAChemistryList(new
    DnaChemistryList)` (`src/physics/PhysicsList.cc:15-21`) — so there is
    exactly one `DnaChemistryList` C++ object for the whole process, built

@@ -5,7 +5,7 @@ Two ways to move the output away from the default directory: `--dir <path>` (or 
 ## Default case (mesoscopic stage on)
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -40,7 +40,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ## Spatial output
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -78,7 +78,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ## Mesoscopic stage off
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):

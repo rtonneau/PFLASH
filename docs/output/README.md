@@ -1,6 +1,6 @@
 # Output files and directory layout
 
-What `sim` writes, where, and when. File names and sizes below come from real
+What `pflash` writes, where, and when. File names and sizes below come from real
 runs (10 keV e-, `/run/beamOn 2`, Serial, `/scheduler/endTime 1 ms`, default
 Chemistry `PureWater`, default 5 ns hand-over, mesoscopic stage on unless stated). Sizes scale with the number of
 events and with the chemistry end time, so read them as orders of magnitude.

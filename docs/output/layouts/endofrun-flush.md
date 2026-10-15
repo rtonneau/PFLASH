@@ -1,11 +1,11 @@
 # Layout: `EndOfRun_` flush
 
-A macro with no `/run/dumpDataAndReset` or `/run/dumpDataAndResetToDir` still writes its data: `sim` flushes once at exit with the fixed prefix `EndOfRun_`, into the output directory (`--dir`; without it, `<exeDir>/results`, e.g. `build/results`). The prefix is glued on like any other. The trees use `--dir <outdir>` for brevity. `<outdir>/Manifest.json` is the results index (`kind: "resultsIndex"`, `dumps[]`), rewritten at every dump; here it is separate from the dump's own manifest, which keeps its prefix or subfolder. Its `dumps[]` entry has `prefix: "EndOfRun_"`, `manifest: "EndOfRun_Manifest.json"`. File meaning: [../README.md](../README.md).
+A macro with no `/run/dumpDataAndReset` or `/run/dumpDataAndResetToDir` still writes its data: `pflash` flushes once at exit with the fixed prefix `EndOfRun_`, into the output directory (`--dir`; without it, `<exeDir>/results`, e.g. `build/results`). The prefix is glued on like any other. The trees use `--dir <outdir>` for brevity. `<outdir>/Manifest.json` is the results index (`kind: "resultsIndex"`, `dumps[]`), rewritten at every dump; here it is separate from the dump's own manifest, which keeps its prefix or subfolder. Its `dumps[]` entry has `prefix: "EndOfRun_"`, `manifest: "EndOfRun_Manifest.json"`. File meaning: [../README.md](../README.md).
 
 ## Default case (mesoscopic stage on)
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -39,7 +39,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ## Spatial output
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -76,7 +76,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ## Mesoscopic stage off
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):

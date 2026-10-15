@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 2359" width="1800" height="2359" font-family="Segoe UI, Helvetica, Arial, sans-serif">
 <title>PFLASH: application workflow with every source file</title>
-<desc>Swimlane workflow of PFLASH. Every source file (headers, sources, sim.cc, tests, CMakeLists.txt) appears as a chip inside the class box it belongs to; numbered dots show the other phases where the file is also used.</desc>
+<desc>Swimlane workflow of PFLASH. Every source file (headers, sources, pflash.cc, tests, CMakeLists.txt) appears as a chip inside the class box it belongs to; numbered dots show the other phases where the file is also used.</desc>
 <defs>
 <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#37474f"/></marker>
 <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c62828"/></marker>
@@ -66,10 +66,10 @@
 <line x1="10" y1="184" x2="1790" y2="184" stroke="#90a4ae" stroke-width="1.5" stroke-dasharray="2 4"/>
 <rect x="18" y="190" width="275.0" height="30" rx="6" fill="#ffffff" opacity="0.92"/>
 <circle cx="36" cy="205" r="11" fill="#546e7a"/><text x="36" y="209" class="n">1</text>
-<text x="54" y="211" class="h" text-anchor="start" >Startup: main() in sim.cc</text>
+<text x="54" y="211" class="h" text-anchor="start" >Startup: main() in pflash.cc</text>
 <text x="305.0" y="211" class="sub" text-anchor="start" >before any macro runs</text>
 <rect x="30" y="236" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
-<text x="44" y="258" class="t" fill="#546e7a">sim.cc  main()</text>
+<text x="44" y="258" class="t" fill="#546e7a">pflash.cc  main()</text>
 <text x="44" y="278" class="d">CLI: &lt;macro.in&gt; --threads N --dir &lt;path&gt;</text>
 <text x="44" y="294" class="d">ArgParser, OutputDir, default seed 12345</text>
 <text x="44" y="310" class="d">then executes the macro (batch) or opens the GUI</text>
@@ -80,7 +80,7 @@
 <text x="434" y="294" class="d">RunAccumulatorMessenger add macro commands.</text>
 <text x="434" y="310" class="d">SetUserInitialization(Detector, PhysicsList, Actions)</text>
 <rect x="434.0" y="324" width="70.4" height="20" rx="10" fill="#ffffff" stroke="#546e7a" stroke-width="1.4"/>
-<text x="442.0" y="338" class="c">sim.cc</text>
+<text x="442.0" y="338" class="c">pflash.cc</text>
 <circle cx="496.4" cy="334" r="6.5" fill="#2e7d32"/><text x="496.4" y="337.5" class="dn">4</text>
 <rect x="510.4" y="324" width="110.6" height="20" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.4"/>
 <text x="518.4" y="338" class="c">core/ArgParser</text>
@@ -356,10 +356,10 @@
 <path d="M1000,1672 L1000,1758" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
 <rect x="10" y="2029" width="1780" height="310" rx="12" fill="#fafafa" stroke="#cfd8dc" stroke-width="1.5"/>
 <text x="28" y="2055" class="h" text-anchor="start" >5. Build and unit tests</text>
-<text x="274.4" y="2055" class="sub" text-anchor="start" >CMakeLists.txt builds the sim target from every source above; each test compiles only the files it covers (phase of covered file in brackets)</text>
+<text x="274.4" y="2055" class="sub" text-anchor="start" >CMakeLists.txt builds the pflash target from every source above; each test compiles only the files it covers (phase of covered file in brackets)</text>
 <rect x="30" y="2069" width="1740" height="46" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
 <text x="44" y="2091" class="t" fill="#546e7a">CMakeLists.txt</text>
-<text x="190" y="2098" class="d" text-anchor="start" >sim (sim.cc + all src/*.cc), ArgParserTest, OutputDirTest, ChemistryRegistryTest, ScavengerSpecTest, ReactionTableDumpTest, PhysicsInteractionCounterTest, ReactionCounterTest, RunAccumulatorTest, ManifestWriterTest</text>
+<text x="190" y="2098" class="d" text-anchor="start" >pflash (pflash.cc + all src/*.cc), ArgParserTest, OutputDirTest, ChemistryRegistryTest, ScavengerSpecTest, ReactionTableDumpTest, PhysicsInteractionCounterTest, ReactionCounterTest, RunAccumulatorTest, ManifestWriterTest</text>
 <rect x="30" y="2129" width="340" height="84" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
 <text x="42" y="2151" class="t" text-anchor="start" fill="#2e7d32">test/ArgParserTest.cc</text>
 <text x="42" y="2171" class="d" text-anchor="start" >covers core/ArgParser (1)</text>
@@ -394,5 +394,5 @@
 <text x="1450" y="2251" class="nb" text-anchor="start" >Files without a unit test</text>
 <text x="1450" y="2271" class="note" text-anchor="start" >need the Geant4 kernel to run</text>
 <text x="1450" y="2287" class="note" text-anchor="start" >(actions, geometry, physics, most chemistry, scoring).</text>
-<text x="1450" y="2303" class="note" text-anchor="start" >They are checked by the sim smoke run.</text>
+<text x="1450" y="2303" class="note" text-anchor="start" >They are checked by the pflash smoke run.</text>
 </svg>

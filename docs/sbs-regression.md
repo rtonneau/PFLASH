@@ -11,8 +11,8 @@ Caveat: the references were captured with an older build (`1d047c4`, SBS only, a
 Macros: `macro/validate_water.in` and `macro/validate_o2.in` with one line added before `/run/initialize` (`/process/chem/TimeStepModel SBS`) and, for O2, `/run/beamOn 300` instead of 1500. Seeds, 1 us and 10 keV are unchanged; the macros in `macro/` are untouched. Run from `build/` (RelWithDebInfo):
 
 ```bash
-./sim.exe <scratch>/07-validate_water.in --threads 10 --dir <scratch>/<out>   # N = 40
-./sim.exe <scratch>/07-validate_o2.in    --threads 10 --dir <scratch>/<out>   # N = 300
+./pflash.exe <scratch>/07-validate_water.in --threads 10 --dir <scratch>/<out>   # N = 40
+./pflash.exe <scratch>/07-validate_o2.in    --threads 10 --dir <scratch>/<out>   # N = 300
 python analysis/compare_reference.py validation/reference/sbs_water <scratch>/<out>
 python analysis/compare_reference.py validation/reference/sbs_o2    <scratch>/<out>
 ```

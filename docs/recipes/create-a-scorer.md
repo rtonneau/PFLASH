@@ -76,7 +76,7 @@ for why, rather than repeating it here.
 
 ## Serial vs MT
 
-- **Serial** (`sim.cc` default, no `--threads`): one `Run` object and one
+- **Serial** (`pflash.cc` default, no `--threads`): one `Run` object and one
   scorer instance exist for the whole job. `ProcessHits`/`EndOfEvent` accumulate
   directly into that single instance; there is no merge step.
 - **MT** (`--threads N` or `/run/numberOfThreads N`): each worker thread gets

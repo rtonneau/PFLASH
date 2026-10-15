@@ -8,7 +8,7 @@ esults`), then the tree after `/run/dumpDataAndReset`.
 ## Default case (mesoscopic stage on)
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -53,7 +53,7 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 ## Spatial output
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
@@ -103,7 +103,7 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 ## Mesoscopic stage off
 
 ```bash
-./sim <macro>.in --dir <outdir>
+./pflash <macro>.in --dir <outdir>
 ```
 
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):

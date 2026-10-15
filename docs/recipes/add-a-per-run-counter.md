@@ -163,7 +163,7 @@ This is the clearest, most-verified instance of the per-thread-accumulate /
 master-merge pattern in this codebase; `create-a-scorer.md` and
 `create-a-species-counter.md` link here rather than repeating it.
 
-- **Serial** (`sim.cc` default, no `--threads`): there is exactly one
+- **Serial** (`pflash.cc` default, no `--threads`): there is exactly one
   thread, one `Run` instance per `/run/beamOn`, and the action classes
   (`TimeStepAction`, `SteppingAction`, `TrackingAction`) that own the live
   counters exist once for the whole job. `Run::Merge` is never called —

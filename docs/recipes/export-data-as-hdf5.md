@@ -108,7 +108,7 @@ against the actual source:
   parent directory, removes any pre-existing file at the destination, and
   `fs::rename`s the staged file onto it, so a dump always gets a clean move
   rather than an accumulating append across dumps.
-- **Safety net.** The same `FlushIfPending()` call from `sim.cc` that catches
+- **Safety net.** The same `FlushIfPending()` call from `pflash.cc` that catches
   un-dumped counters at process exit (prefix `EndOfRun_`) reaches this same
   `RunAccumulatorMessenger` dump path, so a staged `SpeciesMesoSpatial.h5`
   never manually dumped is still moved out of `.pending_meso_spatial/`
