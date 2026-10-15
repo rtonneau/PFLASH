@@ -103,6 +103,6 @@ but anything indexed/joined manually should check for this explicitly.
 The `IRT_syn` and `SBS` columns were produced with `/process/dna/e-SolvationSubType Ritchie1994`. The stock Geant4-DNA
 `scavenger` example, which Farokhi et al. built on, uses `Meesungnoen2002`, and that choice accounts for most of the
 `e_aq` offset at 1 ps (4.036 with Ritchie1994, 4.150 with Meesungnoen2002, 4.176 for the stock example; Farokhi digitized about
-4.21). Details: `farokhi2023/eaq_1ps_gap.md`, `farokhi2023/dissociation_channels_comparison.md`. All `macro/beam_farokhi_*.in` now
+4.21). Details: `farokhi2023/eaq_1ps_gap.md`, `farokhi2023/dissociation_channels_comparison.md`. All `macro/farokhi2023/beam_farokhi_*.in` now
 set `Meesungnoen2002`; this table was **not** regenerated, so re-run the electron batches (and the notebook) before using it
 for a like-for-like comparison. The Boscolo column comes from a different code and is not affected.

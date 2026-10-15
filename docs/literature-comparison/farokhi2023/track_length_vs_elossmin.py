@@ -13,7 +13,7 @@ one dump's worth of events.
 
 Data: <G4_DATA_OUTPUT>/261010_Farokhi2023_electron_elossmin_tracklen/o2_{0,2p5,5}pct/
 elossmin_{1,2p5,5,7p5,10}pct (250 events/run, 8 threads; macros
-build/macro/beam_farokhi_electron_o2_*pct_elossmin_*pct.in). The 21 % O2 level and the
+build/macro/farokhi2023/beam_farokhi_electron_o2_*pct_elossmin_*pct.in). The 21 % O2 level and the
 10 % eLossMin point at 5 % O2 are not included here: 21 % was not part of this sweep's
 macro set, and 5pct/elossmin_10pct was still running (no Manifest.json yet) when this
 script was written -- rerun to pick it up once it finishes.
