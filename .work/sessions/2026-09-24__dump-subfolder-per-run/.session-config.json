@@ -1,0 +1,22 @@
+{
+  "session_id": "2026-09-24__dump-subfolder-per-run",
+  "feature_name": "dump-subfolder-per-run",
+  "scratch_dir": ".scratch/tests/2026-09-24__dump-subfolder-per-run",
+  "created_at": "2026-09-24T15:36:16.905Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-24T15:36:16.911Z",
+      "sessionIds": [
+        "ff9d4aef-9c8a-4be3-98df-a9fad35105f9"
+      ]
+    }
+  },
+  "git": {
+    "branch": "feat/dump-to-subfolder",
+    "base_branch": "main",
+    "branch_created_at": "2026-09-24T15:42:09.969Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/8"
+  },
+  "finished_at": "2026-09-24T15:48:34.275Z"
+}

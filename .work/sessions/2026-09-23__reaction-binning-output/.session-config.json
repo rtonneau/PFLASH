@@ -1,0 +1,16 @@
+{
+  "session_id": "2026-09-23__reaction-binning-output",
+  "feature_name": "reaction-binning-output",
+  "scratch_dir": ".scratch/tests/2026-09-23__reaction-binning-output",
+  "created_at": "2026-09-23T09:33:50.895Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-23T09:33:50.901Z",
+      "sessionIds": [
+        "20d61f1b-6ab6-4925-a376-6d82e8428470"
+      ]
+    }
+  },
+  "finished_at": "2026-09-23T10:35:47.846Z"
+}

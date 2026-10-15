@@ -1,0 +1,83 @@
+{
+  "geant4SourcePath": "${DEV_DIR}/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1",
+  "geant4InstallPath": "${G4_ROOT}",
+  "geant4Version": "11.4.1",
+  "kbPath": "${DEV_DIR}/GEANT4/geant4-v11.4.1-kb",
+  "projectNotesPath": ".kb-notes",
+
+  "build": {
+    "system": "cmake",
+    "generator": "Ninja",
+    "environment": "msvc-x64",
+    "cxxStandard": 20,
+    "executable": "sim",
+    "runBuildDir": "build",
+    "runBuildType": "RelWithDebInfo",
+    "testBuildDir": "build-ninja",
+    "testBuildType": "Debug",
+    "toolchainFile": "${DEV_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+    "extraCMakeArgs": [],
+    "compileCommands": {
+      "dir": "build-ninja",
+      "refreshHook": ".claude/hooks/update-compile-cmd.ps1"
+    },
+    "dependencies": {
+      "geant4": ">=11.0 with DNA models",
+      "cmake": ">=3.16",
+      "hdf5": "C and CXX components (vcpkg)"
+    }
+  },
+
+  "run": {
+    "workingDir": "runBuildDir",
+    "macroDir": "macro",
+    "macroArgIsFilenameOnly": true,
+    "macroCopiedAtBuild": true,
+    "cli": {
+      "syntax": "<executable> <macroFilename> [--threads N] [--dir <path>]",
+      "--threads": "N > 0 selects the MT run manager; absent = Serial (default). Each thread adds a full copy of the chemistry state, so memory grows with N.",
+      "--dir": "redirects every output file into <path>; the parent must already exist, the leaf is created"
+    },
+    "longRunning": true,
+    "smoke": {
+      "gun": "/gun/particle e-, /gun/energy 25 keV",
+      "beamOn": 10,
+      "note": "Write a scratch macro into <runBuildDir>/macro (untracked). Do not edit macro/beam.in (100 keV, 1 s end time by default: long). For a quick run issue '/scheduler/endTime 1 ms' after /run/initialize. End the macro with '/run/dumpDataAndReset' (no prefix) so the files in run.outputs are produced with their bare names -- omitting it falls back to the EndOfRun_-prefixed safety-net dump at process exit instead."
+    },
+    "outputs": [
+      "Species.Txt",
+      "SpeciesMeso.Txt",
+      "SpeciesMeso.csv",
+      "SpeciesMesoSpatial.h5 (only with /chem/meso/spatialOutput true)",
+      "Species_nt_species.csv",
+      "Reactions.Txt",
+      "Reactions_nt_reactions.csv",
+      "ReactionsMetadata.csv",
+      "Manifest.json",
+      "PhysicsInteractions.Txt",
+      "PhysicsInteractions.csv",
+      "PreChemical_run<R>_event<E>.txt (one per event, moved into the Dump)"
+    ],
+    "successMarkers": [
+      "[RunAccumulatorMessenger] dumped and reset",
+      "The simulation took"
+    ],
+    "failureMarkers": [
+      "EEEE",
+      "FatalException",
+      "non-zero exit code"
+    ],
+    "benignWarnings": []
+  },
+
+  "test": {
+    "framework": "plain assert() + CTest, no framework",
+    "sourceDir": "test",
+    "buildDir": "testBuildDir",
+    "list": "ctest --test-dir <testBuildDir> -N",
+    "run": "ctest --test-dir <testBuildDir> --output-on-failure",
+    "validation": "every test Passed and none Not Run",
+    "wiring": "add_executable(<X>Test test/<X>Test.cc src/<cluster>/<X>.cc [src deps]) + target_link_libraries(... ${Geant4_LIBRARIES}) + add_test(NAME <X>Test COMMAND <X>Test)",
+    "scope": "pure logic only, no Geant4 kernel. Geant4-object code (scorers, actions, reaction tables) is verified by the smoke run."
+  }
+}

@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1430" width="1800" height="1430" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<title>dnachem-min: application workflow and Geant4 kernel interaction</title>
+<desc>Swimlane workflow of the dnachem-min Geant4-DNA application: startup, initialization, the per-event loop (physical stage, chemistry stage, scoring) and the end-of-run dump, showing which project classes plug into which Geant4 kernel components and who calls whom.</desc>
+<defs>
+<marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#37474f"/></marker>
+<marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c62828"/></marker>
+<style>
+.t{font:700 13px Consolas,"Courier New",monospace}
+.d{font:12px "Segoe UI",Helvetica,Arial,sans-serif;fill:#263238}
+.h{font:700 17px "Segoe UI",Helvetica,Arial,sans-serif;fill:#263238}
+.sub{font:italic 13px "Segoe UI",Helvetica,Arial,sans-serif;fill:#546e7a}
+.lab{font:11px "Segoe UI",Arial,sans-serif;fill:#37474f}
+.red{font:700 11px "Segoe UI",Arial,sans-serif;fill:#c62828}
+.ttl{font:700 26px "Segoe UI",Helvetica,Arial,sans-serif;fill:#102027}
+.ln{font:700 14px "Segoe UI",Helvetica,Arial,sans-serif}
+.note{font:italic 12px "Segoe UI",Helvetica,Arial,sans-serif;fill:#546e7a}
+.nb{font:700 13px "Segoe UI",Helvetica,Arial,sans-serif;fill:#37474f}
+</style>
+</defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="30" y="42" class="ttl" text-anchor="start" >dnachem-min workflow: how the application and the Geant4 kernel interlace</text>
+<text x="30" y="66" class="sub" text-anchor="start" >Geant4 owns the control flow. The project supplies classes that plug into Geant4 base classes, and the kernel calls them back (red dashed arrows).</text>
+<rect x="30" y="86" width="18" height="18" rx="4" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="56" y="100" class="d" text-anchor="start" >Macro / entry point</text>
+<rect x="330" y="86" width="18" height="18" rx="4" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+<text x="356" y="100" class="d" text-anchor="start" >Project user action</text>
+<rect x="630" y="86" width="18" height="18" rx="4" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+<text x="656" y="100" class="d" text-anchor="start" >Project class</text>
+<rect x="930" y="86" width="18" height="18" rx="4" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="956" y="100" class="d" text-anchor="start" >Geant4 kernel / Geant4-DNA</text>
+<rect x="1230" y="86" width="18" height="18" rx="4" fill="#fffde7" stroke="#f9a825" stroke-width="1.5"/>
+<text x="1256" y="100" class="d" text-anchor="start" >Output file</text>
+<path d="M1530,96 L1590,96" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1598" y="100" class="d" text-anchor="start" >project registers / hands over</text>
+<path d="M1530,118 L1590,118" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1598" y="122" class="d" text-anchor="start" >kernel calls back into project</text>
+<rect x="15" y="138" width="340" height="1322" rx="10" fill="#f5f7f8" stroke="#cfd8dc"/>
+<rect x="15" y="138" width="340" height="30" rx="10" fill="#546e7a"/>
+<text x="185.0" y="158" class="ln" text-anchor="middle" fill="#ffffff">Macro commands and stage notes</text>
+<rect x="410" y="138" width="640" height="1322" rx="10" fill="#eef5fc" stroke="#cfd8dc"/>
+<rect x="410" y="138" width="640" height="30" rx="10" fill="#1565c0"/>
+<text x="730.0" y="158" class="ln" text-anchor="middle" fill="#ffffff">dnachem-min classes</text>
+<rect x="1150" y="138" width="635" height="1322" rx="10" fill="#f7f0fa" stroke="#cfd8dc"/>
+<rect x="1150" y="138" width="635" height="30" rx="10" fill="#7b1fa2"/>
+<text x="1467.5" y="158" class="ln" text-anchor="middle" fill="#ffffff">Geant4 kernel and Geant4-DNA</text>
+<line x1="10" y1="172" x2="1790" y2="172" stroke="#90a4ae" stroke-width="1.5" stroke-dasharray="2 4"/>
+<rect x="18" y="178" width="279.2" height="30" rx="6" fill="#ffffff" opacity="0.92"/>
+<text x="26" y="199" class="h" text-anchor="start" >1. Startup: main() in sim.cc</text>
+<text x="305.2" y="199" class="sub" text-anchor="start" >before any macro runs</text>
+<rect x="30" y="224" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="44" y="246" class="t" fill="#546e7a">sim.cc  main()</text>
+<text x="44" y="266" class="d">CLI: &lt;macro.in&gt; --threads N --dir &lt;path&gt;</text>
+<text x="44" y="282" class="d">ArgParser, OutputDir, default seed 12345</text>
+<text x="44" y="298" class="d">then executes the macro (batch) or opens the GUI</text>
+<path d="M340,266 L420,266" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<rect x="420" y="224" width="620" height="84" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+<text x="434" y="246" class="t" fill="#1565c0">Messengers + user initialisation</text>
+<text x="434" y="266" class="d">DnaLoggerMessenger, OutputDirMessenger,</text>
+<text x="434" y="282" class="d">RunAccumulatorMessenger add macro commands.</text>
+<text x="434" y="298" class="d">SetUserInitialization(Detector, PhysicsList, Actions)</text>
+<rect x="1160" y="224" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="246" class="t" fill="#7b1fa2">G4RunManagerFactory + G4UImanager</text>
+<text x="1174" y="266" class="d">Serial run manager by default, MT if --threads N &gt; 0</text>
+<text x="1174" y="282" class="d">G4UImanager parses and dispatches macro commands</text>
+<text x="1174" y="298" class="d">G4Random engine (seed becomes part of the manifest)</text>
+<path d="M1040,254 L1160,254" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="248" class="lab" text-anchor="middle" >registers</text>
+<line x1="10" y1="342" x2="1790" y2="342" stroke="#90a4ae" stroke-width="1.5" stroke-dasharray="2 4"/>
+<rect x="18" y="348" width="457.8" height="30" rx="6" fill="#ffffff" opacity="0.92"/>
+<text x="26" y="369" class="h" text-anchor="start" >2. /run/initialize: the kernel builds the world</text>
+<text x="483.8" y="369" class="sub" text-anchor="start" >each project class plugs into a Geant4 base class</text>
+<rect x="30" y="394" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="44" y="416" class="t" fill="#546e7a">Macro: pH and scavengers</text>
+<text x="44" y="436" class="d">/chem/env/pH 7</text>
+<text x="44" y="452" class="d">/chem/env/scavenger O2 21 %   (PreInit)</text>
+<path d="M340,436 L420,436" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<rect x="420" y="394" width="620" height="84" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+<text x="434" y="416" class="t" fill="#1565c0">DetectorConstruction</text>
+<text x="434" y="436" class="d">One homogeneous water box (World) + DnaChemistryWorld</text>
+<text x="434" y="452" class="d">(box size, pH, scavengers for the chemistry stage)</text>
+<text x="434" y="468" class="d">MultiFunctionalDetector: ScoreSpecies + PrimaryKiller (/primaryKiller/*)</text>
+<rect x="1160" y="394" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="416" class="t" fill="#7b1fa2">G4VUserDetectorConstruction, G4SDManager</text>
+<text x="1174" y="436" class="d">Construct() returns the world volume</text>
+<text x="1174" y="452" class="d">G4MultiFunctionalDetector hosts the primitive scorers</text>
+<text x="1174" y="468" class="d">G4VChemistryWorld: the interface the chemistry reads</text>
+<path d="M1040,424 L1160,424" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="418" class="lab" text-anchor="middle" >world + scorers</text>
+<path d="M1160,452 L1040,452" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="468" class="red" text-anchor="middle" >Construct()</text>
+<rect x="30" y="498" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="44" y="520" class="t" fill="#546e7a">Macro: choose the Chemistry</text>
+<text x="44" y="540" class="d">/chem/select PureWater | BoscoloChem</text>
+<text x="44" y="556" class="d">/process/chem/TimeStepModel SBS</text>
+<path d="M340,540 L420,540" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<rect x="420" y="498" width="620" height="84" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+<text x="434" y="520" class="t" fill="#1565c0">PhysicsList</text>
+<text x="434" y="540" class="d">G4EmDNAPhysics (physical stage) +</text>
+<text x="434" y="556" class="d">DnaChemistryList (molecules, water dissociation,</text>
+<text x="434" y="572" class="d">reactions of the selected Chemistry, SBS time step)</text>
+<rect x="1160" y="498" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="520" class="t" fill="#7b1fa2">G4VModularPhysicsList, G4EmDNAPhysics</text>
+<text x="1174" y="540" class="d">ConstructParticle() / ConstructProcess() callbacks</text>
+<text x="1174" y="556" class="d">Geant4-DNA processes attached to e- in water</text>
+<text x="1174" y="572" class="d">G4DNAChemistryManager + molecule and reaction tables</text>
+<path d="M1040,528 L1160,528" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="522" class="lab" text-anchor="middle" >processes</text>
+<path d="M1160,556 L1040,556" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="572" class="red" text-anchor="middle" >Construct*()</text>
+<rect x="30" y="602" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="44" y="624" class="t" fill="#546e7a">Macro: /run/initialize</text>
+<text x="44" y="644" class="d">/scheduler/endTime 1 us   (after initialize)</text>
+<text x="44" y="660" class="d">chemistry stage stops at this time</text>
+<path d="M340,644 L420,644" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<rect x="420" y="602" width="620" height="84" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+<text x="434" y="624" class="t" fill="#e65100">ActionInitialization</text>
+<text x="434" y="644" class="d">Build(): PrimaryGenerator, Run, Event, Stacking,</text>
+<text x="434" y="660" class="d">Tracking and Stepping actions; TimeStepAction on</text>
+<text x="434" y="676" class="d">the G4Scheduler; molecule counters registered</text>
+<rect x="1160" y="602" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="624" class="t" fill="#7b1fa2">User-action hooks, G4Scheduler</text>
+<text x="1174" y="644" class="d">G4RunManager / G4EventManager keep the user actions</text>
+<text x="1174" y="660" class="d">G4Scheduler: clock of the chemistry stage</text>
+<text x="1174" y="676" class="d">G4MoleculeCounterManager: species counts over time</text>
+<path d="M1040,632 L1160,632" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="626" class="lab" text-anchor="middle" >SetUserAction</text>
+<path d="M1160,660 L1040,660" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="676" class="red" text-anchor="middle" >Build()</text>
+<line x1="10" y1="720" x2="1790" y2="720" stroke="#90a4ae" stroke-width="1.5" stroke-dasharray="2 4"/>
+<rect x="18" y="726" width="316.8" height="30" rx="6" fill="#ffffff" opacity="0.92"/>
+<text x="26" y="747" class="h" text-anchor="start" >3. /run/beamOn N: the event loop</text>
+<text x="342.8" y="747" class="sub" text-anchor="start" >Geant4 drives it, project classes hook in through callbacks</text>
+<rect x="30" y="772" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="44" y="794" class="t" fill="#546e7a">Macro: the beam</text>
+<text x="44" y="814" class="d">/gun/particle e-</text>
+<text x="44" y="830" class="d">/gun/energy 10 keV,  then /run/beamOn 2</text>
+<path d="M340,814 L420,814" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<rect x="420" y="772" width="620" height="84" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+<text x="434" y="794" class="t" fill="#e65100">PrimaryGeneratorAction</text>
+<text x="434" y="814" class="d">GeneratePrimaries(): fires the G4ParticleGun</text>
+<text x="434" y="830" class="d">first event also records the beam (particle, energy,</text>
+<text x="434" y="846" class="d">position) for the manifest</text>
+<rect x="1160" y="772" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="794" class="t" fill="#7b1fa2">G4RunManager -&gt; G4EventManager</text>
+<text x="1174" y="814" class="d">Loops over the N events of the run</text>
+<text x="1174" y="830" class="d">Calls GeneratePrimaries(), Begin/EndOfEventAction</text>
+<text x="1174" y="846" class="d">Creates the Run object (its seed is read here)</text>
+<path d="M1040,802 L1160,802" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="796" class="lab" text-anchor="middle" >primary vertex</text>
+<path d="M1160,830 L1040,830" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="846" class="red" text-anchor="middle" >GeneratePrimaries</text>
+<text x="38" y="900" class="nb" text-anchor="start" >Physical stage</text>
+<text x="38" y="920" class="note" text-anchor="start" >the e- slows down in water,</text>
+<text x="38" y="936" class="note" text-anchor="start" >ionising and exciting molecules</text>
+<rect x="420" y="876" width="620" height="84" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+<text x="434" y="898" class="t" fill="#e65100">SteppingAction</text>
+<text x="434" y="918" class="d">Reads each step's post-step process name;</text>
+<text x="434" y="934" class="d">names containing "G4DNA" are counted in a</text>
+<text x="434" y="950" class="d">PhysicsInteractionCounter (energy summed in Run)</text>
+<rect x="1160" y="876" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="898" class="t" fill="#7b1fa2">G4SteppingManager + G4DNA physics processes</text>
+<text x="1174" y="918" class="d">Elastic, ionisation, excitation, attachment ... models</text>
+<text x="1174" y="934" class="d">Ionisation and excitation create radiolytic species</text>
+<text x="1174" y="950" class="d">Discrete interactions show up as post-step processes</text>
+<path d="M1160,934 L1040,934" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="950" class="red" text-anchor="middle" >stepping hook</text>
+<text x="38" y="1004" class="nb" text-anchor="start" >Chemistry stage</text>
+<text x="38" y="1024" class="note" text-anchor="start" >radiolytic species diffuse and react</text>
+<text x="38" y="1040" class="note" text-anchor="start" >(Step-By-Step model, up to endTime)</text>
+<rect x="420" y="980" width="620" height="84" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+<text x="434" y="1002" class="t" fill="#e65100">StackingAction + TimeStepAction</text>
+<text x="434" y="1022" class="d">NewStage(): stack empty, so chemistry may start</text>
+<text x="434" y="1038" class="d">TimeStepAction: counts each reaction firing per</text>
+<text x="434" y="1054" class="d">time bin in the ReactionCounter</text>
+<rect x="1160" y="980" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="1002" class="t" fill="#7b1fa2">G4DNAChemistryManager + G4Scheduler</text>
+<text x="1174" y="1022" class="d">Dissociation gives species, scheduler steps them</text>
+<text x="1174" y="1038" class="d">Reactions come from the selected Chemistry table</text>
+<text x="1174" y="1054" class="d">Bulk scavengers and pH buffer act as reactions</text>
+<path d="M1040,1010 L1160,1010" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="1004" class="lab" text-anchor="middle" >run chemistry</text>
+<path d="M1160,1038 L1040,1038" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="1054" class="red" text-anchor="middle" >NewStage()</text>
+<text x="38" y="1108" class="nb" text-anchor="start" >Scoring</text>
+<text x="38" y="1128" class="note" text-anchor="start" >species counts versus time, per event</text>
+<rect x="420" y="1084" width="620" height="84" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+<text x="434" y="1106" class="t" fill="#1565c0">ScoreSpecies + EventAction</text>
+<text x="434" y="1126" class="d">ScoreSpecies (primitive scorer in the detector) reads</text>
+<text x="434" y="1142" class="d">the molecule counters: species vs time, all events</text>
+<text x="434" y="1158" class="d">EventAction forwards begin/end to the chemistry</text>
+<rect x="1160" y="1084" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="1106" class="t" fill="#7b1fa2">G4MoleculeCounterManager, G4SDManager</text>
+<text x="1174" y="1126" class="d">Counters reset before each event and run</text>
+<text x="1174" y="1142" class="d">ScoreSpecies::EndOfEvent reads counter 0 (BasicCounter)</text>
+<text x="1174" y="1158" class="d">MT: worker results merged into the master Run</text>
+<path d="M1160,1142 L1040,1142" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="1158" class="red" text-anchor="middle" >scorer hooks</text>
+<line x1="10" y1="1202" x2="1790" y2="1202" stroke="#90a4ae" stroke-width="1.5" stroke-dasharray="2 4"/>
+<rect x="18" y="1208" width="222.8" height="30" rx="6" fill="#ffffff" opacity="0.92"/>
+<text x="26" y="1229" class="h" text-anchor="start" >4. End of run and dump</text>
+<text x="248.8" y="1229" class="sub" text-anchor="start" >data outlives the run; files appear only at a dump</text>
+<rect x="30" y="1254" width="310" height="84" rx="8" fill="#eceff1" stroke="#546e7a" stroke-width="1.5"/>
+<text x="44" y="1276" class="t" fill="#546e7a">Macro: flush the results</text>
+<text x="44" y="1296" class="d">/run/dumpDataAndReset [prefix]</text>
+<text x="44" y="1312" class="d">or exit-time safety net (EndOfRun_)</text>
+<path d="M340,1296 L420,1296" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<rect x="420" y="1254" width="620" height="84" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+<text x="434" y="1276" class="t" fill="#1565c0">RunAction -&gt; RunAccumulator -&gt; Messenger</text>
+<text x="434" y="1296" class="d">End of run: energy, counters, run record accumulate.</text>
+<text x="434" y="1312" class="d">Dump: writes Species, Reactions, PhysicsInteractions</text>
+<text x="434" y="1328" class="d">and Manifest.json (see manifest-creation.svg)</text>
+<rect x="1160" y="1254" width="615" height="84" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5"/>
+<text x="1174" y="1276" class="t" fill="#7b1fa2">G4Run::Merge, G4AnalysisManager</text>
+<text x="1174" y="1296" class="d">Merge collects worker data into the master Run</text>
+<text x="1174" y="1312" class="d">G4AnalysisManager writes the csv files</text>
+<text x="1174" y="1328" class="d">RunAction::EndOfRunAction is called by the kernel</text>
+<path d="M1040,1284 L1160,1284" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<text x="1100.0" y="1278" class="lab" text-anchor="middle" >csv output</text>
+<path d="M1160,1312 L1040,1312" fill="none" stroke="#c62828" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#m2)"/>
+<text x="1100.0" y="1328" class="red" text-anchor="middle" >EndOfRunAction</text>
+<rect x="420" y="1354" width="620" height="84" rx="8" fill="#fffde7" stroke="#f9a825" stroke-width="1.5"/>
+<text x="434" y="1376" class="t" fill="#8a6d00">Output files (dump prefix or subdir applied)</text>
+<text x="434" y="1396" class="d">Species.Txt, Species_nt_species.csv, Reactions.Txt,</text>
+<text x="434" y="1412" class="d">Reactions_nt_reactions.csv, ReactionsMetadata.csv,</text>
+<text x="434" y="1428" class="d">PhysicsInteractions.Txt / .csv, Manifest.json</text>
+<path d="M730.0,1338 L730.0,1354" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,308 L1000,394" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,478 L1000,498" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,582 L1000,602" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,686 L1000,772" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,856 L1000,876" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,960 L1000,980" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,1064 L1000,1084" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+<path d="M1000,1168 L1000,1254" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#m1)"/>
+</svg>

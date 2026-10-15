@@ -1,0 +1,22 @@
+{
+  "session_id": "2026-09-24__mt-dump-clear-worker-scorers",
+  "feature_name": "mt-dump-clear-worker-scorers",
+  "scratch_dir": ".scratch/tests/2026-09-24__mt-dump-clear-worker-scorers",
+  "created_at": "2026-09-24T16:06:37.521Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-24T16:06:37.524Z",
+      "sessionIds": [
+        "21d27226-86c4-45eb-880c-6c6b7879c7f3"
+      ]
+    }
+  },
+  "git": {
+    "branch": "fix/mt-species-worker-scorer-clear",
+    "base_branch": "main",
+    "branch_created_at": "2026-09-24T16:09:04.238Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/9"
+  },
+  "finished_at": "2026-09-24T16:15:19.281Z"
+}

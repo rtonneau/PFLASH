@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(//**/geant4-v11.4.1-source/**)"
+    ]
+  },
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/update-compile-cmd.ps1"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

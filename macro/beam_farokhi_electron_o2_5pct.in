@@ -1,0 +1,29 @@
+# Farokhi et al. 2023, Fig. 5: 500 keV electron, 5 % O2.
+# /primaryKiller/eLossMin 5 keV truncates the primary after 1% of the
+# 500 keV beam energy, keeping the simulated track segment's LET close
+# to the nominal 0.5 MeV value (the paper does not state its own
+# numeric threshold).
+
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Meesungnoen2002
+
+/chem/select Farokhi2023
+/chem/meso/enable false
+
+/chem/env/scavenger O2 51.9 uM
+
+/run/initialize
+
+/primaryKiller/eLossMin 5 keV
+/primaryKiller/verbose 0
+
+/scheduler/endTime 1 us
+
+/gun/particle e-
+/gun/energy 500 keV
+
+/run/beamOn 50
+/run/dumpDataAndReset

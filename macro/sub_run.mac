@@ -1,0 +1,4 @@
+/gun/energy {energy} keV
+#/control/loop macro/beamon.mac idx 1 10 1
+/run/beamOn 100
+/run/dumpDataAndResetToDir run_{energy}keV

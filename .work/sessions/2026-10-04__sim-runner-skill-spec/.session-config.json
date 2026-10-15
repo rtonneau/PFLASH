@@ -1,0 +1,178 @@
+{
+  "session_id": "2026-10-04__sim-runner-skill-spec",
+  "feature_name": "sim-runner-skill-spec",
+  "scratch_dir": ".scratch/tests/2026-10-04__sim-runner-skill-spec",
+  "created_at": "2026-10-04T08:32:46.598Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-04T08:32:46.598Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-04T08:48:33.026Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-04T08:48:33.124Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-04T08:51:40.910Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "docs/g4run-spec",
+        "base": "Meso"
+      }
+    },
+    {
+      "at": "2026-10-04T08:51:40.942Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-spec-core.md",
+        "02-plan/tickets/02-spec-execution.md",
+        "02-plan/tickets/03-spec-analysis-cli.md",
+        "02-plan/tickets/04-commit-and-pointer.md"
+      ],
+      "detail": {
+        "tickets": 4
+      }
+    },
+    {
+      "at": "2026-10-04T08:52:04.434Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-spec-core.md",
+        "03-implement/01-spec-core/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-spec-core"
+      }
+    },
+    {
+      "at": "2026-10-04T09:46:37.668Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-spec-core/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-spec-core",
+        "commit": "194f27c"
+      }
+    },
+    {
+      "at": "2026-10-04T09:46:41.692Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-spec-execution.md",
+        "03-implement/02-spec-execution/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-spec-execution"
+      }
+    },
+    {
+      "at": "2026-10-04T09:52:49.099Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-spec-execution/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-spec-execution",
+        "commit": "8a634ff"
+      }
+    },
+    {
+      "at": "2026-10-04T09:52:49.493Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-spec-analysis-cli.md",
+        "03-implement/03-spec-analysis-cli/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-spec-analysis-cli"
+      }
+    },
+    {
+      "at": "2026-10-04T09:57:21.672Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-spec-analysis-cli/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-spec-analysis-cli",
+        "commit": "22d06e7"
+      }
+    },
+    {
+      "at": "2026-10-04T09:57:22.068Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-commit-and-pointer.md",
+        "03-implement/04-commit-and-pointer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-commit-and-pointer"
+      }
+    },
+    {
+      "at": "2026-10-04T09:58:09.380Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/04-commit-and-pointer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-commit-and-pointer",
+        "commit": "f57ba5e"
+      }
+    },
+    {
+      "at": "2026-10-04T12:56:41.890Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/23"
+      }
+    },
+    {
+      "at": "2026-10-04T12:56:41.893Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "docs/g4run-spec",
+    "base_branch": "Meso",
+    "branch_created_at": "2026-10-04T08:51:40.910Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/23"
+  },
+  "ship_mode": "subagent+inline",
+  "finished_at": "2026-10-04T12:56:41.893Z"
+}

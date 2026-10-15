@@ -1,0 +1,20 @@
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Ritchie1994
+
+# Write per-event spatial snapshots of the mesoscopic mesh to
+# SpeciesMesoSpatial.h5 (PreInit; default false).
+/chem/meso/spatialOutput true
+
+/run/initialize
+
+/gun/particle e-
+/gun/energy 10 keV
+
+/scheduler/endTime 1 ms
+
+/run/beamOn 2
+
+/run/dumpDataAndReset

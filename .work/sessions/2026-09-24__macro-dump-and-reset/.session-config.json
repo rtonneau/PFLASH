@@ -1,0 +1,40 @@
+{
+  "session_id": "2026-09-24__macro-dump-and-reset",
+  "feature_name": "macro-dump-and-reset",
+  "scratch_dir": ".scratch/tests/2026-09-24__macro-dump-and-reset",
+  "created_at": "2026-09-24T06:32:18.337Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-24T06:32:18.346Z",
+      "sessionIds": [
+        "edc2024b-d094-495b-b0ad-79917eca6a4f"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-09-24T06:57:23.173Z",
+      "sessionIds": [
+        "edc2024b-d094-495b-b0ad-79917eca6a4f"
+      ]
+    },
+    "03-01-outputdir-prefix": {
+      "startedAt": "2026-09-24T07:14:30.602Z",
+      "sessionIds": [
+        "edc2024b-d094-495b-b0ad-79917eca6a4f"
+      ]
+    },
+    "03-02-run-accumulator": {
+      "startedAt": "2026-09-24T07:16:48.411Z",
+      "sessionIds": [
+        "edc2024b-d094-495b-b0ad-79917eca6a4f"
+      ]
+    },
+    "03-03-dump-command-and-wiring": {
+      "startedAt": "2026-09-24T07:18:46.897Z",
+      "sessionIds": [
+        "edc2024b-d094-495b-b0ad-79917eca6a4f"
+      ]
+    }
+  },
+  "finished_at": "2026-09-24T07:49:34.254Z"
+}

@@ -1,0 +1,241 @@
+{
+  "session_id": "2026-09-28__multiple-dna-chemistry",
+  "feature_name": "multiple-dna-chemistry",
+  "scratch_dir": ".scratch/tests/2026-09-28__multiple-dna-chemistry",
+  "created_at": "2026-09-28T12:18:57.171Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-09-28T12:18:57.171Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T12:38:28.378Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T12:40:10.917Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T12:46:29.095Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/named-chemistries",
+        "base": "main"
+      }
+    },
+    {
+      "at": "2026-09-28T12:46:29.123Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-chemistry-registry-core.md",
+        "02-plan/tickets/02-purewater-acid-base-as-data.md",
+        "02-plan/tickets/03-select-chemistry-command.md",
+        "02-plan/tickets/04-boscolochem-variant.md",
+        "02-plan/tickets/05-docs-and-final-verification.md"
+      ],
+      "detail": {
+        "tickets": 5
+      }
+    },
+    {
+      "at": "2026-09-28T12:55:41.019Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-chemistry-registry-core.md",
+        "03-implement/01-chemistry-registry-core/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-chemistry-registry-core"
+      }
+    },
+    {
+      "at": "2026-09-28T13:00:36.511Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-chemistry-registry-core/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-chemistry-registry-core"
+      }
+    },
+    {
+      "at": "2026-09-28T13:00:36.693Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-purewater-acid-base-as-data.md",
+        "03-implement/02-purewater-acid-base-as-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-purewater-acid-base-as-data"
+      }
+    },
+    {
+      "at": "2026-09-28T13:06:12.158Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-purewater-acid-base-as-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-purewater-acid-base-as-data"
+      }
+    },
+    {
+      "at": "2026-09-28T13:06:12.320Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-select-chemistry-command.md",
+        "03-implement/03-select-chemistry-command/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-select-chemistry-command"
+      }
+    },
+    {
+      "at": "2026-09-28T13:09:53.571Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-select-chemistry-command/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-select-chemistry-command"
+      }
+    },
+    {
+      "at": "2026-09-28T13:09:53.811Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-boscolochem-variant.md",
+        "03-implement/04-boscolochem-variant/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-boscolochem-variant"
+      }
+    },
+    {
+      "at": "2026-09-28T13:14:57.868Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-boscolochem-variant/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-boscolochem-variant"
+      }
+    },
+    {
+      "at": "2026-09-28T13:14:58.021Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-docs-and-final-verification.md",
+        "03-implement/05-docs-and-final-verification/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-docs-and-final-verification"
+      }
+    },
+    {
+      "at": "2026-09-28T13:18:00.295Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/05-docs-and-final-verification/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-docs-and-final-verification"
+      }
+    },
+    {
+      "at": "2026-09-28T13:21:42.862Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/12"
+      }
+    },
+    {
+      "at": "2026-09-28T13:21:42.865Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-28T12:18:57.175Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-09-28T12:40:10.908Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    },
+    "03-01-chemistry-registry-core": {
+      "startedAt": "2026-09-28T12:55:41.002Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    },
+    "03-02-purewater-acid-base-as-data": {
+      "startedAt": "2026-09-28T13:00:36.683Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    },
+    "03-03-select-chemistry-command": {
+      "startedAt": "2026-09-28T13:06:12.308Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    },
+    "03-04-boscolochem-variant": {
+      "startedAt": "2026-09-28T13:09:53.794Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    },
+    "03-05-docs-and-final-verification": {
+      "startedAt": "2026-09-28T13:14:58.011Z",
+      "sessionIds": [
+        "aa5402bb-7a9c-499c-bc47-9aac1529889b"
+      ]
+    }
+  },
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/named-chemistries",
+    "base_branch": "main",
+    "branch_created_at": "2026-09-28T12:46:29.095Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/12"
+  },
+  "finished_at": "2026-09-28T13:21:42.865Z"
+}

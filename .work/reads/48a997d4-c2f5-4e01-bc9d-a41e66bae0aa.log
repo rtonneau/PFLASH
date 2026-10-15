@@ -1,0 +1,22 @@
+2026-09-29 12:07:07	26ccc302-5d35-46ec-b275-965546f3ca26	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/header/scoring/ManifestData.hh, C:/DEV/GEANT4/SIM/dnachem-min/header/scoring/ManifestWriter.hh, C:/DEV/GEANT4/SIM/dnachem-min/header/scoring/RunManifest.hh (bash)	124	3075
+2026-09-29 12:07:11	26ccc302-5d35-46ec-b275-965546f3ca26	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/src/scoring/RunManifest.cc (bash)	190	9538
+2026-09-29 12:07:57	f8a941a2-f891-4650-8296-b339ba714675	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/src/actions/RunAction.cc, C:/DEV/GEANT4/SIM/dnachem-min/src/scoring/RunAccumulatorMessenger.cc, C:/DEV/GEANT4/SIM/dnachem-min/src/scoring/ManifestWriter.cc (bash)	203	8124
+2026-09-29 12:10:45	f8a941a2-f891-4650-8296-b339ba714675	main	Read	C:/Users/rtonneau/AppData/Local/Temp/manifest.png (image)	-	215578
+2026-09-29 12:11:03	f8a941a2-f891-4650-8296-b339ba714675	main	Read	C:/Users/rtonneau/AppData/Local/Temp/manifest2.png (image)	-	216121
+2026-09-29 13:01:59	db58cc66-c383-438f-a96c-05b80899683e	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/sim.cc, C:/DEV/GEANT4/SIM/dnachem-min/src/actions/ActionInitialization.cc (bash)	232	5980
+2026-09-29 13:04:08	db58cc66-c383-438f-a96c-05b80899683e	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wf.png (image)	-	263303
+2026-09-29 13:04:21	db58cc66-c383-438f-a96c-05b80899683e	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/header/scoring/ScoreSpecies.hh, C:/DEV/GEANT4/SIM/dnachem-min/src/scoring/PrimaryKiller.cc (bash)	72	2631
+2026-09-29 13:04:35	db58cc66-c383-438f-a96c-05b80899683e	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wf2.png (image)	-	264990
+2026-09-29 13:04:44	db58cc66-c383-438f-a96c-05b80899683e	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wf3.png (image)	-	264756
+2026-09-29 13:32:41	5e60bc5b-3581-44ea-9f75-2f85a84b7796	main	Bash	C:/DEV/GEANT4/geant4-v11.4.1-kb/chemistry-stage.md, C:/DEV/GEANT4/geant4-v11.4.1-kb/physics-lists.md (bash)	543	29621
+2026-09-29 13:32:53	5e60bc5b-3581-44ea-9f75-2f85a84b7796	main	Bash	C:/DEV/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1/examples/extended/medical/dna/chem6/src/PhysicsList.cc:1-200 (bash)	82	5491
+2026-09-29 13:32:58	5e60bc5b-3581-44ea-9f75-2f85a84b7796	main	Bash	C:/DEV/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1/source/processes/electromagnetic/dna/utils/src/G4DNAChemistryManager.cc, C:/DEV/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1/source/processes/electromagnetic/dna/utils/src/G4DNAChemistryManager.cc (bash)	80	4517
+2026-09-29 13:33:26	5e60bc5b-3581-44ea-9f75-2f85a84b7796	main	Bash	C:/DEV/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1/source/processes/electromagnetic/dna/utils/src/G4VUserChemistryList.cc, C:/DEV/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1/source/physics_lists/constructors/electromagnetic/src/G4EmDNAChemistry.cc (bash)	74	2654
+2026-09-29 13:35:18	5e60bc5b-3581-44ea-9f75-2f85a84b7796	main	Read	C:/Users/rtonneau/AppData/Local/Temp/g4.png (image)	-	231996
+2026-09-29 13:35:44	5e60bc5b-3581-44ea-9f75-2f85a84b7796	main	Read	C:/Users/rtonneau/AppData/Local/Temp/g42.png (image)	-	230166
+2026-09-29 14:02:36	ebd1a514-8289-4245-a16a-b701732eacff	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/CMakeLists.txt:55-140 (bash)	64	4224
+2026-09-29 14:02:44	ebd1a514-8289-4245-a16a-b701732eacff	main	Bash	C:/DEV/GEANT4/SIM/dnachem-min/src/chemistry/ChemUtils.cc:1-40 (bash)	31	1101
+2026-09-29 14:04:54	ebd1a514-8289-4245-a16a-b701732eacff	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wff_0.png (image)	-	113178
+2026-09-29 14:05:01	ebd1a514-8289-4245-a16a-b701732eacff	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wff_1.png (image)	-	94664
+2026-09-29 14:05:01	ebd1a514-8289-4245-a16a-b701732eacff	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wff_2.png (image)	-	80648
+2026-09-29 14:05:17	ebd1a514-8289-4245-a16a-b701732eacff	main	Read	C:/Users/rtonneau/AppData/Local/Temp/wff2_top.png (image)	-	35055

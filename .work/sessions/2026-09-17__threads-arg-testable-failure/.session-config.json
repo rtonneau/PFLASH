@@ -1,0 +1,11 @@
+{
+  "session_id": "2026-09-17__threads-arg-testable-failure",
+  "feature_name": "threads-arg-testable-failure",
+  "created_at": "2026-09-17T00:00:00.000Z",
+  "phases_completed": [
+    "grill"
+  ],
+  "tickets": [],
+  "status": "bounded-approved",
+  "finished_at": "2026-09-22T13:58:34.274Z"
+}

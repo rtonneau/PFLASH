@@ -1,0 +1,30 @@
+# Farokhi et al. 2023, Fig. 2/Fig. 3: 90 MeV proton, 21 % O2.
+# Molar value is the paper's own Henry's-law conversion at 37 C
+# (not the project's % shortcut, which assumes a different constant).
+#
+# halfBox 20 um -> a 40x40x40 um^3 box (track-length re-run variant of
+# beam_farokhi_proton_o2_21pct.in's 10x10x10 um^3 box), to see how primary
+# and secondary track-length statistics change as the sensitive volume
+# grows beyond the paper's own 10 um box.
+
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Meesungnoen2002
+
+/chem/select Farokhi2023
+/chem/meso/enable false
+/chem/env/halfBox 20 um
+
+/chem/env/scavenger O2 218 uM
+
+/run/initialize
+
+/scheduler/endTime 1 us
+
+/gun/particle proton
+/gun/energy 90 MeV
+
+/run/beamOn 50
+/run/dumpDataAndReset

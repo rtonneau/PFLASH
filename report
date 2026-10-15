@@ -1,0 +1,12 @@
+Claude Code usage report (2026-10-10T21:07:27.504Z)
+Client: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.31226.1 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36 MSIX
+
+Plan limits:
+- session-0: 100% (resets 2026-10-10T21:30:00.322814+00:00)
+- weekly_all-1: 62% (resets 2026-10-15T02:00:00.322839+00:00)
+
+Session:
+- Sonnet 5: 998 in / 17.3k out / 200.3M cache read / 5M cache write
+- Cost: $0.00 | API 0m | Wall 0m
+
+Local activity: 152 requests (24h) | 921 (7d)

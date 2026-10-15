@@ -1,0 +1,18 @@
+{
+  "session_id": "2026-10-08__merge-main-o2-meso",
+  "feature_name": "merge-main-o2-meso",
+  "scratch_dir": ".scratch/tests/2026-10-08__merge-main-o2-meso",
+  "created_at": "2026-10-08T16:42:56.115Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-08T16:42:56.115Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    }
+  ],
+  "current_phase": "grill"
+}

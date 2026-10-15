@@ -1,0 +1,19 @@
+# Validation reference macro (water): current SBS build, PureWater (default Chemistry).
+# 10 keV e-, G(1 us) recorded at the end of the chemistry stage.
+# N = 40 events: relative standard error on G(1 us) <= 3 % for e_aq, OH, H2O2, H2
+# (measured 2.6 % worst, e_aq; see validation/reference/sbs_water/README.md).
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Error
+
+/random/setSeeds 12345 67890
+/process/dna/e-SolvationSubType Ritchie1994
+
+/run/initialize
+/scheduler/endTime 1 us
+
+/gun/particle e-
+/gun/energy 10 keV
+
+/run/beamOn 40
+/run/dumpDataAndReset

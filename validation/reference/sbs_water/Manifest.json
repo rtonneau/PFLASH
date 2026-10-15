@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "timestamp": "2026-10-02T13:27:52",
+  "elapsedSinceStart_s": 109.3940161,
+  "elapsedSincePreviousDump_s": 109.3940161,
+  "geant4Version": "geant4-11-04-patch-01",
+  "macro": "macro/validate_water.in",
+  "chemistry": "PureWater",
+  "scavengers": [],
+  "pH": 7,
+  "halfBox_um": 500,
+  "chemistryEndTime_ns": 1000,
+  "runMode": "MT",
+  "threads": 10,
+  "outputDirAsConfigured": "../.scratch/tests/2026-10-02__irt-syn-mesoscopic/01-sbs_water",
+  "outputDirAbsolute": "C:\\Users\\rtonneau\\DEV\\GEANT4\\SIM\\dnachem-min\\.scratch\\tests\\2026-10-02__irt-syn-mesoscopic\\01-sbs_water",
+  "prefix": "",
+  "subdir": "",
+  "totalEvents": 40,
+  "totalEnergyDeposit_eV": 400000,
+  "files": ["Species.Txt", "Species_nt_species.csv", "Reactions.Txt", "Reactions_nt_reactions.csv", "ReactionsMetadata.csv", "PhysicsInteractions.Txt", "PhysicsInteractions.csv", "PreChemical_run0_event0.txt", "PreChemical_run0_event1.txt", "PreChemical_run0_event2.txt", "PreChemical_run0_event3.txt", "PreChemical_run0_event4.txt", "PreChemical_run0_event5.txt", "PreChemical_run0_event6.txt", "PreChemical_run0_event7.txt", "PreChemical_run0_event8.txt", "PreChemical_run0_event9.txt", "PreChemical_run0_event10.txt", "PreChemical_run0_event11.txt", "PreChemical_run0_event12.txt", "PreChemical_run0_event13.txt", "PreChemical_run0_event14.txt", "PreChemical_run0_event15.txt", "PreChemical_run0_event16.txt", "PreChemical_run0_event17.txt", "PreChemical_run0_event18.txt", "PreChemical_run0_event19.txt", "PreChemical_run0_event20.txt", "PreChemical_run0_event21.txt", "PreChemical_run0_event22.txt", "PreChemical_run0_event23.txt", "PreChemical_run0_event24.txt", "PreChemical_run0_event25.txt", "PreChemical_run0_event26.txt", "PreChemical_run0_event27.txt", "PreChemical_run0_event28.txt", "PreChemical_run0_event29.txt", "PreChemical_run0_event30.txt", "PreChemical_run0_event31.txt", "PreChemical_run0_event32.txt", "PreChemical_run0_event33.txt", "PreChemical_run0_event34.txt", "PreChemical_run0_event35.txt", "PreChemical_run0_event36.txt", "PreChemical_run0_event37.txt", "PreChemical_run0_event38.txt", "PreChemical_run0_event39.txt"],
+  "runs": [
+    {
+      "run": 0,
+      "events": 40,
+      "particle": "e-",
+      "beamEnergy_keV": 10,
+      "position_um": [0, 0, 0],
+      "direction": [0, 0, 1],
+      "energyDeposit_eV": 400000,
+      "seed": 12345,
+      "wallTime_s": 104.5792718
+    }
+  ]
+}

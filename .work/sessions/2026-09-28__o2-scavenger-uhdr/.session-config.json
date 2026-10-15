@@ -1,0 +1,211 @@
+{
+  "session_id": "2026-09-28__o2-scavenger-uhdr",
+  "feature_name": "o2-scavenger-uhdr",
+  "scratch_dir": ".scratch/tests/2026-09-28__o2-scavenger-uhdr",
+  "created_at": "2026-09-28T18:05:35.932Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-09-28T18:05:35.932Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T19:54:22.052Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T20:09:36.718Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T20:20:04.941Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/o2-bulk-scavenger",
+        "base": "O2_Included"
+      }
+    },
+    {
+      "at": "2026-09-28T20:20:04.958Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-rename-bulk-reactions.md",
+        "02-plan/tickets/02-scavenger-spec.md",
+        "02-plan/tickets/03-scavenger-command.md",
+        "02-plan/tickets/04-o2-bulk-reactions.md"
+      ],
+      "detail": {
+        "tickets": 4
+      }
+    },
+    {
+      "at": "2026-09-28T20:23:13.598Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-rename-bulk-reactions.md",
+        "03-implement/01-rename-bulk-reactions/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-rename-bulk-reactions"
+      }
+    },
+    {
+      "at": "2026-09-28T20:31:26.438Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-rename-bulk-reactions/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-rename-bulk-reactions"
+      }
+    },
+    {
+      "at": "2026-09-28T20:31:26.629Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-scavenger-spec.md",
+        "03-implement/02-scavenger-spec/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-scavenger-spec"
+      }
+    },
+    {
+      "at": "2026-09-28T20:32:38.899Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-scavenger-spec/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-scavenger-spec"
+      }
+    },
+    {
+      "at": "2026-09-28T20:32:39.085Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-scavenger-command.md",
+        "03-implement/03-scavenger-command/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-scavenger-command"
+      }
+    },
+    {
+      "at": "2026-09-28T20:36:17.881Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-scavenger-command/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-scavenger-command"
+      }
+    },
+    {
+      "at": "2026-09-28T20:36:18.068Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-o2-bulk-reactions.md",
+        "03-implement/04-o2-bulk-reactions/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-o2-bulk-reactions"
+      }
+    },
+    {
+      "at": "2026-09-28T20:43:04.747Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/04-o2-bulk-reactions/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-o2-bulk-reactions"
+      }
+    },
+    {
+      "at": "2026-09-28T20:46:20.253Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/14"
+      }
+    },
+    {
+      "at": "2026-09-28T20:46:20.255Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-28T18:05:35.935Z",
+      "sessionIds": [
+        "3d1f778a-2ece-468b-a3a2-3292e437826f"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-09-28T20:09:36.714Z",
+      "sessionIds": [
+        "c770e68e-9038-4bcc-8469-b17a257f0d38"
+      ]
+    },
+    "03-01-rename-bulk-reactions": {
+      "startedAt": "2026-09-28T20:23:13.590Z",
+      "sessionIds": [
+        "c770e68e-9038-4bcc-8469-b17a257f0d38"
+      ]
+    },
+    "03-02-scavenger-spec": {
+      "startedAt": "2026-09-28T20:31:26.621Z",
+      "sessionIds": [
+        "c770e68e-9038-4bcc-8469-b17a257f0d38"
+      ]
+    },
+    "03-03-scavenger-command": {
+      "startedAt": "2026-09-28T20:32:39.077Z",
+      "sessionIds": [
+        "c770e68e-9038-4bcc-8469-b17a257f0d38"
+      ]
+    },
+    "03-04-o2-bulk-reactions": {
+      "startedAt": "2026-09-28T20:36:18.060Z",
+      "sessionIds": [
+        "c770e68e-9038-4bcc-8469-b17a257f0d38"
+      ]
+    }
+  },
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/o2-bulk-scavenger",
+    "base_branch": "O2_Included",
+    "branch_created_at": "2026-09-28T20:20:04.941Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/14"
+  },
+  "finished_at": "2026-09-28T20:46:20.255Z"
+}

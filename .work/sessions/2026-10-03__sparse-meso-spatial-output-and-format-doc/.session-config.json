@@ -1,0 +1,163 @@
+{
+  "session_id": "2026-10-03__sparse-meso-spatial-output-and-format-doc",
+  "feature_name": "sparse meso spatial output and format doc",
+  "scratch_dir": ".scratch/tests/2026-10-03__sparse-meso-spatial-output-and-format-doc",
+  "created_at": "2026-10-03T17:07:57.520Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-03T17:07:57.520Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-03T17:11:26.109Z",
+      "event": "auto_started",
+      "phase": "grill",
+      "detail": {
+        "target": "finish",
+        "steps": "write:grill → plan → write:plan → ship → finish",
+        "shipMode": "subagent+inline"
+      }
+    },
+    {
+      "at": "2026-10-03T17:12:10.062Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-03T17:12:10.177Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-03T17:12:42.193Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/meso-spatial-sparse",
+        "base": "feat/meso-spatial-snapshots"
+      }
+    },
+    {
+      "at": "2026-10-03T17:12:42.221Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-sparse-capture-format-v2.md",
+        "02-plan/tickets/02-format-description-doc.md",
+        "02-plan/tickets/03-sparse-smoke-validation.md"
+      ],
+      "detail": {
+        "tickets": 3
+      }
+    },
+    {
+      "at": "2026-10-03T17:12:42.715Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-sparse-capture-format-v2.md",
+        "03-implement/01-sparse-capture-format-v2/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-sparse-capture-format-v2"
+      }
+    },
+    {
+      "at": "2026-10-03T17:14:20.725Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-sparse-capture-format-v2/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-sparse-capture-format-v2",
+        "commit": "4a3234e"
+      }
+    },
+    {
+      "at": "2026-10-03T17:14:21.135Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-format-description-doc.md",
+        "03-implement/02-format-description-doc/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-format-description-doc"
+      }
+    },
+    {
+      "at": "2026-10-03T17:15:49.717Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-format-description-doc/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-format-description-doc",
+        "commit": "9a8724f"
+      }
+    },
+    {
+      "at": "2026-10-03T17:15:50.094Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-sparse-smoke-validation.md",
+        "03-implement/03-sparse-smoke-validation/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-sparse-smoke-validation"
+      }
+    },
+    {
+      "at": "2026-10-03T17:16:46.064Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/03-sparse-smoke-validation/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-sparse-smoke-validation",
+        "commit": "6a9fcb8"
+      }
+    },
+    {
+      "at": "2026-10-03T17:16:55.623Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/22"
+      }
+    },
+    {
+      "at": "2026-10-03T17:16:55.625Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/meso-spatial-sparse",
+    "base_branch": "feat/meso-spatial-snapshots",
+    "branch_created_at": "2026-10-03T17:12:42.193Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/22"
+  },
+  "ship_mode": "subagent+inline",
+  "finished_at": "2026-10-03T17:16:55.625Z"
+}

@@ -1,0 +1,181 @@
+{
+  "session_id": "2026-09-28__source-layout-subdirs",
+  "feature_name": "source-layout-subdirs",
+  "scratch_dir": ".scratch/tests/2026-09-28__source-layout-subdirs",
+  "created_at": "2026-09-28T13:56:25.038Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-09-28T13:56:25.038Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T14:09:45.765Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T14:10:36.021Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-09-28T14:20:26.875Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "refactor/clustered-source-layout",
+        "base": "main"
+      }
+    },
+    {
+      "at": "2026-09-28T14:20:26.904Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-move-into-clusters.md",
+        "02-plan/tickets/02-rooted-includes.md",
+        "02-plan/tickets/03-docs-adr-compile-commands.md"
+      ],
+      "detail": {
+        "tickets": 3
+      }
+    },
+    {
+      "at": "2026-09-28T14:29:08.704Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-move-into-clusters.md",
+        "03-implement/01-move-into-clusters/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-move-into-clusters"
+      }
+    },
+    {
+      "at": "2026-09-28T14:50:18.351Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-move-into-clusters/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-move-into-clusters"
+      }
+    },
+    {
+      "at": "2026-09-28T14:50:43.683Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-rooted-includes.md",
+        "03-implement/02-rooted-includes/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rooted-includes"
+      }
+    },
+    {
+      "at": "2026-09-28T14:55:17.061Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-rooted-includes/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rooted-includes"
+      }
+    },
+    {
+      "at": "2026-09-28T14:55:17.274Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-docs-adr-compile-commands.md",
+        "03-implement/03-docs-adr-compile-commands/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-docs-adr-compile-commands"
+      }
+    },
+    {
+      "at": "2026-09-28T14:57:04.514Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/03-docs-adr-compile-commands/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-docs-adr-compile-commands"
+      }
+    },
+    {
+      "at": "2026-09-28T14:57:58.159Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/13"
+      }
+    },
+    {
+      "at": "2026-09-28T14:57:58.165Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-28T13:56:25.042Z",
+      "sessionIds": [
+        "87d499a4-e4ce-42ac-b461-d4bb5f14f70d"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-09-28T14:10:36.013Z",
+      "sessionIds": [
+        "87d499a4-e4ce-42ac-b461-d4bb5f14f70d"
+      ]
+    },
+    "03-01-move-into-clusters": {
+      "startedAt": "2026-09-28T14:29:08.688Z",
+      "sessionIds": [
+        "87d499a4-e4ce-42ac-b461-d4bb5f14f70d"
+      ]
+    },
+    "03-02-rooted-includes": {
+      "startedAt": "2026-09-28T14:50:43.674Z",
+      "sessionIds": [
+        "87d499a4-e4ce-42ac-b461-d4bb5f14f70d"
+      ]
+    },
+    "03-03-docs-adr-compile-commands": {
+      "startedAt": "2026-09-28T14:55:17.256Z",
+      "sessionIds": [
+        "87d499a4-e4ce-42ac-b461-d4bb5f14f70d"
+      ]
+    }
+  },
+  "current_phase": "finished",
+  "git": {
+    "branch": "refactor/clustered-source-layout",
+    "base_branch": "main",
+    "branch_created_at": "2026-09-28T14:20:26.875Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/13"
+  },
+  "finished_at": "2026-09-28T14:57:58.165Z"
+}

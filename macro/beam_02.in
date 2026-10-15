@@ -1,0 +1,35 @@
+# Variant of beam.in: Meesungnoen2002 solvation, explicit mesoscopic-stage
+# settings and scheduler diagnostics. (Formerly the SBS variant; SBS is no
+# longer supported, the chemistry is IRT_syn then mesoscopic, ADR 0006.)
+/run/verbose 1
+/tracking/verbose 0
+
+/process/dna/e-SolvationSubType Meesungnoen2002
+#/process/dna/e-SolvationSubType Ritchie1994
+#/process/dna/e-SolvationSubType Terrisol1990
+
+# Mesoscopic stage (PreInit; values shown are the defaults).
+/chem/meso/handOverTime 5 ns
+/chem/meso/voxelSize 6.25 nm
+/chem/meso/timesPerDecade 10
+
+/run/initialize
+
+# The chemistry end time defaults to 1 s; override after /run/initialize.
+#/scheduler/endTime 1 ms
+
+/gun/particle e-
+/gun/energy 100 keV
+
+# Species and reactions are defined in code (src/chemistry/DnaChemistryList.cc).
+
+#/primaryKiller/eLossMin 1 keV # primary is killed if deposited E is greater than this value
+#/primaryKiller/eLossMax 2 keV # event is aborted if deposited E is greated than this value
+
+#==============================================
+# NB: comment lines related to scheduler when the flag chemOFF is used
+/scheduler/verbose 2
+/scheduler/whyDoYouStop
+#==============================================
+
+/run/beamOn 2

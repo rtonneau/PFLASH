@@ -1,0 +1,212 @@
+{
+  "session_id": "2026-10-13__eaq-g-value-gap-vs-farokhi-at-1-ps",
+  "feature_name": "eaq G-value gap vs Farokhi at 1 ps",
+  "scratch_dir": ".scratch/tests/2026-10-13__eaq-g-value-gap-vs-farokhi-at-1-ps",
+  "created_at": "2026-10-13T19:47:32.818Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-13T19:47:32.818Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-13T19:53:23.054Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-13T19:53:23.159Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-13T19:54:47.488Z",
+      "event": "auto_started",
+      "phase": "plan",
+      "detail": {
+        "target": "finish",
+        "steps": "write:plan → ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-13T19:54:54.711Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "fix/farokhi-eaq-1ps-gap",
+        "base": "main"
+      }
+    },
+    {
+      "at": "2026-10-13T19:54:54.736Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-stock-scavenger-reference.md",
+        "02-plan/tickets/02-solvation-subtype-test.md",
+        "02-plan/tickets/03-per-chemistry-dissociation-hook.md",
+        "02-plan/tickets/04-eaq-comparison-analysis.md",
+        "02-plan/tickets/05-apply-fix-and-docs.md"
+      ],
+      "detail": {
+        "tickets": 5
+      }
+    },
+    {
+      "at": "2026-10-13T19:55:00.688Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-stock-scavenger-reference.md",
+        "03-implement/01-stock-scavenger-reference/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-stock-scavenger-reference"
+      }
+    },
+    {
+      "at": "2026-10-13T20:04:21.548Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-stock-scavenger-reference/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-stock-scavenger-reference",
+        "commit": "b514a8e"
+      }
+    },
+    {
+      "at": "2026-10-13T20:04:25.036Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-solvation-subtype-test.md",
+        "03-implement/02-solvation-subtype-test/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-solvation-subtype-test"
+      }
+    },
+    {
+      "at": "2026-10-13T20:15:50.560Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-solvation-subtype-test/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-solvation-subtype-test",
+        "commit": "fd60b11"
+      }
+    },
+    {
+      "at": "2026-10-13T20:21:58.256Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-per-chemistry-dissociation-hook.md",
+        "03-implement/03-per-chemistry-dissociation-hook/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-per-chemistry-dissociation-hook"
+      }
+    },
+    {
+      "at": "2026-10-13T20:21:58.712Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-per-chemistry-dissociation-hook/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-per-chemistry-dissociation-hook",
+        "commit": "cedfa3a"
+      }
+    },
+    {
+      "at": "2026-10-13T20:22:04.578Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-eaq-comparison-analysis.md",
+        "03-implement/04-eaq-comparison-analysis/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-eaq-comparison-analysis"
+      }
+    },
+    {
+      "at": "2026-10-13T20:22:39.693Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-eaq-comparison-analysis/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-eaq-comparison-analysis",
+        "commit": "fb11638"
+      }
+    },
+    {
+      "at": "2026-10-13T20:22:46.914Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-apply-fix-and-docs.md",
+        "03-implement/05-apply-fix-and-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-apply-fix-and-docs"
+      }
+    },
+    {
+      "at": "2026-10-13T20:23:03.594Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/05-apply-fix-and-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-apply-fix-and-docs",
+        "commit": "5ce5790"
+      }
+    },
+    {
+      "at": "2026-10-13T20:23:18.989Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/30"
+      }
+    },
+    {
+      "at": "2026-10-13T20:23:18.992Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "fix/farokhi-eaq-1ps-gap",
+    "base_branch": "main",
+    "branch_created_at": "2026-10-13T19:54:54.711Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/30"
+  },
+  "ship_mode": "inline",
+  "finished_at": "2026-10-13T20:23:18.992Z"
+}

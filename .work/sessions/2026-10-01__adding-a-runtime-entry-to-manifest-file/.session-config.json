@@ -1,0 +1,160 @@
+{
+  "session_id": "2026-10-01__adding-a-runtime-entry-to-manifest-file",
+  "feature_name": "adding a runtime entry to manifest file",
+  "scratch_dir": ".scratch/tests/2026-10-01__adding-a-runtime-entry-to-manifest-file",
+  "created_at": "2026-10-01T08:18:16.930Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-01T08:18:16.930Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-01T08:23:00.219Z",
+      "event": "auto_started",
+      "phase": "grill",
+      "detail": {
+        "target": "finish",
+        "steps": "write:grill → plan → write:plan → ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-01T08:23:30.339Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-01T08:23:35.369Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-01T08:24:28.826Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/manifest-runtime",
+        "base": "O2_Included"
+      }
+    },
+    {
+      "at": "2026-10-01T08:24:28.858Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-runtime-fields.md",
+        "02-plan/tickets/02-document-runtime-fields.md"
+      ],
+      "detail": {
+        "tickets": 2
+      }
+    },
+    {
+      "at": "2026-10-01T08:24:33.327Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-runtime-fields.md",
+        "03-implement/01-runtime-fields/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-runtime-fields"
+      }
+    },
+    {
+      "at": "2026-10-01T08:29:50.291Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-runtime-fields/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-runtime-fields"
+      }
+    },
+    {
+      "at": "2026-10-01T08:29:50.721Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-document-runtime-fields.md",
+        "03-implement/02-document-runtime-fields/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-document-runtime-fields"
+      }
+    },
+    {
+      "at": "2026-10-01T08:31:45.158Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/02-document-runtime-fields/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-document-runtime-fields"
+      }
+    },
+    {
+      "at": "2026-10-01T08:31:56.163Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/18"
+      }
+    },
+    {
+      "at": "2026-10-01T08:31:56.168Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "usage": {
+    "grill": {
+      "startedAt": "2026-10-01T08:18:16.940Z",
+      "sessionIds": [
+        "b32624ca-c766-48f2-8db9-94f1950e876b"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-10-01T08:23:35.359Z",
+      "sessionIds": [
+        "b32624ca-c766-48f2-8db9-94f1950e876b"
+      ]
+    },
+    "03-01-runtime-fields": {
+      "startedAt": "2026-10-01T08:24:33.305Z",
+      "sessionIds": [
+        "b32624ca-c766-48f2-8db9-94f1950e876b"
+      ]
+    },
+    "03-02-document-runtime-fields": {
+      "startedAt": "2026-10-01T08:29:50.699Z",
+      "sessionIds": [
+        "b32624ca-c766-48f2-8db9-94f1950e876b"
+      ]
+    }
+  },
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/manifest-runtime",
+    "base_branch": "O2_Included",
+    "branch_created_at": "2026-10-01T08:24:28.826Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/18"
+  },
+  "finished_at": "2026-10-01T08:31:56.168Z"
+}

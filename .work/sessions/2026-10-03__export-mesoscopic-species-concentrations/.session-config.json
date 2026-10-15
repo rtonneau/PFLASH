@@ -1,0 +1,213 @@
+{
+  "session_id": "2026-10-03__export-mesoscopic-species-concentrations",
+  "feature_name": "export mesoscopic species concentrations",
+  "scratch_dir": ".scratch/tests/2026-10-03__export-mesoscopic-species-concentrations",
+  "created_at": "2026-10-03T15:12:03.712Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-03T15:12:03.712Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-03T15:29:17.643Z",
+      "event": "auto_started",
+      "phase": "grill",
+      "detail": {
+        "target": "finish",
+        "steps": "write:grill → plan → write:plan → ship → finish",
+        "shipMode": "subagent+inline"
+      }
+    },
+    {
+      "at": "2026-10-03T15:29:44.694Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-03T15:29:47.913Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-03T15:31:31.027Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/meso-spatial-snapshots",
+        "base": "Meso"
+      }
+    },
+    {
+      "at": "2026-10-03T15:31:31.054Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-spatial-output-switch.md",
+        "02-plan/tickets/02-meso-spatial-file-writer.md",
+        "02-plan/tickets/03-capture-spatial-snapshots.md",
+        "02-plan/tickets/04-dump-integration-and-docs.md",
+        "02-plan/tickets/05-smoke-validation.md"
+      ],
+      "detail": {
+        "tickets": 5
+      }
+    },
+    {
+      "at": "2026-10-03T15:31:35.671Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-spatial-output-switch.md",
+        "03-implement/01-spatial-output-switch/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-spatial-output-switch"
+      }
+    },
+    {
+      "at": "2026-10-03T15:34:06.879Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-spatial-output-switch/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-spatial-output-switch",
+        "commit": "1a7b32e"
+      }
+    },
+    {
+      "at": "2026-10-03T15:34:11.298Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-meso-spatial-file-writer.md",
+        "03-implement/02-meso-spatial-file-writer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-meso-spatial-file-writer"
+      }
+    },
+    {
+      "at": "2026-10-03T15:36:36.675Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-meso-spatial-file-writer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-meso-spatial-file-writer",
+        "commit": "376afd4"
+      }
+    },
+    {
+      "at": "2026-10-03T15:36:41.666Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-capture-spatial-snapshots.md",
+        "03-implement/03-capture-spatial-snapshots/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-capture-spatial-snapshots"
+      }
+    },
+    {
+      "at": "2026-10-03T15:46:57.812Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-capture-spatial-snapshots/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-capture-spatial-snapshots",
+        "commit": "6f3d14b"
+      }
+    },
+    {
+      "at": "2026-10-03T15:47:02.704Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-dump-integration-and-docs.md",
+        "03-implement/04-dump-integration-and-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-dump-integration-and-docs"
+      }
+    },
+    {
+      "at": "2026-10-03T15:49:42.306Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-dump-integration-and-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-dump-integration-and-docs",
+        "commit": "99629c9"
+      }
+    },
+    {
+      "at": "2026-10-03T15:49:46.674Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-smoke-validation.md",
+        "03-implement/05-smoke-validation/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-smoke-validation"
+      }
+    },
+    {
+      "at": "2026-10-03T15:52:20.645Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/05-smoke-validation/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-smoke-validation",
+        "commit": "762cef3"
+      }
+    },
+    {
+      "at": "2026-10-03T15:52:33.143Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/20"
+      }
+    },
+    {
+      "at": "2026-10-03T15:52:33.146Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/meso-spatial-snapshots",
+    "base_branch": "Meso",
+    "branch_created_at": "2026-10-03T15:31:31.027Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/20"
+  },
+  "ship_mode": "subagent+inline",
+  "finished_at": "2026-10-03T15:52:33.146Z"
+}

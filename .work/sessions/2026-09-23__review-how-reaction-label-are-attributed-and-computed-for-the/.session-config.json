@@ -1,0 +1,16 @@
+{
+  "session_id": "2026-09-23__review-how-reaction-label-are-attributed-and-computed-for-the",
+  "feature_name": "review how Reaction Label are attributed and computed. For the moment each call to TimeStepAction::UserReactionAction reconstruc reaction's label. Wouldn't it be more efficient to compute all reaction labels once at simulation init. (before start) and reuse it when needed? Also in \"const auto *reactionData = G4DNAMolecularReactionTable::GetReactionTable()->GetReactionData(molA, molB);\", it means that there is only one entry for molA and molB and there cannot be two different reactions with same reactants?",
+  "scratch_dir": ".scratch/tests/2026-09-23__review-how-reaction-label-are-attributed-and-computed-for-the",
+  "created_at": "2026-09-23T12:28:58.876Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-23T12:28:58.886Z",
+      "sessionIds": [
+        "bf08fd0d-b378-4e3d-8c35-2766120a1678"
+      ]
+    }
+  },
+  "finished_at": "2026-09-23T12:53:58.672Z"
+}

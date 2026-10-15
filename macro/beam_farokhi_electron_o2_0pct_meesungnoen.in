@@ -1,0 +1,26 @@
+# Farokhi et al. 2023, Fig. 5: 500 keV electron, 0 % O2.
+# /primaryKiller/eLossMin 12.5 keV truncates the primary after 2.5 % of the
+# 500 keV beam energy (solvation-subtype test: same as
+# beam_farokhi_electron_o2_0pct_elossmin_2p5pct.in but Meesungnoen2002 instead of Ritchie1994).
+
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Meesungnoen2002
+
+/chem/select Farokhi2023
+/chem/meso/enable false
+
+/run/initialize
+
+/primaryKiller/eLossMin 12.5 keV
+/primaryKiller/verbose 0
+
+/scheduler/endTime 1 us
+
+/gun/particle e-
+/gun/energy 500 keV
+
+/run/beamOn 250
+/run/dumpDataAndReset

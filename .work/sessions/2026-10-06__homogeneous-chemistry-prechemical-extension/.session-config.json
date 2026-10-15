@@ -1,0 +1,240 @@
+{
+  "session_id": "2026-10-06__homogeneous-chemistry-prechemical-extension",
+  "feature_name": "homogeneous-chemistry-prechemical-extension",
+  "scratch_dir": ".scratch/tests/2026-10-06__homogeneous-chemistry-prechemical-extension",
+  "created_at": "2026-10-06T17:11:16.161Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-06T17:11:16.161Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-06T17:27:26.030Z",
+      "event": "auto_started",
+      "phase": "grill",
+      "detail": {
+        "target": "finish",
+        "steps": "write:grill → plan → write:plan → ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-06T17:27:50.385Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-06T17:28:01.336Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-06T17:28:54.856Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/tonneau2025-chemistry",
+        "base": "Meso"
+      }
+    },
+    {
+      "at": "2026-10-06T17:28:54.893Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-table2-data.md",
+        "02-plan/tickets/02-ho3-data.md",
+        "02-plan/tickets/03-extra-molecules-hook.md",
+        "02-plan/tickets/04-tonneau2025-chemistry.md",
+        "02-plan/tickets/05-macro-validation-docs.md"
+      ],
+      "detail": {
+        "tickets": 5
+      }
+    },
+    {
+      "at": "2026-10-06T17:29:00.467Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-table2-data.md",
+        "03-implement/01-table2-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-table2-data"
+      }
+    },
+    {
+      "at": "2026-10-06T17:33:58.614Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-table2-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-table2-data",
+        "commit": "5893788"
+      }
+    },
+    {
+      "at": "2026-10-06T17:34:03.133Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-ho3-data.md",
+        "03-implement/02-ho3-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-ho3-data"
+      }
+    },
+    {
+      "at": "2026-10-06T17:36:31.107Z",
+      "event": "ticket_blocked",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-ho3-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-ho3-data",
+        "reason": "No literature diffusion coefficient for HO3 found (paper, Geant4 source and examples, arXiv 2601.02132, MPEXS2.1-DNA main text, web); needs a user decision on a source or an analogue D"
+      }
+    },
+    {
+      "at": "2026-10-06T18:10:09.531Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-ho3-data/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-ho3-data",
+        "commit": "89fdac4"
+      }
+    },
+    {
+      "at": "2026-10-06T18:10:13.726Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-extra-molecules-hook.md",
+        "03-implement/03-extra-molecules-hook/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-extra-molecules-hook"
+      }
+    },
+    {
+      "at": "2026-10-06T18:11:42.620Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-extra-molecules-hook/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-extra-molecules-hook",
+        "commit": "fbbfeb2"
+      }
+    },
+    {
+      "at": "2026-10-06T18:11:47.269Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-tonneau2025-chemistry.md",
+        "03-implement/04-tonneau2025-chemistry/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-tonneau2025-chemistry"
+      }
+    },
+    {
+      "at": "2026-10-06T18:37:25.298Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-tonneau2025-chemistry/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-tonneau2025-chemistry",
+        "commit": "00b2024"
+      }
+    },
+    {
+      "at": "2026-10-06T18:37:35.062Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-macro-validation-docs.md",
+        "03-implement/05-macro-validation-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-macro-validation-docs"
+      }
+    },
+    {
+      "at": "2026-10-06T18:41:00.191Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/05-macro-validation-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-macro-validation-docs",
+        "commit": "1e83821"
+      }
+    },
+    {
+      "at": "2026-10-06T18:41:16.885Z",
+      "event": "changelog_written",
+      "phase": "finish-pending",
+      "detail": {
+        "bump": "minor"
+      }
+    },
+    {
+      "at": "2026-10-06T18:41:22.367Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/24"
+      }
+    },
+    {
+      "at": "2026-10-06T18:41:22.370Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/tonneau2025-chemistry",
+    "base_branch": "Meso",
+    "branch_created_at": "2026-10-06T17:28:54.856Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/24"
+  },
+  "ship_mode": "subagent+inline",
+  "changelog": {
+    "bump": "minor",
+    "floor": "minor",
+    "reason": null,
+    "bullets": 3,
+    "path": ".work/changelog/2026-10-06__homogeneous-chemistry-prechemical-extension.md",
+    "written_at": "2026-10-06T18:41:16.869Z"
+  },
+  "finished_at": "2026-10-06T18:41:22.370Z"
+}

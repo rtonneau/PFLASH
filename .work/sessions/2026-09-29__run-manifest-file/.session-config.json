@@ -1,0 +1,241 @@
+{
+  "session_id": "2026-09-29__run-manifest-file",
+  "feature_name": "run-manifest-file",
+  "scratch_dir": ".scratch/tests/2026-09-29__run-manifest-file",
+  "created_at": "2026-09-29T08:06:09.039Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-09-29T08:06:09.039Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-29T09:15:23.609Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-09-29T09:16:10.153Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-09-29T09:20:07.304Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/run-manifest",
+        "base": "O2_Included"
+      }
+    },
+    {
+      "at": "2026-09-29T09:20:07.326Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-manifest-writer.md",
+        "02-plan/tickets/02-run-records.md",
+        "02-plan/tickets/03-beam-capture.md",
+        "02-plan/tickets/04-manifest-dump.md",
+        "02-plan/tickets/05-manifest-docs.md"
+      ],
+      "detail": {
+        "tickets": 5
+      }
+    },
+    {
+      "at": "2026-09-29T09:20:47.249Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-manifest-writer.md",
+        "03-implement/01-manifest-writer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-manifest-writer"
+      }
+    },
+    {
+      "at": "2026-09-29T09:22:14.723Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-manifest-writer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-manifest-writer"
+      }
+    },
+    {
+      "at": "2026-09-29T09:22:18.300Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-run-records.md",
+        "03-implement/02-run-records/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-run-records"
+      }
+    },
+    {
+      "at": "2026-09-29T09:23:41.738Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-run-records/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-run-records"
+      }
+    },
+    {
+      "at": "2026-09-29T09:23:41.876Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-beam-capture.md",
+        "03-implement/03-beam-capture/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-beam-capture"
+      }
+    },
+    {
+      "at": "2026-09-29T09:25:01.795Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-beam-capture/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-beam-capture"
+      }
+    },
+    {
+      "at": "2026-09-29T09:25:01.949Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-manifest-dump.md",
+        "03-implement/04-manifest-dump/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-manifest-dump"
+      }
+    },
+    {
+      "at": "2026-09-29T09:35:45.690Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-manifest-dump/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-manifest-dump"
+      }
+    },
+    {
+      "at": "2026-09-29T09:35:45.864Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-manifest-docs.md",
+        "03-implement/05-manifest-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-manifest-docs"
+      }
+    },
+    {
+      "at": "2026-09-29T09:36:25.903Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/05-manifest-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-manifest-docs"
+      }
+    },
+    {
+      "at": "2026-09-29T09:50:11.024Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/15"
+      }
+    },
+    {
+      "at": "2026-09-29T09:50:11.027Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-29T08:06:09.045Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-09-29T09:16:10.147Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    },
+    "03-01-manifest-writer": {
+      "startedAt": "2026-09-29T09:20:47.232Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    },
+    "03-02-run-records": {
+      "startedAt": "2026-09-29T09:22:18.284Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    },
+    "03-03-beam-capture": {
+      "startedAt": "2026-09-29T09:23:41.863Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    },
+    "03-04-manifest-dump": {
+      "startedAt": "2026-09-29T09:25:01.939Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    },
+    "03-05-manifest-docs": {
+      "startedAt": "2026-09-29T09:35:45.847Z",
+      "sessionIds": [
+        "0a6522e2-73ed-4086-bcef-a4d4a044ea67"
+      ]
+    }
+  },
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/run-manifest",
+    "base_branch": "O2_Included",
+    "branch_created_at": "2026-09-29T09:20:07.304Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/15"
+  },
+  "finished_at": "2026-09-29T09:50:11.027Z"
+}

@@ -1,0 +1,46 @@
+{
+  "session_id": "2026-09-23__physics-stage-output",
+  "feature_name": "physics-stage-output",
+  "scratch_dir": ".scratch/tests/2026-09-23__physics-stage-output",
+  "created_at": "2026-09-23T14:02:10.057Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-23T14:02:10.062Z",
+      "sessionIds": [
+        "73889f25-4c04-44ba-91f0-e91a6c268829"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-09-23T14:12:40.175Z",
+      "sessionIds": [
+        "73889f25-4c04-44ba-91f0-e91a6c268829"
+      ]
+    },
+    "03-01-physics-interaction-counter": {
+      "startedAt": "2026-09-23T14:21:07.658Z",
+      "sessionIds": [
+        "73889f25-4c04-44ba-91f0-e91a6c268829"
+      ]
+    },
+    "03-02-energy-deposit-output": {
+      "startedAt": "2026-09-23T14:22:41.108Z",
+      "sessionIds": [
+        "73889f25-4c04-44ba-91f0-e91a6c268829"
+      ]
+    },
+    "03-03-physical-interaction-wiring": {
+      "startedAt": "2026-09-23T14:31:55.980Z",
+      "sessionIds": [
+        "73889f25-4c04-44ba-91f0-e91a6c268829"
+      ]
+    },
+    "03-04-docs": {
+      "startedAt": "2026-09-23T14:42:05.066Z",
+      "sessionIds": [
+        "73889f25-4c04-44ba-91f0-e91a6c268829"
+      ]
+    }
+  },
+  "finished_at": "2026-09-23T17:57:17.894Z"
+}

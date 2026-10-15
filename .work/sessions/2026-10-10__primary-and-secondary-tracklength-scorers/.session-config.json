@@ -1,0 +1,213 @@
+{
+  "session_id": "2026-10-10__primary-and-secondary-tracklength-scorers",
+  "feature_name": "primary-and-secondary-tracklength-scorers",
+  "scratch_dir": ".scratch/tests/2026-10-10__primary-and-secondary-tracklength-scorers",
+  "created_at": "2026-10-10T11:19:33.757Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-10T11:19:33.757Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-10T11:33:27.604Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-10T11:33:27.723Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-10T12:02:42.380Z",
+      "event": "auto_started",
+      "phase": "plan",
+      "detail": {
+        "target": "finish",
+        "steps": "write:plan → ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-10T12:02:59.413Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/track-length-scorers",
+        "base": "main"
+      }
+    },
+    {
+      "at": "2026-10-10T12:02:59.438Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-track-length-table.md",
+        "02-plan/tickets/02-score-track-lengths.md",
+        "02-plan/tickets/03-manifest-track-lengths.md",
+        "02-plan/tickets/04-docs-track-lengths.md"
+      ],
+      "detail": {
+        "tickets": 4
+      }
+    },
+    {
+      "at": "2026-10-10T12:03:11.145Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-track-length-table.md",
+        "03-implement/01-track-length-table/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-track-length-table"
+      }
+    },
+    {
+      "at": "2026-10-10T12:03:22.824Z",
+      "event": "auto_started",
+      "phase": "ship",
+      "detail": {
+        "target": "finish",
+        "steps": "ship → finish",
+        "shipMode": "subagent+inline"
+      }
+    },
+    {
+      "at": "2026-10-10T12:05:25.829Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-track-length-table/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-track-length-table",
+        "commit": "fb7cb1c"
+      }
+    },
+    {
+      "at": "2026-10-10T12:05:29.490Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-score-track-lengths.md",
+        "03-implement/02-score-track-lengths/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-score-track-lengths"
+      }
+    },
+    {
+      "at": "2026-10-10T12:13:23.149Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-score-track-lengths/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-score-track-lengths",
+        "commit": "42d6f75"
+      }
+    },
+    {
+      "at": "2026-10-10T12:13:26.589Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-manifest-track-lengths.md",
+        "03-implement/03-manifest-track-lengths/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-manifest-track-lengths"
+      }
+    },
+    {
+      "at": "2026-10-10T12:16:08.246Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-manifest-track-lengths/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-manifest-track-lengths",
+        "commit": "0e2d8f9"
+      }
+    },
+    {
+      "at": "2026-10-10T12:16:08.431Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-docs-track-lengths.md",
+        "03-implement/04-docs-track-lengths/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-docs-track-lengths"
+      }
+    },
+    {
+      "at": "2026-10-10T12:17:35.141Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/04-docs-track-lengths/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-docs-track-lengths",
+        "commit": "7e3bbc5"
+      }
+    },
+    {
+      "at": "2026-10-10T12:17:45.458Z",
+      "event": "changelog_written",
+      "phase": "finish-pending",
+      "detail": {
+        "bump": "minor"
+      }
+    },
+    {
+      "at": "2026-10-10T12:17:51.072Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/28"
+      }
+    },
+    {
+      "at": "2026-10-10T12:17:51.075Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/track-length-scorers",
+    "base_branch": "main",
+    "branch_created_at": "2026-10-10T12:02:59.413Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/28"
+  },
+  "ship_mode": "subagent+inline",
+  "changelog": {
+    "bump": "minor",
+    "floor": "minor",
+    "reason": null,
+    "bullets": 2,
+    "path": ".work/changelog/2026-10-10__primary-and-secondary-tracklength-scorers.md",
+    "written_at": "2026-10-10T12:17:45.451Z"
+  },
+  "finished_at": "2026-10-10T12:17:51.075Z"
+}

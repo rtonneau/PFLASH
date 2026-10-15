@@ -1,0 +1,69 @@
+
+**/build/
+/build-ninja/*
+!/build-ninja/update-compile-cmd.ps1
+compile_commands.json
+.vscode/
+# Prerequisites
+*.d
+hook-posttooluse.log
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# debug information files
+*.dwo
+
+# Ignore everything in build-ninja
+/build-ninja/**
+
+# But keep this one file tracked
+!/build-ninja/update-compile-cmd.ps1
+
+/.scratch/**
+.scratch/
+
+# Claude Code: per-machine and generated files (see dotfiles/scripts/init-claude-project.ps1)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/hooks/*.log
+
+# Python bytecode (analysis scripts)
+__pycache__/
+.work/sessions/.current-session
+.work/sessions/.pending-seeds.json*
+.work/sessions/*/.write-payload.md
+.work/sessions/*/.changelog-payload.md

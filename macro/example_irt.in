@@ -1,0 +1,37 @@
+# Example: IRT_syn chemistry mode, particle-based stage only.
+#
+# Mode: /process/chem/TimeStepModel IRT_syn (the default) with the
+# mesoscopic stage switched off by /chem/meso/enable false. The chemistry
+# runs to the 1 us default end time. Set before /run/initialize (PreInit).
+# See docs/adr/0008-selectable-chemistry-modes.md.
+#
+# Run from the build dir (the build copies macro/ there):
+#   sim example_irt.in
+# Results: <exeDir>/results/Manifest.json (index) and results/sub_01/, sub_02/.
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Ritchie1994
+
+/process/chem/TimeStepModel IRT_syn
+/chem/meso/enable false
+
+# Dissolved O2 at 21 % of a pure-O2 atmosphere (air-equilibrated water).
+# Comment out the next line for the pure-water case.
+/chem/env/scavenger O2 21 %
+
+/run/initialize
+
+/gun/particle e-
+/gun/energy 10 keV
+
+# Sub-run 1
+/random/setSeeds 12345 67890
+/run/beamOn 2
+/run/dumpDataAndResetToDir sub_01
+
+# Sub-run 2, different seeds
+/random/setSeeds 23456 78901
+/run/beamOn 2
+/run/dumpDataAndResetToDir sub_02

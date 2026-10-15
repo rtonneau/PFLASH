@@ -1,0 +1,253 @@
+{
+  "session_id": "2026-10-01__boscolo-gvalues-vs-paper",
+  "feature_name": "boscolo-gvalues-vs-paper",
+  "scratch_dir": ".scratch/tests/2026-10-01__boscolo-gvalues-vs-paper",
+  "created_at": "2026-10-01T15:32:39.570Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-01T15:32:39.570Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-01T16:46:47.517Z",
+      "event": "auto_started",
+      "phase": "grill",
+      "detail": {
+        "target": "finish",
+        "steps": "write:grill → plan → write:plan → ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-01T16:47:27.549Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-01T16:47:34.064Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-01T16:50:47.355Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "fix/sbs-rate-aware-acceptance",
+        "base": "O2_Included"
+      }
+    },
+    {
+      "at": "2026-10-01T16:50:47.411Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-encounter-probability.md",
+        "02-plan/tickets/02-rate-aware-reaction-model.md",
+        "02-plan/tickets/03-sbs-max-time-step.md",
+        "02-plan/tickets/04-fig3-comparison-tool.md",
+        "02-plan/tickets/05-scan-script-and-k-recovery.md",
+        "02-plan/tickets/06-boscolo-validation-scan.md",
+        "02-plan/tickets/07-solvation-subtype-comparison.md"
+      ],
+      "detail": {
+        "tickets": 7
+      }
+    },
+    {
+      "at": "2026-10-01T16:50:56.955Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-encounter-probability.md",
+        "03-implement/01-encounter-probability/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-encounter-probability"
+      }
+    },
+    {
+      "at": "2026-10-01T16:52:39.971Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-encounter-probability/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-encounter-probability"
+      }
+    },
+    {
+      "at": "2026-10-01T16:52:47.799Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-rate-aware-reaction-model.md",
+        "03-implement/02-rate-aware-reaction-model/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rate-aware-reaction-model"
+      }
+    },
+    {
+      "at": "2026-10-01T16:57:22.477Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-rate-aware-reaction-model/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-rate-aware-reaction-model"
+      }
+    },
+    {
+      "at": "2026-10-01T16:58:05.783Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-sbs-max-time-step.md",
+        "03-implement/03-sbs-max-time-step/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-sbs-max-time-step"
+      }
+    },
+    {
+      "at": "2026-10-01T17:00:30.116Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-sbs-max-time-step/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-sbs-max-time-step"
+      }
+    },
+    {
+      "at": "2026-10-01T17:00:40.434Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-fig3-comparison-tool.md",
+        "03-implement/04-fig3-comparison-tool/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-fig3-comparison-tool"
+      }
+    },
+    {
+      "at": "2026-10-01T17:08:42.903Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-fig3-comparison-tool/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-fig3-comparison-tool"
+      }
+    },
+    {
+      "at": "2026-10-01T17:10:14.549Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-scan-script-and-k-recovery.md",
+        "03-implement/05-scan-script-and-k-recovery/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-scan-script-and-k-recovery"
+      }
+    },
+    {
+      "at": "2026-10-01T17:21:52.420Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/05-scan-script-and-k-recovery/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-scan-script-and-k-recovery"
+      }
+    },
+    {
+      "at": "2026-10-01T17:22:06.015Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/06-boscolo-validation-scan.md",
+        "03-implement/06-boscolo-validation-scan/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-boscolo-validation-scan"
+      }
+    }
+  ],
+  "usage": {
+    "grill": {
+      "startedAt": "2026-10-01T15:32:39.574Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "plan": {
+      "startedAt": "2026-10-01T16:47:34.052Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "03-01-encounter-probability": {
+      "startedAt": "2026-10-01T16:50:56.920Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "03-02-rate-aware-reaction-model": {
+      "startedAt": "2026-10-01T16:52:47.776Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "03-03-sbs-max-time-step": {
+      "startedAt": "2026-10-01T16:58:05.751Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "03-04-fig3-comparison-tool": {
+      "startedAt": "2026-10-01T17:00:40.407Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "03-05-scan-script-and-k-recovery": {
+      "startedAt": "2026-10-01T17:10:14.528Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    },
+    "03-06-boscolo-validation-scan": {
+      "startedAt": "2026-10-01T17:22:05.999Z",
+      "sessionIds": [
+        "553bbf85-2be6-4156-9ac9-380e97120bcb"
+      ]
+    }
+  },
+  "current_phase": "ship",
+  "git": {
+    "branch": "fix/sbs-rate-aware-acceptance",
+    "base_branch": "O2_Included",
+    "branch_created_at": "2026-10-01T16:50:47.355Z",
+    "pr_url": null
+  }
+}

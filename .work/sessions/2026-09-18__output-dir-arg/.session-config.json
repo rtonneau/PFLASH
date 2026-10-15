@@ -1,0 +1,18 @@
+{
+  "session_id": "2026-09-18__output-dir-arg",
+  "feature_name": "output-dir-arg",
+  "created_at": "2026-09-18T12:44:37.543Z",
+  "phases_completed": [
+    "implement"
+  ],
+  "tickets": [],
+  "status": "completed",
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-18T12:44:37.543Z",
+      "sessionIds": [
+        "07326c62-5ea8-4171-ab3f-d2aa9c51b95d"
+      ]
+    }
+  }
+}

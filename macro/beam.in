@@ -1,0 +1,38 @@
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Error
+
+/process/dna/e-SolvationSubType Ritchie1994
+
+# Chemistry: IRT_syn particle-based stage, handing over to the mesoscopic
+# stage (set in PhysicsList; /process/chem/TimeStepModel is not needed).
+# Optional, PreInit (defaults shown):
+#/chem/meso/handOverTime 5 ns
+#/chem/meso/voxelSize 6.25 nm
+#/chem/meso/timesPerDecade 10
+# The chemistry end time defaults to 1 s; to shorten it, issue
+# /scheduler/endTime <value> <unit> after /run/initialize.
+
+# Optional dissolved-O2 bulk scavenger (0 or absent = anoxic).
+# Air-equilibrated water ~= 21 % of a pure-O2 atmosphere.
+#/chem/env/scavenger O2 21 %
+#/chem/env/pH 7
+
+/run/initialize
+
+/gun/particle e-
+/gun/energy 100 keV
+
+# Species and reactions are defined in code (src/chemistry/DnaChemistryList.cc).
+# The former "/chem/species" and "/chem/reaction/add" blocks were removed:
+# "/chem/reaction/UI" resets the shared G4DNAMolecularReactionTable and would
+# wipe the class-built reaction set.
+
+#/primaryKiller/eLossMin 1 keV # primary is killed if deposited E is greater than this value
+#/primaryKiller/eLossMax 2 keV # event is aborted if deposited E is greated than this value
+#/primaryKiller/minKineticE 0 keV # primary min energy below which primary is killed.
+#/primaryKiller/verbose 0
+
+/run/beamOn 4
+
+/run/beamOn 2

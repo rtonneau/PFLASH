@@ -1,0 +1,33 @@
+/run/verbose 0
+/tracking/verbose 0
+
+# Info level so the "[RunAction] reaction counts written..." line is visible
+# (it's silent at the default Error level).
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Ritchie1994
+
+
+# Bin the reaction-count output (Reactions.Txt / Reactions_nt_reactions.csv)
+# at a fixed step, up to the chemistry scheduler end time. Reactions are only
+# counted in the particle-based stage (up to the hand-over time, 5 ns by
+# default), so this macro sets /scheduler/endTime 1 us after /run/initialize
+# (the 1 s default would mean ~1e9 fixed-width bins). Must be issued before
+# /run/initialize (PreInit).
+# Mutually exclusive with /chem/reaction/timeBinsList; leave both commented
+# out to fall back to the built-in 7-edge default table.
+/chem/reaction/timeBinsFixed 100 picosecond
+#/chem/reaction/timeBinsList 1 10 100 1000 picosecond
+
+/run/initialize
+/scheduler/endTime 1 us
+
+/gun/particle e-
+/gun/energy 100 keV
+
+# Species and reactions are defined in code (src/chemistry/DnaChemistryList.cc).
+# The former "/chem/species" and "/chem/reaction/add" blocks were removed:
+# "/chem/reaction/UI" resets the shared G4DNAMolecularReactionTable and would
+# wipe the class-built reaction set.
+
+/run/beamOn 4

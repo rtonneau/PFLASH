@@ -1,0 +1,354 @@
+{
+  "session_id": "2026-10-11__geant4-dna-recipes-docs",
+  "feature_name": "geant4-dna-recipes-docs",
+  "scratch_dir": ".scratch/tests/2026-10-11__geant4-dna-recipes-docs",
+  "created_at": "2026-10-11T12:25:09.517Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-11T12:25:09.517Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-11T12:29:27.661Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-11T12:29:31.065Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-11T12:35:05.566Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "docs/geant4-dna-recipes",
+        "base": "main"
+      }
+    },
+    {
+      "at": "2026-10-11T12:35:05.604Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-scaffold-recipes-index.md",
+        "02-plan/tickets/02-recipe-create-a-scorer.md",
+        "02-plan/tickets/03-recipe-create-a-species-counter.md",
+        "02-plan/tickets/04-recipe-mesoscopic-3d-species-counting.md",
+        "02-plan/tickets/05-recipe-export-data-as-hdf5.md",
+        "02-plan/tickets/06-recipe-create-a-macro-command.md",
+        "02-plan/tickets/07-recipe-dnachem-min-macro-command-reference.md",
+        "02-plan/tickets/08-recipe-add-a-new-chemistry.md",
+        "02-plan/tickets/09-recipe-add-a-reaction-or-molecule.md",
+        "02-plan/tickets/10-recipe-add-a-per-run-counter.md"
+      ],
+      "detail": {
+        "tickets": 10
+      }
+    },
+    {
+      "at": "2026-10-11T12:36:41.365Z",
+      "event": "auto_started",
+      "phase": "ship",
+      "detail": {
+        "target": "finish",
+        "steps": "ship → finish",
+        "shipMode": "subagent+inline"
+      }
+    },
+    {
+      "at": "2026-10-11T12:37:00.343Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-scaffold-recipes-index.md",
+        "03-implement/01-scaffold-recipes-index/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-scaffold-recipes-index"
+      }
+    },
+    {
+      "at": "2026-10-11T12:38:17.149Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-scaffold-recipes-index/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-scaffold-recipes-index",
+        "commit": "1734302"
+      }
+    },
+    {
+      "at": "2026-10-11T12:38:21.152Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-recipe-create-a-scorer.md",
+        "03-implement/02-recipe-create-a-scorer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-recipe-create-a-scorer"
+      }
+    },
+    {
+      "at": "2026-10-11T12:40:59.575Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-recipe-create-a-scorer/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-recipe-create-a-scorer",
+        "commit": "d65e436"
+      }
+    },
+    {
+      "at": "2026-10-11T12:41:15.341Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-recipe-create-a-species-counter.md",
+        "03-implement/03-recipe-create-a-species-counter/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-recipe-create-a-species-counter"
+      }
+    },
+    {
+      "at": "2026-10-11T12:43:09.954Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-recipe-create-a-species-counter/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-recipe-create-a-species-counter",
+        "commit": "9be2261"
+      }
+    },
+    {
+      "at": "2026-10-11T12:43:13.731Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-recipe-mesoscopic-3d-species-counting.md",
+        "03-implement/04-recipe-mesoscopic-3d-species-counting/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-recipe-mesoscopic-3d-species-counting"
+      }
+    },
+    {
+      "at": "2026-10-11T12:45:36.614Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-recipe-mesoscopic-3d-species-counting/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-recipe-mesoscopic-3d-species-counting",
+        "commit": "0a5e1fe"
+      }
+    },
+    {
+      "at": "2026-10-11T12:45:41.077Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-recipe-export-data-as-hdf5.md",
+        "03-implement/05-recipe-export-data-as-hdf5/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-recipe-export-data-as-hdf5"
+      }
+    },
+    {
+      "at": "2026-10-11T12:47:56.298Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/05-recipe-export-data-as-hdf5/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-recipe-export-data-as-hdf5",
+        "commit": "32e7555"
+      }
+    },
+    {
+      "at": "2026-10-11T12:48:00.757Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/06-recipe-create-a-macro-command.md",
+        "03-implement/06-recipe-create-a-macro-command/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-recipe-create-a-macro-command"
+      }
+    },
+    {
+      "at": "2026-10-11T12:52:09.806Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/06-recipe-create-a-macro-command/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-recipe-create-a-macro-command",
+        "commit": "2981cf2"
+      }
+    },
+    {
+      "at": "2026-10-11T12:52:13.739Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/07-recipe-dnachem-min-macro-command-reference.md",
+        "03-implement/07-recipe-dnachem-min-macro-command-reference/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "07-recipe-dnachem-min-macro-command-reference"
+      }
+    },
+    {
+      "at": "2026-10-11T12:54:51.769Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/07-recipe-dnachem-min-macro-command-reference/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "07-recipe-dnachem-min-macro-command-reference",
+        "commit": "ed0ddd1"
+      }
+    },
+    {
+      "at": "2026-10-11T12:54:55.883Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/08-recipe-add-a-new-chemistry.md",
+        "03-implement/08-recipe-add-a-new-chemistry/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "08-recipe-add-a-new-chemistry"
+      }
+    },
+    {
+      "at": "2026-10-11T13:01:13.742Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/08-recipe-add-a-new-chemistry/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "08-recipe-add-a-new-chemistry",
+        "commit": "51e68ca"
+      }
+    },
+    {
+      "at": "2026-10-11T13:01:40.870Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/09-recipe-add-a-reaction-or-molecule.md",
+        "03-implement/09-recipe-add-a-reaction-or-molecule/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "09-recipe-add-a-reaction-or-molecule"
+      }
+    },
+    {
+      "at": "2026-10-11T13:04:02.680Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/09-recipe-add-a-reaction-or-molecule/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "09-recipe-add-a-reaction-or-molecule",
+        "commit": "0783ecc"
+      }
+    },
+    {
+      "at": "2026-10-11T13:04:06.743Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/10-recipe-add-a-per-run-counter.md",
+        "03-implement/10-recipe-add-a-per-run-counter/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "10-recipe-add-a-per-run-counter"
+      }
+    },
+    {
+      "at": "2026-10-11T13:06:45.567Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/10-recipe-add-a-per-run-counter/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "10-recipe-add-a-per-run-counter",
+        "commit": "0d9c96c"
+      }
+    },
+    {
+      "at": "2026-10-11T13:07:03.085Z",
+      "event": "changelog_written",
+      "phase": "finish-pending",
+      "detail": {
+        "bump": "patch"
+      }
+    },
+    {
+      "at": "2026-10-11T13:07:11.635Z",
+      "event": "pr_opened",
+      "phase": "finish-pending",
+      "detail": {
+        "url": "https://github.com/rtonneau/dnachem-min/pull/29"
+      }
+    },
+    {
+      "at": "2026-10-11T13:07:11.637Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "docs/geant4-dna-recipes",
+    "base_branch": "main",
+    "branch_created_at": "2026-10-11T12:35:05.566Z",
+    "pr_url": "https://github.com/rtonneau/dnachem-min/pull/29"
+  },
+  "ship_mode": "subagent+inline",
+  "changelog": {
+    "bump": "patch",
+    "floor": "patch",
+    "reason": null,
+    "bullets": 1,
+    "path": ".work/changelog/2026-10-11__geant4-dna-recipes-docs.md",
+    "written_at": "2026-10-11T13:07:03.067Z"
+  },
+  "finished_at": "2026-10-11T13:07:11.637Z"
+}

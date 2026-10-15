@@ -1,0 +1,270 @@
+{
+  "session_id": "2026-10-08__verify-feature-combinations-and-add-three-example-macros-with",
+  "feature_name": "Verify feature combinations and add three example macros with standard dir tree",
+  "scratch_dir": ".scratch/tests/2026-10-08__verify-feature-combinations-and-add-three-example-macros-with",
+  "created_at": "2026-10-08T18:45:36.106Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-08T18:45:36.106Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-08T18:56:35.794Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-08T18:56:37.824Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-08T19:06:16.456Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "feat/chemistry-modes-and-results-layout",
+        "base": "integration"
+      }
+    },
+    {
+      "at": "2026-10-08T19:06:16.487Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-sbs-mode-and-meso-switch.md",
+        "02-plan/tickets/02-end-time-default-and-manifest-mode.md",
+        "02-plan/tickets/03-macro-resolver.md",
+        "02-plan/tickets/04-results-dir-and-index.md",
+        "02-plan/tickets/05-example-macros-and-docs.md",
+        "02-plan/tickets/06-smoke-matrix.md",
+        "02-plan/tickets/07-sbs-regression.md"
+      ],
+      "detail": {
+        "tickets": 7
+      }
+    },
+    {
+      "at": "2026-10-08T19:07:42.699Z",
+      "event": "auto_started",
+      "phase": "ship",
+      "detail": {
+        "target": "finish",
+        "steps": "ship → finish"
+      }
+    },
+    {
+      "at": "2026-10-08T19:07:51.084Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/01-sbs-mode-and-meso-switch.md",
+        "03-implement/01-sbs-mode-and-meso-switch/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-sbs-mode-and-meso-switch"
+      }
+    },
+    {
+      "at": "2026-10-08T19:19:16.129Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/01-sbs-mode-and-meso-switch/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "01-sbs-mode-and-meso-switch",
+        "commit": "e5cdbd5"
+      }
+    },
+    {
+      "at": "2026-10-08T19:19:19.661Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/02-end-time-default-and-manifest-mode.md",
+        "03-implement/02-end-time-default-and-manifest-mode/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-end-time-default-and-manifest-mode"
+      }
+    },
+    {
+      "at": "2026-10-08T19:22:10.862Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/02-end-time-default-and-manifest-mode/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "02-end-time-default-and-manifest-mode",
+        "commit": "20e9373"
+      }
+    },
+    {
+      "at": "2026-10-08T19:22:11.710Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/03-macro-resolver.md",
+        "03-implement/03-macro-resolver/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-macro-resolver"
+      }
+    },
+    {
+      "at": "2026-10-08T19:23:51.568Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/03-macro-resolver/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "03-macro-resolver",
+        "commit": "7403243"
+      }
+    },
+    {
+      "at": "2026-10-08T19:23:52.415Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/04-results-dir-and-index.md",
+        "03-implement/04-results-dir-and-index/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-results-dir-and-index"
+      }
+    },
+    {
+      "at": "2026-10-08T19:45:35.148Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/04-results-dir-and-index/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "04-results-dir-and-index",
+        "commit": "0bb1bf3"
+      }
+    },
+    {
+      "at": "2026-10-08T19:45:35.988Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/05-example-macros-and-docs.md",
+        "03-implement/05-example-macros-and-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-example-macros-and-docs"
+      }
+    },
+    {
+      "at": "2026-10-08T19:51:35.241Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/05-example-macros-and-docs/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "05-example-macros-and-docs",
+        "commit": "f4003ef"
+      }
+    },
+    {
+      "at": "2026-10-08T19:51:36.124Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/06-smoke-matrix.md",
+        "03-implement/06-smoke-matrix/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-smoke-matrix"
+      }
+    },
+    {
+      "at": "2026-10-08T20:05:54.049Z",
+      "event": "ticket_done",
+      "phase": "ship",
+      "files": [
+        "03-implement/06-smoke-matrix/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "06-smoke-matrix",
+        "commit": "acfa422"
+      }
+    },
+    {
+      "at": "2026-10-08T20:05:54.889Z",
+      "event": "ticket_started",
+      "phase": "ship",
+      "files": [
+        "02-plan/tickets/07-sbs-regression.md",
+        "03-implement/07-sbs-regression/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "07-sbs-regression"
+      }
+    },
+    {
+      "at": "2026-10-08T21:17:11.437Z",
+      "event": "ticket_done",
+      "phase": "finish-pending",
+      "files": [
+        "03-implement/07-sbs-regression/commit-log.md"
+      ],
+      "detail": {
+        "ticket": "07-sbs-regression",
+        "commit": "620f77f"
+      }
+    },
+    {
+      "at": "2026-10-08T21:17:20.344Z",
+      "event": "changelog_written",
+      "phase": "finish-pending",
+      "detail": {
+        "bump": "minor"
+      }
+    },
+    {
+      "at": "2026-10-08T21:17:25.271Z",
+      "event": "session_finished",
+      "phase": "finished",
+      "files": [
+        "INDEX.md"
+      ]
+    }
+  ],
+  "current_phase": "finished",
+  "git": {
+    "branch": "feat/chemistry-modes-and-results-layout",
+    "base_branch": "integration",
+    "branch_created_at": "2026-10-08T19:06:16.456Z",
+    "pr_url": null
+  },
+  "ship_mode": "subagent+inline",
+  "changelog": {
+    "bump": "minor",
+    "floor": "minor",
+    "reason": null,
+    "bullets": 5,
+    "path": ".work/changelog/2026-10-08__verify-feature-combinations-and-add-three-example-macros-with.md",
+    "written_at": "2026-10-08T21:17:20.336Z"
+  },
+  "finished_at": "2026-10-08T21:17:25.271Z"
+}

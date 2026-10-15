@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "github": {
+    "enabled": true,
+    "detected_at": "2026-10-10T11:18:50.887Z"
+  },
+  "jev": {
+    "enabled": true,
+    "detected_at": "2026-10-10T11:18:50.892Z"
+  },
+  "release": {
+    "versionFiles": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "session_id": "2026-09-23__dir-argument-should-also-have-a-macro-dile-entry-associated-but",
+  "feature_name": "--dir argument should also have a macro dile entry associated. But if --dir arg is passed and the related entry in macro file is also present then the app should warn and interrupt",
+  "scratch_dir": ".scratch/tests/2026-09-23__dir-argument-should-also-have-a-macro-dile-entry-associated-but",
+  "created_at": "2026-09-23T13:02:52.400Z",
+  "template_version": 2,
+  "usage": {
+    "grill": {
+      "startedAt": "2026-09-23T13:02:52.419Z",
+      "sessionIds": [
+        "515003ff-e114-491b-89b7-07f2b60f831e"
+      ]
+    }
+  },
+  "finished_at": "2026-09-23T13:30:27.113Z"
+}

@@ -1,0 +1,25 @@
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+
+/process/dna/e-SolvationSubType Ritchie1994
+
+# Dissolved O2 as a bulk scavenger: 21 % of a pure-O2 atmosphere
+# (air-equilibrated water, kH = 0.0013 M -> 2.73e-4 M). The reactions
+# (e_aq/H/O- + O2 bulk) come from the selected Chemistry.
+/chem/env/scavenger O2 21 %
+/chem/env/pH 7
+
+/run/initialize
+
+/gun/particle e-
+/gun/energy 100 keV
+
+# Species and reactions are defined in code (src/chemistry/DnaChemistryList.cc).
+
+#/primaryKiller/eLossMin 1 keV
+#/primaryKiller/eLossMax 2 keV
+#/primaryKiller/minKineticE 0 keV
+#/primaryKiller/verbose 0
+
+/run/beamOn 2
