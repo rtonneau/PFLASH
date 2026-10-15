@@ -1,0 +1,66 @@
+{
+  "session_id": "2026-10-15__pflash-housecleaning-port-from-dnachem-min",
+  "feature_name": "pflash-housecleaning-port-from-dnachem-min",
+  "scratch_dir": ".scratch/tests/2026-10-15__pflash-housecleaning-port-from-dnachem-min",
+  "created_at": "2026-10-15T16:23:33.749Z",
+  "template_version": 2,
+  "history": [
+    {
+      "at": "2026-10-15T16:23:33.749Z",
+      "event": "session_started",
+      "phase": "grill",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-15T16:28:13.240Z",
+      "event": "grill_written",
+      "phase": "plan-not-started",
+      "files": [
+        "01-grill/resume.md"
+      ]
+    },
+    {
+      "at": "2026-10-15T16:28:13.355Z",
+      "event": "plan_started",
+      "phase": "plan",
+      "files": [
+        "02-plan/plan.md"
+      ]
+    },
+    {
+      "at": "2026-10-15T16:31:45.667Z",
+      "event": "branch_created",
+      "phase": "plan",
+      "detail": {
+        "branch": "chore/pflash-housecleaning",
+        "base": "main"
+      }
+    },
+    {
+      "at": "2026-10-15T16:31:45.696Z",
+      "event": "plan_written",
+      "phase": "ship",
+      "files": [
+        "02-plan/plan.md",
+        "02-plan/tickets/01-remove-dnachem-history.md",
+        "02-plan/tickets/02-rename-executable-pflash.md",
+        "02-plan/tickets/03-rename-skill-and-living-docs.md",
+        "02-plan/tickets/04-move-farokhi-macros.md",
+        "02-plan/tickets/05-rewrite-scope-docs.md",
+        "02-plan/tickets/06-final-verification.md"
+      ],
+      "detail": {
+        "tickets": 6
+      }
+    }
+  ],
+  "current_phase": "ship",
+  "git": {
+    "branch": "chore/pflash-housecleaning",
+    "base_branch": "main",
+    "branch_created_at": "2026-10-15T16:31:45.667Z",
+    "pr_url": null
+  }
+}
