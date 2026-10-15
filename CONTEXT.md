@@ -1,6 +1,8 @@
-# dnachem-min
+# PFLASH
 
-Minimal Geant4-DNA water-radiolysis chemistry. This glossary tracks the chemistry
+PFLASH (PFAS + FLASH): Geant4-DNA water-radiolysis chemistry, aiming at the
+dose-rate effect (next development). It derives from the Geant4-DNA project
+dnachem-min. This glossary tracks the chemistry
 vocabulary used in `DnaChemistryList`/`DnaChemistryWorld` and related design
 discussions; it is not a spec or implementation log.
 

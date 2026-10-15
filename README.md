@@ -1,11 +1,12 @@
-# dnachem-min
+# PFLASH
 
-Minimal Geant4-DNA example for studying water radiolysis from electron beams.
-It provides the common physics, chemistry, and scoring basis for
-conventional and ultra-high-dose-rate (UHDR) irradiation studies. UHDR is a
-use case, not a separate implementation — there is no dedicated UHDR
-pulse-structure, dose-rate-effect, or delivery-model code, and none is
-planned unless the project scope changes.
+PFLASH (PFAS + FLASH) is a Geant4-DNA project for studying water radiolysis
+from electron beams. Its aim is to implement the dose-rate effect, which is the
+next development and is not yet in the code. It derives from the Geant4-DNA
+project dnachem-min and keeps its physics, chemistry and scoring basis for
+conventional and ultra-high-dose-rate (UHDR) irradiation studies. Until the
+dose-rate work starts there is no UHDR-specific pulse-structure,
+dose-rate-effect or delivery-model code.
 
 The geometry is a single homogeneous water box (no voxelization).
 
@@ -20,7 +21,7 @@ The geometry is a single homogeneous water box (no voxelization).
 
 See `.claude/geant4-instructions.md` for the full MSVC build procedure
 (the `build/` vs `build-ninja/` split, background runs, verification
-checklist). In short: `build/` is a RelWithDebInfo tree used to run `sim`;
+checklist). In short: `build/` is a RelWithDebInfo tree used to run `pflash`;
 `build-ninja/` is a Debug tree used to run the unit tests via CTest.
 
 ## Run
@@ -31,13 +32,13 @@ The macro is looked up in this order: the argument as given, then
 alongside the executable):
 
 ```bash
-./sim beam.in             # pure-water radiolysis
-./sim beam_o2.in          # with dissolved-O2 scavenger config (see caveat below)
-./sim beam_boscolo.in     # BoscoloChem reaction network, see "Choosing a chemistry"
-./sim reaction_counter.in # reaction-counting example, see below
-./sim example_sbs.in      # chemistry mode SBS (particle-based stage only)
-./sim example_irt.in      # chemistry mode IRT_syn, no mesoscopic stage
-./sim example_meso.in     # chemistry mode IRT_syn + mesoscopic stage (smoke-sized)
+./pflash beam.in             # pure-water radiolysis
+./pflash beam_o2.in          # with dissolved-O2 scavenger config (see caveat below)
+./pflash beam_boscolo.in     # BoscoloChem reaction network, see "Choosing a chemistry"
+./pflash reaction_counter.in # reaction-counting example, see below
+./pflash example_sbs.in      # chemistry mode SBS (particle-based stage only)
+./pflash example_irt.in      # chemistry mode IRT_syn, no mesoscopic stage
+./pflash example_meso.in     # chemistry mode IRT_syn + mesoscopic stage (smoke-sized)
 ```
 
 The three `example_*.in` macros differ only in the chemistry mode; see
@@ -47,8 +48,8 @@ dissolved O2 at 21 %) into `results/sub_01/` and `results/sub_02/`.
 Other flags:
 
 ```bash
-./sim beam.in --threads 4       # multithreaded run (default: Serial)
-./sim beam.in --dir runs/001    # redirect all output files into runs/001
+./pflash beam.in --threads 4       # multithreaded run (default: Serial)
+./pflash beam.in --dir runs/001    # redirect all output files into runs/001
 ```
 
 `--dir <path>` can appear anywhere on the command line, but the macro
@@ -223,7 +224,7 @@ verbose) is set.
 Run it with:
 
 ```bash
-./sim reaction_counter.in
+./pflash reaction_counter.in
 ```
 
 This produces `Reactions.Txt`, `Reactions_nt_reactions.csv`, and
@@ -246,7 +247,7 @@ the full procedure, including `NDEBUG` and Debug-CRT-dialog pitfalls.
 
 ## Repo layout
 
-- `sim.cc` — application entry point, CLI flags (`--threads`, `--dir`) and
+- `pflash.cc` — application entry point, CLI flags (`--threads`, `--dir`) and
   macro-command messengers (`--dir`'s counterpart, `/run/outputDir`, lives
   in `src/core/OutputDirMessenger.cc`)
 - `src/`, `header/` — implementation and headers, mirrored in clusters: `core/` (`ArgParser`, `OutputDir`, `DnaLogger`), `actions/` (run, event, tracking, stacking and stepping actions), `geometry/` (`DetectorConstruction`, `DnaChemistryWorld`), `physics/` (`PhysicsList`), `chemistry/` (`DnaChemistryList`, `ChemistryRegistry`, `TimeStepAction`) with `chemistry/catalog/` (`PureWaterReactions`, `BoscoloChemReactions`), and `scoring/` (`ScoreSpecies`, `ReactionCounter`, `RunAccumulator`). Project includes are rooted at `header/`, e.g. `#include "chemistry/DnaChemistryList.hh"`.
