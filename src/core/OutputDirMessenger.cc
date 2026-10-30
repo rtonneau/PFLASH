@@ -1,3 +1,8 @@
+/// \file OutputDirMessenger.cc
+/// \brief PreInit macro control of the output directory.
+/// Requires Geant4 UI runtime; not standard-library-only. Command ownership
+/// and callbacks follow the UI lifecycle; callers must serialize access.
+
 #include "core/OutputDirMessenger.hh"
 #include "core/OutputDir.hh"
 

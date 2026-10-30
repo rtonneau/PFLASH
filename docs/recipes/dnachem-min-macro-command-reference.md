@@ -15,7 +15,7 @@ not silently drift from or contradict that summary.
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/run/outputDir <path>` | PreInit | `src/core/OutputDirMessenger.cc:9` |
+| `/run/outputDir <path>` | PreInit | `src/core/OutputDirMessenger.cc (OutputDirMessenger constructor)` |
 | `/run/dumpDataAndReset [prefix]` | Idle | `src/scoring/RunAccumulatorMessenger.cc:24` |
 | `/run/dumpDataAndResetToDir <subdir>` | Idle | `src/scoring/RunAccumulatorMessenger.cc:35` |
 
@@ -105,7 +105,7 @@ either command itself (`DnaChemistryList.cc:204-212`).
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/dnaLogger/verbose Quiet\|Error\|Warning\|Info\|Debug\|Trace` | PreInit, Idle, GeomClosed, EventProc | `src/core/DnaLoggerMessenger.cc:9,13` |
+| `/dnaLogger/verbose Quiet\|Error\|Warning\|Info\|Debug\|Trace` | PreInit, Idle, GeomClosed, EventProc | `src/core/DnaLoggerMessenger.cc (DnaLoggerMessenger constructor)` |
 
 A plain `G4UIcmdWithAString` with `SetCandidates(DnaLogger::LevelCandidates())`
 restricting the argument to the named levels. Unlike every other custom

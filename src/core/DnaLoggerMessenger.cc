@@ -1,3 +1,8 @@
+/// \file DnaLoggerMessenger.cc
+/// \brief Macro control of application log verbosity.
+/// Requires Geant4 UI runtime; not standard-library-only. Command ownership
+/// and callbacks follow the UI lifecycle; callers must serialize access.
+
 #include "core/DnaLoggerMessenger.hh"
 #include "core/DnaLogger.hh"
 

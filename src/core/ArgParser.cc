@@ -1,5 +1,6 @@
 /// \file ArgParser.cc
-/// \brief Implementation of ArgParser
+/// \brief CLI flag parsing and validation. Geant4 types, no kernel calls.
+/// Not standard-library-only; callers synchronize mutation of an instance.
 
 #include "core/ArgParser.hh"
 
@@ -46,42 +47,58 @@ G4bool ArgParser::Parse(int argc, char **argv)
 
     if (spec.type == FlagType::Int)
     {
-      char *end = nullptr;
-      long parsed = std::strtol(value.c_str(), &end, 10);
-      if (end == value.c_str() || *end != '\0' || parsed <= 0)
-      {
-        fError = token + ": value must be a positive integer, got '" + value + "'";
+      if (!ParseIntValue(token, value, spec))
         return false;
-      }
-
-      if (spec.intValidator)
-      {
-        G4String validatorError;
-        if (!spec.intValidator(static_cast<G4int>(parsed), validatorError))
-        {
-          fError = token + ": " + validatorError;
-          return false;
-        }
-      }
-
-      fIntValues[token] = static_cast<G4int>(parsed);
     }
     else // FlagType::String
     {
-      if (spec.stringValidator)
-      {
-        G4String validatorError;
-        if (!spec.stringValidator(value, validatorError))
-        {
-          fError = token + ": " + validatorError;
-          return false;
-        }
-      }
-
-      fStringValues[token] = value;
+      if (!ParseStringValue(token, value, spec))
+        return false;
     }
   }
 
+  return true;
+}
+
+G4bool ArgParser::ParseIntValue(const G4String &token, const G4String &value,
+                            const FlagSpec &spec)
+{
+  char *parseEnd = nullptr;
+  long parsedValue = std::strtol(value.c_str(), &parseEnd, 10);
+  if (parseEnd == value.c_str() || *parseEnd != '\0' || parsedValue <= 0)
+  {
+    fError = token + ": value must be a positive integer, got '" + value + "'";
+    return false;
+  }
+
+  if (spec.intValidator)
+  {
+    G4String validatorError;
+    if (!spec.intValidator(static_cast<G4int>(parsedValue), validatorError))
+    {
+      fError = token + ": " + validatorError;
+      return false;
+    }
+  }
+
+  fIntValues[token] = static_cast<G4int>(parsedValue);
+  return true;
+}
+
+G4bool ArgParser::ParseStringValue(const G4String &token, const G4String &value,
+                               const FlagSpec &spec)
+{
+  if (spec.stringValidator)
+  {
+    G4String validatorError;
+    if (!spec.stringValidator(value, validatorError))
+    {
+      fError = token + ": " + validatorError;
+      return false;
+    }
+  }
+
+  fStringValues[token] = value;
   return true;
 }
 

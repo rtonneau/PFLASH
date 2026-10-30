@@ -1,3 +1,8 @@
+/// \file DnaLogger.cc
+/// \brief Verbosity-filtered application logging through Geant4 streams.
+/// Geant4-dependent, not standard-library-only. Verbosity access is atomic;
+/// output ordering and synchronization depend on the Geant4 destination.
+
 #include "core/DnaLogger.hh"
 
 #include "G4ios.hh"
@@ -6,6 +11,7 @@
 
 namespace
 {
+    // Verbosity carries no other state, so relaxed access needs no ordering barrier.
     std::atomic<G4int> gVerbosityLevel{static_cast<G4int>(DnaLogger::Level::Quiet)};
 }
 
@@ -77,7 +83,7 @@ namespace DnaLogger
         if (lower == "trace")
             return Level::Trace;
 
-        // Should not happen: G4UIcmdWithAString restricts input via SetCandidates()
+        // The UI command checks candidates; direct callers can still reach this fallback.
         G4cerr << "[DnaLogger] Unknown level '" << name << "', defaulting to Quiet" << G4endl;
         return Level::Quiet;
     }
