@@ -68,17 +68,17 @@ set of time points, and folds the result into a per-event G-value
     scored.
   - `AbsorbResultsFromWorkerScorer` (`ScoreSpecies.cc, AbsorbResultsFromWorkerScorer`) is the MT
     merge hook — see Serial vs MT below.
-- `src/chemistry/TimeStepAction.cc:565-577` is where the counter gets muted:
+- `src/chemistry/TimeStepAction.cc` is where the counter gets muted:
   right before handing the remaining molecules to the mesoscopic
   `G4DNAEventScheduler`, it calls
   `G4MoleculeCounterManager::Instance()->SetIsActive(false)`
-  (thread-local; restored at `EndProcessing`, `TimeStepAction.cc:724`).
-  Comment at `TimeStepAction.cc:565-573` explains why: two downstream
+  (thread-local; restored at `EndProcessing`, `TimeStepAction.cc`).
+  Comment at `TimeStepAction.cc` explains why: two downstream
   effects would otherwise trip the counter's time-consistency check
   (`TIME_DONT_MATCH`) once the mesoscopic stage runs past the hand-over
   time while the scheduler's own global time stays frozen there.
 - `DetectorConstruction::ConstructSDandField()`
-  (`src/geometry/DetectorConstruction.cc:124-146`) registers
+  (`src/geometry/DetectorConstruction.cc`) registers
   `ScoreSpecies("Species")` as a primitive on the shared
   `G4MultiFunctionalDetector` — the generic registration mechanics
   `create-a-scorer.md` covers.

@@ -1,6 +1,6 @@
 # Layout: default directory
 
-No `--dir` and no `/run/outputDir`: output goes to `<exeDir>/results` (for the usual build, `build/results`), with bare file names; the folder is created at the first output. It is not the current directory. One `/run/dumpDataAndReset` writes everything. With `--dir <path>` the same files land in `<path>` and `<exeDir>/results` is not created (checked). File meaning: [../README.md](../README.md).
+No `--dir` and no `/run/outputDir`: output goes to `<exeDir>/results` (for the usual build, `build/results`), with bare file names; the folder is created at the first output. The current directory is the fallback if executable lookup or lazy default-directory creation fails. One `/run/dumpDataAndReset` writes everything. With `--dir <path>` the same files land in `<path>` and `<exeDir>/results` is not created (checked). File meaning: [../README.md](../README.md).
 
 The `Manifest.json` here is special. It is the **results index** (`kind: "resultsIndex"`, `dumps[]`), rewritten at every dump. A flat dump with an empty prefix has its own manifest at the same path, so the two collide into one file: the dump's manifest (timestamp, Chemistry, `files`, `runs[]`, ...) plus a top-level `dumps` array, without `kind`. Its single `dumps[]` entry reads `folder: ""`, `prefix: ""`, `manifest: "Manifest.json"`.
 
@@ -14,7 +14,7 @@ cd build
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/scheduler/endTime 1 ms            (after /run/initialize)
+/scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /run/dumpDataAndReset
 ```
@@ -48,8 +48,8 @@ cd build
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/spatialOutput true     (before /run/initialize)
-/scheduler/endTime 1 ms            (after /run/initialize)
+/chem/meso/spatialOutput true  # (before /run/initialize)
+/scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /run/dumpDataAndReset
 ```
@@ -85,7 +85,7 @@ cd build
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`). The `/scheduler/endTime` line is left out: with the mesoscopic stage off the end time defaults to 1 us (a 1 ms end time would also work, it only runs longer):
 
 ```text
-/chem/meso/enable false           (before /run/initialize)
+/chem/meso/enable false  # (before /run/initialize)
 /run/beamOn 2
 /run/dumpDataAndReset
 ```

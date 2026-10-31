@@ -1,7 +1,7 @@
 Read the codebase and get familiar with it. Don't build or install dependencies.
 
 ## Context
-- This repo, dnachem-min, is a Geant4-DNA application. It depends on a local C++ library called G4Vox, which is not included here. I develop on Windows with Visual Studio.
+- This repo, dnachem-min, is a Geant4-DNA application. It uses one homogeneous water box and depends on Geant4 and HDF5; it has no G4Vox dependency. I develop on Windows with Visual Studio.
 - Geant4 source: https://github.com/rtonneau/geant4. Clone it shallow (git clone --depth 1) next to this repo, read-only, and don't build it. Focus on:
   - source/processes/electromagnetic/dna/ (physics, chemistry, IRT/SBS, molecules, reactions, scavengers)
   - the DNA-related run/scoring infrastructure

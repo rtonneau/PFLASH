@@ -29,8 +29,9 @@ dev machine: `C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary
 cmd /c "`"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat`" >nul && <command>"
 ```
 
-Linux/macOS: skip this section. Tool calls time out at 2 min: run full builds
-and simulations with `run_in_background`, and read the log they write.
+Linux/macOS: skip this section. For long builds and simulations, use the
+available tool's background/session mechanism, redirect output to a log, and
+check both completion status and that log. Tool timeout limits vary by host.
 
 ## 2. Configure and build
 
@@ -64,7 +65,7 @@ cmake --build <dir> --config <type> --target <build.executable>
   found, typically Qt), prepend the directory holding those DLLs to `PATH` in
   the same command. Machine-specific; on the current dev machine:
   ```powershell
-  $env:PATH = "E:\miniconda3\envs\qt5\Library\bin;$env:PATH"; .\sim.exe <macro> > run.log 2>&1
+  $env:PATH = "C:\Users\rtonneau\AppData\Local\anaconda3\Library\bin;$env:PATH"; .\sim.exe <macro> > run.log 2>&1
   ```
 - Macro argument: see `run.cli.syntax` and `run.macroArgIsFilenameOnly`.
 - If `run.macroCopiedAtBuild`, macros are copied into the build dir only when
@@ -79,7 +80,9 @@ cmake --build <dir> --config <type> --target <build.executable>
 - Serial vs multithreaded: see `run.cli`. Try Serial first. MT multiplies
   memory use; the harness kills background jobs under memory pressure, and you
   must not restart one on your own after that.
-- Smoke test: use `run.smoke` (low energy, few events), never the production macro.
+- Smoke test: follow the task's explicit energy/event settings first, otherwise
+  `run.smoke`; never substitute a production macro. The readability baseline
+  uses 10 keV e- and `/run/beamOn 2`, while the current JSON still says 25 keV/10.
 
 ## 4. Verify a run
 
@@ -93,13 +96,15 @@ Do not trust the exit code alone. Check all of:
 4. Each file in `run.outputs` exists, is non-empty, and the numbers are
    plausible (open the head of each; don't just `ls`).
 
-Output files are only written when a macro issues `/run/dumpDataAndReset`
+Final dump files are written when a macro issues `/run/dumpDataAndReset`
 (or, if it never does, once automatically at process exit under the
 `EndOfRun_` prefix) -- several `/run/beamOn` calls between dumps just
 accumulate into that one write. Reusing a prefix within the same process is
 a fatal error rather than a silent `*_bis.csv` rename; give each
 `/run/dumpDataAndReset` call in a macro a distinct prefix if you want
-separate output per segment.
+separate output per segment. Pre-chemical and optional spatial files are
+written to staging during events; reaction-table dumps can be written during
+initialization. See `docs/output/README.md` for the full lifecycle.
 
 ## 5. Unit tests
 
@@ -113,6 +118,20 @@ Two build directories, on purpose:
 ctest --test-dir <testBuildDir> -N                         # list tests
 cmake --build <testBuildDir> --target <each test target>   # build them first
 ctest --test-dir <testBuildDir> --output-on-failure
+```
+
+On Windows with vcpkg shared HDF5, prepend the matching Debug DLL directory
+**before ctest**. A Debug HDF5 test can hang or fail to load with release DLLs
+first on PATH. Restore PATH before running the RelWithDebInfo application:
+
+```powershell
+$savedTestPath = $env:PATH
+try {
+  $env:PATH = "C:/DEV/vcpkg/installed/x64-windows/debug/bin;$savedTestPath"
+  ctest --test-dir build-ninja --output-on-failure
+} finally {
+  $env:PATH = $savedTestPath
+}
 ```
 
 - ctest reports `Not Run` for a test whose executable is not built yet. Build

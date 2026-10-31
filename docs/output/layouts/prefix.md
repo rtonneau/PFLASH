@@ -11,7 +11,7 @@
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/scheduler/endTime 1 ms            (after /run/initialize)
+/scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /run/dumpDataAndReset pfx_
 ```
@@ -45,8 +45,8 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/spatialOutput true     (before /run/initialize)
-/scheduler/endTime 1 ms            (after /run/initialize)
+/chem/meso/spatialOutput true  # (before /run/initialize)
+/scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /run/dumpDataAndReset pfx_
 ```
@@ -82,7 +82,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/enable false           (before /run/initialize)
+/chem/meso/enable false  # (before /run/initialize)
 /run/beamOn 2
 /run/dumpDataAndReset pfx_
 ```

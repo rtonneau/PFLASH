@@ -124,7 +124,7 @@ It does not make publication transactional or guarantee successful I/O.
 `/run/dumpDataAndResetToDir <subdir>` (`Idle` state, parameter required) is the
 same dump, but writes the unprefixed files into `<subdir>` under the output
 directory (`--dir` / `/run/outputDir`, otherwise the lazy `<exeDir>/results`
-default; cwd only if no root is available) instead of using a
+default; cwd if executable lookup or lazy default-directory creation fails) instead of using a
 filename prefix — e.g. `/run/beamOn 4`, `/run/dumpDataAndResetToDir run01`,
 `/run/beamOn 4`, `/run/dumpDataAndResetToDir run02` yields `run01/` and
 `run02/`, each with the full file set. The folder is created if missing
@@ -163,8 +163,7 @@ Pass `--dir <path>` to redirect every output file above (plus the
 `/chem/reaction/dump` target, if the macro sets one) into `<path>` instead of
 the default directory — useful for isolating each run's output when scripting many `sim.exe`
 invocations. `<path>` itself is created if missing; its parent must already
-exist. `--dir` can appear anywhere on the command line, but the macro
-filename must still come first (`argv[1]`):
+exist. Put the macro filename first (`argv[1]`), followed by CLI flags:
 
 ```bash
 ./sim beam.in --dir runs/001

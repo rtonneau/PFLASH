@@ -71,15 +71,15 @@ against the actual source:
   directory name pattern. `StagedPath` appends the fixed file name
   (`FileName()`, `"SpeciesMesoSpatial.h5"`).
 - **Append per event.** `TimeStepAction::WriteSpatialSnapshots()`
-  (`src/chemistry/TimeStepAction.cc:634-653`) runs once per event, right
+  (`src/chemistry/TimeStepAction.cc`) runs once per event, right
   after the mesoscopic stage finishes recording that event's snapshots: it
   skips entirely when there are no records for this event
-  (`data.records.empty()`, `TimeStepAction.cc:638`), fills `runId`/`eventId`
+  (`data.records.empty()`, `TimeStepAction.cc`), fills `runId`/`eventId`
   from the current `G4Run`/`G4Event`, and calls
   `MesoSpatialFile::AppendEvent(MesoSpatialFile::StagedPath(OutputDir::GetDirectory()), species, data, err)`
-  (`TimeStepAction.cc:644-645`). A write failure is a `JustWarning`
+  (`TimeStepAction.cc`). A write failure is a `JustWarning`
   `G4Exception`, not fatal — one event's spatial data is lost, but the run
-  continues (`TimeStepAction.cc:646-650`).
+  continues (`TimeStepAction.cc`).
 - **What `AppendEvent` actually does**
   (`MesoSpatialFile.cc, AppendEvent`, verified line by line): validates the event
   data shape first (`Validate`, `MesoSpatialFile.cc, Validate` — `position_nm`

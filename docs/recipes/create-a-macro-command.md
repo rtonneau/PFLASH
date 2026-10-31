@@ -11,7 +11,7 @@ changes between Serial and MT.
 ## Generic pattern
 
 A macro command is a `G4UIcommand` (or one of its typed subclasses,
-`G4UIcmdWith*`) registered under a `G4UIdirectory` in the global command
+`G4UIcmdWith*`) registered under a `G4UIdirectory` in the receiving UI manager's command
 tree, with a `G4UImessenger` behind it that converts the string argument(s)
 into a value and does something with it. Two ways to build one:
 
@@ -22,7 +22,7 @@ into a value and does something with it. Two ways to build one:
    (`geant4SourcePath/source/intercoms/include/G4UIcommand.hh`), and
    override `SetNewValue(G4UIcommand*, G4String)` to dispatch on command
    identity (`command == fpSomeCmd`) and `GetCurrentValue(G4UIcommand*)` if
-   the command should answer `/control/getEnv`-style queries. Destructor
+   the command should answer UI current-value queries. Destructor
    `delete`s each command object. This is the lower-level style: you write
    the per-type `GetNewXValue`/`ConvertToString` calls yourself.
 2. **`G4GenericMessenger`.** Construct one `G4GenericMessenger` owning a
@@ -54,7 +54,7 @@ created:**
   `/chem/` already exists (created by `G4DNAChemistryManager`), so a second
   `G4GenericMessenger(this, "/chem/", ...)` would try to create a second
   `/chem/` directory
-  (`header/chemistry/ChemistrySelectMessenger.hh:5-7`).
+  (`header/chemistry/ChemistrySelectMessenger.hh`).
 - `src/chemistry/MesoMessenger.cc` — five PreInit commands
   (`/chem/meso/handOverTime`, `voxelSize`, `timesPerDecade`,
   `spatialOutput`, `enable`), each a typed `G4UIcmdWith*` built in the
@@ -64,7 +64,7 @@ created:**
   `G4Exception`) before writing it into the process-wide
   `MesoSettings::Current()`. The header explains this one creates its own
   new `/chem/meso/` directory as a side effect of its first command's path,
-  still under the existing `/chem/` (`header/chemistry/MesoMessenger.hh:10-11`).
+  still under the existing `/chem/` (`header/chemistry/MesoMessenger.hh`).
 
 **`G4GenericMessenger`, owning a brand-new directory:**
 
@@ -79,7 +79,7 @@ created:**
   must be constructed *after* `fMessenger` so that the `/chem/env/`
   directory already exists for it to attach to — the same existing-directory
   consideration as the plain-messenger case above, just within one file.
-- `src/chemistry/DnaChemistryList.cc:155-176` — constructs
+- `src/chemistry/DnaChemistryList.cc` — constructs
   `G4GenericMessenger(this, "/chem/reaction/", ...)` and declares `dump`
   with `DeclareProperty`, `timeBinsFixed` with `DeclareMethodWithUnit`, and
   `timeBinsList` with `DeclareProperty` (not `DeclareMethod` — see below).
@@ -89,8 +89,8 @@ created:**
 - Pick a **plain `G4UImessenger`** when the command must attach to a
   directory another component already created, because
   `G4GenericMessenger`'s constructor always tries to create the directory it
-  is given (`G4UImessenger::CreateDirectory`,
-  `geant4SourcePath/source/intercoms/src/G4UImessenger.cc`); a second
+  is given (`G4GenericMessenger` constructor,
+  `geant4SourcePath/source/intercoms/src/G4GenericMessenger.cc`); a second
   `G4GenericMessenger` on the same path double-creates it. `/chem/` falls in
   this category because `G4DNAChemistryManager` already owns it before any
   project messenger runs — both `ChemistrySelectMessenger` and
@@ -136,11 +136,11 @@ This project hit this for real: `DnaChemistryList`'s
 `/chem/reaction/timeBinsList` command needs the whole
 `"<e1> <e2> ... <eN> <unit>"` string intact, so it is declared with
 **`DeclareProperty`, not `DeclareMethod`**
-(`src/chemistry/DnaChemistryList.cc:171-176`), with the choice called out
-explicitly in the surrounding comment (`DnaChemistryList.cc:170`:
+(`src/chemistry/DnaChemistryList.cc`), with the choice called out
+explicitly in the surrounding comment (`DnaChemistryList.cc`:
 `// DeclareProperty, not DeclareMethod: see fReactionTimeBinsList's doc
 comment.`) and spelled out in full at the member's own doc comment
-(`header/chemistry/DnaChemistryList.hh:138-144`):
+(`header/chemistry/DnaChemistryList.hh`):
 
 > A `DeclareProperty` (not `DeclareMethod`): `G4GenericMessenger`'s method
 > dispatch re-tokenizes a combined multi-token command value by the bound
@@ -154,7 +154,7 @@ own `G4AnyType::FromString()` (`G4GenericMessenger.cc:245-248`), which for a
 truncation. The cost is that any validation/parsing that would have lived in
 a setter method now has to happen later, lazily, once the raw string is
 actually used: `DnaChemistryList::ApplyReactionTimeBinning()`
-(`header/chemistry/DnaChemistryList.hh:67-76`) is that deferred parse site,
+(`header/chemistry/DnaChemistryList.hh`) is that deferred parse site,
 documented as running only once the chemistry scheduler's end time is final
 (from `RunAction::BeginOfRunAction`), not at macro-issue time.
 
@@ -167,69 +167,32 @@ where there is no generic re-tokenization step to go wrong.
 
 ## Serial vs MT
 
-A `PreInit`-state command issued once in a macro *is* replayed to every
-worker thread, by a specific, source-verified mechanism — not a general
-property of the kernel assumed from familiarity. Traced in
-`geant4SourcePath/source/{intercoms,run}`:
+Command replay and dispatch are separate. In Geant4 11.4.1:
 
-1. On the master thread, `G4UImanager::ApplyCommand` normally executes a
-   command once and returns. In MT mode it does one extra thing: if
-   `stackCommandsForBroadcast` is set and the target command's
-   `ToBeBroadcasted()` flag is true (the default for `G4UIcmdWith*` and for
-   directories/commands created through `G4UImessenger`/`G4GenericMessenger`
-   unless a messenger explicitly calls `SetToBeBroadcasted(false)`, as the
-   built-in `/control/*` commands do), the command string is appended to a
-   master-side `commandStack`
-   (`geant4SourcePath/source/intercoms/src/G4UImanager.cc:539-553`).
-2. `stackCommandsForBroadcast` is turned on by
-   `G4UImanager::SetMasterUIManager(true)`
-   (`geant4SourcePath/source/intercoms/include/G4UImanager.hh:210-213`),
-   which `G4MTRunManager`'s constructor calls on the master's `G4UImanager`
-   (`geant4SourcePath/source/run/src/G4MTRunManager.cc:146`) — this is the
-   switch that makes MT mode record commands at all; it is off in Serial.
-3. `G4MTRunManager::PrepareCommandsStack()` drains that master
-   `commandStack` into `uiCmdsForWorkers`
-   (`geant4SourcePath/source/run/src/G4MTRunManager.cc:286-295`), and is
-   called right before `CreateAndStartWorkers()` on `RunInitialization`
-   (`G4MTRunManager.cc:416`, also at `G4MTRunManager.cc:723` for a later
-   `/run/beamOn`).
-4. Each worker, in `G4WorkerRunManager::DoWork`, on receiving a
-   `NEXTITERATION` request (i.e. before that worker starts its share of the
-   run), fetches the same command list via
-   `mrm->GetCommandStack()` and replays every entry through its own
-   thread-local `G4UImanager::ApplyCommand`
-   (`geant4SourcePath/source/run/src/G4WorkerRunManager.cc:736-741`) —
-   *before* calling `this->BeamOn(...)` a few lines later in the same block.
+1. `G4UImanager::ApplyCommand` resolves the command in the receiving UI
+   manager's tree. With broadcast stacking enabled, eligible command strings
+   are queued (`source/intercoms/src/G4UImanager.cc:539-558`). Missing-command
+   handling and command-state checks can prevent messenger dispatch.
+2. `G4MTRunManager` enables master command stacking and transfers queued
+   strings through `PrepareCommandsStack` (`source/run/src/G4MTRunManager.cc`).
+3. `G4WorkerRunManager::DoWork` replays that list through each worker's own
+   UI manager before its event loop (`source/run/src/G4WorkerRunManager.cc`).
+4. Dispatch still depends on a matching command in that worker's tree.
+   `G4UIcommand::G4UIcommandCommonConstructorCode` registers commands with
+   the current UI manager unless the master-command rule applies
+   (`source/intercoms/src/G4UIcommand.cc:54-71`).
 
-So a `PreInit` command such as `/chem/meso/voxelSize` or
-`/process/chem/TimeStepModel`, issued once in a macro before
-`/run/initialize`, reaches the master's `G4UImanager` once, gets queued by
-step 1, and is then re-applied verbatim on every worker thread's own
-`G4UImanager` by step 4, before that worker's event loop starts. **Correction
-verified while writing [`add-a-new-chemistry.md`](add-a-new-chemistry.md):**
-each worker calls `SetNewValue` again on the *same*, single messenger
-object, not on a new, per-thread instance — `MesoMessenger`, like
-`DnaChemistryList`/`PhysicsList`, is constructed exactly once per process,
-before any worker thread exists (`PhysicsList`'s constructor builds
-`DnaChemistryList` once, `sim.cc:144`; the kernel then hands that one
-object's pointer to every worker rather than rebuilding it — see
-[`add-a-new-chemistry.md`](add-a-new-chemistry.md#serial-vs-mt) for the
-full, source-traced proof, including the exact `G4MTRunManagerKernel.cc`
-lines that share the pointer). The replay is harmless because each worker's
-call writes the same value into whatever process-wide state the messenger
-is bound to (e.g. `MesoSettings::Current()`) — it is a repeated write to
-shared state, not N independently-constructed objects converging on a
-value. This project runs Serial by default (`sim.cc`,
-`G4RunManagerType::MT` only with `--threads N`, N > 0, per `CLAUDE.md`), so
-in the common case there is exactly one `G4UImanager` and no replay step at
-all — the mechanism above only matters once `--threads` is used.
+The shared `PhysicsList`/`DnaChemistryList` object does not establish that
+every worker dispatches to the master-owned messenger. Nor would concurrent
+same-value writes to a shared string or setting be safe merely because the
+values agree. Configure shared project settings on the master before worker
+reads; trace actual command registration and dispatch before adding mutable
+worker configuration. `/chem/env/scavenger` explicitly disables broadcast.
 
-This does not need a dedicated merge step the way a per-thread scorer does
-(see [`create-a-scorer.md`](create-a-scorer.md)'s Serial vs MT section): a
-macro command's job is to configure state before the run starts, not to
-accumulate results, so "replay the same string on every thread" is the
-whole story — there is nothing analogous to `Run::Merge` for a macro
-command.
+`sim.cc` selects Serial by default; `--threads N` selects MT. Macro configuration
+does not use the scorer's `Run::Merge` mechanism. See
+[`add-a-new-chemistry.md`](add-a-new-chemistry.md#serial-vs-mt) for the distinct
+construction and per-thread process-registration lifecycles.
 
 ## See also
 

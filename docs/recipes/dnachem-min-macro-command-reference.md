@@ -33,8 +33,8 @@ earlier in the run (`RunAccumulatorMessenger::SetNewValue`).
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/chem/select <name>` | PreInit | `src/chemistry/ChemistrySelectMessenger.cc:15` |
-| `/chem/list` | PreInit, Idle | `src/chemistry/ChemistrySelectMessenger.cc:23` |
+| `/chem/select <name>` | PreInit | `src/chemistry/ChemistrySelectMessenger.cc` |
+| `/chem/list` | PreInit, Idle | `src/chemistry/ChemistrySelectMessenger.cc` |
 
 `/chem/select` picks the named Chemistry (case-insensitive, default
 `PureWater`); an unknown name, or selecting a different name twice, is a
@@ -66,31 +66,31 @@ attached to the same `/chem/env/` directory but constructed *after*
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/chem/meso/handOverTime <value> <unit>` | PreInit | `src/chemistry/MesoMessenger.cc:24,30` |
-| `/chem/meso/voxelSize <value> <unit>` | PreInit | `src/chemistry/MesoMessenger.cc:32,39` |
-| `/chem/meso/timesPerDecade <n>` | PreInit | `src/chemistry/MesoMessenger.cc:41,46` |
-| `/chem/meso/spatialOutput <bool>` | PreInit | `src/chemistry/MesoMessenger.cc:48,54` |
-| `/chem/meso/enable <bool>` | PreInit | `src/chemistry/MesoMessenger.cc:56,63` |
+| `/chem/meso/handOverTime <value> <unit>` | PreInit | `src/chemistry/MesoMessenger.cc` |
+| `/chem/meso/voxelSize <value> <unit>` | PreInit | `src/chemistry/MesoMessenger.cc` |
+| `/chem/meso/timesPerDecade <n>` | PreInit | `src/chemistry/MesoMessenger.cc` |
+| `/chem/meso/spatialOutput <bool>` | PreInit | `src/chemistry/MesoMessenger.cc` |
+| `/chem/meso/enable <bool>` | PreInit | `src/chemistry/MesoMessenger.cc` |
 
 All five are typed `G4UIcmdWith*` objects built in `MesoMessenger`'s
 constructor, writing into the process-wide `MesoSettings::Current()`.
 `handOverTime`, `voxelSize` must be `> 0` and `timesPerDecade` must be `>= 1`
-— each a fatal `G4Exception` otherwise (`MesoMessenger.cc:78-101`). The
+— each a fatal `G4Exception` otherwise (`MesoMessenger.cc`). The
 `SBS`/`enable true` conflict is deferred to `/run/initialize`
 (`DnaChemistryList::CheckTimeStepModel`), not checked here, because the
 time-step model may not be set yet when `enable` is issued
-(`MesoMessenger.cc:105-109`).
+(`MesoMessenger.cc`).
 
 ## `/chem/reaction/*`
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/chem/reaction/dump <filename>` | PreInit | `src/chemistry/DnaChemistryList.cc:157-160` |
-| `/chem/reaction/timeBinsFixed <width> <unit>` | PreInit | `src/chemistry/DnaChemistryList.cc:162-168` |
-| `/chem/reaction/timeBinsList <e1> ... <eN> <unit>` | PreInit | `src/chemistry/DnaChemistryList.cc:171-176` |
+| `/chem/reaction/dump <filename>` | PreInit | `src/chemistry/DnaChemistryList.cc` |
+| `/chem/reaction/timeBinsFixed <width> <unit>` | PreInit | `src/chemistry/DnaChemistryList.cc` |
+| `/chem/reaction/timeBinsList <e1> ... <eN> <unit>` | PreInit | `src/chemistry/DnaChemistryList.cc` |
 
 All three are declared on a `G4GenericMessenger` owning the new
-`/chem/reaction/` directory (`DnaChemistryList.cc:155-156`). `dump` and
+`/chem/reaction/` directory (`DnaChemistryList.cc`). `dump` and
 `timeBinsList` use `DeclareProperty`; `timeBinsFixed` uses
 `DeclareMethodWithUnit`. `timeBinsList` is deliberately `DeclareProperty`
 rather than `DeclareMethod` — see
@@ -99,7 +99,7 @@ pitfall section — so its `"<e1> ... <eN> <unit>"` string survives intact
 for `DnaChemistryList::ApplyReactionTimeBinning()` to parse later, once the
 scheduler end time is final. Issuing both `timeBinsFixed` and
 `timeBinsList` is a fatal `G4Exception` at that later parse point, not at
-either command itself (`DnaChemistryList.cc:204-212`).
+either command itself (`DnaChemistryList.cc`).
 
 ## `/dnaLogger/verbose`
 
@@ -136,15 +136,15 @@ killed for leaving, default `1 km` per side; `verbose 1` logs each
 `kill track at` line. `CLAUDE.md` additionally documents that
 `DetectorConstruction::ConstructSDandField()` registers this scorer
 unconditionally with hardcoded non-trivial defaults (`eLossMin` = 500 keV,
-`eLossMax` = 1 MeV, `src/geometry/DetectorConstruction.cc:136-146`) that
+`eLossMax` = 1 MeV, `src/geometry/DetectorConstruction.cc`) that
 already apply before any macro overrides them.
 
 ## Built-in commands this project relies on
 
 | Command | Notes |
 |---|---|
-| `/process/chem/TimeStepModel SBS\|IRT_syn` | PreInit, before `/run/initialize`. Read by `DnaChemistryList::CheckTimeStepModel()` (`DnaChemistryList.cc:316-345`, called from `ConstructProcess` at `/run/initialize`) via `G4EmParameters::Instance()->GetTimeStepModel()`; any value other than `IRT_syn`/`SBS` is a fatal `G4Exception`. An explicit `/chem/meso/enable true` together with `SBS` is also fatal (`DnaChemistryList.cc:335-338`). |
-| `/scheduler/endTime <value> <unit>` | Must be issued *after* `/run/initialize`: `CheckTimeStepModel()` hardcodes the default end time (1 s with the mesoscopic stage, 1 us without) via `G4Scheduler::Instance()->SetEndTime(...)` at that point (`DnaChemistryList.cc:344`, also set again in `ActionInitialization.cc:66`) — a value set earlier is overwritten. |
+| `/process/chem/TimeStepModel SBS\|IRT_syn` | PreInit, before `/run/initialize`. Read by `DnaChemistryList::CheckTimeStepModel()` (`DnaChemistryList.cc`, called from `ConstructProcess` at `/run/initialize`) via `G4EmParameters::Instance()->GetTimeStepModel()`; any value other than `IRT_syn`/`SBS` is a fatal `G4Exception`. An explicit `/chem/meso/enable true` together with `SBS` is also fatal (`DnaChemistryList.cc`). |
+| `/scheduler/endTime <value> <unit>` | Must be issued *after* `/run/initialize`: `CheckTimeStepModel()` hardcodes the default end time (1 s with the mesoscopic stage, 1 us without) via `G4Scheduler::Instance()->SetEndTime(...)` at that point (`DnaChemistryList.cc`, also set again in `ActionInitialization.cc`) — a value set earlier is overwritten. |
 
 These are not dnachem-min commands (no project messenger creates them); they
 are standard Geant4-DNA chemistry-kernel commands this project depends on at
@@ -153,19 +153,17 @@ specific points in the macro, as already documented narratively in
 
 ## Serial vs MT
 
-The general rule — a `PreInit` command issued once in a macro is replayed
-verbatim on every worker thread's own `G4UImanager` before that worker's
-event loop starts, traced step by step through
-`G4UImanager`/`G4MTRunManager`/`G4WorkerRunManager` — is covered in
-[`create-a-macro-command.md`](create-a-macro-command.md#serial-vs-mt); link
-to it rather than repeating it here.
+Eligible master commands are queued and replayed through worker UI managers;
+actual dispatch depends on the receiving command tree and application state.
+See [`create-a-macro-command.md`](create-a-macro-command.md#serial-vs-mt).
 
 `/chem/env/scavenger` explicitly calls `SetToBeBroadcasted(false)` in
-`ScavengerMessenger`'s constructor. It configures the shared Chemistry world
-on the master before worker reads; the world does not exist only on the master.
-This opts the command out of the master-side broadcast queue
-(`G4UImanager::ApplyCommand`, Geant4 intercoms source). Replay of other command
-strings still depends on the receiving UI tree for actual messenger dispatch.
+`ScavengerMessenger`'s constructor. Its master-side configuration updates the
+shared `DnaChemistryWorld` before workers read that composition. The world is
+not separate master-only storage. This command is excluded from the normal
+broadcast queue (`G4UImanager::ApplyCommand`, Geant4 intercoms source).
+Do not infer identical messenger callbacks or safe concurrent writes from
+the default broadcast flag on other commands.
 
 ## See also
 

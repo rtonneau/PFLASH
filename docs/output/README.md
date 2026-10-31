@@ -22,8 +22,10 @@ Data accumulates across runs and is written by a **dump**:
 | none in the macro | one automatic flush at exit with prefix `EndOfRun_` |
 
 The output directory is `--dir <path>` / `/run/outputDir <path>`, else
-`<exeDir>/results` (e.g. `build/results`), created at the first output; it is
-not the current directory, and with `--dir` the default folder is not created.
+normally `<exeDir>/results` (e.g. `build/results`), created at the first
+output. If executable lookup or lazy default-directory creation fails, the
+existing fallback is the current directory. With `--dir`, the default folder
+is not created.
 A dump writes the data since the previous dump (or process
 start) and resets the counters. Reusing a prefix or a subfolder name in one
 process is fatal.

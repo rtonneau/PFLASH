@@ -58,7 +58,7 @@ volume, in `ConstructSDandField()`.
 ## dnachem-min reference implementation
 
 `DetectorConstruction::ConstructSDandField()`
-(`src/geometry/DetectorConstruction.cc:124-146`) is this project's
+(`src/geometry/DetectorConstruction.cc`) is this project's
 registration site: it creates one `G4MultiFunctionalDetector("mfDetector")`,
 registers two primitives on it — `PrimaryKiller` and
 `ScoreSpecies("Species")` — via `mfDetector->RegisterPrimitive(...)`, then
