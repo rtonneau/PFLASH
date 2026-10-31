@@ -1,7 +1,9 @@
 /// \file OutputDirTest.cc
+/// Dependencies: Geant4 types/libraries and project code; no kernel initialization.
+/// Thread safety: Sequential test process; no concurrent execution within this test. Uses a fixed
+/// temporary directory; do not run duplicate instances. Mutates process-wide test state.
 /// \brief Plain-assert unit tests for OutputDir (no test framework, no
-/// Geant4 runtime -- exercises pure directory-configuration/path-join logic
-/// only).
+/// Geant4 runtime -- exercises directory configuration/path joins and filesystem effects).
 
 #include "core/OutputDir.hh"
 

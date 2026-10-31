@@ -1,4 +1,7 @@
 /// \file PhysicsInteractionCounterTest.cc
+/// Dependencies: Standard-library-only source and portable project code; current CMake target links
+/// Geant4 without initializing its kernel. Optional MSVC CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test.
 /// \brief Plain-assert unit tests for PhysicsInteractionCounter (no test
 /// framework, no Geant4 runtime -- exercises pure accumulation/merge logic
 /// only).

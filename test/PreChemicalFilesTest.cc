@@ -1,6 +1,10 @@
 /// \file PreChemicalFilesTest.cc
+/// Dependencies: Standard-library-only source and portable project code; current CMake target links
+/// Geant4 without initializing its kernel. Optional MSVC CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test. Uses a fixed
+/// temporary directory; do not run duplicate instances.
 /// \brief Plain-assert unit tests for PreChemicalFiles (no test framework, no
-/// Geant4 runtime -- exercises pure file-name and staging-move logic only).
+/// Geant4 runtime -- exercises file-name parsing and filesystem staging moves).
 
 #include "scoring/PreChemicalFiles.hh"
 

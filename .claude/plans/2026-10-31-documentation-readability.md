@@ -132,3 +132,25 @@ Record actual results and final per-directory deliverables before push/PR.
   the known reactions.in comma. Duplicate adjacent ordering notes were combined.
   git diff --check passed. Production macros were not executed; final exact
   example runs follow the test-header build.
+- Test completion: all 17 .cc files have purpose/dependency/thread notes.
+  Final token audit proves all 17 test token sequences and all 54 active macro
+  command sequences match original baseline 1fcf8ba. Assertions, defaults and
+  commands were not changed.
+- Final verify_builds.ps1 -Phase final succeeded: Debug rebuilt the test
+  sources; ctest passed 17/17 in 2.11 s with vcpkg debug/bin first on PATH.
+  RelWithDebInfo sim was already up to date. The complete executable SHA-256
+  equals the retained sim-matrix binary:
+  1dcd251e01ea35f8f84e3fac16b9f2021eaeb500f3df74b40538711a6df91d2e.
+- Copied the comment-updated .in files to build/macro, then ran all three exact
+  examples into fresh final-smokes output directories (10 keV e-, two beamOn 2
+  sub-runs each). SBS passed in 89.734 s, IRT in 63.859 s, mesoscopic in
+  48.782 s; all returned 0, printed both markers and matched baseline output
+  structures. Only mesoscopic emitted the known WrongResolution warning.
+- No additional full matrix was run for these comments/prose: the final
+  simulation binary and all macro command sequences are unchanged from the
+  completed source validation. GUI, production macros and a dedicated
+  unknown-material error-branch runtime check were not run.
+- Per-directory files, categories, statistical results, behavior risks and
+  deferred decisions are consolidated in
+  docs/reviews/2026-10-31-readability-pass.md. Raw evidence remains under
+  .scratch/readability-2026-10-29/ (ignored by Git).

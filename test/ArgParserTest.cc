@@ -1,4 +1,6 @@
 /// \file ArgParserTest.cc
+/// Dependencies: Geant4 types/libraries and project code; no kernel initialization.
+/// Thread safety: Sequential test process; no concurrent execution within this test.
 /// \brief Plain-assert unit tests for ArgParser (no test framework, no
 /// Geant4 runtime -- exercises pure parsing/validation logic only).
 
