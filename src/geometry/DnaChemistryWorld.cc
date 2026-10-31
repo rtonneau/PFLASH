@@ -1,5 +1,7 @@
 /// \file DnaChemistryWorld.cc
-/// \brief Implementation of the DnaChemistryWorld class
+/// Defines the chemistry boundary and bulk water/scavenger composition.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Configure on the master before worker reads; follow Geant4 initialization callbacks.
 
 #include "geometry/DnaChemistryWorld.hh"
 
@@ -42,22 +44,22 @@ void DnaChemistryWorld::ConstructChemistryBoundary()
 {
   // G4DNABoundingBox initializer-list order is {xhi, xlo, yhi, ylo, zhi, zlo}.
   const std::initializer_list<G4double> box{
-    fHalfBox, -fHalfBox, fHalfBox, -fHalfBox, fHalfBox, -fHalfBox};
+    fHalfBox_mm, -fHalfBox_mm, fHalfBox_mm, -fHalfBox_mm, fHalfBox_mm, -fHalfBox_mm};
   fpChemistryBoundary = std::make_unique<G4DNABoundingBox>(box);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void DnaChemistryWorld::SetHalfBox(G4double halfBox)
+void DnaChemistryWorld::SetHalfBox(G4double halfBox_mm)
 {
-  if (halfBox <= 0.) {
+  if (halfBox_mm <= 0.) {
     G4Exception("DnaChemistryWorld::SetHalfBox", "InvalidHalfBox", FatalException,
                 ("/chem/env/halfBox: the half side must be > 0 (got " +
-                 std::to_string(halfBox / um) + " um).")
+                 std::to_string(halfBox_mm / um) + " um).")
                   .c_str());
     return;
   }
-  fHalfBox = halfBox;
+  fHalfBox_mm = halfBox_mm;
   // The boundary was built in DetectorConstruction's constructor, before any
   // macro: rebuild it so the world, diffusion boundary and scavenger volume
   // all follow the new size.
@@ -68,11 +70,11 @@ void DnaChemistryWorld::SetHalfBox(G4double halfBox)
 
 void DnaChemistryWorld::ConstructChemistryComponents()
 {
-  auto* table = G4MoleculeTable::Instance();
+  auto* moleculeTable = G4MoleculeTable::Instance();
 
-  auto* H2O = table->GetConfiguration("H2O(B)");
-  auto* H3OpB = table->GetConfiguration("H3Op(B)");
-  auto* OHmB = table->GetConfiguration("OHm(B)");
+  auto* H2O = moleculeTable->GetConfiguration("H2O(B)");
+  auto* H3OpB = moleculeTable->GetConfiguration("H3Op(B)");
+  auto* OHmB = moleculeTable->GetConfiguration("OHm(B)");
   if (H2O == nullptr || H3OpB == nullptr || OHmB == nullptr) {
     G4Exception("DnaChemistryWorld::ConstructChemistryComponents", "NoBulkSpecies",
                 FatalException,
@@ -81,8 +83,10 @@ void DnaChemistryWorld::ConstructChemistryComponents()
     return;
   }
 
-  const G4double pKw = 14.0;  // at 25 C
-  fpChemicalComponent[H2O] = 55.3 / (mole * liter);
+  // Keep the water/pH buffer constants from the Geant4 UHDR ChemistryWorld.
+  const G4double pKw = 14.0;
+  const G4double waterConcentration_M = 55.3;
+  fpChemicalComponent[H2O] = waterConcentration_M / (mole * liter);
   fpChemicalComponent[H3OpB] = std::pow(10.0, -fpH) / (mole * liter);
   fpChemicalComponent[OHmB] = std::pow(10.0, -(pKw - fpH)) / (mole * liter);
 
@@ -92,8 +96,8 @@ void DnaChemistryWorld::ConstructChemistryComponents()
       continue;  // 0 = absent
     }
     // mustExist = false: report our own error instead of Geant4's generic one.
-    auto* conf = table->GetConfiguration(scavenger.species, false);
-    if (conf == nullptr) {
+    auto* configuration = moleculeTable->GetConfiguration(scavenger.species, false);
+    if (configuration == nullptr) {
       G4Exception("DnaChemistryWorld::ConstructChemistryComponents", "UnknownScavenger",
                   FatalException,
                   ("/chem/env/scavenger: species \"" + scavenger.species +
@@ -101,7 +105,7 @@ void DnaChemistryWorld::ConstructChemistryComponents()
                     .c_str());
       return;
     }
-    fpChemicalComponent[conf] = scavenger.molarity / (mole * liter);
+    fpChemicalComponent[configuration] = scavenger.molarity / (mole * liter);
     scavengerSummary +=
       ", " + scavenger.species + " = " + std::to_string(scavenger.molarity) + " M";
   }

@@ -46,21 +46,21 @@ the registered names with the default marked, so it is also allowed in
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/chem/env/pH <double>` | PreInit | `src/geometry/DnaChemistryWorld.cc:24-25` |
-| `/chem/env/halfBox <value> <unit>` | PreInit | `src/geometry/DnaChemistryWorld.cc:26-29` |
-| `/chem/env/scavenger <species> <value> <unit>` | PreInit | `src/geometry/ScavengerMessenger.cc:15,28` |
+| `/chem/env/pH <double>` | PreInit | `src/geometry/DnaChemistryWorld.cc` |
+| `/chem/env/halfBox <value> <unit>` | PreInit | `src/geometry/DnaChemistryWorld.cc` |
+| `/chem/env/scavenger <species> <value> <unit>` | PreInit | `src/geometry/ScavengerMessenger.cc` |
 
 `pH` and `halfBox` are declared on a `G4GenericMessenger` owning
-`/chem/env/` (`DnaChemistryWorld.cc:22-23`): `pH` via `DeclareProperty`
+`/chem/env/` (`DnaChemistryWorld.cc`): `pH` via `DeclareProperty`
 (binds straight to `fpH`), `halfBox` via `DeclareMethodWithUnit` (binds to
 `SetHalfBox`, which validates `> 0` and rebuilds the chemistry boundary — a
 fatal `G4Exception` below or equal to 0). `scavenger` is a plain
-`G4UIcommand` with three string parameters (`ScavengerMessenger.cc:25-27`
-— all three deliberately strings so `ScavengerSpec::Parse` reports every
-malformed value as one fatal error rather than the UI's generic rejection),
+`G4UIcommand` with three string parameters (`ScavengerMessenger.cc`
+— strings let `ScavengerSpec::Parse` report invalid numeric values as fatal
+errors; Geant4 can reject missing required tokens before invoking the parser),
 attached to the same `/chem/env/` directory but constructed *after*
 `DnaChemistryWorld`'s own `fMessenger` so that directory already exists
-(`DnaChemistryWorld.cc:31-32`).
+(`DnaChemistryWorld.cc`).
 
 ## `/chem/meso/*`
 
@@ -160,20 +160,12 @@ event loop starts, traced step by step through
 [`create-a-macro-command.md`](create-a-macro-command.md#serial-vs-mt); link
 to it rather than repeating it here.
 
-One command-specific exception was found while enumerating the commands
-above: `/chem/env/scavenger`'s command object explicitly calls
-`SetToBeBroadcasted(false)` (`src/geometry/ScavengerMessenger.cc:30`), with
-the comment "the world lives on the master only (as in the UHDR example)."
-This opts the command out of the master-side `commandStack`/broadcast
-mechanism the general rule describes
-(`G4UImanager::ApplyCommand`'s check of `ToBeBroadcasted()`,
-`geant4SourcePath/source/intercoms/src/G4UImanager.cc:539-553`), so under
-`--threads N` it is applied once, on the master's `G4UImanager`/
-`DnaChemistryWorld`, and never replayed to a worker thread's own instance —
-consistent with `DnaChemistryWorld` (and therefore its scavenger table)
-existing only on the master. No other command enumerated above calls
-`SetToBeBroadcasted(false)`; every other command is the default (broadcast)
-behaviour the general rule describes.
+`/chem/env/scavenger` explicitly calls `SetToBeBroadcasted(false)` in
+`ScavengerMessenger`'s constructor. It configures the shared Chemistry world
+on the master before worker reads; the world does not exist only on the master.
+This opts the command out of the master-side broadcast queue
+(`G4UImanager::ApplyCommand`, Geant4 intercoms source). Replay of other command
+strings still depends on the receiving UI tree for actual messenger dispatch.
 
 ## See also
 

@@ -68,14 +68,14 @@ created:**
 
 **`G4GenericMessenger`, owning a brand-new directory:**
 
-- `src/geometry/DnaChemistryWorld.cc:20-33` — constructs
+- `src/geometry/DnaChemistryWorld.cc` (constructor) — constructs
   `G4GenericMessenger(this, "/chem/env/", ...)` (a directory that does not
   exist yet at that point) and declares `pH` with `DeclareProperty` (binds
   directly to the `fpH` member) and `halfBox` with `DeclareMethodWithUnit`
   (binds to the `SetHalfBox` setter, which validates and rebuilds the
   chemistry boundary — logic a plain property write could not run). Each
-  returned `Command&` gets `.SetStates(G4State_PreInit)`. The comment at
-  line 31 notes that `ScavengerMessenger`, attaching `/chem/env/scavenger`,
+  returned `Command&` gets `.SetStates(G4State_PreInit)`. The constructor comment
+  notes that `ScavengerMessenger`, attaching `/chem/env/scavenger`,
   must be constructed *after* `fMessenger` so that the `/chem/env/`
   directory already exists for it to attach to — the same existing-directory
   consideration as the plain-messenger case above, just within one file.

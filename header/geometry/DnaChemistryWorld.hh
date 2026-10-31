@@ -1,5 +1,7 @@
 /// \file DnaChemistryWorld.hh
-/// \brief Definition of the DnaChemistryWorld class
+/// Defines the chemistry boundary and bulk water/scavenger composition.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Configure on the master before worker reads; follow Geant4 initialization callbacks.
 ///
 /// Project chemical domain: a homogeneous water box (diffusion boundary)
 /// plus the bulk / background composition of the solvent (water molarity,
@@ -32,33 +34,46 @@
 class G4GenericMessenger;
 class ScavengerMessenger;
 
+/// Defines the chemistry boundary and bulk water/scavenger composition.
 class DnaChemistryWorld : public G4VChemistryWorld
 {
 public:
+  /// Registers PreInit UI controls on the master; boundary construction is a separate hook.
   DnaChemistryWorld();
+  /// Releases UI controls and the base-owned boundary after all borrowed users stop.
   ~DnaChemistryWorld() override;
 
+  /// Replaces the boundary using the configured half side (mm); invalidates borrowed boundary pointers.
+  /// Call before process creation; allocation exceptions propagate.
   void ConstructChemistryBoundary() override;
+  /// Requires the shared molecule set; populates bulk concentrations in Geant4 units.
+  /// Missing species raise FatalException. Existing component entries are not cleared.
   void ConstructChemistryComponents() override;
 
+  /// Sets dimensionless pH before composition construction; no range/finite validation.
   void SetpH(G4double pH) { fpH = pH; }
+  /// Returns configured dimensionless pH; no failure path.
   G4double GetpH() const { return fpH; }
 
   /// Sets the half side of the water box and rebuilds the boundary. PreInit
   /// only: G4DNAScavengerProcess keeps a reference to the boundary from
-  /// /run/initialize on. A value <= 0 is a FatalException.
-  void SetHalfBox(G4double halfBox);
-  G4double GetHalfBox() const { return fHalfBox; }
+  /// /run/initialize on. Input is in mm; a value <= 0 raises FatalException.
+  /// Supply a finite value (not checked); direct C++ calls do not enforce PreInit.
+  void SetHalfBox(G4double halfBox_mm);
+  /// Returns the configured half side in mm; no failure path.
+  G4double GetHalfBox() const { return fHalfBox_mm; }
 
-  /// Adds or replaces (last wins) one exogenous bulk scavenger.
+  /// Adds/replaces a scavenger in mol/L before composition construction.
+  /// Entry is copied without validation; use ScavengerSpec::Parse first. Allocation may throw.
   void SetScavenger(const ScavengerSpec::Entry& entry) { ScavengerSpec::Upsert(fScavengers, entry); }
+  /// Borrowed list for this world lifetime; freeze configuration before worker reads.
   const ScavengerSpec::List& GetScavengers() const { return fScavengers; }
 
 private:
   std::unique_ptr<G4GenericMessenger> fMessenger;
   std::unique_ptr<ScavengerMessenger> fScavengerMessenger;
   G4double fpH = 7.0;
-  G4double fHalfBox = 500. * um;
+  G4double fHalfBox_mm = 500. * um;
   ScavengerSpec::List fScavengers;
 };
 
