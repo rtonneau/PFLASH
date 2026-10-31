@@ -1,3 +1,7 @@
+/// Collects event energy deposits and merges worker scoring results.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Thread-local accumulation; Geant4 serializes worker merges into the master run.
+
 #include "actions/Run.hh"
 
 #include "actions/RunAction.hh"
@@ -19,13 +23,14 @@
 
 #include <map>
 
-Run::Run() : G4Run(), fSumEne(0), fScorerRun(0), fReactionCounter(nullptr), fInteractionCounter(nullptr), fMesoSpeciesCounter(nullptr), fTrackLengthTable(nullptr)
+Run::Run() : G4Run(), fEnergyDeposit_MeV(0), fScorerRun(0), fReactionCounter(nullptr),
+             fInteractionCounter(nullptr), fMesoSpeciesCounter(nullptr), fTrackLengthTable(nullptr)
 {
-    G4MultiFunctionalDetector *mfdet = dynamic_cast<G4MultiFunctionalDetector *>(
+    G4MultiFunctionalDetector *multiFunctionalDetector = dynamic_cast<G4MultiFunctionalDetector *>(
         G4SDManager::GetSDMpointer()->FindSensitiveDetector("mfDetector"));
-    G4int CollectionIDspecies = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
+    G4int speciesCollectionId = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
 
-    fScorerRun = mfdet->GetPrimitive(CollectionIDspecies);
+    fScorerRun = multiFunctionalDetector->GetPrimitive(speciesCollectionId);
 
     auto *timeStepAction =
         dynamic_cast<TimeStepAction *>(G4Scheduler::Instance()->GetUserTimeStepAction());
@@ -58,22 +63,18 @@ void Run::RecordEvent(const G4Event *event)
     if (event->IsAborted())
         return;
 
-    G4int CollectionID = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
-    // G4int evtNb = event->GetEventID();
-
-    //  G4cout << G4endl << "---> end of event: " << evtNb << G4endl;
-    // Hits collections
-    //
-    G4HCofThisEvent *HCE = event->GetHCofThisEvent();
-    if (!HCE)
+    G4int collectionId = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
+    G4HCofThisEvent *hitsCollections = event->GetHCofThisEvent();
+    if (!hitsCollections)
         return;
-    G4THitsMap<G4double> *evtMap = static_cast<G4THitsMap<G4double> *>(HCE->GetHC(CollectionID));
+    G4THitsMap<G4double> *eventEnergyDeposits =
+        static_cast<G4THitsMap<G4double> *>(hitsCollections->GetHC(collectionId));
 
-    std::map<G4int, G4double *>::iterator itr;
-    for (itr = evtMap->GetMap()->begin(); itr != evtMap->GetMap()->end(); itr++)
+    std::map<G4int, G4double *>::iterator hit;
+    for (hit = eventEnergyDeposits->GetMap()->begin(); hit != eventEnergyDeposits->GetMap()->end(); hit++)
     {
-        G4double edep = *(itr->second);
-        fSumEne += edep;
+        G4double energyDeposit_MeV = *(hit->second);
+        fEnergyDeposit_MeV += energyDeposit_MeV;
     }
 
     G4Run::RecordEvent(event);
@@ -89,7 +90,7 @@ void Run::Merge(const G4Run *aRun)
     }
 
     const Run *localRun = static_cast<const Run *>(aRun);
-    fSumEne += localRun->fSumEne;
+    fEnergyDeposit_MeV += localRun->fEnergyDeposit_MeV;
 
     // A worker that got no events has no beam; the first one that has one wins.
     if (localRun->fHasBeam)

@@ -85,7 +85,7 @@ Follow the existing counters' wiring exactly (`ReactionCounter` and
    (a step, a track ending, a reaction firing) is where the live, persistent
    instance belongs — not `Run`, which is recreated every `/run/beamOn`.
 2. **`Run` points at it, it does not own it.** `Run::Run()`
-   (`src/actions/Run.cc:22-48`) looks up the owning action
+   (`src/actions/Run.cc`) looks up the owning action
    (`dynamic_cast<TimeStepAction*>(G4Scheduler::Instance()->GetUserTimeStepAction())`
    for `fReactionCounter`, `dynamic_cast<TrackingAction*>(...GetUserTrackingAction())`
    for `fTrackLengthTable`) and stores a pointer to its counter — falling
@@ -94,7 +94,7 @@ Follow the existing counters' wiring exactly (`ReactionCounter` and
    thread, which has no `TimeStepAction`/`TrackingAction` of its own. A new
    counter's `Run` member follows the same pointer-not-owner pattern.
 3. **`RunAction::BeginOfRunAction` clears it.** `RunAction::BeginOfRunAction`
-   (`src/actions/RunAction.cc:50-59`) calls `Clear()` on every counter
+   (`src/actions/RunAction.cc`) calls `Clear()` on every counter
    reached through the new `Run`, giving each counter a per-run lifetime —
    the comment there explains why this is the *only* reset: on the thread
    that owns the live action instance (Serial master, or an MT worker), the
@@ -103,7 +103,7 @@ Follow the existing counters' wiring exactly (`ReactionCounter` and
    (no owning action), it points at the `Run`-owned fallback instead, which
    starts empty anyway.
 4. **`Run::Merge` combines worker into master under MT.** `Run::Merge`
-   (`src/actions/Run.cc:84-112`) calls `fReactionCounter->Merge(*localRun->fReactionCounter)`
+   (`src/actions/Run.cc`) calls `fReactionCounter->Merge(*localRun->fReactionCounter)`
    and `fTrackLengthTable->Merge(*localRun->fTrackLengthTable)` (alongside
    `fInteractionCounter` and `fMesoSpeciesCounter`) — see
    [Serial vs MT](#serial-vs-mt) below for exactly when and how this runs.
@@ -111,8 +111,8 @@ Follow the existing counters' wiring exactly (`ReactionCounter` and
    only ever reflect one worker's share under MT.
 5. **`RunAction::EndOfRunAction` folds the run into `RunAccumulator`.**
    On the master thread (`IsMaster()`), `RunAction::EndOfRunAction`
-   (`src/actions/RunAction.cc:92-119`) calls `RunAccumulator::Accumulate(...)`
-   (`:104-108`), passing the master `Run`'s counters by const reference.
+   (`src/actions/RunAction.cc`) calls `RunAccumulator::Accumulate(...)`
+   passing the master `Run`'s counters by const reference.
    `RunAccumulator::Accumulate` (`src/scoring/RunAccumulator.cc, Accumulate`)
    merges each into a process-wide, file-scope static instance
    (`gAccumulatedReactionCounter.Merge(reactions)`, etc.) that survives
@@ -176,7 +176,7 @@ master-merge pattern in this codebase; `create-a-scorer.md` and
   thread gets its own `Run` instance, constructed via `RunAction::GenerateRun()`
   on that thread, and its own `TimeStepAction`/`SteppingAction`/`TrackingAction`
   instances with their own live counters — `Run::Run()`'s lookups
-  (`src/actions/Run.cc:22-48`) resolve to *that thread's* action objects via
+  (`src/actions/Run.cc`) resolve to *that thread's* action objects via
   `G4Scheduler::Instance()`/`G4RunManager::GetRunManager()`, which are
   themselves per-thread (worker thread-local) singletons. Each worker
   accumulates independently through its event loop.
@@ -187,21 +187,21 @@ master-merge pattern in this codebase; `create-a-scorer.md` and
   calls `currentRun->Merge(localRun)` under a lock as each worker thread
   finishes its share of the run — `currentRun` is the master's `Run`
   instance, `localRun` is the worker's. This project's override,
-  `Run::Merge(const G4Run* aRun)` (`src/actions/Run.cc:84-112`), is what
+  `Run::Merge(const G4Run* aRun)` (`src/actions/Run.cc`), is what
   that virtual call actually runs: it `dynamic_cast`s both sides'
   `fScorerRun` to `ScoreSpecies*` and calls
-  `masterScorer->AbsorbResultsFromWorkerScorer(localScorer)` (`:98-102`),
+  `masterScorer->AbsorbResultsFromWorkerScorer(localScorer)`,
   then calls `Merge` on each plain counter in turn —
   `fReactionCounter->Merge(*localRun->fReactionCounter)`,
   `fInteractionCounter->Merge(...)`, `fMesoSpeciesCounter->Merge(...)`,
-  `fTrackLengthTable->Merge(...)` (`:106-109`) — and finally
-  `G4Run::Merge(aRun)` (`:111`) to let the base class merge its own
+  `fTrackLengthTable->Merge(...)` — and finally
+  `G4Run::Merge(aRun)` to let the base class merge its own
   bookkeeping (event count, etc.).
 
   **Precise timing, the point this recipe is the canonical source for:**
   this kernel-driven merge happens **before** the master thread's
   `RunAction::EndOfRunAction(run)` runs with `IsMaster()` true
-  (`src/actions/RunAction.cc:92`) — `G4MTRunManager::MergeRun` runs as part
+  (`src/actions/RunAction.cc`) — `G4MTRunManager::MergeRun` runs as part
   of run termination, as each worker reports back, which completes before
   `RunTermination()` calls the master's `EndOfRunAction`. `EndOfRunAction`
   does **not** itself trigger the merge; it only *observes* a `run` that
@@ -210,7 +210,7 @@ master-merge pattern in this codebase; `create-a-scorer.md` and
   `EndOfRunAction` when `IsMaster()`" — that phrasing conflates cause and
   effect: `IsMaster()` being true at `EndOfRunAction` is what lets this
   project safely read `masterRun->GetReactionCounter()` etc. and feed them
-  into `RunAccumulator::Accumulate(...)` (`RunAction.cc:104-108`), but the
+  into `RunAccumulator::Accumulate(...)` (`RunAction.cc`), but the
   merge itself already happened earlier, inside the kernel, driven by
   `G4MTRunManager::MergeRun`, not by anything in `RunAction`.
 

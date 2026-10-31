@@ -1,5 +1,6 @@
-/// \file RunAction.cc
-/// \brief Implementation of the RunAction class
+/// Resets per-run counters and transfers completed totals to persistent storage.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per run-manager thread; only the master updates persistent totals.
 
 #include "actions/RunAction.hh"
 
@@ -43,7 +44,7 @@ void RunAction::BeginOfRunAction(const G4Run *run)
     if (IsMaster())
         fRunStart = std::chrono::steady_clock::now();
 
-    // ensure that the chemistry is notified!
+    // Forward lifecycle notifications so Geant4 applies molecule-counter reset/merge policy.
     if (G4DNAChemistryManager::GetInstanceIfExists() != nullptr)
         G4DNAChemistryManager::GetInstanceIfExists()->BeginOfRunAction(run);
 
@@ -73,7 +74,7 @@ void RunAction::BeginOfRunAction(const G4Run *run)
             physicsList->GetChemistryList()->ApplyReactionTimeBinning();
     }
 
-    // informs the runManager to save random number seed
+    // Disable Geant4 RNG-state files; the manifest records the run seed separately.
     G4RunManager::GetRunManager()->SetRandomNumberStore(false);
 }
 
@@ -81,12 +82,12 @@ void RunAction::BeginOfRunAction(const G4Run *run)
 
 void RunAction::EndOfRunAction(const G4Run *run)
 {
-    // ensure that the chemistry is notified!
+    // Forward lifecycle notifications so Geant4 applies molecule-counter reset/merge policy.
     if (G4DNAChemistryManager::GetInstanceIfExists() != nullptr)
         G4DNAChemistryManager::GetInstanceIfExists()->EndOfRunAction(run);
 
-    G4int nofEvents = run->GetNumberOfEvent();
-    if (nofEvents == 0)
+    G4int numberOfEvents = run->GetNumberOfEvent();
+    if (numberOfEvents == 0)
         return;
 
     if (IsMaster())
@@ -96,12 +97,12 @@ void RunAction::EndOfRunAction(const G4Run *run)
         // Species yields keep accumulating on their own (the ScoreSpecies
         // scorer is itself the persistent, SD-registered accumulator, fed by
         // Run::Merge -> AbsorbResultsFromWorkerScorer). Energy deposit and
-        // the two counters don't have that luxury -- Run is recreated fresh
+        // the counters and track-length table need explicit transfer -- Run is recreated fresh
         // every beamOn -- so fold this run's totals into RunAccumulator's
         // persistent, cross-run storage instead. Nothing is written to disk
         // here: issue /run/dumpDataAndReset (or let the exit-time safety net
         // in sim.cc fire) to flush everything.
-        RunAccumulator::Accumulate(masterRun->GetSumDose(), nofEvents,
+        RunAccumulator::Accumulate(masterRun->GetSumDose(), numberOfEvents,
                                     *masterRun->GetReactionCounter(),
                                     *masterRun->GetInteractionCounter(),
                                     *masterRun->GetMesoSpeciesCounter(),

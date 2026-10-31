@@ -1,5 +1,6 @@
-/// \file StackingAction.cc
-/// \brief Implementation of the StackingAction class
+/// Starts chemistry after the physical track stacks are empty.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
 
 #include "actions/StackingAction.hh"
 #include "physics/PhysicsList.hh"
@@ -21,7 +22,7 @@
 
 StackingAction::StackingAction() : G4UserStackingAction()
 {
-  this->physList = dynamic_cast<const PhysicsList *>(G4RunManager::GetRunManager()->GetUserPhysicsList());
+  this->physicsList = dynamic_cast<const PhysicsList *>(G4RunManager::GetRunManager()->GetUserPhysicsList());
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -32,14 +33,10 @@ void StackingAction::NewStage()
   const G4int eventId = currentEvent != nullptr ? currentEvent->GetEventID() : -1;
   const G4String eventPrefix = G4String("[Stacking] Event ") + std::to_string(eventId);
 
-  if (this->physList->IsChemistryEnabled() && this->stackManager->GetNTotalTrack() == 0)
-  // if (this->stackManager->GetNTotalTrack() == 0)
+  if (this->physicsList->IsChemistryEnabled() && this->stackManager->GetNTotalTrack() == 0)
   {
     DnaLogger::Print(DnaLogger::Level::Info,
                      eventPrefix + ": Physics stage ends");
-
-    // G4DNAChemistryManager::Instance()->SetVerbose(1); // BEFORE Run()
-    // G4Scheduler::Instance()->SetVerbose(1);           // Scheduler internals
 
     DnaLogger::Print(DnaLogger::Level::Debug,
                      eventPrefix + " Chemistry TimeStepModel = " +
@@ -53,7 +50,8 @@ void StackingAction::NewStage()
                      eventPrefix + ": G4Scheduler Nb of trackIDs: " +
                          std::to_string(G4Scheduler::Instance()->GetNTracks()));
 
-    G4DNAChemistryManager::Instance()->Run(); // starts chemistry
+    // Run processes chemistry synchronously before the event can finish.
+    G4DNAChemistryManager::Instance()->Run();
     DnaLogger::Print(DnaLogger::Level::Info,
                      eventPrefix + ": Chemistry started");
   }

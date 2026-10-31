@@ -76,26 +76,26 @@ for why, rather than repeating it here.
 
 ## Serial vs MT
 
-- **Serial** (`sim.cc` default, no `--threads`): one `Run` object and one
-  scorer instance exist for the whole job. `ProcessHits`/`EndOfEvent` accumulate
+- **Serial** (`sim.cc` default, no `--threads`): one `Run` object exists per
+  `/run/beamOn`; the scorer persists across runs. `ProcessHits`/`EndOfEvent` accumulate
   directly into that single instance; there is no merge step.
-- **MT** (`--threads N` or `/run/numberOfThreads N`): each worker thread gets
+- **MT** (`--threads N`, optionally overridden by `/run/numberOfThreads N`): each worker thread gets
   its own `Run` and its own scorer instance, accumulating independently.
   Merging onto the master happens through `G4Run::Merge`, which this
   project's `Run::Merge` override implements
-  (`src/actions/Run.cc:84-111`): it `dynamic_cast`s both the master's and the
+  (`src/actions/Run.cc`): it `dynamic_cast`s both the master's and the
   worker's `fScorerRun` to `ScoreSpecies*` and calls
   `masterScorer->AbsorbResultsFromWorkerScorer(localScorer)`
-  (`Run.cc:98-102`), alongside merging the other per-run counters
+  (`Run.cc`), alongside merging the other per-run counters
   (`fReactionCounter`, `fInteractionCounter`, `fMesoSpeciesCounter`,
   `fTrackLengthTable`) and finally `G4Run::Merge(aRun)`
-  (`Run.cc:106-111`). In the Geant4 kernel this merge is driven by
+  (`Run.cc`). In the Geant4 kernel this merge is driven by
   `G4MTRunManager::MergeRun(const G4Run* localRun)`, which calls
   `currentRun->Merge(localRun)` under a lock
   (`geant4SourcePath/source/run/src/G4MTRunManager.cc`, `MergeRun` method) as
   each worker finishes its run — so by the time the master thread's
   `RunAction::EndOfRunAction(run)` runs with `IsMaster()` true
-  (`src/actions/RunAction.cc:92`), `run` already reflects every worker's
+  (`src/actions/RunAction.cc`), `run` already reflects every worker's
   contribution. A new scorer added to `ConstructSDandField()` needs its own
   merge step wired into `Run::Merge` the same way, or its counts will only
   ever reflect one worker's share under MT.

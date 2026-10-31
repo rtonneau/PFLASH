@@ -1,16 +1,6 @@
-/// \file SteppingAction.hh
-/// \brief Definition of the SteppingAction class
-///
-/// Counts physical (pre-chemistry) interaction firings by process name,
-/// keyed the same way as G4Step::GetPostStepPoint()->GetProcessDefinedStep()
-/// reports them, so PhysicsInteractions.Txt/.csv read directly off Geant4's
-/// own process names. Only discrete physics interactions are counted --
-/// steps whose process name doesn't contain "G4DNA" (e.g. Transportation)
-/// are ignored. The "G4DNA" substring holds for every process
-/// G4EmDNAPhysics registers (verified against source: e-_G4DNAIonisation,
-/// e-_G4DNAExcitation, e-_G4DNAElastic, e-_G4DNAVibExcitation,
-/// e-_G4DNAAttachment, ...), so this filter transposes to any
-/// G4EmDNAPhysics-based project by copy-paste.
+/// Counts steps selected by the G4DNA process-name filter.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
 
 #ifndef SteppingAction_h
 #define SteppingAction_h 1
@@ -20,14 +10,20 @@
 
 class G4Step;
 
+/// Counts steps selected by the G4DNA process-name filter.
 class SteppingAction : public G4UserSteppingAction
 {
 public:
+  /// Starts with an empty per-run interaction counter.
   SteppingAction() = default;
+  /// Destroy after callbacks and borrowed uses have finished.
   ~SteppingAction() override = default;
 
+  /// Requires a non-null step/post-step point. Counts its defining process only when the name
+  /// contains G4DNA; null or other process names are ignored. This is not a count of all EM processes.
   void UserSteppingAction(const G4Step *step) override;
 
+  /// Borrowed counter for this action lifetime; caller owns run resets. No failure path.
   PhysicsInteractionCounter &GetInteractionCounter() { return fInteractionCounter; }
 
 private:

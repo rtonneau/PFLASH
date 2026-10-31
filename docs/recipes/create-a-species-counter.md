@@ -25,7 +25,7 @@ set of time points, and folds the result into a per-event G-value
 
 ## dnachem-min reference implementation
 
-- `src/actions/ActionInitialization.cc:80-98` (`BuildMoleculeCounters`) is
+- `src/actions/ActionInitialization.cc` (`BuildMoleculeCounters`) is
   where the counter itself is set up, once per thread (called from `Build()`
   and `BuildForMaster()`): it registers one `G4MoleculeCounter` named
   `"BasicCounter"` on `G4MoleculeCounterManager::Instance()`, ignoring
@@ -34,9 +34,8 @@ set of time points, and folds the result into a per-event G-value
   `SetResetCountersBeforeEvent(true)` and `SetResetCountersBeforeRun(true)`
   (both default `false`) — required because `ScoreSpecies::EndOfEvent`
   normalises by that event's own energy deposit; without a per-event reset,
-  event *k* would see the cumulative count of events 1..k and the summed
-  G-values would be inflated by `(nEvents+1)/2` (comment at
-  `ActionInitialization.cc:83-86`).
+  later events can include earlier molecule counts. The resulting bias depends
+  on the event yields and energy deposits (`BuildMoleculeCounters`).
 - `src/scoring/ScoreSpecies.cc` (+ `header/scoring/ScoreSpecies.hh`) is the
   `G4VPrimitiveScorer` that reads the counter. Verified from its actual
   source, not inferred from the class name:
@@ -105,7 +104,7 @@ Same `Run::Merge`/`AbsorbResultsFromWorkerScorer` mechanism described in
 [`create-a-scorer.md`](create-a-scorer.md#serial-vs-mt): under MT, each
 worker thread owns its own `ScoreSpecies` instance (and its own
 `G4MoleculeCounterManager`/`G4MoleculeCounter`, since both are thread-local);
-`Run::Merge` (`src/actions/Run.cc:84-111`) `dynamic_cast`s the master's and
+`Run::Merge` (`src/actions/Run.cc`) `dynamic_cast`s the master's and
 the worker's scorer and calls `AbsorbResultsFromWorkerScorer`. Its
 `MergeSpeciesTotalsFrom` helper sums `fNumber`/`fG`/`fG2` per `(time, species)`
 pair. The caller then clears the worker's map so a later run doesn't double-merge

@@ -1,5 +1,6 @@
-/// \file PrimaryGeneratorAction.cc
-/// \brief Implementation of the PrimaryGeneratorAction class
+/// Generates gun primaries and captures the first beam settings for each run.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
 
 #include "actions/PrimaryGeneratorAction.hh"
 

@@ -139,14 +139,14 @@ its own `TimeStepAction`, its own `G4DNAEventScheduler`, and — via that
 thread-local pointer — its own `MeshTotalsAction`, so each worker's mesh
 and record-time snapshots are entirely private to that thread; there is no
 shared mesh state to protect. `Run::Run()`
-(`src/actions/Run.cc:22-38`) looks up the current thread's `TimeStepAction`
+(`src/actions/Run.cc`) looks up the current thread's `TimeStepAction`
 off `G4Scheduler::Instance()->GetUserTimeStepAction()` and binds
 `fMesoSpeciesCounter` to that instance's `GetMesoSpeciesCounter()`
-(`Run.cc:34-35`); `Run::Merge` (`Run.cc:84-111`) then calls
+(`Run.cc`); `Run::Merge` (`Run.cc`) then calls
 `fMesoSpeciesCounter->Merge(*localRun->fMesoSpeciesCounter)`
-(`Run.cc:108`) to fold one worker's per-thread counter into the master's,
+(`Run.cc`) to fold one worker's per-thread counter into the master's,
 the same per-run-counter pattern as `fReactionCounter`/`fInteractionCounter`/
-`fTrackLengthTable` on the same lines. In Serial mode there is one thread,
+`fTrackLengthTable` in that method. In Serial mode there is one thread,
 one `TimeStepAction`, one `MeshTotalsAction` and no merge step.
 
 ## See also
