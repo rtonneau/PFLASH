@@ -1,3 +1,5 @@
+# Demonstrates per-event mesoscopic HDF5 snapshots for two 10 keV electron events.
+
 /run/verbose 0
 /tracking/verbose 0
 /dnaLogger/verbose Info
@@ -13,6 +15,7 @@
 /gun/particle e-
 /gun/energy 10 keV
 
+# After /run/initialize: override the Chemistry default end time.
 /scheduler/endTime 1 ms
 
 /run/beamOn 2

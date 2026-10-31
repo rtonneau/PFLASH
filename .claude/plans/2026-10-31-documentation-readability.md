@@ -127,3 +127,8 @@ Record actual results and final per-directory deliverables before push/PR.
   scope (18 maintained documentation files, excluding this plan).
 - No build or simulation was run solely for this prose commit. Macro and test
   comment completion, followed by final builds/tests/examples, comes next.
+- Macro completion: purpose/setup comments reviewed in all 54 .in files;
+  active command sequences match original baseline 1fcf8ba exactly, including
+  the known reactions.in comma. Duplicate adjacent ordering notes were combined.
+  git diff --check passed. Production macros were not executed; final exact
+  example runs follow the test-header build.

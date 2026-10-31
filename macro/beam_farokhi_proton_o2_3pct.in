@@ -1,18 +1,9 @@
-# Farokhi et al. 2023, Fig. 2/Fig. 3: 90 MeV proton, 3 % O2.
-# Molar value is the paper's own Henry's-law conversion at 37 C
-# (not the project's % shortcut, which assumes a different constant).
-#
-# halfBox 5 um -> a 10x10x10 um^3 box, matching the paper's own "sensitive
-# volume" (Fig. 1B) directly, rather than the project's 500 um default: at
-# 90 MeV the proton's LET (~0.57 keV/um) is constant either way, but the
-# default 1 mm box deposits ~570 keV along the track, and the full IRT
-# particle-based stage (no mesoscopic hand-over) does not scale to that many
-# radiolytic species -- 40-70+ min per event, infeasible for /run/beamOn 20.
-# At 10 um the deposit drops to ~6 keV, back to a tractable IRT cost; the
-# trade-off is that rare, longer-range secondary electrons (max delta-ray
-# range ~0.3-0.4 mm at this energy) are truncated at the box edge instead of
-# depositing their full energy, same caveat the paper itself accepts with its
-# own 10 um sensitive volume.
+# Farokhi2023 proton comparison: 90 MeV, 31.1 uM, IRT_syn without mesoscopic.
+# halfBox 5 um gives a water cube of side 10 um for the box-size comparison.
+# A smaller world limits the tracked path and chemical population. Escaping
+# secondary electrons carry energy out of the box; compare deposited energy
+# and track lengths rather than assuming every secondary deposits all its energy.
+# Study context and historical measurements: docs/literature-comparison/farokhi2023/.
 
 /run/verbose 0
 /tracking/verbose 0
@@ -26,8 +17,10 @@
 
 /chem/env/scavenger O2 31.1 uM
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
+# After /run/initialize: override the Chemistry default end time.
 /scheduler/endTime 1 us
 
 /gun/particle proton

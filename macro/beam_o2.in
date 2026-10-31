@@ -1,3 +1,6 @@
+# Demonstrates dissolved O2 at 21 % using the project Henry-law conversion.
+# Runs two 100 keV electron events with the default Chemistry and stages.
+
 /run/verbose 0
 /tracking/verbose 0
 /dnaLogger/verbose Info
@@ -10,6 +13,7 @@
 /chem/env/scavenger O2 21 %
 /chem/env/pH 7
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
 /gun/particle e-
@@ -19,7 +23,7 @@
 
 #/primaryKiller/eLossMin 1 keV
 #/primaryKiller/eLossMax 2 keV
-#/primaryKiller/minKineticE 0 keV
+#/primaryKiller/minKineticE 0 keV # Currently unhandled by SetNewValue; has no effect.
 #/primaryKiller/verbose 0
 
 /run/beamOn 2

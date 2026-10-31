@@ -1,6 +1,7 @@
-# Variant of beam.in: Meesungnoen2002 solvation, explicit mesoscopic-stage
-# settings and scheduler diagnostics. (Formerly the SBS variant; SBS is no
-# longer supported, the chemistry is IRT_syn then mesoscopic, ADR 0006.)
+# Demonstrates Meesungnoen2002 solvation, explicit mesoscopic defaults
+# and scheduler diagnostics. This macro inherits IRT_syn plus mesoscopic;
+# SBS remains selectable separately (see example_sbs.in and ADR 0008).
+
 /run/verbose 1
 /tracking/verbose 0
 
@@ -13,6 +14,7 @@
 /chem/meso/voxelSize 6.25 nm
 /chem/meso/timesPerDecade 10
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
 # The chemistry end time defaults to 1 s; override after /run/initialize.
@@ -24,10 +26,9 @@
 # Species and reactions are defined in code (src/chemistry/DnaChemistryList.cc).
 
 #/primaryKiller/eLossMin 1 keV # primary is killed if deposited E is greater than this value
-#/primaryKiller/eLossMax 2 keV # event is aborted if deposited E is greated than this value
+#/primaryKiller/eLossMax 2 keV # event is aborted if deposited E is greater than this value
 
 #==============================================
-# NB: comment lines related to scheduler when the flag chemOFF is used
 /scheduler/verbose 2
 /scheduler/whyDoYouStop
 #==============================================
