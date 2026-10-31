@@ -1,5 +1,7 @@
 /// \file JsonWriter.cc
-/// \brief Implementation of JsonWriter
+/// \brief Serialize DataNode trees as JSON without knowing their keys.
+/// Standard library and DataNode only.
+/// Callers coordinate shared streams and tree mutation.
 
 #include "scoring/JsonWriter.hh"
 
@@ -11,6 +13,9 @@
 
 namespace
 {
+  constexpr int kJsonPrecision = 12;
+  constexpr int kIndentWidth = 2;
+
   bool IsContainer(const DataNode &node)
   {
     return node.GetKind() == DataNode::Kind::Array || node.GetKind() == DataNode::Kind::Object;
@@ -41,7 +46,7 @@ namespace
       if (std::isfinite(node.GetDouble()))
       {
         std::ostringstream stream;
-        stream << std::setprecision(12) << node.GetDouble();
+        stream << std::setprecision(kJsonPrecision) << node.GetDouble();
         out << stream.str();
       }
       else
@@ -54,6 +59,22 @@ namespace
       break;
     default:
       out << "null";
+    }
+  }
+
+  void WriteNode(std::ostream &out, const DataNode &node, int indent);
+
+  void WriteChild(std::ostream &out, const DataNode &node, bool isArray,
+                  std::size_t i, int childIndent)
+  {
+    if (isArray)
+    {
+      WriteNode(out, node.GetElements()[i], childIndent);
+    }
+    else
+    {
+      out << "\"" << JsonWriter::EscapeJson(node.GetMembers()[i].first) << "\": ";
+      WriteNode(out, node.GetMembers()[i].second, childIndent);
     }
   }
 
@@ -70,19 +91,6 @@ namespace
     const char close = isArray ? ']' : '}';
     const std::size_t count = isArray ? node.GetElements().size() : node.GetMembers().size();
 
-    // Writes child i, preceded by its key for an object member.
-    auto writeChild = [&](std::size_t i, int childIndent) {
-      if (isArray)
-      {
-        WriteNode(out, node.GetElements()[i], childIndent);
-      }
-      else
-      {
-        out << "\"" << JsonWriter::EscapeJson(node.GetMembers()[i].first) << "\": ";
-        WriteNode(out, node.GetMembers()[i].second, childIndent);
-      }
-    };
-
     if (count == 0)
     {
       out << open << close;
@@ -96,18 +104,18 @@ namespace
       {
         if (i > 0)
           out << ", ";
-        writeChild(i, indent);
+        WriteChild(out, node, isArray, i, indent);
       }
       out << close;
       return;
     }
 
-    const std::string childPad(static_cast<std::size_t>(indent + 2), ' ');
+    const std::string childPad(static_cast<std::size_t>(indent + kIndentWidth), ' ');
     out << open << "\n";
     for (std::size_t i = 0; i < count; ++i)
     {
       out << childPad;
-      writeChild(i, indent + 2);
+      WriteChild(out, node, isArray, i, indent + kIndentWidth);
       out << (i + 1 < count ? ",\n" : "\n");
     }
     out << std::string(static_cast<std::size_t>(indent), ' ') << close;

@@ -1,18 +1,13 @@
 /// \file RunAccumulator.hh
-/// \brief Process-wide accumulator for data that must survive across
-/// /run/beamOn calls until explicitly flushed.
+/// \brief Retain run totals and dump reservations across beamOn calls.
+/// Uses scoring components and Geant4 types; no kernel services here.
+/// Unsynchronized process state; use from the master or serial run lifecycle.
 ///
-/// Species yields don't need this -- the ScoreSpecies scorer is itself a
-/// persistent, SD-registered object and accumulates on its own. Energy
-/// deposit and the three counters (ReactionCounter, PhysicsInteractionCounter,
-/// MesoSpeciesCounter) live on the per-run Run object today, which is destroyed every beamOn --
-/// RunAccumulator gives them a persistent home instead, fed once per run
-/// from RunAction::EndOfRunAction.
-///
-/// Pure accumulation/bookkeeping: no file I/O, no Geant4 kernel dependency
-/// beyond G4double/G4String. RunAccumulatorMessenger owns the file-writing
-/// side (species lookup, OutputDir, G4AnalysisManager) and the public
-/// UI-command / exit-time entry points.
+/// ScoreSpecies persists independently. The other counters and track rows are
+/// normally action-owned and borrowed by each Run, with Run-owned fallbacks.
+/// RunAction::EndOfRunAction copies their totals here once per run so they
+/// survive the next BeginOfRunAction reset until a dump consumes them.
+/// RunAccumulatorMessenger owns publication and the UI/exit-time entry points.
 
 #ifndef RunAccumulator_h
 #define RunAccumulator_h 1
@@ -33,7 +28,10 @@ namespace RunAccumulator
   /// and the per-event track-length rows into the persistent totals (the
   /// counters and the table are merged via their Merge() -- the arguments
   /// are left unmodified) and marks pending data. Called once per run from
-  /// RunAction::EndOfRunAction (master thread only).
+  /// RunAction::EndOfRunAction (master/serial thread). energy is in Geant4
+  /// internal units; events is a count. Source objects must be distinct from
+  /// the stored totals. No value validation; allocations can throw after
+  /// partial accumulation.
   void Accumulate(G4double energy, long events, const ReactionCounter &reactions,
                    const PhysicsInteractionCounter &interactions,
                    const MesoSpeciesCounter &mesoSpecies,
@@ -42,16 +40,23 @@ namespace RunAccumulator
   /// True if Accumulate() has added data since the last ClearAccumulated().
   G4bool HasPendingData();
 
+  /// Return accumulated deposited energy in Geant4 internal units.
   G4double GetAccumulatedEnergy();
+  /// Return the accumulated event count.
   long GetAccumulatedEvents();
+  /// Borrow the accumulated reaction counts; valid until process teardown.
   const ReactionCounter &GetAccumulatedReactionCounter();
+  /// Borrow the accumulated physical-interaction counts.
   const PhysicsInteractionCounter &GetAccumulatedInteractionCounter();
+  /// Borrow Mesoscopic stage counts indexed by time in ns.
   const MesoSpeciesCounter &GetAccumulatedMesoSpeciesCounter();
+  /// Borrow track rows (nm and keV); ClearAccumulated empties them.
   const TrackLengthTable &GetAccumulatedTrackLengthTable();
 
   /// Appends one run's manifest entry (built by RunManifest::RecordRun) for
   /// the manifest of the next dump. Called once per run (master thread only),
-  /// next to Accumulate(); does not set the pending-data flag.
+  /// next to Accumulate(); does not set the pending-data flag. Copies entry
+  /// without validating its schema; allocation exceptions propagate.
   void AddRunEntry(const DataNode &entry);
 
   /// The entries added since the last ClearAccumulated(), in call order.
@@ -59,13 +64,14 @@ namespace RunAccumulator
 
   /// Resets energy and events to 0, the three counters and the track-length
   /// table to empty and the run entries to none, and clears the pending-data flag. Does not touch the
-  /// prefix-uniqueness set.
+  /// prefix- or subdirectory-uniqueness sets.
   void ClearAccumulated();
 
   /// If enforceUniqueness is false, or prefix hasn't been reserved before,
   /// records prefix as used and returns true. If enforceUniqueness is true
   /// and prefix was already reserved earlier in this process, leaves state
-  /// unchanged, sets err, and returns false.
+  /// unchanged, sets err, and returns false. No path validation; successful
+  /// reservation leaves err unchanged. Allocation exceptions propagate.
   G4bool TryReservePrefix(const G4String &prefix, G4bool enforceUniqueness,
                            G4String &err);
 

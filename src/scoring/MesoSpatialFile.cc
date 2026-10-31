@@ -1,5 +1,7 @@
 /// \file MesoSpatialFile.cc
-/// \brief Implementation of the MesoSpatialFile HDF5 writer
+/// \brief Write and publish per-event Mesoscopic stage snapshots.
+/// Standard library and HDF5 C++ only.
+/// AppendEvent serializes HDF5 access; MoveStaged requires writers to be idle.
 ///
 /// Portable: standard library and HDF5 C++ only.
 
@@ -15,6 +17,10 @@ namespace fs = std::filesystem;
 
 namespace
 {
+  constexpr int kChunkRows = 4096;
+  constexpr int kDeflateLevel = 4;
+  constexpr int kCoordinatesPerCell = 3;
+
   const char* const kUnits =
     "position_nm: nm (cell centre, world frame); cellSize_nm: nm (cell side); "
     "time_ns: ns; counts: molecules per cell";
@@ -43,7 +49,7 @@ namespace
     H5::DataSpace space(1, &dim);
     H5::Attribute attr = obj.createAttribute("species", type, space);
     std::vector<const char*> ptrs;
-    for (const auto& s : species) ptrs.push_back(s.c_str());
+    for (const auto& speciesCount : species) ptrs.push_back(speciesCount.c_str());
     if (dim > 0) attr.write(type, ptrs.data());
   }
 
@@ -72,14 +78,14 @@ namespace
     const hsize_t dims[2] = {rows, cols};
     H5::DataSpace space(2, dims);
     H5::DSetCreatPropList props;
-    // gzip only when this HDF5 build has the deflate filter (vcpkg's hdf5
-    // without its zlib feature lacks it, and setDeflate would then be a silent
-    // no-op whose padded chunks make the file larger than contiguous storage).
+    // H5Pset_deflate marks the filter optional; H5Z_pipeline skips an
+    // unavailable optional filter on write. Avoid chunk-storage overhead when
+    // this HDF5 build cannot compress (e.g. vcpkg without its zlib feature).
     // Chunk dims must be non-zero, so empty datasets stay contiguous too.
     if (rows > 0 && cols > 0 && H5Zfilter_avail(H5Z_FILTER_DEFLATE) > 0) {
-      const hsize_t chunk[2] = {std::min<hsize_t>(rows, 4096), cols};
+      const hsize_t chunk[2] = {std::min<hsize_t>(rows, kChunkRows), cols};
       props.setChunk(2, chunk);
-      props.setDeflate(4);
+      props.setDeflate(kDeflateLevel);
     }
     H5::DataSet set = group.createDataSet(name, type, space, props);
     if (rows > 0 && cols > 0) set.write(data, type);
@@ -94,18 +100,58 @@ namespace
       .write(H5::PredType::NATIVE_DOUBLE, &cellSize_nm);
   }
 
+  void WriteRootAttributes(H5::H5File& h5, const std::vector<std::string>& species)
+  {
+    H5::Group root = h5.openGroup("/");
+    WriteSpeciesAttr(root, species);
+    const int version = MesoSpatialFile::kFormatVersion;
+    H5::DataSpace scalar(H5S_SCALAR);
+    root.createAttribute("formatVersion", H5::PredType::NATIVE_INT, scalar)
+      .write(H5::PredType::NATIVE_INT, &version);
+    WriteStringAttr(root, "units", kUnits);
+    WriteStringAttr(root, "formatDoc", MesoSpatialFile::kFormatDoc);
+  }
+
+  void WriteSnapshotRecords(H5::Group& eventGroup, const MesoSpatialFile::EventData& event,
+                            const hsize_t& speciesCount, std::vector<std::string>& firstGroup)
+  {
+    for (std::size_t k = 0; k < event.records.size(); ++k) {
+      const MesoSpatialFile::Record& record = event.records[k];
+      const MesoSpatialFile::Snapshot& snapshot = event.snapshots[record.snapshot];
+      const std::string name = "snapshot" + std::to_string(k);
+      H5::Group group = eventGroup.createGroup(name);
+      WriteTimeAndSize(group, record.time_ns, snapshot.cellSize_nm);
+      if (firstGroup[record.snapshot].empty()) {
+        const hsize_t cellCount = snapshot.position_nm.size() / kCoordinatesPerCell;
+        WriteDataset(group, "position_nm", H5::PredType::NATIVE_DOUBLE, snapshot.position_nm.data(),
+                     cellCount, kCoordinatesPerCell);
+        WriteDataset(group, "counts", H5::PredType::NATIVE_UINT32, snapshot.counts.data(), cellCount, speciesCount);
+        firstGroup[record.snapshot] = name;
+      }
+      else {
+        const std::string& sourceSnapshotGroup = firstGroup[record.snapshot];
+        for (const char* datasetName : {"position_nm", "counts"}) {
+          if (H5Lcreate_hard(eventGroup.getId(), (sourceSnapshotGroup + "/" + datasetName).c_str(), group.getId(), datasetName,
+                             H5P_DEFAULT, H5P_DEFAULT) < 0) {
+            throw H5::Exception("AppendEvent", "H5Lcreate_hard failed");
+          }
+        }
+      }
+    }
+  }
+
   bool Validate(const std::vector<std::string>& species, const MesoSpatialFile::EventData& event,
                 std::string& err)
   {
-    const std::size_t s = species.size();
+    const std::size_t speciesCount = species.size();
     for (std::size_t i = 0; i < event.snapshots.size(); ++i) {
-      const auto& snap = event.snapshots[i];
-      if (snap.position_nm.size() % 3 != 0) {
+      const auto& snapshot = event.snapshots[i];
+      if (snapshot.position_nm.size() % kCoordinatesPerCell != 0) {
         err = "Snapshot " + std::to_string(i) + ": position_nm size is not a multiple of 3";
         return false;
       }
-      const std::size_t n = snap.position_nm.size() / 3;
-      if (snap.counts.size() != n * s) {
+      const std::size_t cellCount = snapshot.position_nm.size() / kCoordinatesPerCell;
+      if (snapshot.counts.size() != cellCount * speciesCount) {
         err = "Snapshot " + std::to_string(i) + ": counts size is not cells * species";
         return false;
       }
@@ -162,14 +208,7 @@ bool MesoSpatialFile::AppendEvent(const std::string& path, const std::vector<std
     const std::string eventName = runName + "/event" + std::to_string(event.eventId);
 
     if (!exists) {
-      H5::Group root = h5.openGroup("/");
-      WriteSpeciesAttr(root, species);
-      const int version = kFormatVersion;
-      H5::DataSpace scalar(H5S_SCALAR);
-      root.createAttribute("formatVersion", H5::PredType::NATIVE_INT, scalar)
-        .write(H5::PredType::NATIVE_INT, &version);
-      WriteStringAttr(root, "units", kUnits);
-      WriteStringAttr(root, "formatDoc", kFormatDoc);
+      WriteRootAttributes(h5, species);
     }
     else {
       H5::Group root = h5.openGroup("/");
@@ -189,31 +228,9 @@ bool MesoSpatialFile::AppendEvent(const std::string& path, const std::vector<std
                            : h5.createGroup(runName);
     H5::Group eventGroup = runGroup.createGroup("event" + std::to_string(event.eventId));
 
-    const hsize_t s = species.size();
+    const hsize_t speciesCount = species.size();
     std::vector<std::string> firstGroup(event.snapshots.size());
-    for (std::size_t k = 0; k < event.records.size(); ++k) {
-      const Record& rec = event.records[k];
-      const Snapshot& snap = event.snapshots[rec.snapshot];
-      const std::string name = "snapshot" + std::to_string(k);
-      H5::Group group = eventGroup.createGroup(name);
-      WriteTimeAndSize(group, rec.time_ns, snap.cellSize_nm);
-      if (firstGroup[rec.snapshot].empty()) {
-        const hsize_t n = snap.position_nm.size() / 3;
-        WriteDataset(group, "position_nm", H5::PredType::NATIVE_DOUBLE, snap.position_nm.data(),
-                     n, 3);
-        WriteDataset(group, "counts", H5::PredType::NATIVE_UINT32, snap.counts.data(), n, s);
-        firstGroup[rec.snapshot] = name;
-      }
-      else {
-        const std::string& src = firstGroup[rec.snapshot];
-        for (const char* ds : {"position_nm", "counts"}) {
-          if (H5Lcreate_hard(eventGroup.getId(), (src + "/" + ds).c_str(), group.getId(), ds,
-                             H5P_DEFAULT, H5P_DEFAULT) < 0) {
-            throw H5::Exception("AppendEvent", "H5Lcreate_hard failed");
-          }
-        }
-      }
-    }
+    WriteSnapshotRecords(eventGroup, event, speciesCount, firstGroup);
     h5.close();
     return true;
   }

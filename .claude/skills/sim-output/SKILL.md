@@ -8,18 +8,21 @@ description: Use when running sim.exe, writing macros that dump output (/run/dum
 Species/reaction/energy/physical-interaction data accumulates across `/run/beamOn`
 calls rather than being written and reset after every run — species yields
 accumulate automatically (the `ScoreSpecies` scorer is itself a persistent,
-SD-registered object), while energy deposit and the two counters accumulate via
+SD-registered object), while energy deposit, the three counters and the track-length table accumulate via
 `RunAccumulator` (`src/scoring/RunAccumulator.cc`), fed once per run from
-`RunAction::EndOfRunAction`. Nothing is written to disk until a macro issues
+`RunAction::EndOfRunAction`. Pre-chemical and optional spatial files are staged
+during events. Final dump files are published when a macro issues
 `/run/dumpDataAndReset [prefix]` (`Idle` state, i.e. between `beamOn` calls),
 which writes everything accumulated since the last dump (or program start) and
 resets all counters to empty/zero:
 
-- `Species.Txt` (human-readable species yields vs. time) and the CSV ntuple
-  `Species_nt_species.csv` (aggregate sumG/sumG2 per species/time); a second
+- `Species.Txt` (accumulated molecule counts vs. time) and the CSV ntuple
+  `Species_nt_species.csv` (counts, nEvent and aggregate sumG/sumG2 per
+  species/time; mean G = sumG/nEvent in molecules per 100 eV); a second
   ntuple, `Species_nt_species_all.csv` (same, per event), is only written when
   `ScoreSpecies` is compiled with `_ScoreSpecies_FOR_ALL_EVENTS` (off by
-  default; see `header/scoring/ScoreSpecies.hh`).
+  default). That disabled branch currently contains inconsistent symbols/types
+  and needs a separate repair before use; see `header/scoring/ScoreSpecies.hh`.
 - `SpeciesMeso.Txt` and `SpeciesMeso.csv`: species counts of the mesoscopic
   stage (after the hand-over time, default 5 ns, to the end time), collected per
   event by `TimeStepAction` into `MesoSpeciesCounter`, merged in `Run::Merge`,
@@ -115,11 +118,13 @@ its CSV ntuples — without it, a later dump cycle reusing the same ntuple
 names ("species"/"reactions") under a new prefix hits a Geant4 analysis-
 manager limitation (its per-ntuple file registry isn't cleared by
 `CloseFile()` alone) and silently renames or drops that dump's CSV output;
-`Clear()` avoids that entirely, so distinct prefixes never collide.
+`Clear()` removes the bookings and file-manager state before the next dump.
+It does not make publication transactional or guarantee successful I/O.
 
 `/run/dumpDataAndResetToDir <subdir>` (`Idle` state, parameter required) is the
 same dump, but writes the unprefixed files into `<subdir>` under the output
-directory (`--dir` / `/run/outputDir`, or cwd if none) instead of using a
+directory (`--dir` / `/run/outputDir`, otherwise the lazy `<exeDir>/results`
+default; cwd only if no root is available) instead of using a
 filename prefix — e.g. `/run/beamOn 4`, `/run/dumpDataAndResetToDir run01`,
 `/run/beamOn 4`, `/run/dumpDataAndResetToDir run02` yields `run01/` and
 `run02/`, each with the full file set. The folder is created if missing
@@ -136,8 +141,8 @@ If a macro never issues `/run/dumpDataAndReset` and there is still accumulated
 data pending when the program is about to exit, a safety-net flush fires
 automatically with the fixed prefix `EndOfRun_` (see
 `RunAccumulatorMessenger::FlushIfPending`, called from `sim.cc` just before
-the run manager is destroyed) — so data is never silently lost even if the
-operator forgets the manual call. The `[RunAccumulatorMessenger] dumped and
+the run manager is destroyed). It attempts publication if the operator omits
+the manual call; existing output failures can still lose data. The `[RunAccumulatorMessenger] dumped and
 reset...` line is a plain, always-visible `G4cout` line (unlike most of this
 project's diagnostics, which go through `DnaLogger` and are silent by
 default) — see `RunAccumulatorMessenger.cc`.

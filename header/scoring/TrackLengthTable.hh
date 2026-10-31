@@ -1,5 +1,7 @@
 /// \file TrackLengthTable.hh
-/// \brief Portable per-event table of primary and secondary track lengths
+/// \brief Store and summarize per-event primary and secondary track lengths.
+/// Standard library only.
+/// Callers coordinate access to shared mutable tables and streams.
 ///
 /// Self-contained, project-agnostic unit: standard library only, no Geant4
 /// kernel and no other dnachem-min class. Copy-paste portable to another
@@ -15,6 +17,8 @@
 #include <iosfwd>
 #include <vector>
 
+/// Caller-populated rows; no physical-value validation. Allocations may throw.
+/// Writers report failure through stream flags or enabled stream exceptions.
 class TrackLengthTable
 {
  public:
@@ -26,6 +30,7 @@ class TrackLengthTable
     Killed
   };
 
+  /// One event: lengths in nm, energies in keV, secondary counts dimensionless.
   struct Row
   {
     int run = 0;
@@ -47,6 +52,7 @@ class TrackLengthTable
     double sem = 0.;
   };
 
+  /// Column statistics in the corresponding Row units, plus event/end counts.
   struct Summary
   {
     std::size_t nEvents = 0;
@@ -62,22 +68,27 @@ class TrackLengthTable
     std::size_t nKilled = 0;
   };
 
-  /// "stopped", "escaped" or "killed".
+  /// Borrow "stopped", "escaped" or "killed"; unknown enum values give "stopped".
   static const char* EndToString(End end);
 
+  /// Append row without validating its values or enforcing unique event IDs.
   void Add(const Row& row);
 
-  /// Appends the rows of `other`; `other` is left unchanged.
+  /// Append a distinct table's rows; other is left unchanged. Self-merge is unsupported.
   void Merge(const TrackLengthTable& other);
 
+  /// Remove all rows.
   void Clear();
+  /// Return the number of stored rows.
   std::size_t Size() const { return fRows.size(); }
+  /// True when there are no rows.
   bool Empty() const { return fRows.empty(); }
 
   /// Rows in insertion order.
   const std::vector<Row>& GetRows() const { return fRows; }
 
-  /// Mean and SEM (sample stddev / sqrt(n); 0 for n < 2) of every column.
+  /// Mean and SEM (sample stddev / sqrt(n)) of every numeric column.
+  /// Empty-table means are zero; one row retains its value. SEM is zero for n < 2.
   Summary Summarize() const;
 
   /// Header row plus one row per event, sorted by (run, event).

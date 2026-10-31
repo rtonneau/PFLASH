@@ -1,5 +1,7 @@
 /// \file ScoreSpecies.hh
-/// \brief Definition of the ScoreSpecies class
+/// \brief Accumulate Particle-based stage molecule counts and G-value sums.
+/// Requires project settings/output and Geant4 scoring/chemistry services.
+/// Worker-local scorers; merge and publish only at coordinated run boundaries.
 
 // This example is provided by the Geant4-DNA collaboration
 // Any report or published results obtained using the Geant4-DNA software
@@ -25,50 +27,59 @@ class G4MolecularConfiguration;
 /** \file ScoreSpecies.hh*/
 
 // Description:
-//   This is a primitive scorer class for scoring the radiolitic species
-// produced after irradiation in a water volume
+//   Records radiolytic species produced after irradiation in a water volume.
 //
 // Created: 2015-10-27  by M. Karamitros,
 // modified: 2016-03-16 by P. Piersimoni
 
+/// Persistent scorer: counts molecules and sums per-event G values (molecules/100 eV).
+/// Uses Geant4 event/counter services; callers coordinate master/worker lifecycles.
 class ScoreSpecies : public G4VPrimitiveScorer
 {
 public:
+  /// Construct scorer name at copy-number depth with the default record grid.
   ScoreSpecies(G4String name, G4int depth = 0);
 
+  /// Destroy the scorer; event hit collections remain under Geant4 ownership.
   virtual ~ScoreSpecies();
 
-  /** Add a time at which the number of species should be recorded.
-      Default times are set up to 1 microsecond.*/
+  /// Add time in Geant4 internal units without range validation; duplicates collapse.
+  /// Configure before events. The default grid ends just below 1 microsecond.
   inline void AddTimeToRecord(double time) { fTimeToRecord.insert(time); }
 
-  /**  Remove all times to record, must be reset by user.*/
+  /// Remove all record times; configure replacements before subsequent events.
   inline void ClearTimeToRecord() { fTimeToRecord.clear(); }
 
-  /** Get number of recorded events*/
+  /// Return the number of non-aborted events accumulated since the last clear/merge.
   inline int GetNumberOfRecordedEvents() const { return fNEvent; }
 
-  /** Write results to an text file*/
+  /// Write accumulated molecule counts to Species.Txt (time in internal ns).
+  /// A failed open returns silently; later stream failures are not checked.
   void ASCII();
 
-  /** Write results to whatever chosen file format*/
+  /// Write counts and G-value sums through a non-null initialized analysis manager.
+  /// Opens/writes/closes its file; Geant4 reports failures, with no success return.
   void WriteWithAnalysisManager(G4VAnalysisManager *);
 
+  /// Accumulated molecule count, sumG and sumG2 across accepted events.
   struct SpeciesInfo
   {
+    /// Initialize all accumulated values to zero.
     SpeciesInfo()
     {
       fNumber = 0;
       fG = 0.;
       fG2 = 0.;
     }
-    SpeciesInfo(const SpeciesInfo &right) // Species A(B);
+    /// Copy all accumulated values.
+    SpeciesInfo(const SpeciesInfo &right)
     {
       fNumber = right.fNumber;
       fG = right.fG;
       fG2 = right.fG2;
     }
-    SpeciesInfo &operator=(const SpeciesInfo &right) // A = B
+    /// Copy all values; self-assignment is a no-op.
+    SpeciesInfo &operator=(const SpeciesInfo &right)
     {
       if (&right == this)
         return *this;
@@ -83,22 +94,23 @@ public:
   };
 
 #ifdef _ScoreSpecies_FOR_ALL_EVENTS
+  /// Optional per-event arrays; the disabled output path needs separate repair.
   struct SpeciesInfoSOA
   {
+    /// Construct empty per-event arrays.
     SpeciesInfoSOA()
     {
-      // fNumber = 0;
-      // fG = 0.;
-      // fG2 = 0.;
     }
-    SpeciesInfoSOA(const SpeciesInfoSOA &right) // Species A(B);
+    /// Copy all per-event arrays; allocation may throw.
+    SpeciesInfoSOA(const SpeciesInfoSOA &right)
     {
       fNumber = right.fNumber;
       fG = right.fG;
       fG2 = right.fG2;
       fEventID = right.fEventID;
     }
-    SpeciesInfoSOA &operator=(const SpeciesInfoSOA &right) // A = B
+    /// Copy the arrays; self-assignment is a no-op, allocations may throw.
+    SpeciesInfoSOA &operator=(const SpeciesInfoSOA &right)
     {
       if (&right == this)
         return *this;
@@ -134,21 +146,36 @@ private:
   G4String fOutputType; // output type
 
 protected:
+  /// Accumulate weighted energy from a live step; requires Initialize first.
+  /// Returns false only for zero unweighted energy deposit.
   virtual G4bool ProcessHits(G4Step *, G4TouchableHistory *);
 
 public:
+  /// Register this event's hit map with a non-null HCE; called by Geant4.
   virtual void Initialize(G4HCofThisEvent *);
+  /// Accumulate the current non-aborted event using the live molecule counter.
+  /// Missing counter or negative molecule counts raise FatalException; HCE is unused.
   virtual void EndOfEvent(G4HCofThisEvent *);
+  /// No visualization is produced.
   virtual void DrawAll();
+  /// Print the current hit-map summary; requires a detector and initialized event map.
   virtual void PrintAll();
-  /** Method used in multithreading mode in order to merge
-      the results*/
+  /// Merge a worker ScoreSpecies and clear its aggregate counts/event state.
+  /// Null, wrong-type and self arguments are ignored. Caller stops worker mutation;
+  /// allocation failures propagate and can leave partial accumulation.
   virtual void AbsorbResultsFromWorkerScorer(G4VPrimitiveScorer *);
+  /// On master/serial, write through the analysis manager then clear aggregate
+  /// counts/event count, even without checked write success. Workers do nothing.
   virtual void OutputAndClear();
 
+  /// Copy the accumulated map (internal time units, counts and G-value sums).
+  /// Molecular-configuration pointers are borrowed; allocations may throw.
   SpeciesMap GetSpeciesInfo() { return fSpeciesInfoPerTime; }
 
 private:
+  void MergeSpeciesTotalsFrom(ScoreSpecies *right);
+  void WriteAggregateSpeciesRows(G4VAnalysisManager *analysisManager, const int &ntupleId);
+
   G4int fHCID;
   G4THitsMap<G4double> *fEvtMap;
 };

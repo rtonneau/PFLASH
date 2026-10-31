@@ -1,5 +1,7 @@
 /// \file RunManifest.hh
-/// \brief Geant4-facing collector that writes a dump's Manifest.json.
+/// \brief Collect live settings and publish dump manifests and the index.
+/// Requires project components and Geant4 runtime services.
+/// Unsynchronized process state; use from the master or serial run lifecycle.
 ///
 /// The one place that lists the manifest's entries: RecordRun builds each
 /// run's entry, Write builds the top-level tree from the live process
@@ -23,7 +25,8 @@ class Run;
 namespace RunManifest
 {
   /// Records the macro file the process was started with, for the manifest
-  /// (called once from sim.cc; empty if never set, e.g. GUI mode).
+  /// (called once from sim.cc; empty if never set, e.g. GUI mode). Copies macro
+  /// without filesystem checks; allocation exceptions propagate.
   void SetMacroName(const G4String &macro);
 
   /// Marks the process start (steady clock), the origin of the manifest's
@@ -34,13 +37,17 @@ namespace RunManifest
   /// energy deposit, seed, wall time) and stores it with
   /// RunAccumulator::AddRunEntry. `wallTime_s` is the run's wall-clock
   /// duration (BeginOfRunAction to EndOfRunAction). Called once per run from
-  /// RunAction::EndOfRunAction (master thread only).
+  /// RunAction::EndOfRunAction (master/serial thread). run must remain alive
+  /// during the call; no range validation, allocation exceptions propagate.
   void RecordRun(const Run &run, double wallTime_s);
 
   /// Writes Manifest.json (through OutputDir::Resolve, so the dump's prefix
   /// or subfolder applies). `files` are the data files this dump wrote, as
   /// names relative to the manifest's folder. A file that cannot be opened
-  /// raises a JustWarning G4Exception; the data files are already on disk.
+  /// raises a JustWarning G4Exception. Requires a live run manager and scheduler,
+  /// stable settings, and the already configured prefix/subdir. Data-file writes
+  /// have already been attempted. Later stream errors are not checked; there is
+  /// no rollback or success return, and allocation exceptions propagate.
   ///
   /// Also rewrites the results index, <outdir>/Manifest.json (ResultsIndex),
   /// listing every dump so far, the exit-time EndOfRun_ flush included. A

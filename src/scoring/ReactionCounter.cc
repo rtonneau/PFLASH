@@ -1,5 +1,7 @@
 /// \file ReactionCounter.cc
-/// \brief Implementation of the ReactionCounter class
+/// \brief Count reaction labels in configurable time bins.
+/// Geant4 types; CSV output also uses analysis services and OutputDir.
+/// Bin configuration is locked; callers coordinate shared counter mutation.
 
 #include "scoring/ReactionCounter.hh"
 
@@ -16,8 +18,8 @@
 
 namespace
 {
-// Same fixed checkpoint times ScoreSpecies uses for species snapshots, so
-// this counter's time axis lines up with Species.Txt by default.
+// Coarse decade edges share checkpoints with the denser ScoreSpecies record
+// grid; the final edge keeps the same margin below 1 microsecond.
 const std::vector<G4double> kDefaultTimeBins = {
     1 * CLHEP::picosecond,     10 * CLHEP::picosecond,  100 * CLHEP::picosecond,
     1000 * CLHEP::picosecond,  10000 * CLHEP::picosecond, 100000 * CLHEP::picosecond,
@@ -31,8 +33,9 @@ std::vector<G4double> gTimeBins = kDefaultTimeBins;
 // Deliberately not G4UnitDefinition::GetValueOf(): that call reaches into
 // the precompiled Geant4 DLL and is unsafe from this plain-logic Debug test
 // binary (observed to corrupt memory when the installed Geant4 libraries
-// are a different build type -- see project testing docs on keeping this
-// class kernel/DLL-free). Names/symbols mirror Geant4's own Time category.
+// are a different build type). Keep this parser independent of kernel services;
+// WriteCsv separately uses the analysis manager. Names/symbols mirror Geant4's
+// Time category.
 G4bool TimeUnitValue(const G4String& unit, G4double& valueOut)
 {
   static const std::map<G4String, G4double> kTimeUnits = {

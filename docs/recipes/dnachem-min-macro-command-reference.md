@@ -16,8 +16,8 @@ not silently drift from or contradict that summary.
 | Command | State(s) | Source |
 |---|---|---|
 | `/run/outputDir <path>` | PreInit | `src/core/OutputDirMessenger.cc (OutputDirMessenger constructor)` |
-| `/run/dumpDataAndReset [prefix]` | Idle | `src/scoring/RunAccumulatorMessenger.cc:24` |
-| `/run/dumpDataAndResetToDir <subdir>` | Idle | `src/scoring/RunAccumulatorMessenger.cc:35` |
+| `/run/dumpDataAndReset [prefix]` | Idle | `src/scoring/RunAccumulatorMessenger.cc (RunAccumulatorMessenger constructor)` |
+| `/run/dumpDataAndResetToDir <subdir>` | Idle | `src/scoring/RunAccumulatorMessenger.cc (RunAccumulatorMessenger constructor)` |
 
 `outputDir` is the macro-file counterpart of the `--dir` CLI flag
 (`OutputDir::ConfigureFromMacro`); issuing it with a value conflicting with
@@ -27,7 +27,7 @@ since the last dump (or program start) and a `Manifest.json`, then reset the
 accumulators; `dumpDataAndReset`'s optional `prefix` is prepended literally
 to every filename, `dumpDataAndResetToDir`'s `subdir` writes into a
 subfolder instead. Both are fatal if the prefix/subdir was already used
-earlier in the run (`RunAccumulatorMessenger.cc:24-45`).
+earlier in the run (`RunAccumulatorMessenger::SetNewValue`).
 
 ## `/chem/select`, `/chem/list`
 
@@ -118,19 +118,20 @@ command in this project, it is explicitly allowed in `GeomClosed` and
 
 | Command | State(s) | Source |
 |---|---|---|
-| `/primaryKiller/eLossMin <value> <unit>` | all (no `AvailableForStates` call) | `src/scoring/PrimaryKiller.cc:38` |
-| `/primaryKiller/eLossMax <value> <unit>` | all (no `AvailableForStates` call) | `src/scoring/PrimaryKiller.cc:39` |
-| `/primaryKiller/minKineticE <value> <unit>` | all (no `AvailableForStates` call) | `src/scoring/PrimaryKiller.cc:40` |
-| `/primaryKiller/setSize <x> <y> <z> <unit>` | all (no `AvailableForStates` call) | `src/scoring/PrimaryKiller.cc:41-42` |
-| `/primaryKiller/verbose <n>` | all (no `AvailableForStates` call) | `src/scoring/PrimaryKiller.cc:43` |
+| `/primaryKiller/eLossMin <value> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
+| `/primaryKiller/eLossMax <value> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
+| `/primaryKiller/minKineticE <value> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
+| `/primaryKiller/setSize <x> <y> <z> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
+| `/primaryKiller/verbose <n>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
 
 None of `PrimaryKiller`'s five commands calls `AvailableForStates`, so each
-keeps `G4UIcommand`'s own default (every application state) — grep-confirmed
-by the absence of the call in `PrimaryKiller.cc`, in contrast to every other
-messenger in this project, which does restrict its commands. `eLossMin`
-(`/primaryKiller/eLossMin`), `eLossMax` and `minKineticE` set the primary-kill
-and event-abort thresholds (`PrimaryKiller::SetNewValue`,
-`PrimaryKiller.cc:58-76`); `setSize` sets the bounding box any track is
+keeps the default state list initialized in Geant4 11.4.1
+`source/intercoms/src/G4UIcommand.cc`: PreInit, Init, Idle, GeomClosed,
+EventProc and Abort. `eLossMin`
+(`/primaryKiller/eLossMin`) and `eLossMax` set the primary-kill and event-abort
+thresholds in `PrimaryKiller::SetNewValue`. The registered `minKineticE` command
+currently has no dispatcher branch, so it does not change the threshold; the
+C++ `SetEnergyThreshold` setter does. `setSize` sets the bounding box any track is
 killed for leaving, default `1 km` per side; `verbose 1` logs each
 `kill track at` line. `CLAUDE.md` additionally documents that
 `DetectorConstruction::ConstructSDandField()` registers this scorer

@@ -1,3 +1,8 @@
+/// \file PrimaryKiller.hh
+/// \brief Apply track bounds and primary-electron energy cuts.
+/// Requires Geant4 tracking and UI services.
+/// Each scorer is used by one thread; the killed-primary flag is thread-local.
+
 #ifndef CHEM6_PrimaryKiller_h
 #define CHEM6_PrimaryKiller_h 1
 
@@ -11,19 +16,21 @@ class G4UIcmdWithAnInteger;
 
 /** \file PrimaryKiller.hh*/
 
-// Description:
-//   Kill the primary particle:
-//   - either after a given energy loss
-//   - or after the primary particle has reached a given energy
+/// Bounds-check every track, then apply energy cuts only to primary electrons.
+/// Configuration uses Geant4 internal energy/length units; setters do not validate
+/// ranges. UI conversion uses Geant4 command parsers.
 
 class PrimaryKiller : public G4VPrimitiveScorer, public G4UImessenger
 {
 private:
-    double fELoss; // cumulated energy loss by the primary
+    void PrintAbort(const G4double &energyLoss);
+    void PrintKill(const double &kineticEnergy);
+
+    double fELoss; // primary-electron loss in Geant4 internal energy units
 
     double fELossRange_Min; // fELoss from which the primary is killed
-    double fELossRange_Max; // fELoss from which the event is aborted
-    double fKineticE_Min;   // kinetic energy below which the primary is killed
+    double fELossRange_Max; // abort when fELoss is strictly above this value
+    double fKineticE_Min;   // kill at or below this internal-energy threshold
     G4ThreeVector fPhantomSize;
     G4int fVerbose; // verbosity level, G4cout messages are printed only if > 0
 
@@ -34,23 +41,23 @@ private:
     G4UIcmdWithAnInteger *fpVerboseUI;
 
 public:
+    /// Construct scorer name at copy-number depth and register its UI commands.
     PrimaryKiller(G4String name, G4int depth = 0);
 
+    /// Delete the handled UI commands; the existing minKineticE command is not deleted.
     virtual ~PrimaryKiller();
 
-    /** Set energy under which the particle should be
-     killed*/
+    /// Set the primary-electron kinetic-energy threshold, in Geant4 internal units.
     inline void SetEnergyThreshold(double energy) { fKineticE_Min = energy; }
 
-    /** Set the energy loss from which the primary is
-     killed*/
+    /// Set the inclusive primary-electron loss threshold, in Geant4 internal units.
     inline void SetMinLossEnergyLimit(double energy) { fELossRange_Min = energy; }
 
-    /** Set the energy loss from which the event is
-     aborted*/
+    /// Set the exclusive primary-electron loss threshold for aborting the event.
+    /// energy uses Geant4 internal units.
     inline void SetMaxLossEnergyLimit(double energy) { fELossRange_Max = energy; }
 
-    /** Set the verbosity level*/
+    /// Print the existing cut diagnostics when level > 0; no range validation.
     inline void SetVerboseLevel(G4int level) { fVerbose = level; }
 
     /** True if a PrimaryKiller killed track 1 in the current event on this
@@ -59,18 +66,23 @@ public:
      Read by TrackingAction to tell a killed primary from a stopped one. */
     static G4bool PrimaryKilledThisEvent();
 
-    /** Method related to G4UImessenger
-        used to control energy cuts through macro file
-     */
+    /// Dispatch loss/size/verbosity commands from newValue. The registered
+    /// minKineticE command and unknown commands currently have no handler.
     virtual void SetNewValue(G4UIcommand *command, G4String newValue);
 
 protected:
+    /// Requires a live tracking step/event; may kill the track or abort the event.
+    /// Returns false for box cuts/non-primary/no-loss steps, true after energy-cut handling.
     virtual G4bool ProcessHits(G4Step *, G4TouchableHistory *);
 
 public:
+    /// Reset event energy loss and this thread's killed-primary flag; HCE is unused.
     virtual void Initialize(G4HCofThisEvent *);
+    /// No operation; the collection argument is unused.
     virtual void EndOfEvent(G4HCofThisEvent *);
+    /// No visualization is produced.
     virtual void DrawAll();
+    /// No summary is printed.
     virtual void PrintAll();
 };
 #endif

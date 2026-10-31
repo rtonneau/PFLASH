@@ -1,5 +1,7 @@
 /// \file MesoSpatialFile.hh
-/// \brief HDF5 writer for the per-event spatial snapshots of the mesoscopic stage.
+/// \brief Write and publish per-event Mesoscopic stage snapshots.
+/// Standard library and HDF5 C++ only.
+/// AppendEvent serializes HDF5 access; MoveStaged requires writers to be idle.
 ///
 /// Portable and project-agnostic: standard library and HDF5 C++ only, no Geant4,
 /// no dependency on other dnachem-min classes (adjust the include path prefix on
@@ -37,6 +39,8 @@ namespace MesoSpatialFile
     std::size_t snapshot;
   };
 
+  /// Caller-owned event with unique IDs in the destination and ordered record times.
+  /// Geometry/times must be physically meaningful; AppendEvent only checks shapes/indices.
   struct EventData
   {
     int runId = 0;
@@ -60,14 +64,20 @@ namespace MesoSpatialFile
   std::string StagedPath(const std::string& outputDir);
 
   /// Appends one event to the file at path, creating the folder and the file
-  /// (with its root attributes) when missing. Returns false with err set, and
-  /// leaves the file unchanged, when the file has a different species list, the
-  /// event already exists, or the data is inconsistent. Thread-safe.
+  /// (with its root attributes) when missing. species fixes the ordered columns.
+  /// Shape/index validation, an incompatible species list or a duplicate event
+  /// return false with err set before event data is written. HDF5/filesystem
+  /// failures also return false; HDF5 failure may leave a partial file. Success
+  /// leaves err unchanged. Non-HDF5 exceptions propagate. Calls are serialized
+  /// internally; callers keep the supplied inputs unchanged during the call.
   bool AppendEvent(const std::string& path, const std::vector<std::string>& species,
                    const EventData& event, std::string& err);
 
   /// Moves the staged file to target (an existing target is removed first). No
-  /// staged file: returns true with moved = false.
+  /// staged file (or an error checking its existence): true with moved = false.
+  /// Other filesystem errors: false, moved = false, err set; an old target
+  /// may already have been removed. Success: true, moved = true. No rollback.
+  /// Requires AppendEvent/writers to be idle; allocation exceptions propagate.
   bool MoveStaged(const std::string& outputDir, const std::string& target, bool& moved,
                   std::string& err);
 }

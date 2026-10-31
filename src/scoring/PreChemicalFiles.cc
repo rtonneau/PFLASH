@@ -1,5 +1,7 @@
 /// \file PreChemicalFiles.cc
-/// \brief Implementation of the PreChemicalFiles helpers
+/// \brief Name, discover and publish staged pre-chemical files.
+/// Standard library only.
+/// Callers coordinate filesystem changes and resolver access.
 ///
 /// Portable: standard library only. See the ADR 0005 addendum
 /// (docs/adr/0005-manifest-per-dump.md).
@@ -18,16 +20,44 @@ namespace
   const std::string kMiddle = "_event";
   const std::string kSuffix = ".txt";
 
-  // Parses a non-empty run of digits into value; false on overflow or non-digit.
-  bool ParseDigits(const std::string& s, int& value)
+  struct Entry
   {
-    if (s.empty() || s.size() > 9) return false;
-    long v = 0;
-    for (char c : s) {
-      if (c < '0' || c > '9') return false;
-      v = v * 10 + (c - '0');
+    int run;
+    int event;
+    std::string name;
+  };
+  void MoveEntries(const std::vector<Entry>& entries, const std::string& stagingDir,
+                   const std::function<std::string(const std::string&)>& resolveTarget,
+                   PreChemicalFiles::MoveResult& result)
+  {
+    for (const Entry& entry : entries) {
+      const fs::path source = fs::path(stagingDir) / entry.name;
+      const fs::path target = resolveTarget(entry.name);
+
+      std::error_code moveEc;
+      if (target.has_parent_path()) fs::create_directories(target.parent_path(), moveEc);
+      if (!moveEc) fs::remove(target, moveEc);
+      if (!moveEc) fs::rename(source, target, moveEc);
+      if (moveEc) {
+        result.failures.push_back("Cannot move '" + source.string() + "' to '" + target.string() +
+                                  "': " + moveEc.message());
+        continue;
+      }
+      result.moved.push_back(target.filename().string());
     }
-    value = static_cast<int>(v);
+  }
+
+  // Nine decimal digits fit in int on the supported platforms.
+  constexpr int kMaxIdentifierDigits = 9;
+  bool ParseDigits(const std::string& digits, int& value)
+  {
+    if (digits.empty() || digits.size() > kMaxIdentifierDigits) return false;
+    long parsedValue = 0;
+    for (char digit : digits) {
+      if (digit < '0' || digit > '9') return false;
+      parsedValue = parsedValue * 10 + (digit - '0');
+    }
+    value = static_cast<int>(parsedValue);
     return true;
   }
 }
@@ -48,12 +78,12 @@ bool PreChemicalFiles::ParseStagedFileName(const std::string& name, int& runId, 
   const auto pos = body.find(kMiddle);
   if (pos == std::string::npos) return false;
 
-  int r = 0;
-  int e = 0;
-  if (!ParseDigits(body.substr(0, pos), r)) return false;
-  if (!ParseDigits(body.substr(pos + kMiddle.size()), e)) return false;
-  runId = r;
-  eventId = e;
+  int parsedRunId = 0;
+  int parsedEventId = 0;
+  if (!ParseDigits(body.substr(0, pos), parsedRunId)) return false;
+  if (!ParseDigits(body.substr(pos + kMiddle.size()), parsedEventId)) return false;
+  runId = parsedRunId;
+  eventId = parsedEventId;
   return true;
 }
 
@@ -88,22 +118,16 @@ PreChemicalFiles::MoveResult PreChemicalFiles::MoveStaged(
   std::error_code ec;
   if (!fs::is_directory(stagingDir, ec)) return result;
 
-  struct Entry
-  {
-    int run;
-    int event;
-    std::string name;
-  };
   std::vector<Entry> entries;
 
   for (fs::directory_iterator it(stagingDir, ec), end; !ec && it != end; it.increment(ec)) {
     std::error_code fileEc;
     if (!it->is_regular_file(fileEc)) continue;
     const std::string name = it->path().filename().string();
-    int r = 0;
-    int e = 0;
-    if (!ParseStagedFileName(name, r, e)) continue;
-    entries.push_back({r, e, name});
+    int parsedRunId = 0;
+    int parsedEventId = 0;
+    if (!ParseStagedFileName(name, parsedRunId, parsedEventId)) continue;
+    entries.push_back({parsedRunId, parsedEventId, name});
   }
   if (ec) {
     result.failures.push_back("Cannot scan staging folder '" + stagingDir + "': " + ec.message());
@@ -113,20 +137,6 @@ PreChemicalFiles::MoveResult PreChemicalFiles::MoveStaged(
     return std::tie(a.run, a.event) < std::tie(b.run, b.event);
   });
 
-  for (const Entry& entry : entries) {
-    const fs::path source = fs::path(stagingDir) / entry.name;
-    const fs::path target = resolveTarget(entry.name);
-
-    std::error_code moveEc;
-    if (target.has_parent_path()) fs::create_directories(target.parent_path(), moveEc);
-    if (!moveEc) fs::remove(target, moveEc);
-    if (!moveEc) fs::rename(source, target, moveEc);
-    if (moveEc) {
-      result.failures.push_back("Cannot move '" + source.string() + "' to '" + target.string() +
-                                "': " + moveEc.message());
-      continue;
-    }
-    result.moved.push_back(target.filename().string());
-  }
+  MoveEntries(entries, stagingDir, resolveTarget, result);
   return result;
 }

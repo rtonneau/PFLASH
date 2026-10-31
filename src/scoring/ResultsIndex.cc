@@ -1,5 +1,7 @@
 /// \file ResultsIndex.cc
-/// \brief Implementation of ResultsIndex
+/// \brief Build the ordered tree describing published dumps.
+/// Standard library and DataNode only.
+/// No shared state; callers coordinate mutation of input trees.
 
 #include "scoring/ResultsIndex.hh"
 
@@ -14,35 +16,35 @@ DataNode ResultsIndex::MakeDumpEntry(const std::string &prefix, const std::strin
                                      const std::string &timestamp, long long events,
                                      const std::vector<DataNode> &runs)
 {
-  std::string manifest = subdir;
-  if (!manifest.empty() && manifest.back() != '/')
-    manifest += '/';
-  manifest += prefix + FileName();
+  std::string manifestPath = subdir;
+  if (!manifestPath.empty() && manifestPath.back() != '/')
+    manifestPath += '/';
+  manifestPath += prefix + FileName();
 
   DataNode runList = DataNode::MakeArray();
   for (const DataNode &run : runs)
   {
     if (run.GetKind() != DataNode::Kind::Object)
       continue;
-    DataNode picked = DataNode::MakeObject();
+    DataNode selectedRunFields = DataNode::MakeObject();
     for (const char *key : kRunKeys)
     {
       for (const auto &member : run.GetMembers())
       {
         if (member.first == key)
         {
-          picked.Add(key, member.second);
+          selectedRunFields.Add(key, member.second);
           break;
         }
       }
     }
-    runList.Push(picked);
+    runList.Push(selectedRunFields);
   }
 
   DataNode entry = DataNode::MakeObject();
   entry.Add("folder", subdir);
   entry.Add("prefix", prefix);
-  entry.Add("manifest", manifest);
+  entry.Add("manifest", manifestPath);
   entry.Add("timestamp", timestamp);
   entry.Add("events", events);
   entry.Add("runs", runList);

@@ -1,5 +1,7 @@
 /// \file PhysicsInteractionCounter.cc
-/// \brief Implementation of the PhysicsInteractionCounter class
+/// \brief Count caller-supplied physical-interaction labels.
+/// Standard library and Geant4 types; no kernel services.
+/// Callers coordinate access to shared mutable counters and streams.
 
 #include "scoring/PhysicsInteractionCounter.hh"
 

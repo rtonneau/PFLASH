@@ -40,33 +40,34 @@ set of time points, and folds the result into a per-event G-value
 - `src/scoring/ScoreSpecies.cc` (+ `header/scoring/ScoreSpecies.hh`) is the
   `G4VPrimitiveScorer` that reads the counter. Verified from its actual
   source, not inferred from the class name:
-  - The constructor (`ScoreSpecies.cc:44-61`) builds a fixed
+  - The constructor (`ScoreSpecies.cc, ScoreSpecies constructor`) builds a fixed
     `fTimeToRecord` set: 10 log-spaced points per decade from 1 ps to 1 us
     (60 points, exponents 0.0 to 5.9), plus one extra point at 999999 ps as
     a safety margin just under the scheduler's default 1 us end time.
-  - `ProcessHits` (`ScoreSpecies.cc:72-85`) only accumulates `fEdep`, the
+  - `ProcessHits` (`ScoreSpecies.cc, ProcessHits`) only accumulates `fEdep`, the
     step's energy deposit (weighted) — it has nothing to do with species
     counting; species counts come entirely from the `G4MoleculeCounter`,
     read once per event in `EndOfEvent`, not per step.
-  - `EndOfEvent` (`ScoreSpecies.cc:103-188`) is the real hook: it fetches
+  - `EndOfEvent` (`ScoreSpecies.cc, EndOfEvent`) is the real hook: it fetches
     counter index 0 via
     `G4MoleculeCounterManager::Instance()->GetMoleculeCounter<G4MoleculeCounter>(0)`
     (fatal `G4Exception` if absent), then for each recorded species index
     and each time in `fTimeToRecord` calls
-    `counter->GetNbMoleculesAtTime(idx, time_mol)` and folds the count into
-    `fSpeciesInfoPerTime[time_mol][idx.Molecule]` (`SpeciesInfo::fNumber`,
-    plus the running sums `fG`/`fG2` of `(n_mol / (fEdep/eV)) * 100` — the
-    G-value in molecules per 100 eV). Aborted events are skipped entirely
-    (`fEdep` reset, no counter read, `ScoreSpecies.cc:105-109`).
+    `counter->GetNbMoleculesAtTime(moleculeIndex, recordTime)` and folds the count into
+    `fSpeciesInfoPerTime[recordTime][moleculeIndex.Molecule]` (`SpeciesInfo::fNumber`,
+    plus the running sums `fG`/`fG2` of
+    `(moleculeCount / (fEdep/eV)) * kGValueReferenceEnergy_eV` — the G-value
+    in molecules per 100 eV, with reference energy 100 eV). Aborted events are skipped entirely
+    (`fEdep` reset, no counter read, `ScoreSpecies.cc, EndOfEvent`).
   - The loop is capped at the **hand-over time** when the mesoscopic stage
-    is active (`ScoreSpecies.cc:142-152`): `TimeStepAction` mutes the
+    is active (`ScoreSpecies.cc, EndOfEvent`): `TimeStepAction` mutes the
     molecule counter from hand-over to end-of-event (see below), so later
     record times would read stale, frozen hand-over counts; `SpeciesMeso.*`
     (a different counter, `MesoSpeciesCounter`) covers the mesoscopic stage
     instead. With no mesoscopic stage (SBS, or `/chem/meso/enable false`,
     or hand-over at/after the end time), the whole `fTimeToRecord` range is
     scored.
-  - `AbsorbResultsFromWorkerScorer` (`ScoreSpecies.cc:192-273`) is the MT
+  - `AbsorbResultsFromWorkerScorer` (`ScoreSpecies.cc, AbsorbResultsFromWorkerScorer`) is the MT
     merge hook — see Serial vs MT below.
 - `src/chemistry/TimeStepAction.cc:565-577` is where the counter gets muted:
   right before handing the remaining molecules to the mesoscopic
@@ -90,7 +91,7 @@ set of time points, and folds the result into a per-event G-value
 `WriteWithAnalysisManager`, columns `speciesID,number,nEvent,speciesName,
 time,sumG,sumG2`) are written by `RunAccumulatorMessenger`'s
 `/run/dumpDataAndReset` handler (`src/scoring/RunAccumulatorMessenger.cc`,
-around line 142-151), which looks the `ScoreSpecies` primitive up directly
+`WriteSpeciesOutput` helper), which looks the `ScoreSpecies` primitive up directly
 on the `G4MultiFunctionalDetector` rather than through `RunAccumulator`
 (species data is already persistent inside the scorer itself, across
 `/run/beamOn` calls, until a dump clears it). File formats, dump/prefix
@@ -105,10 +106,11 @@ Same `Run::Merge`/`AbsorbResultsFromWorkerScorer` mechanism described in
 worker thread owns its own `ScoreSpecies` instance (and its own
 `G4MoleculeCounterManager`/`G4MoleculeCounter`, since both are thread-local);
 `Run::Merge` (`src/actions/Run.cc:84-111`) `dynamic_cast`s the master's and
-the worker's scorer and calls `AbsorbResultsFromWorkerScorer`, which sums
-`fNumber`/`fG`/`fG2` per `(time, species)` pair and `fNEvent`, then clears
-the worker's map so a later run doesn't double-merge it
-(`ScoreSpecies.cc:265-268`). As with the generic case, this merge happens
+the worker's scorer and calls `AbsorbResultsFromWorkerScorer`. Its
+`MergeSpeciesTotalsFrom` helper sums `fNumber`/`fG`/`fG2` per `(time, species)`
+pair. The caller then clears the worker's map so a later run doesn't double-merge
+it, adds its event count and resets the worker's event state
+(`ScoreSpecies.cc, AbsorbResultsFromWorkerScorer`). As with the generic case, this merge happens
 inside the Geant4 kernel's `G4MTRunManager::MergeRun`, before the master's
 `RunAction::EndOfRunAction` runs — see `create-a-scorer.md`'s fuller
 explanation rather than re-deriving it here. In Serial mode there is one

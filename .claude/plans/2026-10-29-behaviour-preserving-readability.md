@@ -2,6 +2,12 @@
 
 Status: approved by the user on 2026-10-29; baseline and core verification complete.
 
+Authorization update (2026-10-30): after approving scoring, the user approved all
+remaining modifications within the original readability scope and requested
+directory commits, pushing the branch, and opening a PR when finished. This
+supersedes the repeated approval gates below. Continue to report concrete findings
+before each directory's edits; retain all behavior constraints and bug deferrals.
+
 Branch: `readability/behaviour-preserving-pass` (dedicated branch, no worktree).
 Baseline revision: `1fcf8baff854664b24ea8f7e28d8342af21bd2e1`.
 

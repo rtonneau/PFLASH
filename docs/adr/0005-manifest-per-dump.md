@@ -37,3 +37,12 @@ Wall clock only (`std::chrono::steady_clock`), in seconds: CPU time is misleadin
 With neither `--dir` nor `/run/outputDir`, output goes to `<exeDir>/results` (`OutputDir::SetDefaultDir`, passed in from `sim.cc` so `OutputDir` stays pure). The default is applied lazily, at the first output, so a macro's `/run/outputDir` (PreInit) still replaces it and a run that sets one never creates `results/`; a `/run/outputDir` issued after the default was used is refused.
 
 `<outdir>/Manifest.json` is also a **results index**: after every dump (the `EndOfRun_` flush included) `RunManifest::Write` rewrites it with a top-level `dumps[]` array listing every dump so far (folder, prefix, path of its own manifest, timestamp, events, and per run the id, events, seed and beam). The pure builder is `ResultsIndex` (on `DataNode`, unit-tested); per-dump manifests are unchanged. Collision: a flat dump with an empty prefix writes its per-dump manifest to the same path. Neither may overwrite the other, so that file is written once as the dump's manifest with the `dumps` array added (and rewritten that way by every later dump); it has no `kind` key, whereas a stand-alone index has `kind: "resultsIndex"`. A failed open of the index is a `JustWarning`.
+
+## Addendum (2026-10-30): portable writer dependency clarification
+
+The portable structured-output unit is the existing `DataNode`/`JsonWriter`
+pair. `JsonWriter.hh` includes `DataNode.hh`; the writer has no Geant4 dependency
+and knows no manifest keys, while DataNode itself uses only the standard library.
+The earlier phrase “no dependency on other project classes” refers to independence
+from simulation classes, not independence from DataNode. The manifest decision
+and serialized format are unchanged.

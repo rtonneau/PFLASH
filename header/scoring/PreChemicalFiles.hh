@@ -1,5 +1,7 @@
 /// \file PreChemicalFiles.hh
-/// \brief Staging-folder helpers for the per-event pre-chemical files.
+/// \brief Name, discover and publish staged pre-chemical files.
+/// Standard library only.
+/// Callers coordinate filesystem changes and resolver access.
 ///
 /// Portable and project-agnostic: standard library only, no dependency on
 /// other dnachem-min classes (adjust the include path prefix on copy).
@@ -18,18 +20,22 @@
 
 namespace PreChemicalFiles
 {
-  /// "PreChemical_run<R>_event<E>.txt"
+  /// Format runId/eventId as "PreChemical_run<R>_event<E>.txt"; no validation.
+  /// For a parseable result, use nonnegative IDs with at most nine decimal digits.
   std::string StagedFileName(int runId, int eventId);
 
-  /// True only for an exact match of the StagedFileName pattern.
+  /// Match the exact pattern with one to nine decimal digits per ID.
+  /// On false, runId/eventId are unchanged; string allocations may throw.
   bool ParseStagedFileName(const std::string& name, int& runId, int& eventId);
 
   /// outputDir + "/.pending_prechem", or ".pending_prechem" when outputDir is empty.
   std::string StagingDir(const std::string& outputDir);
 
-  /// Creates the staging folder (and parents). On failure returns false and sets err.
+  /// Create the staging folder and parents. Filesystem errors return false
+  /// with err set; success leaves err unchanged. Allocations may throw.
   bool EnsureStagingDir(const std::string& outputDir, std::string& err);
 
+  /// Partial publication results: successful names and per-operation errors.
   struct MoveResult
   {
     std::vector<std::string> moved;    ///< target filenames (prefix included)
@@ -38,7 +44,12 @@ namespace PreChemicalFiles
 
   /// Moves every regular staged file accepted by ParseStagedFileName, in
   /// numeric (run, event) order, to resolveTarget(stagedFileName). An existing
-  /// target is removed first. A missing staging folder gives empty lists.
+  /// target is removed first. A non-directory staging path (including an
+  /// error checking it) gives empty lists. Directory-scan and move errors are
+  /// collected in failures; per-entry file-type check errors skip that entry.
+  /// Successful moves remain published. A failed rename may follow
+  /// deletion of the old target. Exceptions from resolveTarget/allocations
+  /// propagate. The caller must stop writers before publishing staged files.
   MoveResult MoveStaged(const std::string& stagingDir,
                         const std::function<std::string(const std::string&)>& resolveTarget);
 }
