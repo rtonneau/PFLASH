@@ -1,3 +1,7 @@
+/// Names and reports the selected Geant4 chemistry time-step model.
+/// Dependencies: Geant4-dependent; not standard-library-only.
+/// Thread safety: Read configuration after initialization; callers coordinate stream output.
+
 #include "chemistry/ChemUtils.hh"
 #include "G4EmParameters.hh"
 

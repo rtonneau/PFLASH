@@ -1,4 +1,7 @@
 /// \file ChemistrySelectMessenger.hh
+/// Exposes Chemistry selection and listing commands.
+/// Dependencies: Geant4 UI and project registry; not standard-library-only.
+/// Thread safety: Create and dispatch on the master; selection changes are restricted to PreInit.
 /// \brief Macro commands to choose and list Chemistries.
 ///   /chem/select <name>   (PreInit only) pick the Chemistry for this process
 ///   /chem/list            print the registered Chemistries
@@ -13,13 +16,20 @@
 class G4UIcmdWithAString;
 class G4UIcmdWithoutParameter;
 
+/// Owns the UI commands described above; use on the master with the Geant4 UI active.
 class ChemistrySelectMessenger : public G4UImessenger
 {
 public:
+  /// Registers commands after G4DNAChemistryManager creates /chem/.
   ChemistrySelectMessenger();
+  /// Deletes owned commands; the UI must no longer dispatch to this instance.
   ~ChemistrySelectMessenger() override;
 
+  /// Selects the name or prints available names. Unknown/different selection raises
+  /// FatalException; a selection hook adds Extra molecules on the master in PreInit.
+  /// Unknown command pointers do nothing.
   void SetNewValue(G4UIcommand* command, G4String newValue) override;
+  /// Returns the owned command's current value; unknown command pointers return empty.
   G4String GetCurrentValue(G4UIcommand* command) override;
 
 private:

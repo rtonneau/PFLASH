@@ -1,5 +1,7 @@
 /// \file DnaChemistryList.cc
-/// \brief Implementation of the DnaChemistryList class
+/// Constructs the selected Chemistry and its Geant4 processes.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Master builds shared reactions; process and scheduler setup follows Geant4 thread callbacks.
 ///
 /// Structure mirrors G4EmDNAChemistry_option3 and the UHDR example's
 /// EmDNAChemistry. Molecules + water dissociation channels come from
@@ -95,12 +97,12 @@ using MolConf = const G4MolecularConfiguration*;
 
 MolConf Conf(const G4String& name, const G4String& caller)
 {
-  auto* p = G4MoleculeTable::Instance()->GetConfiguration(name);
-  if (p == nullptr) {
+  auto* configuration = G4MoleculeTable::Instance()->GetConfiguration(name);
+  if (configuration == nullptr) {
     G4Exception(("DnaChemistryList::" + caller).c_str(), "MissingSpecies", FatalException,
                 (G4String("Unknown species configuration: ") + name).c_str());
   }
-  return p;
+  return configuration;
 }
 
 /// One bulk reaction of `molecule` as reaction data: the configurations,
@@ -110,25 +112,25 @@ G4DNAMolecularReactionData* MakeBulkReactionData(MolConf molecule,
                                                  const ChemistryTypes::BulkReaction& reaction,
                                                  const G4String& caller)
 {
-  auto* rd = new G4DNAMolecularReactionData(reaction.rate, molecule, Conf(reaction.partner, caller));
+  auto* reactionData = new G4DNAMolecularReactionData(reaction.rate, molecule, Conf(reaction.partner, caller));
   for (const auto& product : reaction.products) {
-    rd->AddProduct(Conf(product, caller));
+    reactionData->AddProduct(Conf(product, caller));
   }
   // Type 1 (partially diffusion-controlled) is skipped under SBS; the acid-base
   // types 6/7/8 are not diffusion classes and always apply.
   if (reaction.reactionType != 0 &&
       (reaction.reactionType != 1 || ChemistryTypes::PartialReactionsEnabled())) {
-    rd->SetReactionType(reaction.reactionType);
+    reactionData->SetReactionType(reaction.reactionType);
   }
-  return rd;
+  return reactionData;
 }
 
-/// Product names of `rd`, sorted, for an order-independent comparison.
-std::vector<G4String> SortedProducts(const G4DNAMolecularReactionData& rd)
+/// Product names sorted for comparison without depending on product order.
+std::vector<G4String> SortedProducts(const G4DNAMolecularReactionData& reactionData)
 {
   std::vector<G4String> names;
-  for (G4int i = 0; i < rd.GetNbProducts(); ++i) {
-    names.push_back(rd.GetProduct(i)->GetName());
+  for (G4int i = 0; i < reactionData.GetNbProducts(); ++i) {
+    names.push_back(reactionData.GetProduct(i)->GetName());
   }
   std::sort(names.begin(), names.end());
   return names;
@@ -388,7 +390,7 @@ void DnaChemistryList::ConstructProcess()
     CheckTimeStepModel();
   }
 
-  auto* ph = G4PhysicsListHelper::GetPhysicsListHelper();
+  auto* physicsHelper = G4PhysicsListHelper::GetPhysicsListHelper();
 
   // Extend the Sanche vibrational-excitation model down to thermal energies.
   auto* vibProcess =
@@ -406,7 +408,7 @@ void DnaChemistryList::ConstructProcess()
   // Electron solvation: free e- -> e_aq (register once if not already present).
   if (G4ProcessTable::GetProcessTable()->FindProcess("e-_G4DNAElectronSolvation", "e-") ==
       nullptr) {
-    ph->RegisterProcess(new G4DNAElectronSolvation("e-_G4DNAElectronSolvation"),
+    physicsHelper->RegisterProcess(new G4DNAElectronSolvation("e-_G4DNAElectronSolvation"),
                         G4Electron::Definition());
   }
 
@@ -419,7 +421,7 @@ void DnaChemistryList::ConstructProcess()
     if (moleculeDef != G4H2O::Definition()) {
       // Both models (IRT_syn, SBS) diffuse every molecule with Brownian
       // transportation.
-      ph->RegisterProcess(new G4DNABrownianTransportation(), moleculeDef);
+      physicsHelper->RegisterProcess(new G4DNABrownianTransportation(), moleculeDef);
     }
     else {
       moleculeDef->GetProcessManager()->AddRestProcess(new G4DNAElectronHoleRecombination(), 2);
@@ -481,7 +483,7 @@ void DnaChemistryList::ConstructProcess()
 void DnaChemistryList::RegisterBulkReactionProcesses(
   const G4DNABoundingBox& boundary, const ChemistryTypes::BulkReactionList& list) const
 {
-  auto* ph = G4PhysicsListHelper::GetPhysicsListHelper();
+  auto* physicsHelper = G4PhysicsListHelper::GetPhysicsListHelper();
   const G4String caller = "RegisterBulkReactionProcesses";
 
   // Registers against mol->GetDefinition() rather than a caller-supplied
@@ -499,7 +501,7 @@ void DnaChemistryList::RegisterBulkReactionProcesses(
       process->SetReaction(mol, MakeBulkReactionData(mol, r, caller));
     }
     auto* def = const_cast<G4MoleculeDefinition*>(mol->GetDefinition());
-    ph->RegisterProcess(process, def);
+    physicsHelper->RegisterProcess(process, def);
   }
 }
 
@@ -561,18 +563,19 @@ void DnaChemistryList::WarnOnNegativeActivationRates(
   G4DNAMolecularReactionTable* reactionTable) const
 {
   // SetReactionType(1) derives k_act = k_diff * k_obs / (k_diff - k_obs) from
-  // the vdW radius (G4DNAMolecularReactionData::SetReactionType); k_obs at or
-  // above that k_diff gives k_act <= 0, an ill-defined partial reaction.
+  // the vdW radius (G4DNAMolecularReactionTable.cc). For positive rates,
+  // k_obs > k_diff gives negative k_act. Equality makes the denominator
+  // zero and is not covered by the existing <= 0 diagnostic below.
   G4int nType0 = 0;
   G4int nType1 = 0;
   G4int nOther = 0;
-  for (const auto* rd : reactionTable->GetVectorOfReactionData()) {
-    const G4int type = rd->GetReactionType();
+  for (const auto* reactionData : reactionTable->GetVectorOfReactionData()) {
+    const G4int type = reactionData->GetReactionType();
     (type == 0 ? nType0 : type == 1 ? nType1 : nOther)++;
-    if (type == 1 && rd->GetActivationRateConstant() <= 0.) {
+    if (type == 1 && reactionData->GetActivationRateConstant() <= 0.) {
       DnaLogger::Print(DnaLogger::Level::Warning,
                        "[DnaChemistryList] partially diffusion-controlled reaction " +
-                         rd->GetReactant1()->GetName() + " + " + rd->GetReactant2()->GetName() +
+                         reactionData->GetReactant1()->GetName() + " + " + reactionData->GetReactant2()->GetName() +
                          " has k_obs >= k_diff (vdW radius): activation rate <= 0");
     }
   }

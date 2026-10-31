@@ -1,6 +1,8 @@
 /// \file Tonneau2025Reactions.cc
-/// \brief Implementation of the Tonneau2025 Chemistry (see Tonneau2025Reactions.hh
-/// for the routing, the reaction types and the open points)
+/// Builds the Tonneau2025 Chemistry reaction network.
+/// Dependencies: Geant4 plus ChemistryTypes and Tonneau2025Table; portable to Geant4 projects, not standard-library-only.
+/// Thread safety: Build shared tables/molecules on the master before workers; returned bulk lists are caller-owned.
+/// See Tonneau2025Reactions.hh for routing, reaction types and open questions.
 
 #include "chemistry/catalog/Tonneau2025Reactions.hh"
 
@@ -24,7 +26,7 @@ namespace
 // from explicit bytes so they match the names stored by
 // G4ChemDissociationChannels_option1 whatever this file's source encoding is.
 // Duplicated locally (rather than shared with DnaChemistryList.cc) so this
-// file has zero project-specific dependencies.
+// file avoids dependencies on driver services; its data-header dependencies remain local.
 const G4String kOH = G4String("\xC2\xB0") + "OH";    // hydroxyl radical
 const G4String kHO2 = G4String("HO2") + "\xC2\xB0";  // hydroperoxyl radical
 
@@ -45,24 +47,24 @@ const char* const kCaller = "Tonneau2025Reactions";
 
 MolConf Conf(const G4String& name)
 {
-  auto* p = G4MoleculeTable::Instance()->GetConfiguration(name, false);
-  if (p == nullptr) {
+  auto* moleculeConfiguration = G4MoleculeTable::Instance()->GetConfiguration(name, false);
+  if (moleculeConfiguration == nullptr) {
     G4Exception(kCaller, "MissingSpecies", FatalException,
                 (G4String("Unknown species configuration: ") + name).c_str());
   }
-  return p;
+  return moleculeConfiguration;
 }
 
 /// Project names of the terms, each repeated `count` times, H2O dropped.
 std::vector<std::string> Expand(const std::vector<Term>& terms)
 {
   std::vector<std::string> names;
-  for (const auto& t : terms) {
-    const std::string name = Tonneau2025Reactions::SpeciesName(t.species);
+  for (const auto& term : terms) {
+    const std::string name = Tonneau2025Reactions::SpeciesName(term.species);
     if (name.empty()) {
       continue;  // the solvent
     }
-    for (int i = 0; i < t.count; ++i) {
+    for (int i = 0; i < term.count; ++i) {
       names.push_back(name);
     }
   }
@@ -79,25 +81,25 @@ std::string ToBuffer(const std::string& name)
 
 std::vector<std::string> ToBuffer(std::vector<std::string> names)
 {
-  for (auto& n : names) {
-    n = ToBuffer(n);
+  for (auto& name : names) {
+    name = ToBuffer(name);
   }
   return names;
 }
 
 /// Rate constant in Geant4 internal units.
-G4double Rate(const Reaction& r)
+G4double Rate(const Reaction& reaction)
 {
-  switch (r.unit) {
+  switch (reaction.unit) {
     case Unit::SecondOrder:
-      return r.k * (1e-3 * m3 / (mole * s));
+      return reaction.k * (1e-3 * m3 / (mole * s));
     case Unit::FirstOrder:
-      return r.k / s;
+      return reaction.k / s;
     case Unit::ZeroOrder:
       break;
   }
   G4Exception(kCaller, "UnsupportedUnit", FatalException,
-              ("Row R" + std::to_string(r.id) + " has a zero-order rate constant; only the "
+              ("Row R" + std::to_string(reaction.id) + " has a zero-order rate constant; only the "
                                                  "buffer row R58 may, and it is not a reaction")
                 .c_str());
   return 0.;
@@ -169,11 +171,11 @@ std::string Tonneau2025Reactions::SpeciesName(const std::string& paperName)
 std::vector<std::string> Tonneau2025Reactions::TypeOneSpecies()
 {
   std::vector<std::string> species;
-  for (const auto& r : Tonneau2025Table::Reactions()) {
-    if (Placements()[static_cast<std::size_t>(r.id - 1)].tableType != 1) {
+  for (const auto& reaction : Tonneau2025Table::Reactions()) {
+    if (Placements()[static_cast<std::size_t>(reaction.id - 1)].tableType != 1) {
       continue;
     }
-    for (const auto& name : Expand(r.reactants)) {
+    for (const auto& name : Expand(reaction.reactants)) {
       species.push_back(name);
     }
   }
@@ -190,53 +192,53 @@ void Tonneau2025Reactions::BuildTonneau2025Reactions(G4DNAMolecularReactionTable
   // diffusion-controlled, SetReactionType(1) unless
   // ChemistryTypes::PartialReactionsEnabled() is false (SBS: stays type 0) -- the IRT stepper then samples
   // an activation step with the vdW reaction radius, so both reactants need one.
-  auto add = [reactionTable](const Reaction& r, MolConf a, MolConf b,
+  auto add = [reactionTable](const Reaction& reaction, MolConf reactant1, MolConf reactant2,
                              const std::vector<std::string>& products, int type) {
-    auto* rd = new G4DNAMolecularReactionData(Rate(r), a, b);
-    for (const auto& p : products) {
-      rd->AddProduct(Conf(p));
+    auto* reactionData = new G4DNAMolecularReactionData(Rate(reaction), reactant1, reactant2);
+    for (const auto& moleculeConfiguration : products) {
+      reactionData->AddProduct(Conf(moleculeConfiguration));
     }
     if (type == 1 && ChemistryTypes::PartialReactionsEnabled()) {
-      for (MolConf reactant : {a, b}) {
+      for (MolConf reactant : {reactant1, reactant2}) {
         if (reactant->GetVanDerVaalsRadius() <= 0.) {
           G4Exception(kCaller, "MissingVdWRadius", FatalException,
-                      ("R" + std::to_string(r.id) + ": " + reactant->GetName() +
+                      ("R" + std::to_string(reaction.id) + ": " + reactant->GetName() +
                        " has no vdW radius, needed by a partially diffusion-controlled "
                        "(type 1) reaction")
                         .c_str());
         }
       }
-      rd->SetReactionType(1);
+      reactionData->SetReactionType(1);
     }
-    reactionTable->SetReaction(rd);
+    reactionTable->SetReaction(reactionData);
   };
 
   // Table 2 order. R23 comes before R71, so the reaction table's pair lookup
   // for H + H2O returns R71, the entry the bulk-reaction list shares.
-  for (const auto& r : Tonneau2025Table::Reactions()) {
-    const auto& placement = Placements()[static_cast<std::size_t>(r.id - 1)];
+  for (const auto& reaction : Tonneau2025Table::Reactions()) {
+    const auto& placement = Placements()[static_cast<std::size_t>(reaction.id - 1)];
     if (!InTable(placement.route)) {
       continue;
     }
-    const auto reactants = Expand(r.reactants);
+    const auto reactants = Expand(reaction.reactants);
     if (placement.route == Route::WaterTable || placement.route == Route::BulkAndWaterTable) {
       if (reactants.size() != 1) {
         G4Exception(kCaller, "BadRouting", FatalException,
-                    ("R" + std::to_string(r.id) + " is routed against H2O but has " +
+                    ("R" + std::to_string(reaction.id) + " is routed against H2O but has " +
                      std::to_string(reactants.size()) + " solute reactants")
                       .c_str());
       }
       // Same products as the bulk entry (buffer ions), so the driver shares it.
-      add(r, Conf(reactants[0]), Conf("H2O"), ToBuffer(Expand(r.products)), placement.tableType);
+      add(reaction, Conf(reactants[0]), Conf("H2O"), ToBuffer(Expand(reaction.products)), placement.tableType);
       continue;
     }
     if (reactants.size() != 2) {
       G4Exception(kCaller, "BadRouting", FatalException,
-                  ("R" + std::to_string(r.id) + " is routed to the reaction table but has " +
+                  ("R" + std::to_string(reaction.id) + " is routed to the reaction table but has " +
                    std::to_string(reactants.size()) + " solute reactants")
                     .c_str());
     }
-    add(r, Conf(reactants[0]), Conf(reactants[1]), Expand(r.products), placement.tableType);
+    add(reaction, Conf(reactants[0]), Conf(reactants[1]), Expand(reaction.products), placement.tableType);
   }
 }
 
@@ -255,14 +257,14 @@ ChemistryTypes::BulkReactionList Tonneau2025Reactions::BuildTonneau2025BulkReact
     return list.back().reactions;
   };
 
-  for (const auto& r : Tonneau2025Table::Reactions()) {
-    const auto& placement = Placements()[static_cast<std::size_t>(r.id - 1)];
+  for (const auto& reaction : Tonneau2025Table::Reactions()) {
+    const auto& placement = Placements()[static_cast<std::size_t>(reaction.id - 1)];
     if (!InBulk(placement.route)) {
       continue;
     }
-    const auto reactants = Expand(r.reactants);
-    const auto products = ToBuffer(Expand(r.products));
-    const G4double rate = Rate(r);
+    const auto reactants = Expand(reaction.reactants);
+    const auto products = ToBuffer(Expand(reaction.products));
+    const G4double rate = Rate(reaction);
     const int type = placement.bulkType;
 
     if (reactants.size() == 1) {
@@ -291,7 +293,7 @@ ChemistryTypes::BulkReactionList Tonneau2025Reactions::BuildTonneau2025BulkReact
     }
     if (!placed) {
       G4Exception(kCaller, "BadRouting", FatalException,
-                  ("R" + std::to_string(r.id) +
+                  ("R" + std::to_string(reaction.id) +
                    " is routed to the bulk list but has no H2O, buffer ion or O2 partner")
                     .c_str());
     }

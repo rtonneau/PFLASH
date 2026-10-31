@@ -1,4 +1,7 @@
 /// \file PureWaterReactions.hh
+/// Builds the PureWater Chemistry reaction network.
+/// Dependencies: Geant4 plus ChemistryTypes; portable to Geant4 projects, not standard-library-only.
+/// Thread safety: Build shared tables/molecules on the master before workers; returned bulk lists are caller-owned.
 /// \brief The PureWater Chemistry: portable pure-water radiolysis + O2-derived
 /// reaction-table builder and its bulk-reaction list
 ///
@@ -7,8 +10,8 @@
 /// started that way).
 ///
 /// Self-contained, project-agnostic unit: no DnaChemistryWorld, DnaLogger, or
-/// other dnachem-min-specific includes -- only standard Geant4/Geant4-DNA
-/// headers. Copy-paste portable to another Geant4-DNA project.
+/// driver services. It uses Geant4/Geant4-DNA and the portable data headers
+/// listed below. Copy-paste portable to another Geant4-DNA project.
 ///
 /// Adds, directly to the supplied reaction table:
 ///   - the 9 base pure-water radiolysis reactions
@@ -51,6 +54,8 @@ namespace PureWaterReactions
   /// G4MoleculeTable::Instance()->GetConfiguration(name); raises a fatal
   /// G4Exception if any expected species is missing. Call after
   /// G4ChemDissociationChannels_option1::ConstructMolecule().
+  /// Requires non-null reactionTable; entries use Geant4 internal rate units.
+  /// Master-only construction; ownership of inserted reaction data passes to Geant4.
   void BuildPureWaterReactions(G4DNAMolecularReactionTable* reactionTable);
 
   /// The pH-driven acid-base buffer equilibria against the bulk H3Op(B) /
@@ -59,6 +64,8 @@ namespace PureWaterReactions
   /// e_aq/H/O- + O2 (bulk, UHDR rates; inert at 0 concentration), as plain
   /// data. Species are named as stored by
   /// G4ChemDissociationChannels_option1; the driver resolves them.
+  /// Returns caller-owned data with rates in Geant4 units; no kernel mutation.
+  /// Allocation exceptions propagate.
   ChemistryTypes::BulkReactionList BuildPureWaterBulkReactions();
 }  // namespace PureWaterReactions
 

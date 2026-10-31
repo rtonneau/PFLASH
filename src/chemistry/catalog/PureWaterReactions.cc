@@ -1,5 +1,7 @@
 /// \file PureWaterReactions.cc
-/// \brief Implementation of the PureWaterReactions reaction-table builder
+/// Builds the PureWater Chemistry reaction network.
+/// Dependencies: Geant4 plus ChemistryTypes; portable to Geant4 projects, not standard-library-only.
+/// Thread safety: Build shared tables/molecules on the master before workers; returned bulk lists are caller-owned.
 
 #include "chemistry/catalog/PureWaterReactions.hh"
 
@@ -18,7 +20,7 @@ namespace
 // from explicit bytes so they match the names stored by
 // G4ChemDissociationChannels_option1 whatever this file's source encoding is.
 // Duplicated locally (rather than shared with DnaChemistryList.cc) so this
-// file has zero project-specific dependencies.
+// file avoids dependencies on driver services; its data-header dependencies remain local.
 const G4String kOH = G4String("\xC2\xB0") + "OH";   // hydroxyl radical
 const G4String kHO2 = G4String("HO2") + "\xC2\xB0"; // hydroperoxyl radical
 
@@ -26,12 +28,12 @@ using MolConf = const G4MolecularConfiguration*;
 
 MolConf Conf(const G4String& name)
 {
-  auto* p = G4MoleculeTable::Instance()->GetConfiguration(name);
-  if (p == nullptr) {
+  auto* moleculeConfiguration = G4MoleculeTable::Instance()->GetConfiguration(name);
+  if (moleculeConfiguration == nullptr) {
     G4Exception("PureWaterReactions::BuildPureWaterReactions", "MissingSpecies", FatalException,
                 (G4String("Unknown species configuration: ") + name).c_str());
   }
-  return p;
+  return moleculeConfiguration;
 }
 }  // namespace
 
@@ -43,21 +45,23 @@ void PureWaterReactions::BuildPureWaterReactions(G4DNAMolecularReactionTable* re
   // partial(): partially diffusion-controlled, SetReactionType(1) unless
   // ChemistryTypes::PartialReactionsEnabled() is false (SBS: stays type 0) -- the IRT
   // stepper then samples an activation step with the vdW reaction radius
-  // (Type II neutral pair, Type IV ionic pair: G4DNAMolecularReactionData.cc).
-  auto add = [reactionTable](MolConf a, MolConf b, G4double k,
+  // (Type II neutral pair, Type IV ionic pair: G4DNAMolecularReactionTable.cc).
+  auto add = [reactionTable](MolConf reactant1, MolConf reactant2, G4double rate_M_inv_s_inv,
                              std::initializer_list<MolConf> products) {
-    auto* rd = new G4DNAMolecularReactionData(k * (1e-3 * m3 / (mole * s)), a, b);
-    for (auto* p : products) {
-      rd->AddProduct(p);
+    auto* reactionData =
+      new G4DNAMolecularReactionData(rate_M_inv_s_inv * (1e-3 * m3 / (mole * s)),
+                                   reactant1, reactant2);
+    for (auto* moleculeConfiguration : products) {
+      reactionData->AddProduct(moleculeConfiguration);
     }
-    reactionTable->SetReaction(rd);
-    return rd;
+    reactionTable->SetReaction(reactionData);
+    return reactionData;
   };
-  auto partial = [&add](MolConf a, MolConf b, G4double k,
+  auto partial = [&add](MolConf reactant1, MolConf reactant2, G4double rate_M_inv_s_inv,
                         std::initializer_list<MolConf> products) {
-    auto* rd = add(a, b, k, products);
+    auto* reactionData = add(reactant1, reactant2, rate_M_inv_s_inv, products);
     if (ChemistryTypes::PartialReactionsEnabled()) {
-      rd->SetReactionType(1);
+      reactionData->SetReactionType(1);
     }
   };
 
@@ -146,8 +150,8 @@ void PureWaterReactions::BuildPureWaterReactions(G4DNAMolecularReactionTable* re
 
 ChemistryTypes::BulkReactionList PureWaterReactions::BuildPureWaterBulkReactions()
 {
-  const G4double M = 1e-3 * m3 / (mole * s);  // bimolecular unit (M^-1 s^-1)
-  const G4double cW = 55.3;                   // bulk water molarity factor
+  const G4double secondOrderRateUnit = 1e-3 * m3 / (mole * s);  // bimolecular unit (M^-1 s^-1)
+  const G4double waterConcentration_M = 55.3;                   // bulk water molarity factor
 
   // Acid-base buffer equilibria against H3Op(B)/OHm(B)/H2O, plus the
   // dissolved-O2 scavenger reactions: the "O2" partner is the bulk O2 set by
@@ -156,24 +160,35 @@ ChemistryTypes::BulkReactionList PureWaterReactions::BuildPureWaterBulkReactions
   return {
     {"H",
      {{"H2O", 6.32 / s, {"e_aq", "H3Op(B)"}, 0},
-      {"OHm(B)", 2.49e7 * M, {"e_aq"}, 0},
-      {"O2", 2.1e10 * M, {kHO2}, 0}}},
+      {"OHm(B)", 2.49e7 * secondOrderRateUnit, {"e_aq"}, 0},
+      {"O2", 2.1e10 * secondOrderRateUnit, {kHO2}, 0}}},
     {"e_aq",
-     {{"H3Op(B)", 2.11e10 * M, {"H"}, 0},
-      {"H2O", 1.57e1 * cW / s, {"H", "OHm(B)"}, 0},
-      {"O2", 1.74e10 * M, {"O2m"}, 0}}},
-    {"O2m", {{"H3Op(B)", 4.78e10 * M, {kHO2}, 6}, {"H2O", 0.15 * cW / s, {kHO2, "OHm(B)"}, 0}}},
-    {kHO2, {{"OHm(B)", 1.27e10 * M, {"O2m"}, 0}, {"H2O", 7.58e5 / s, {"H3Op(B)", "O2m"}, 6}}},
+     {{"H3Op(B)", 2.11e10 * secondOrderRateUnit, {"H"}, 0},
+      {"H2O", 1.57e1 * waterConcentration_M / s, {"H", "OHm(B)"}, 0},
+      {"O2", 1.74e10 * secondOrderRateUnit, {"O2m"}, 0}}},
+    {"O2m",
+     {{"H3Op(B)", 4.78e10 * secondOrderRateUnit, {kHO2}, 6},
+      {"H2O", 0.15 * waterConcentration_M / s, {kHO2, "OHm(B)"}, 0}}},
+    {kHO2,
+     {{"OHm(B)", 1.27e10 * secondOrderRateUnit, {"O2m"}, 0},
+      {"H2O", 7.58e5 / s, {"H3Op(B)", "O2m"}, 6}}},
     {"HO2m",
-     {{"H3Op(B)", 4.78e10 * M, {"H2O2"}, 0}, {"H2O", 1.36e6 * cW / s, {"H2O2", "OHm(B)"}, 7}}},
+     {{"H3Op(B)", 4.78e10 * secondOrderRateUnit, {"H2O2"}, 0},
+      {"H2O", 1.36e6 * waterConcentration_M / s, {"H2O2", "OHm(B)"}, 7}}},
     {"Om",
-     {{"H3Op(B)", 9.56e10 * M, {kOH}, 0},
-      {"H2O", 1.8e6 * cW / s, {kOH, "OHm(B)"}, 8},
-      {"O2", 3.7e9 * M, {"O3m"}, 0}}},
-    {"O3m", {{"H3Op(B)", 9.0e10 * M, {kOH, "O2"}, 0}, {"H2O", 2.66e3 / s, {"Om", "O2"}, 0}}},
-    {"H2O2", {{"H2O", 7.86e-2 / s, {"HO2m", "H3Op(B)"}, 0}, {"OHm(B)", 1.27e10 * M, {"HO2m"}, 7}}},
-    {kOH, {{"OHm(B)", 1.27e10 * M, {"Om"}, 8}, {"H2O", 0.060176635 / s, {"Om", "H3Op(B)"}, 0}}},
-    {"OHm", {{"H3Op(B)", 1.13e11 * M, {}, 0}}},
-    {"H3Op", {{"OHm(B)", 1.13e11 * M, {}, 0}}},
+     {{"H3Op(B)", 9.56e10 * secondOrderRateUnit, {kOH}, 0},
+      {"H2O", 1.8e6 * waterConcentration_M / s, {kOH, "OHm(B)"}, 8},
+      {"O2", 3.7e9 * secondOrderRateUnit, {"O3m"}, 0}}},
+    {"O3m",
+     {{"H3Op(B)", 9.0e10 * secondOrderRateUnit, {kOH, "O2"}, 0},
+      {"H2O", 2.66e3 / s, {"Om", "O2"}, 0}}},
+    {"H2O2",
+     {{"H2O", 7.86e-2 / s, {"HO2m", "H3Op(B)"}, 0},
+      {"OHm(B)", 1.27e10 * secondOrderRateUnit, {"HO2m"}, 7}}},
+    {kOH,
+     {{"OHm(B)", 1.27e10 * secondOrderRateUnit, {"Om"}, 8},
+      {"H2O", 0.060176635 / s, {"Om", "H3Op(B)"}, 0}}},
+    {"OHm", {{"H3Op(B)", 1.13e11 * secondOrderRateUnit, {}, 0}}},
+    {"H3Op", {{"OHm(B)", 1.13e11 * secondOrderRateUnit, {}, 0}}},
   };
 }

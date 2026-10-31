@@ -1,4 +1,7 @@
 /// \file BuiltInChemistries.cc
+/// Registers the compiled Chemistry builders.
+/// Dependencies: Geant4 and project registry; not standard-library-only.
+/// Thread safety: Call on the master before workers; the registration guard is not synchronized.
 #include "chemistry/BuiltInChemistries.hh"
 
 #include "chemistry/catalog/BoscoloChemReactions.hh"

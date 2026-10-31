@@ -1,5 +1,7 @@
 /// \file DnaChemistryList.hh
-/// \brief Definition of the DnaChemistryList class
+/// Constructs the selected Chemistry and its Geant4 processes.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Master builds shared reactions; process and scheduler setup follows Geant4 thread callbacks.
 ///
 /// Project chemical stage, replacing the macro-driven `/chem/species` +
 /// `/chem/reaction/add` blocks. Inherits BOTH `G4VUserChemistryList`
@@ -48,20 +50,34 @@ class G4DNAMolecularReactionTable;
 class G4GenericMessenger;
 class DnaChemistryWorld;
 
+/// Geant4 lifecycle adapter for the selected Chemistry; invalid configuration is fatal.
 class DnaChemistryList : public G4VUserChemistryList, public G4VPhysicsConstructor
 {
 public:
+  /// Registers built-ins and UI controls with the Geant4 managers on the master.
+  /// Registration errors raise FatalException; not a standalone portable object.
   DnaChemistryList();
+  /// Releases owned messengers after UI dispatch has stopped.
   ~DnaChemistryList() override;
 
   // --- G4VPhysicsConstructor ---
+  /// Physics-constructor hook forwarding to ConstructMolecule; same preconditions.
   void ConstructParticle() override { ConstructMolecule(); }
+  /// Registers processes, initializes Chemistry and installs thread-local scavenger material.
+  /// Requires this project's detector/world; invalid model or missing world is fatal.
   void ConstructProcess() override;
 
   // --- G4VUserChemistryList ---
+  /// Builds shared molecules and the selected Chemistry's Extra molecules before processes.
+  /// Runs in Geant4 initialization; missing selected Chemistry raises FatalException.
   void ConstructMolecule() override;
+  /// Registers option1 water dissociation after molecule construction; Geant4 handles errors.
   void ConstructDissociationChannels() override;
+  /// Populates non-null reactionTable on the master after molecules/world exist.
+  /// Missing species/world or conflicting bulk pairs raise FatalException; rates use Geant4 units.
   void ConstructReactionTable(G4DNAMolecularReactionTable* reactionTable) override;
+  /// Registers the selected time-step model per thread; reactionTable is unused.
+  /// Unsupported models raise FatalException; called by Geant4 initialization.
   void ConstructTimeStepModel(G4DNAMolecularReactionTable* reactionTable) override;
 
   /// Resolves any /chem/reaction/timeBinsFixed or /chem/reaction/timeBinsList
@@ -73,6 +89,8 @@ public:
   /// FatalException if both commands were issued, or if timeBinsList's value
   /// is malformed (parsing is deferred to here, not macro-issue time, since
   /// timeBinsList is a plain string property -- see fReactionTimeBinsList).
+  /// Fixed width must be finite and positive (currently not validated); times use
+  /// Geant4 internal units. No bool/error-string result is provided.
   void ApplyReactionTimeBinning() const;
 
 private:
@@ -106,16 +124,16 @@ private:
   /// products and reaction type RegisterBulkReactionProcesses uses (UHDR:
   /// ChemPureWaterBuilder::WaterScavengerReaction): the mesoscopic stage
   /// (G4DNAGillespieDirectMethod) only reads the reaction table, and takes a
-  /// bulk partner's count from G4DNAScavengerMaterial. In the particle stage
-  /// these entries never pair, a bulk species having no tracks. A pair
-  /// already in the table (bulk O2 = the tracked "O2" configuration) shares
+  /// bulk partner's count from G4DNAScavengerMaterial. Pure bulk pseudo-species
+  /// have no tracks to pair in the particle-based stage. A pair already in
+  /// the table (bulk O2 = the tracked "O2" configuration) shares
   /// that entry, which must then have the same rate and products (fatal
   /// otherwise).
   void AddBulkReactionsToTable(G4DNAMolecularReactionTable* reactionTable,
                                const ChemistryTypes::BulkReactionList& list) const;
 
   /// Warns about every type-1 (partially diffusion-controlled) entry whose
-  /// observed rate is not below its diffusion rate (activation rate <= 0).
+  /// derived activation rate is <= 0. The singular equal-rate case is not detected.
   void WarnOnNegativeActivationRates(G4DNAMolecularReactionTable* reactionTable) const;
 
   /// Exposes /chem/select <name> and /chem/list.
@@ -132,7 +150,7 @@ private:
   /// True once /chem/reaction/timeBinsFixed has been issued.
   G4bool fReactionBinWidthSet = false;
 
-  /// Set by timeBinsFixed; only meaningful when fReactionBinWidthSet.
+  /// Set by timeBinsFixed in Geant4 time units (ns); used when fReactionBinWidthSet.
   G4double fReactionBinWidth = 0.;
 
   /// Raw /chem/reaction/timeBinsList value, e.g. "1 10 100 picosecond";

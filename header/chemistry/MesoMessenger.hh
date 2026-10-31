@@ -1,4 +1,7 @@
 /// \file MesoMessenger.hh
+/// Exposes mesoscopic-stage configuration commands.
+/// Dependencies: Geant4 UI and MesoSettings; not standard-library-only.
+/// Thread safety: Master-only PreInit writes; workers subsequently read the settings.
 /// \brief PreInit macro commands for the mesoscopic stage (new /chem/meso/ directory).
 ///   /chem/meso/handOverTime <value> <unit>   particle-based -> mesoscopic switch (default 5 ns)
 ///   /chem/meso/voxelSize <value> <unit>      target initial cell size (default 6.25 nm)
@@ -18,13 +21,19 @@ class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithAnInteger;
 class G4UIcmdWithABool;
 
+/// Owns the UI commands described above; use on the master with the Geant4 UI active.
 class MesoMessenger : public G4UImessenger
 {
 public:
+  /// Registers commands after G4DNAChemistryManager creates /chem/.
   MesoMessenger();
+  /// Deletes owned commands; the UI must no longer dispatch to this instance.
   ~MesoMessenger() override;
 
+  /// Applies an owned command using Geant4-parsed units (stored as ns/mm).
+  /// Nonpositive numeric values raise FatalException; unknown commands do nothing.
   void SetNewValue(G4UIcommand* command, G4String newValue) override;
+  /// Returns the owned command's current value; unknown command pointers return empty.
   G4String GetCurrentValue(G4UIcommand* command) override;
 
 private:

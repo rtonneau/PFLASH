@@ -71,7 +71,7 @@ resets all counters to empty/zero:
   `/chem/reaction/timeBinsFixed <width> <unit>` (a fixed step, expanded up to
   the chemistry scheduler's end time) or `/chem/reaction/timeBinsList <e1>
   <e2> ... <eN> <unit>` (explicit edges) — both `PreInit`, mutually exclusive
-  (last one issued wins).
+  (issuing both is fatal when BeginOfRunAction applies the binning).
 - `Manifest.json`: one per dump, describing what produced the data beside it
   (`RunManifest` builds a `DataNode` tree and is the only place listing the
   entries, the generic `JsonWriter` serialises it; `schemaVersion: 1`, units
