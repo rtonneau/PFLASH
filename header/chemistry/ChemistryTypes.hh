@@ -1,4 +1,7 @@
 /// \file ChemistryTypes.hh
+/// Shares bulk-reaction data and the reaction-type construction switch.
+/// Dependencies: Standard library only.
+/// Thread safety: The switch is atomic; set it before building tables, and freeze shared lists before reads.
 /// \brief Plain data types shared by every Chemistry file. Standard library only.
 #ifndef ChemistryTypes_h
 #define ChemistryTypes_h 1
@@ -12,7 +15,8 @@ namespace ChemistryTypes
   /// One first-order or pseudo-first-order reaction of a tracked molecule
   /// against a bulk species: an acid-base buffer partner ("H3Op(B)",
   /// "OHm(B)", "H2O") or a scavenger ("O2"). rate is already in Geant4
-  /// internal units. reactionType 0 = leave unset.
+  /// internal units: inverse time (ns^-1) for H2O, volume/(amount*time) otherwise.
+  /// No validation here; the driver resolves names. reactionType 0 = leave unset.
   struct BulkReaction
   {
     std::string partner;
@@ -22,7 +26,7 @@ namespace ChemistryTypes
   };
 
   /// All bulk reactions registered as one G4DNAScavengerProcess on `molecule`
-  /// (Geant4 allows one such process per molecule).
+  /// by this driver. Within that process, each partner has one stored reaction.
   struct BulkReactionEntry
   {
     std::string molecule;
@@ -43,12 +47,15 @@ namespace ChemistryTypes
   /// applied as the catalogue says (IRT_syn). False: the reaction stays
   /// type 0, fully diffusion-controlled (SBS, chem1-chem6). The type has to
   /// be left unset, not reset: G4DNAMolecularReactionData::SetReactionType(1)
-  /// cannot be undone. Set once, before the Chemistry builds its tables.
+  /// cannot be undone by SetReactionType(0): the derived radii/rates are not
+  /// restored (G4DNAMolecularReactionTable.cc). Read-only atomic access.
   inline bool PartialReactionsEnabled()
   {
     return Detail::partialReactionsEnabled.load();
   }
 
+  /// Sets the construction switch before Chemistry builders run; no failure path.
+  /// Does not modify reactions already built. Atomic access does not make table mutation safe.
   inline void SetPartialReactionsEnabled(bool enabled)
   {
     Detail::partialReactionsEnabled.store(enabled);

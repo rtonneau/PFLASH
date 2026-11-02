@@ -1,4 +1,7 @@
 /// \file JsonWriterTest.cc
+/// Dependencies: Standard library and portable project code; no Geant4 dependency. Optional MSVC
+/// CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test.
 /// \brief Plain-assert unit tests for DataNode + JsonWriter (no test
 /// framework, no Geant4 runtime -- exercises the pure tree and serialiser).
 

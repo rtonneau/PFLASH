@@ -1,5 +1,8 @@
 /// \file OutputDir.cc
-/// \brief Implementation of OutputDir
+/// \brief Output root, subfolder and filename-prefix resolution.
+/// Uses Geant4 types, no kernel calls; not standard-library-only.
+/// Lazy default creation is locked; callers coordinate other state changes
+/// with readers (see OutputDir.hh).
 
 #include "core/OutputDir.hh"
 
@@ -153,13 +156,13 @@ G4bool OutputDir::ConfigureSubdir(const G4String &subdir, G4String &err)
     return true;
   }
 
-  std::filesystem::path sub(subdir.c_str());
-  if (sub.has_root_path())
+  std::filesystem::path subdirPath(subdir.c_str());
+  if (subdirPath.has_root_path())
   {
     err = subdir + ": must be a relative path";
     return false;
   }
-  for (const auto &part : sub)
+  for (const auto &part : subdirPath)
   {
     if (part == "..")
     {
@@ -169,7 +172,7 @@ G4bool OutputDir::ConfigureSubdir(const G4String &subdir, G4String &err)
   }
 
   std::filesystem::path target(EffectiveDir().c_str());
-  target /= sub;
+  target /= subdirPath;
 
   std::error_code ec;
   if (std::filesystem::exists(target, ec))

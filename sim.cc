@@ -1,5 +1,7 @@
 /// \file sim.cc
-/// \brief Basic common implementation of water radiolysis for CONV and UHDR
+/// Sets up and runs homogeneous-water radiolysis from a macro.
+/// Dependencies: Geant4 and project services; executable lookup also uses OS APIs.
+/// Thread safety: Main configures shared services before workers; shutdown follows the run manager.
 // Created: 2026-08-19
 
 #include "actions/ActionInitialization.hh"
@@ -32,35 +34,60 @@
 #endif
 #include <time.h>
 
-// Directory holding the running executable (empty if it cannot be determined).
+// Directory holding the executable; empty on a reported OS lookup failure.
+// Filesystem conversion/allocation exceptions propagate.
 static std::string ExecutableDir()
 {
   namespace fs = std::filesystem;
-  std::error_code ec;
+  std::error_code error;
 #ifdef _WIN32
-  std::vector<wchar_t> buf(32768);
-  DWORD n = GetModuleFileNameW(nullptr, buf.data(), static_cast<DWORD>(buf.size()));
-  if (n == 0 || n >= buf.size()) return "";
-  return fs::path(std::wstring(buf.data(), n)).parent_path().string();
+  std::vector<wchar_t> executablePathBuffer(32768);
+  DWORD pathLength = GetModuleFileNameW(nullptr, executablePathBuffer.data(),
+                                      static_cast<DWORD>(executablePathBuffer.size()));
+  if (pathLength == 0 || pathLength >= executablePathBuffer.size()) return "";
+  return fs::path(std::wstring(executablePathBuffer.data(), pathLength)).parent_path().string();
 #else
-  fs::path exe = fs::read_symlink("/proc/self/exe", ec);
-  if (ec) return "";
-  return exe.parent_path().string();
+  fs::path executablePath = fs::read_symlink("/proc/self/exe", error);
+  if (error) return "";
+  return executablePath.parent_path().string();
 #endif
 }
 
-static const G4bool useGUI = false;
+// Set the lazy root only when executable lookup succeeded; OutputDir retains its fallback.
+static void ConfigureDefaultOutputDir()
+{
+  const std::string exeDir = ExecutableDir();
+  if (!exeDir.empty())
+    OutputDir::SetDefaultDir((std::filesystem::path(exeDir) / "results").string());
+}
+
+static const G4bool kUseGui = false;
 std::ofstream out;
 
-// Makes the RNG seed an explicit, documented property instead of an
-// undocumented CLHEP default. This reproduces the pre-chemistry physics
-// stage exactly (verified: identical track lists/counts across separate
-// process launches) but does NOT make the full pipeline reproducible --
-// the chemistry (IT) stepping stage still diverges run-to-run even with
-// this seed fixed; see .scratch/geant4-testing/spec.md addendum and
-// ticket 02 for the investigation. A macro's "/random/setSeeds <a> <b>"
-// overrides this before "/run/initialize" runs.
+// Explicit startup seed; /random/setSeeds may override it before /run/beamOn.
+// This does not make the full simulation bit-reproducible: compare outputs
+// statistically, including successive events that share a random engine.
 constexpr long kDefaultSeed = 12345;
+
+// Register options without parsing them or creating runtime resources.
+static void RegisterArgumentFlags(ArgParser &argParser)
+{
+  argParser.AddIntFlag("--threads", [](G4int value, G4String &err) {
+    G4int availableCores = G4Threading::G4GetNumberOfCores();
+    if (value > availableCores)
+    {
+      err = "requested " + std::to_string(value) + " threads, but only "
+            + std::to_string(availableCores) + " cores are available";
+      return false;
+    }
+    return true;
+  });
+  // "--dir <path>" redirects all output files (Species.Txt, the CSV
+  // ntuples, per-thread/per-event pre-chemical dumps, and the
+  // /chem/reaction/dump target) into <path> instead of the lazy results root.
+  // <path> itself is created if missing; its parent must already exist.
+  argParser.AddStringFlag("--dir");
+}
 
 int main(int argc, char **argv)
 {
@@ -69,31 +96,14 @@ int main(int argc, char **argv)
 
   G4Random::setTheSeed(kDefaultSeed);
 
-  // Instantiate the G4Timer object, to monitor the CPU time spent for
-  // the entire execution
-  G4Timer *theTimer = new G4Timer();
-  theTimer->Start();
+  // Keep elapsed wall timing through the final output flush.
+  G4Timer *simulationTimer = new G4Timer();
+  simulationTimer->Start();
 
-  // Default is Serial (single-threaded, reproducible). Pass "--threads N" on
-  // the command line to run multithreaded with N worker threads instead.
-  // DnaLogger level is forced to Error first since it otherwise defaults to
-  // Quiet before "/dnaLogger/verbose" can be applied.
+  // Serial is the default; --threads selects an MT run manager. Logging stays
+  // Quiet until the macro configures it, or a CLI failure enables Error output.
   ArgParser argParser;
-  argParser.AddIntFlag("--threads", [](G4int value, G4String &err) {
-    G4int available = G4Threading::G4GetNumberOfCores();
-    if (value > available)
-    {
-      err = "requested " + std::to_string(value) + " threads, but only "
-            + std::to_string(available) + " cores are available";
-      return false;
-    }
-    return true;
-  });
-  // "--dir <path>" redirects all output files (Species.Txt, the CSV
-  // ntuples, per-thread/per-event pre-chemical dumps, and the
-  // /chem/reaction/dump target) into <path> instead of cwd. <path> itself
-  // is created if missing; its parent must already exist.
-  argParser.AddStringFlag("--dir");
+  RegisterArgumentFlags(argParser);
   if (!argParser.Parse(argc, argv))
   {
     DnaLogger::SetLevel(DnaLogger::Level::Error);
@@ -107,26 +117,21 @@ int main(int argc, char **argv)
     DnaLogger::Print(DnaLogger::Level::Error, outputDirError);
     exit(1);
   }
-  // With neither --dir nor /run/outputDir, output goes to <exeDir>/results.
-  // The default is applied lazily (created at the first output), so
-  // "/run/outputDir" in the macro still replaces it.
-  {
-    const std::string exeDir = ExecutableDir();
-    if (!exeDir.empty())
-      OutputDir::SetDefaultDir((std::filesystem::path(exeDir) / "results").string());
-  }
+  // Prefer <exeDir>/results when no explicit root is configured. Creation is
+  // lazy so /run/outputDir can replace it; lookup/creation failure falls back to cwd.
+  ConfigureDefaultOutputDir();
   G4int requestedThreads = argParser.GetInt("--threads");
   G4RunManagerType runManagerType =
       (requestedThreads > 0) ? G4RunManagerType::MT : G4RunManagerType::Serial;
 
   G4RunManager *runManager = G4RunManagerFactory::CreateRunManager(runManagerType);
 
-  // A macro may still override with "/run/numberOfThreads N" before
-  // "/run/initialize".
-  if (!useGUI && runManagerType != G4RunManagerType::Serial)
+  // When MT is selected, a macro can still override its worker count with
+  // /run/numberOfThreads before /run/initialize.
+  if (!kUseGui && runManagerType != G4RunManagerType::Serial)
     runManager->SetNumberOfThreads(requestedThreads);
 
-  G4UImanager *UIManager = G4UImanager::GetUIpointer();
+  G4UImanager *uiManager = G4UImanager::GetUIpointer();
 
   // Exposes "/dnaLogger/verbose <level>" so the logging level can be set from a macro
   DnaLoggerMessenger *dnaLoggerMessenger = new DnaLoggerMessenger();
@@ -136,9 +141,6 @@ int main(int argc, char **argv)
   // species/reaction/interaction/energy data to disk and reset it
   RunAccumulatorMessenger *runAccumulatorMessenger = new RunAccumulatorMessenger();
 
-  //////////
-  // Set mandatory user initialization classes
-  //
   DetectorConstruction *detector = new DetectorConstruction();
   runManager->SetUserInitialization(detector);
   runManager->SetUserInitialization(new PhysicsList);
@@ -146,9 +148,7 @@ int main(int argc, char **argv)
 
   G4String storage = ".";
 
-  // toml->SetRootPath(storage);
-  // Start Simulations
-  if (useGUI)
+  if (kUseGui)
   {
     // ----------------------
     // - GUI mode execution
@@ -156,17 +156,13 @@ int main(int argc, char **argv)
     runManager->SetNumberOfThreads(1);
     runManager->Initialize();
     G4cout << "starting GUI" << G4endl;
-    // Initialize visualization
     G4VisManager *visManager = new G4VisExecutive;
     visManager->Initialize();
 
-    // Start interactive session
     G4UIExecutive *ui = new G4UIExecutive(argc, argv);
-    // UIManager->ApplyCommand("/vis/open OGL");
-    UIManager->ApplyCommand("/control/execute macro/vis.mac");
+    uiManager->ApplyCommand("/control/execute macro/vis.mac");
     ui->SessionStart();
 
-    // Clean up GUI resources
     delete ui;
     delete visManager;
   }
@@ -180,30 +176,27 @@ int main(int argc, char **argv)
     if (!resolved.found)
     {
       G4cerr << "Macro file '" << macroArg << "' not found. Tried:" << G4endl;
-      for (const auto &t : resolved.tried) G4cerr << "  " << t << G4endl;
+      for (const auto &candidatePath : resolved.tried) G4cerr << "  " << candidatePath << G4endl;
       return 1;
     }
     G4String macroFile = resolved.path;
     G4cout << "starting batch mode with macro file: " << macroFile << G4endl;
     RunManifest::SetMacroName(macroFile);
-    // Batch mode execution
-    // rem: Initialize is performed in beam.in macro!
+    // The macro owns /run/initialize so its PreInit configuration takes effect.
 
-    UIManager->ApplyCommand("/control/execute " + macroFile);
+    uiManager->ApplyCommand("/control/execute " + macroFile);
   }
 
   // Safety net: flush any accumulated data that was never explicitly
   // dumped via /run/dumpDataAndReset, so it isn't silently lost.
   runAccumulatorMessenger->FlushIfPending("EndOfRun_");
 
-  // Stop the benchmark here
-  theTimer->Stop();
+  simulationTimer->Stop();
 
-  G4cout << "The simulation took: " << theTimer->GetRealElapsed() << " s to run (real time)"
+  G4cout << "The simulation took: " << simulationTimer->GetRealElapsed() << " s to run (real time)"
          << G4endl;
 
-  // Clean up
-  delete theTimer;
+  delete simulationTimer;
   delete dnaLoggerMessenger;
   delete outputDirMessenger;
   delete runAccumulatorMessenger;

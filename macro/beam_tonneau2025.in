@@ -1,3 +1,5 @@
+# Demonstrates Tonneau2025 and its Extra molecule HO3, with a 100 ns Hand-over time.
+
 /run/verbose 0
 /tracking/verbose 0
 /dnaLogger/verbose Info
@@ -9,14 +11,15 @@
 # before /run/initialize. /chem/list prints the available names.
 /chem/select Tonneau2025
 
-# Hand over to the mesoscopic stage at 100 ns, the time of the paper's
-# G-values (its Table 3), so Species.Txt ends exactly there.
+# Use a 100 ns Hand-over time for the yield comparison. The hand-over
+# occurs on the first step reaching the threshold; Species uses its own record
+# grid, so this does not guarantee a Species.Txt sample exactly at 100 ns.
 /chem/meso/handOverTime 100 ns
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
-# Short end time: only the 100 ns yields are needed for the G-value check
-# (analysis/compare_gvalues.py).
+# After /run/initialize: limit the Mesoscopic stage to 200 ns for this comparison.
 /scheduler/endTime 200 ns
 
 /gun/particle e-

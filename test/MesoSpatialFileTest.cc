@@ -1,4 +1,8 @@
 /// \file MesoSpatialFileTest.cc
+/// Dependencies: Standard library, HDF5 C++ and project code; no Geant4 dependency. Optional MSVC
+/// CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test. Uses a fixed
+/// temporary directory; do not run duplicate instances.
 /// \brief Plain-assert unit tests for MesoSpatialFile (no test framework, no
 /// Geant4 runtime -- HDF5 round trip, error paths and staging move).
 

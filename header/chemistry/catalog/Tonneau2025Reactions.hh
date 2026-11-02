@@ -1,4 +1,7 @@
 /// \file Tonneau2025Reactions.hh
+/// Builds the Tonneau2025 Chemistry reaction network.
+/// Dependencies: Geant4 plus ChemistryTypes and Tonneau2025Table; portable to Geant4 projects, not standard-library-only.
+/// Thread safety: Build shared tables/molecules on the master before workers; returned bulk lists are caller-owned.
 /// \brief The Tonneau2025 Chemistry: Table 2 of Tonneau et al., Phys. Med.
 /// Biol. 70 (2025) 235021 on tracked Geant4-DNA molecules
 ///
@@ -8,8 +11,8 @@
 /// stage (particle-based IRT_syn stage, then the mesoscopic stage).
 ///
 /// Self-contained, project-agnostic unit: no DnaChemistryWorld, DnaLogger, or
-/// other dnachem-min-specific includes -- only standard Geant4/Geant4-DNA
-/// headers. Needs ChemistryTypes.hh and Tonneau2025Table.{hh,cc}; copy them
+/// driver services. It uses Geant4/Geant4-DNA and the portable data headers
+/// listed below. Needs ChemistryTypes.hh and Tonneau2025Table.{hh,cc}; copy them
 /// together to port this unit (adjust the include path prefix on copy).
 ///
 /// Species names: e-aq -> e_aq, H. -> H, OH. -> deg+"OH", OH- -> OHm, H3O+ ->
@@ -78,7 +81,7 @@
 /// option3's classification: partially diffusion-controlled (type 1, option3
 /// Type II neutral / Type IV ionic) below the diffusion limit, fully
 /// diffusion-controlled (type 0, Type I / III) at or above it, where type 1
-/// would give an activation rate <= 0. k_diff is computed by
+/// has a singular denominator at equality or a negative activation rate above it. k_diff is computed by
 /// G4DNAMolecularReactionData::SetReactionType from the vdW radii and D.
 ///   R1  e_aq + e_aq      0 PW       R37 HO2 + HO2m      1 G4
 ///   R2  e_aq + H         0 PW       R38 HO2 + O3m       1 G4
@@ -148,6 +151,8 @@ namespace Tonneau2025Reactions
   /// G4Exception if any is missing, or if a type-1 reactant has no vdW
   /// radius. Call after G4ChemDissociationChannels_option1::ConstructMolecule()
   /// and ConstructTonneau2025Molecules().
+  /// Requires non-null reactionTable; entries use Geant4 internal rate units.
+  /// Master-only construction; ownership of inserted reaction data passes to Geant4.
   void BuildTonneau2025Reactions(G4DNAMolecularReactionTable* reactionTable);
 
   /// The bulk-reaction list: the acid-base block against H3Op(B)/OHm(B)/H2O
@@ -155,11 +160,14 @@ namespace Tonneau2025Reactions
   /// (against H2O) and the dissolved-O2 reactions R7, R31, R47 (inert while
   /// /chem/env/scavenger O2 is 0), as plain data. Species are named as stored
   /// by G4ChemDissociationChannels_option1; the driver resolves them.
+  /// Returns caller-owned data with rates in Geant4 units; no kernel mutation.
+  /// Allocation exceptions propagate; invalid table routing raises FatalException.
   ChemistryTypes::BulkReactionList BuildTonneau2025BulkReactions();
 
   /// Creates the HO3 molecule definition and configuration (master thread,
   /// from DnaChemistryList::ConstructMolecule). Idempotent: a second call
-  /// changes nothing.
+  /// changes nothing. Call before process-manager creation; Geant4 registration
+  /// errors propagate as G4Exception, allocation errors as C++ exceptions.
   void ConstructTonneau2025Molecules();
 
   // ---- Geant4-free description of the routing, for tests ----
@@ -175,6 +183,7 @@ namespace Tonneau2025Reactions
     Buffer               ///< R58: no reaction, held by the fixed pH buffer
   };
 
+  /// One row's routing and reaction types; no validation or ownership of reaction data.
   struct Placement
   {
     int id;          ///< Table 2 row, 1..73
@@ -183,16 +192,18 @@ namespace Tonneau2025Reactions
     int bulkType;    ///< bulk reaction type (0, 6, 7, 8); -1 when not in the bulk list
   };
 
-  /// One placement per Table 2 row, in table order (index i holds row i + 1).
+  /// One placement per row in table order. Immutable process-lifetime reference;
+  /// first-use allocation exceptions propagate. Concurrent reads are safe.
   const std::vector<Placement>& Placements();
 
   /// Project configuration name for a Tonneau2025Table species name ("e-aq"
   /// -> "e_aq", "OH." -> deg+"OH", ...); "" for "H2O" (the solvent). Fatal-free:
-  /// an unknown name returns "?" + name.
+  /// an unknown name returns "?" + name. Returns an owned string; allocation may throw.
   std::string SpeciesName(const std::string& paperName);
 
   /// Project names of every species that is a reactant of a type-1
-  /// reaction-table entry, sorted, without duplicates.
+  /// reaction-table entry, sorted, without duplicates. Returns caller-owned data;
+  /// allocation exceptions propagate. Does not require a running Geant4 kernel.
   std::vector<std::string> TypeOneSpecies();
 }  // namespace Tonneau2025Reactions
 

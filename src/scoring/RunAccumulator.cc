@@ -1,5 +1,7 @@
 /// \file RunAccumulator.cc
-/// \brief Implementation of RunAccumulator
+/// \brief Retain run totals and dump reservations across beamOn calls.
+/// Uses scoring components and Geant4 types; no kernel services here.
+/// Unsynchronized process state; use from the master or serial run lifecycle.
 
 #include "scoring/RunAccumulator.hh"
 

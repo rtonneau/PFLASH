@@ -1,5 +1,7 @@
 /// \file DataNode.cc
-/// \brief Implementation of DataNode
+/// \brief Ordered, format-neutral tree for structured output.
+/// Standard library only.
+/// Callers coordinate access to shared mutable trees.
 
 #include "scoring/DataNode.hh"
 

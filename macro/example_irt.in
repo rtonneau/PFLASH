@@ -21,6 +21,7 @@
 # Comment out the next line for the pure-water case.
 /chem/env/scavenger O2 21 %
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
 /gun/particle e-

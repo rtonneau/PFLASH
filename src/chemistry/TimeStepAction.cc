@@ -1,5 +1,7 @@
 /// \file TimeStepAction.cc
-/// \brief Implementation of the TimeStepAction class
+/// Runs particle-based chemistry and the mesoscopic hand-over.
+/// Dependencies: Geant4 and project scoring services; not standard-library-only.
+/// Thread safety: One action per worker/serial thread; scheduler and mesh-action alias are thread-local.
 
 #include "chemistry/TimeStepAction.hh"
 
@@ -112,9 +114,9 @@ MeshCounts MeshSpeciesCounts(const G4DNAMesh &mesh)
 ///    taken as soon as any step passes a record time; species counts change
 ///    only on reactions, so it is off by at most one reaction.
 /// 2. Debug-level molecule bookkeeping. A diffusive jump never changes the
-///    mesh total and one reaction changes it by at most 2 (A + B -> nothing),
-///    so between two Gillespie steps the total may only move by 0, +-1 or +-2;
-///    anything else, or a change across a mesh coarsening (EndOfMesh -> next
+///    mesh total. This diagnostic treats changes beyond +-2 as drift, the
+///    expected bound for the baseline network, not a general constraint on
+///    every possible Chemistry. A change across mesh coarsening (EndOfMesh -> next
 ///    BeginOfMesh, no step in between), is a drift.
 class MeshTotalsAction : public G4UserMeshAction
 {
@@ -406,7 +408,7 @@ void TimeStepAction::StartProcessing()
     fSbsTimeStepsAdded = true;
   }
 
-  fParticleStageWall = 0.;
+  fParticleStageWall_s = 0.;
   if (!fMesoOn) {
     // No mesoscopic stage: the particle-based stage runs to the end time and
     // the event scheduler is never used (no record times, no counter).
@@ -423,17 +425,17 @@ void TimeStepAction::StartProcessing()
 
   fpEventScheduler->SetVerbose(G4Scheduler::Instance()->GetVerbose());
 
-  // G4DNAEventScheduler::RecordTime / LastRegisterForCounter dereference the
-  // record-time iterator unconditionally, so at least one record time is
-  // required. Log grid from the hand-over time to the end time
+  // Keep the scheduler counter configured even though MeshTotalsAction writes
+  // our species output: ResetCounter warns on an empty grid, and
+  // LastRegisterForCounter decrements its iterator when records remain.
+  // Log grid from the hand-over time to the end time
   // (/chem/meso/timesPerDecade); ResetCounter rewinds it. When the end time is
-  // not after the hand-over time there is no mesoscopic stage and the grid
-  // reduces to the end time alone.
+  // not after the hand-over time, the scheduler grid contains only the end time.
   const auto& meso = MesoSettings::Current();
   const G4double handOverTime = meso.handOverTime * ns;
   // The species output (SpeciesMeso.*) is recorded by the mesh action on the
-  // same grid (see MeshTotalsAction); the scheduler's own counter map is kept
-  // fed only because its RecordTime() needs at least one record time.
+  // same grid (see MeshTotalsAction); the scheduler's separate counter stays
+  // configured for its reset/final-record bookkeeping described above.
   const G4double endTime = G4Scheduler::Instance()->GetEndTime();
   std::vector<G4double> recordTimes;
   if (handOverTime < endTime) {
@@ -524,6 +526,54 @@ void TimeStepAction::MergeScavengerSpeciesIntoBulk(G4double globalTime)
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
+void TimeStepAction::CountAndReportParticleTracks(G4double globalTime, G4int pixel,
+                                                long long &handOverTotal) const
+{
+  // Same selection as G4DNAEventScheduler::Voxelizing: every main-list
+  // track except species held by the scavenger material.
+  auto *scavenger =
+    dynamic_cast<G4DNAScavengerMaterial *>(G4Scheduler::Instance()->GetScavengerMaterial());
+  long long listed = 0;
+  long long killed = 0;
+  for (auto *track : *G4ITTrackHolder::Instance()->GetMainList()) {
+    auto *molType = GetMolecule(track)->GetMolecularConfiguration();
+    if (scavenger != nullptr && scavenger->find(molType)) continue;
+    ++listed;
+    if (track->GetTrackStatus() == fStopAndKill) ++killed;
+  }
+  handOverTotal = listed;
+  const G4double nextTime = G4ITTrackHolder::Instance()->GetNextTime();
+  DnaLogger::Print(DnaLogger::Level::Debug,
+                   "[meso] hand-over at t = " + Format(globalTime / ns) +
+                     " ns: particle-stage total = " + std::to_string(listed) + " (" +
+                     std::to_string(killed) + " already killed), initial pixels = " +
+                     std::to_string(pixel) + ", cell = " +
+                     Format(2. * fpChemWorld->GetChemistryBoundary()->halfSideLengthInX() /
+                            pixel / nm) +
+                     " nm, delayed tracks pending: " +
+                     (nextTime == DBL_MAX ? G4String("none")
+                                          : "next at " + Format(nextTime / ns) + " ns"));
+}
+
+void TimeStepAction::ReportInitializedMesh(long long handOverTotal)
+{
+  const auto *mesh = fpEventScheduler->GetMesh();
+  const long long total = MeshTotal(*mesh);
+  DnaLogger::Print(DnaLogger::Level::Debug,
+                   "[meso] after Initialize: pixels = " +
+                     std::to_string(fpEventScheduler->GetPixels()) + ", cell = " +
+                     Format(mesh->GetResolution() / nm) + " nm, occupied cells = " +
+                     std::to_string(mesh->const_end() - mesh->const_begin()) +
+                     ", mesh total = " + std::to_string(total) +
+                     (total == handOverTotal ? " (conserved)" : " (DRIFT)") +
+                     ", meso end time = " + Format(fpEventScheduler->GetEndTime() / ns) +
+                     " ns");
+  // The hand-over itself must not change the total; the mesh action then
+  // tracks the mesh from this total on.
+  fHandOverDrift = (total != handOverTotal);
+  if (tMeshAction != nullptr) tMeshAction->ResetEvent(total);
+}
+
 void TimeStepAction::CompartmentBased()
 {
   const G4double globalTime = G4Scheduler::Instance()->GetGlobalTime();
@@ -532,34 +582,11 @@ void TimeStepAction::CompartmentBased()
 
   long long handOverTotal = 0;
   if (debug) {
-    // Same selection as G4DNAEventScheduler::Voxelizing: every main-list
-    // track except species held by the scavenger material.
-    auto *scavenger =
-      dynamic_cast<G4DNAScavengerMaterial *>(G4Scheduler::Instance()->GetScavengerMaterial());
-    long long listed = 0;
-    long long killed = 0;
-    for (auto *track : *G4ITTrackHolder::Instance()->GetMainList()) {
-      auto *molType = GetMolecule(track)->GetMolecularConfiguration();
-      if (scavenger != nullptr && scavenger->find(molType)) continue;
-      ++listed;
-      if (track->GetTrackStatus() == fStopAndKill) ++killed;
-    }
-    handOverTotal = listed;
-    const G4double nextTime = G4ITTrackHolder::Instance()->GetNextTime();
-    DnaLogger::Print(DnaLogger::Level::Debug,
-                     "[meso] hand-over at t = " + Format(globalTime / ns) +
-                       " ns: particle-stage total = " + std::to_string(listed) + " (" +
-                       std::to_string(killed) + " already killed), initial pixels = " +
-                       std::to_string(pixel) + ", cell = " +
-                       Format(2. * fpChemWorld->GetChemistryBoundary()->halfSideLengthInX() /
-                              pixel / nm) +
-                       " nm, delayed tracks pending: " +
-                       (nextTime == DBL_MAX ? G4String("none")
-                                            : "next at " + Format(nextTime / ns) + " ns"));
+    CountAndReportParticleTracks(globalTime, pixel, handOverTotal);
   }
   MergeScavengerSpeciesIntoBulk(globalTime);
   fChemTimer.Stop();
-  fParticleStageWall = fChemTimer.GetRealElapsed();
+  fParticleStageWall_s = fChemTimer.GetRealElapsed();
   fChemTimer.Start();
 
   // The G4MoleculeCounter (Species.*) covers the particle-based stage only,
@@ -582,21 +609,7 @@ void TimeStepAction::CompartmentBased()
   fpEventScheduler->Initialize(*fpChemWorld->GetChemistryBoundary(), pixel);
 
   if (debug) {
-    const auto *mesh = fpEventScheduler->GetMesh();
-    const long long total = MeshTotal(*mesh);
-    DnaLogger::Print(DnaLogger::Level::Debug,
-                     "[meso] after Initialize: pixels = " +
-                       std::to_string(fpEventScheduler->GetPixels()) + ", cell = " +
-                       Format(mesh->GetResolution() / nm) + " nm, occupied cells = " +
-                       std::to_string(mesh->const_end() - mesh->const_begin()) +
-                       ", mesh total = " + std::to_string(total) +
-                       (total == handOverTotal ? " (conserved)" : " (DRIFT)") +
-                       ", meso end time = " + Format(fpEventScheduler->GetEndTime() / ns) +
-                       " ns");
-    // The hand-over itself must not change the total; the mesh action then
-    // tracks the mesh from this total on.
-    fHandOverDrift = (total != handOverTotal);
-    if (tMeshAction != nullptr) tMeshAction->ResetEvent(total);
+    ReportInitializedMesh(handOverTotal);
   }
 
   const auto bulkAtHandOver = debug ? BulkCounts() : decltype(BulkCounts()){};
@@ -703,13 +716,13 @@ void TimeStepAction::EndProcessing()
 {
   fChemTimer.Stop();
   if (DnaLogger::Enabled(DnaLogger::Level::Info)) {
-    const G4double stageWall = fChemTimer.GetRealElapsed();
+    const G4double stageWall_s = fChemTimer.GetRealElapsed();
     G4String summary = "[TimeStepAction] Chemistry ends at global time " +
                        Format(G4Scheduler::Instance()->GetGlobalTime() / picosecond) +
-                       " ps, wall time " + Format(fParticleStageWall + stageWall) + " s";
+                       " ps, wall time " + Format(fParticleStageWall_s + stageWall_s) + " s";
     if (fHandedOver) {
-      summary += " (particle stage " + Format(fParticleStageWall) + " s, meso " +
-                 Format(stageWall) + " s)";
+      summary += " (particle stage " + Format(fParticleStageWall_s) + " s, meso " +
+                 Format(stageWall_s) + " s)";
       if (DnaLogger::Enabled(DnaLogger::Level::Debug) && tMeshAction != nullptr) {
         const G4bool ok = !fHandOverDrift && tMeshAction->Drifts() == 0;
         summary += "; meso: " + std::to_string(tMeshAction->MeshChanges()) +

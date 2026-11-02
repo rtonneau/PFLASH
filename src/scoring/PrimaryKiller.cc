@@ -1,3 +1,8 @@
+/// \file PrimaryKiller.cc
+/// \brief Apply track bounds and primary-electron energy cuts.
+/// Requires Geant4 tracking and UI services.
+/// Each scorer is used by one thread; the killed-primary flag is thread-local.
+
 #include "scoring/PrimaryKiller.hh"
 
 #include <G4Event.hh>
@@ -90,59 +95,42 @@ G4bool PrimaryKiller::ProcessHits(G4Step *aStep, G4TouchableHistory *)
     return FALSE;
   }
 
-  // Next part will be focus on secondary electrons
+  // Energy cuts apply only to the primary electron; the box cut above applies to all tracks.
   if (track->GetTrackID() != 1 || track->GetParticleDefinition()->GetPDGEncoding() != 11)
     return FALSE;
 
   //-------------------
 
-  double kineticE = aStep->GetPostStepPoint()->GetKineticEnergy();
+  // Energies remain in Geant4 internal units; G4BestUnit formats diagnostics.
+  double kineticEnergy = aStep->GetPostStepPoint()->GetKineticEnergy();
 
-  G4double eLoss = aStep->GetPreStepPoint()->GetKineticEnergy() - kineticE;
+  G4double energyLoss = aStep->GetPreStepPoint()->GetKineticEnergy() - kineticEnergy;
 
-  if (eLoss == 0.)
+  if (energyLoss == 0.)
     return FALSE;
 
   //-------------------
 
-  this->fELoss += eLoss;
+  this->fELoss += energyLoss;
 
   if (this->fELoss > this->fELossRange_Max)
   {
 
     if (this->fVerbose > 0)
     {
-      int eventID =
-          G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
-
-      G4cout << " * PrimaryKiller: aborts event " << eventID << " energy loss "
-                                                                "is too large. \n"
-             << " * Energy loss by primary is: "
-             << G4BestUnit(this->fELoss, "Energy")
-             << ". Event is aborted if the Eloss is > "
-             << G4BestUnit(this->fELossRange_Max, "Energy")
-             << "Last energy loss is: " << G4BestUnit(eLoss, "Energy")
-             << G4endl;
+      PrintAbort(energyLoss);
     }
 
     G4RunManager::GetRunManager()->AbortEvent();
   }
 
-  if (this->fELoss >= this->fELossRange_Min || kineticE <= this->fKineticE_Min)
+  if (this->fELoss >= this->fELossRange_Min || kineticEnergy <= this->fKineticE_Min)
   {
     ((G4Track *)track)->SetTrackStatus(G4TrackStatus::fStopAndKill);
     gPrimaryKilled = true; // only track 1 (e-) reaches this branch
     if (this->fVerbose > 0)
     {
-      G4cout << "kill track at : " << '\n'
-             << G4BestUnit(kineticE, "Energy")
-             << ", E loss is: "
-             << G4BestUnit(this->fELoss, "Energy")
-             << " /fELossMax: "
-             << G4BestUnit(this->fELossRange_Max, "Energy")
-             << ", EThreshold is: "
-             << G4BestUnit(this->fKineticE_Min, "Energy")
-             << G4endl;
+      PrintKill(kineticEnergy);
     }
   }
 
@@ -174,3 +162,31 @@ void PrimaryKiller::DrawAll()
 void PrimaryKiller::PrintAll() {}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo.....
+
+void PrimaryKiller::PrintAbort(const G4double &energyLoss)
+{
+  int eventID =
+      G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
+
+  G4cout << " * PrimaryKiller: aborts event " << eventID << " energy loss "
+                                                            "is too large. \n"
+         << " * Energy loss by primary is: "
+         << G4BestUnit(this->fELoss, "Energy")
+         << ". Event is aborted if the Eloss is > "
+         << G4BestUnit(this->fELossRange_Max, "Energy")
+         << "Last energy loss is: " << G4BestUnit(energyLoss, "Energy")
+         << G4endl;
+}
+
+void PrimaryKiller::PrintKill(const double &kineticEnergy)
+{
+  G4cout << "kill track at : " << '\n'
+         << G4BestUnit(kineticEnergy, "Energy")
+         << ", E loss is: "
+         << G4BestUnit(this->fELoss, "Energy")
+         << " /fELossMax: "
+         << G4BestUnit(this->fELossRange_Max, "Energy")
+         << ", EThreshold is: "
+         << G4BestUnit(this->fKineticE_Min, "Energy")
+         << G4endl;
+}

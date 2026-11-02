@@ -1,8 +1,7 @@
-# Farokhi et al. 2023, Fig. 5: 500 keV electron, SBS time-step model, 2.5 % O2.
-# SBS variant of beam_farokhi_electron_o2_2p5pct.in: forces step-by-step
-# chemistry (/process/chem/TimeStepModel SBS, no mesoscopic stage) instead of
-# the project default IRT_syn. /primaryKiller/eLossMin 12.5 keV truncates the
-# primary after 2.5 % of the 500 keV beam energy.
+# Farokhi2023 electron comparison: 500 keV, 26.0 uM, SBS without mesoscopic.
+# The primary energy-loss threshold is 12.5 keV (2.5 % of initial energy).
+# It limits the tracked primary segment; a discrete step can overshoot the threshold.
+# Compare actual deposited energy and track lengths in the output.
 
 /run/verbose 0
 /tracking/verbose 0
@@ -17,11 +16,13 @@
 
 /chem/env/scavenger O2 26.0 uM
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
 /primaryKiller/eLossMin 12.5 keV
 /primaryKiller/verbose 0
 
+# After /run/initialize: override the Chemistry default end time.
 /scheduler/endTime 1 us
 
 /gun/particle e-

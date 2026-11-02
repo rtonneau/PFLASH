@@ -1,3 +1,7 @@
+/// \file ScoreSpecies.cc
+/// \brief Accumulate Particle-based stage molecule counts and G-value sums.
+/// Requires project settings/output and Geant4 scoring/chemistry services.
+/// Worker-local scorers; merge and publish only at coordinated run boundaries.
 
 /// \file ScoreSpecies.cc
 /// \brief Implementation of the ScoreSpecies class
@@ -30,6 +34,15 @@
 
 #include <cmath>
 
+namespace
+{
+  constexpr int kParticleRecordSteps = 60;
+  constexpr double kLogBase = 10.0;
+  constexpr double kRecordsPerDecade = 10.0;
+  constexpr int kLastParticleRecord_ps = 999999;
+  constexpr double kGValueReferenceEnergy_eV = 100.;
+}
+
 /**
  \file ScoreSpecies.cc
  \class ScoreSpecies
@@ -53,10 +66,10 @@ ScoreSpecies::ScoreSpecies(G4String name, G4int depth)
   // 0.0, 0.1, ..., 5.9), then an explicit point just under 1 us (999999 ps,
   // not 1e6 ps) as a safety margin below the scheduler's default 1 us end
   // time -- same margin the previous hardcoded list used.
-  for (int i = 0; i < 60; ++i) {
-    AddTimeToRecord(std::pow(10.0, i / 10.0) * CLHEP::picosecond);
+  for (int i = 0; i < kParticleRecordSteps; ++i) {
+    AddTimeToRecord(std::pow(kLogBase, i / kRecordsPerDecade) * CLHEP::picosecond);
   }
-  AddTimeToRecord(999999 * CLHEP::picosecond);
+  AddTimeToRecord(kLastParticleRecord_ps * CLHEP::picosecond);
   fEdep = 0;
 }
 
@@ -126,9 +139,7 @@ void ScoreSpecies::EndOfEvent(G4HCofThisEvent *)
     return;
   }
 
-  //  G4cout << "ScoreSpecies::EndOfEvent"<<G4endl;
-  //  G4cout << "End of event, deposited energy: "
-  //  << G4BestUnit(fEdep, "Energy") << G4endl;
+
 
 #ifdef _ScoreSpecies_FOR_ALL_EVENTS
   int eventID = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
@@ -144,45 +155,40 @@ void ScoreSpecies::EndOfEvent(G4HCofThisEvent *)
   const G4bool hasMesoStage = MesoSettings::StageEnabled(MesoSettings::Current(), sbs) &&
                               handOverTime < G4Scheduler::Instance()->GetEndTime();
 
-  for (auto idx : indices)
+  for (auto moleculeIndex : indices)
   {
-    for (auto time_mol : fTimeToRecord)
+    for (auto recordTime : fTimeToRecord)
     {
-      if (hasMesoStage && time_mol > handOverTime)
+      if (hasMesoStage && recordTime > handOverTime)
         break; // fTimeToRecord is sorted
 
-      double n_mol = counter->GetNbMoleculesAtTime(idx, time_mol);
+      double moleculeCount = counter->GetNbMoleculesAtTime(moleculeIndex, recordTime);
 
-      if (n_mol < 0)
+      if (moleculeCount < 0)
       {
         G4cerr << "N molecules not valid < 0 " << G4endl;
         G4Exception("", "N<0", FatalException, "");
       }
 
-      SpeciesInfo &molInfo = fSpeciesInfoPerTime[time_mol][idx.Molecule];
-      molInfo.fNumber += n_mol;
-      double gValue = (n_mol / (fEdep / eV)) * 100.;
+      SpeciesInfo &molInfo = fSpeciesInfoPerTime[recordTime][moleculeIndex.Molecule];
+      molInfo.fNumber += moleculeCount;
+      double gValue = (moleculeCount / (fEdep / eV)) * kGValueReferenceEnergy_eV;
       molInfo.fG += gValue;
       molInfo.fG2 += gValue * gValue;
 
 #ifdef _ScoreSpecies_FOR_ALL_EVENTS
-      SpeciesInfoSOA &molInfoPerEvent = fSpeciesInfoPerEvent[time_mol][molecule];
-      molInfoPerEvent.fNumber.push_back(n_mol);
+      SpeciesInfoSOA &molInfoPerEvent = fSpeciesInfoPerEvent[recordTime][molecule];
+      molInfoPerEvent.fNumber.push_back(moleculeCount);
       molInfoPerEvent.fG.push_back(gValue);
       molInfoPerEvent.fG2.push_back(gValue * gValue);
       molInfoPerEvent.fEventID.push_back(eventID);
 #endif
-      //      G4cout << "In Save molucule: fNumber " << molInfo.fNumber
-      //            << " fG " << molInfo.fG
-      //            << " fEdep " << fEdep/eV
-      //            << G4endl;
+
     }
   }
 
   ++fNEvent;
 
-  //  G4cout << "End of event " << fNEvent
-  //         << ", energy deposited=" << G4BestUnit(fEdep, "Energy") << G4endl;
 
   fEdep = 0.;
 }
@@ -203,59 +209,30 @@ void ScoreSpecies::AbsorbResultsFromWorkerScorer(G4VPrimitiveScorer *workerScore
     return;
   }
 
-  // G4cout<<"ScoreSpecies::AbsorbResultsFromWorkerScorer"<<G4endl;
-  {
-    SpeciesMap::iterator it_map1 = right->fSpeciesInfoPerTime.begin();
-    SpeciesMap::iterator end_map1 = right->fSpeciesInfoPerTime.end();
-
-    for (; it_map1 != end_map1; ++it_map1)
-    {
-      InnerSpeciesMap &map2 = it_map1->second;
-      InnerSpeciesMap::iterator it_map2 = map2.begin();
-      InnerSpeciesMap::iterator end_map2 = map2.end();
-
-      for (; it_map2 != end_map2; ++it_map2)
-      {
-        SpeciesInfo &molInfo = fSpeciesInfoPerTime[it_map1->first][it_map2->first];
-        molInfo.fNumber += it_map2->second.fNumber;
-        molInfo.fG += it_map2->second.fG;
-        molInfo.fG2 += it_map2->second.fG2;
-
-        //      G4cout << "In AbsorbeResultsFromWorkerScorer: fNumber "
-        //             << molInfo.fNumber
-        //             << " fG "
-        //             << molInfo.fG
-        //             << G4endl;
-      }
-    }
-  }
+  MergeSpeciesTotalsFrom(right);
   //---------------------------------------------------------
 #ifdef _ScoreSpecies_FOR_ALL_EVENTS
   {
-    SpeciesMapPerEvent::iterator it_map1 = right->fSpeciesInfoPerEvent.begin();
-    SpeciesMapPerEvent::iterator end_map1 = right->fSpeciesInfoPerEvent.end();
+    SpeciesMapPerEvent::iterator timeEntry = right->fSpeciesInfoPerEvent.begin();
+    SpeciesMapPerEvent::iterator timeEnd = right->fSpeciesInfoPerEvent.end();
 
-    for (; it_map1 != end_map1; ++it_map1)
+    for (; timeEntry != timeEnd; ++timeEntry)
     {
-      auto &map2 = it_map1->second;
-      InnerSpeciesMapPerEvent::iterator it_map2 = map2.begin();
-      InnerSpeciesMapPerEvent::iterator end_map2 = map2.end();
+      auto &speciesByConfiguration = timeEntry->second;
+      InnerSpeciesMapPerEvent::iterator speciesEntry = speciesByConfiguration.begin();
+      InnerSpeciesMapPerEvent::iterator speciesEnd = speciesByConfiguration.end();
 
-      for (; it_map2 != end_map2; ++it_map2)
+      for (; speciesEntry != speciesEnd; ++speciesEntry)
       {
-        SpeciesInfoSOA &molInfo = fSpeciesInfoPerEvent[it_map1->first][it_map2->first];
-        molInfo.fNumber.insert(molInfo.fNumber.end(), it_map2->second.fNumber.begin(),
-                               it_map2->second.fNumber.end());
-        molInfo.fG.insert(molInfo.fG.end(), it_map2->second.fG.begin(), it_map2->second.fG.end());
-        molInfo.fG2.insert(molInfo.fG2.end(), it_map2->second.fG2.begin(),
-                           it_map2->second.fG2.end());
-        molInfo.fEventID.insert(molInfo.fEventID.end(), it_map2->second.fEventID.begin(),
-                                it_map2->second.fEventID.end());
-        // G4cout << "In AbsorbeResultsFromWorkerScorer: fNumber "
-        //        << molInfo.fNumber
-        //        << " fG "
-        //        << molInfo.fG
-        //        << G4endl;
+        SpeciesInfoSOA &molInfo = fSpeciesInfoPerEvent[timeEntry->first][speciesEntry->first];
+        molInfo.fNumber.insert(molInfo.fNumber.end(), speciesEntry->second.fNumber.begin(),
+                               speciesEntry->second.fNumber.end());
+        molInfo.fG.insert(molInfo.fG.end(), speciesEntry->second.fG.begin(), speciesEntry->second.fG.end());
+        molInfo.fG2.insert(molInfo.fG2.end(), speciesEntry->second.fG2.begin(),
+                           speciesEntry->second.fG2.end());
+        molInfo.fEventID.insert(molInfo.fEventID.end(), speciesEntry->second.fEventID.begin(),
+                                speciesEntry->second.fEventID.end());
+
       }
     }
     right->fSpeciesInfoPerEvent.clear();
@@ -305,15 +282,15 @@ void ScoreSpecies::ASCII()
 
   out << "Time is in ns" << G4endl;
 
-  for (auto it_map1 : fSpeciesInfoPerTime)
+  for (auto timeEntry : fSpeciesInfoPerTime)
   {
-    InnerSpeciesMap &map2 = it_map1.second;
+    InnerSpeciesMap &speciesByConfiguration = timeEntry.second;
 
-    out << it_map1.first << G4endl;
+    out << timeEntry.first << G4endl;
 
-    for (auto it_map2 : map2)
+    for (auto speciesEntry : speciesByConfiguration)
     {
-      out << it_map2.first->GetName() << " " << it_map2.second.fNumber << G4endl;
+      out << speciesEntry.first->GetName() << " " << speciesEntry.second.fNumber << G4endl;
     }
   }
 
@@ -346,86 +323,63 @@ void ScoreSpecies::OutputAndClear()
 
 void ScoreSpecies::WriteWithAnalysisManager(G4VAnalysisManager *analysisManager)
 {
-  //  G4cout << "ScoreSpecies::WriteWithAnalysisManager" << G4endl;
+
   analysisManager->OpenFile(OutputDir::Resolve("Species"));
-  int fNtupleID = analysisManager->CreateNtuple("species", "species");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "speciesID");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "number");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "nEvent");
-  analysisManager->CreateNtupleSColumn(fNtupleID, "speciesName");
-  analysisManager->CreateNtupleDColumn(fNtupleID, "time");
-  analysisManager->CreateNtupleDColumn(fNtupleID, "sumG");
-  analysisManager->CreateNtupleDColumn(fNtupleID, "sumG2");
-  analysisManager->FinishNtuple(fNtupleID);
+  int ntupleId = analysisManager->CreateNtuple("species", "species");
+  analysisManager->CreateNtupleIColumn(ntupleId, "speciesID");
+  analysisManager->CreateNtupleIColumn(ntupleId, "number");
+  analysisManager->CreateNtupleIColumn(ntupleId, "nEvent");
+  analysisManager->CreateNtupleSColumn(ntupleId, "speciesName");
+  analysisManager->CreateNtupleDColumn(ntupleId, "time");
+  analysisManager->CreateNtupleDColumn(ntupleId, "sumG");
+  analysisManager->CreateNtupleDColumn(ntupleId, "sumG2");
+  analysisManager->FinishNtuple(ntupleId);
 
-  for (auto it_map1 : fSpeciesInfoPerTime)
-  {
-    InnerSpeciesMap &map2 = it_map1.second;
-
-    for (auto it_map2 : map2)
-    {
-      double time = it_map1.first;
-      auto species = it_map2.first;
-      const G4String &name = species->GetName();
-      int molID = it_map2.first->GetMoleculeID();
-      int number = it_map2.second.fNumber;
-      double G = it_map2.second.fG;
-      double G2 = it_map2.second.fG2;
-
-      analysisManager->FillNtupleIColumn(fNtupleID, 0, molID);   // MolID
-      analysisManager->FillNtupleIColumn(fNtupleID, 1, number);  // Number
-      analysisManager->FillNtupleIColumn(fNtupleID, 2, fNEvent); // Total nb events
-      analysisManager->FillNtupleSColumn(fNtupleID, 3, name);    // molName
-      analysisManager->FillNtupleDColumn(fNtupleID, 4, time);    // time
-      analysisManager->FillNtupleDColumn(fNtupleID, 5, G);       // G
-      analysisManager->FillNtupleDColumn(fNtupleID, 6, G2);      // G2
-      analysisManager->AddNtupleRow(fNtupleID);
-    }
-  }
+  WriteAggregateSpeciesRows(analysisManager, ntupleId);
 
   //----------------------------------------------------------------------------
 
 #ifdef _ScoreSpecies_FOR_ALL_EVENTS
-  fNtupleID = analysisManager->CreateNtuple("species_all", "species_all");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "speciesID");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "number");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "nEvent");
-  analysisManager->CreateNtupleSColumn(fNtupleID, "speciesName");
-  analysisManager->CreateNtupleDColumn(fNtupleID, "time");
-  analysisManager->CreateNtupleDColumn(fNtupleID, "G");
-  analysisManager->CreateNtupleDColumn(fNtupleID, "G2");
-  analysisManager->CreateNtupleIColumn(fNtupleID, "eventID");
-  analysisManager->FinishNtuple(fNtupleID);
+  ntupleId = analysisManager->CreateNtuple("species_all", "species_all");
+  analysisManager->CreateNtupleIColumn(ntupleId, "speciesID");
+  analysisManager->CreateNtupleIColumn(ntupleId, "number");
+  analysisManager->CreateNtupleIColumn(ntupleId, "nEvent");
+  analysisManager->CreateNtupleSColumn(ntupleId, "speciesName");
+  analysisManager->CreateNtupleDColumn(ntupleId, "time");
+  analysisManager->CreateNtupleDColumn(ntupleId, "G");
+  analysisManager->CreateNtupleDColumn(ntupleId, "G2");
+  analysisManager->CreateNtupleIColumn(ntupleId, "eventID");
+  analysisManager->FinishNtuple(ntupleId);
 
-  for (auto it_map1 : fSpeciesInfoPerEvent)
+  for (auto timeEntry : fSpeciesInfoPerEvent)
   {
-    InnerSpeciesMapPerEvent &map2 = it_map1.second;
+    InnerSpeciesMapPerEvent &speciesByConfiguration = timeEntry.second;
 
-    for (auto it_map2 : map2)
+    for (auto speciesEntry : speciesByConfiguration)
     {
-      double time = it_map1.first;
-      const Species &species = it_map2.first;
+      double time = timeEntry.first;
+      const Species &species = speciesEntry.first;
       const G4String &name = species->GetName();
-      int molID = it_map2.first->GetMoleculeID();
+      int molID = speciesEntry.first->GetMoleculeID();
 
-      size_t nG = it_map2.second.fG.size();
+      size_t nG = speciesEntry.second.fG.size();
 
       for (size_t i = 0; i < nG; ++i)
       {
-        int number = it_map2.second.fNumber[i];
-        double G = it_map2.second.fG[i];
-        double G2 = it_map2.second.fG2[i];
-        int eventID = it_map2.second.fEventID[i];
+        int number = speciesEntry.second.fNumber[i];
+        double sumG = speciesEntry.second.fG[i];
+        double sumG2 = speciesEntry.second.fG2[i];
+        int eventID = speciesEntry.second.fEventID[i];
 
-        analysisManager->FillNtupleIColumn(fNtupleID, 0, molID);   // MolID
-        analysisManager->FillNtupleIColumn(fNtupleID, 1, number);  // Number
-        analysisManager->FillNtupleIColumn(fNtupleID, 2, fNEvent); // Total nb events
-        analysisManager->FillNtupleSColumn(fNtupleID, 3, name);    // molName
-        analysisManager->FillNtupleDColumn(fNtupleID, 4, time);    // time
-        analysisManager->FillNtupleDColumn(fNtupleID, 5, G);       // G
-        analysisManager->FillNtupleDColumn(fNtupleID, 6, G2);      // G2
-        analysisManager->FillNtupleIColumn(fNtupleID, 7, eventID); // EventID
-        analysisManager->AddNtupleRow(fNtupleID);
+        analysisManager->FillNtupleIColumn(ntupleId, 0, molID);
+        analysisManager->FillNtupleIColumn(ntupleId, 1, number);
+        analysisManager->FillNtupleIColumn(ntupleId, 2, fNEvent);
+        analysisManager->FillNtupleSColumn(ntupleId, 3, name);
+        analysisManager->FillNtupleDColumn(ntupleId, 4, time);
+        analysisManager->FillNtupleDColumn(ntupleId, 5, sumG);
+        analysisManager->FillNtupleDColumn(ntupleId, 6, sumG2);
+        analysisManager->FillNtupleIColumn(ntupleId, 7, eventID);
+        analysisManager->AddNtupleRow(ntupleId);
       }
     }
   }
@@ -433,4 +387,56 @@ void ScoreSpecies::WriteWithAnalysisManager(G4VAnalysisManager *analysisManager)
 
   analysisManager->Write();
   analysisManager->CloseFile();
+}
+
+void ScoreSpecies::MergeSpeciesTotalsFrom(ScoreSpecies *right)
+{
+  {
+    SpeciesMap::iterator timeEntry = right->fSpeciesInfoPerTime.begin();
+    SpeciesMap::iterator timeEnd = right->fSpeciesInfoPerTime.end();
+
+    for (; timeEntry != timeEnd; ++timeEntry)
+    {
+      InnerSpeciesMap &speciesByConfiguration = timeEntry->second;
+      InnerSpeciesMap::iterator speciesEntry = speciesByConfiguration.begin();
+      InnerSpeciesMap::iterator speciesEnd = speciesByConfiguration.end();
+
+      for (; speciesEntry != speciesEnd; ++speciesEntry)
+      {
+        SpeciesInfo &molInfo = fSpeciesInfoPerTime[timeEntry->first][speciesEntry->first];
+        molInfo.fNumber += speciesEntry->second.fNumber;
+        molInfo.fG += speciesEntry->second.fG;
+        molInfo.fG2 += speciesEntry->second.fG2;
+
+      }
+    }
+  }
+}
+
+void ScoreSpecies::WriteAggregateSpeciesRows(G4VAnalysisManager *analysisManager, const int &ntupleId)
+{
+  for (auto timeEntry : fSpeciesInfoPerTime)
+  {
+    InnerSpeciesMap &speciesByConfiguration = timeEntry.second;
+
+    for (auto speciesEntry : speciesByConfiguration)
+    {
+      double time = timeEntry.first;
+      auto species = speciesEntry.first;
+      const G4String &name = species->GetName();
+      int molID = speciesEntry.first->GetMoleculeID();
+      int number = speciesEntry.second.fNumber;
+      double sumG = speciesEntry.second.fG;
+      double sumG2 = speciesEntry.second.fG2;
+
+      analysisManager->FillNtupleIColumn(ntupleId, 0, molID);
+      analysisManager->FillNtupleIColumn(ntupleId, 1, number);
+      analysisManager->FillNtupleIColumn(ntupleId, 2, fNEvent);
+      analysisManager->FillNtupleSColumn(ntupleId, 3, name);
+      analysisManager->FillNtupleDColumn(ntupleId, 4, time);
+      analysisManager->FillNtupleDColumn(ntupleId, 5, sumG);
+      analysisManager->FillNtupleDColumn(ntupleId, 6, sumG2);
+      analysisManager->AddNtupleRow(ntupleId);
+    }
+  }
 }

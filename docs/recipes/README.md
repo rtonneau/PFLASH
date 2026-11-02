@@ -14,8 +14,8 @@ section skeleton:
 ## Index
 
 - [`create-a-scorer.md`](create-a-scorer.md) — add a new `G4VPrimitiveScorer` or counter driven from a stepping/tracking action.
-- [`create-a-species-counter.md`](create-a-species-counter.md) — add a portable counter that tallies chemical species over time.
-- [`mesoscopic-3d-species-counting.md`](mesoscopic-3d-species-counting.md) — count species per cell on the mesoscopic mesh, including spatial snapshots.
+- [`create-a-species-counter.md`](create-a-species-counter.md) — read Geant4 molecule histories and accumulate species yields over time.
+- [`mesoscopic-3d-species-counting.md`](mesoscopic-3d-species-counting.md) — aggregate species counts from the mesoscopic mesh; spatial snapshots are covered by the HDF5 recipe.
 - [`export-data-as-hdf5.md`](export-data-as-hdf5.md) — write structured per-event data to HDF5 following the `MesoSpatialFile` pattern.
 - [`create-a-macro-command.md`](create-a-macro-command.md) — add a new `/command` via a messenger class.
 - [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md) — reference listing of every macro command this project defines.

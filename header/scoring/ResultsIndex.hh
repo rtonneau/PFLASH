@@ -1,6 +1,7 @@
 /// \file ResultsIndex.hh
-/// \brief Pure builder of the results index: the top-level Manifest.json of
-/// the output directory that lists every dump written so far.
+/// \brief Build the ordered tree describing published dumps.
+/// Standard library and DataNode only.
+/// No shared state; callers coordinate mutation of input trees.
 ///
 /// Portable, project-agnostic unit: standard library and DataNode only (no
 /// Geant4, no other dnachem-min class); adjust the include path prefix on
@@ -36,7 +37,9 @@ namespace ResultsIndex
   /// Builds one `dumps[]` entry. `runs` are the per-run entries of the
   /// dump's manifest (Objects); only run, events, seed, particle,
   /// beamEnergy_keV, position_um and direction are copied, those that are
-  /// absent are skipped. `events` is the dump's total event count.
+  /// absent are skipped, as are non-Object runs. events is the dump's total
+  /// event count; timestamp is caller-formatted text, prefix/subdir form the
+  /// relative manifest path. No path validation; allocations may throw.
   DataNode MakeDumpEntry(const std::string &prefix, const std::string &subdir,
                          const std::string &timestamp, long long events,
                          const std::vector<DataNode> &runs);
@@ -44,7 +47,9 @@ namespace ResultsIndex
   /// Builds the index tree from the dump entries (in dump order). If `base`
   /// is an Object (the manifest of an empty-prefix flat dump, see above), the
   /// result is a copy of it with `dumps` added (or replaced); otherwise a new
-  /// Object with schemaVersion, kind, outputDirAbsolute and dumps.
+  /// Object with schemaVersion, kind, outputDirAbsolute and dumps. base may
+  /// be null; inputs are copied and outputDirAbsolute is stored without path
+  /// validation or filesystem access. Allocations may throw.
   DataNode Build(const std::vector<DataNode> &dumps, const DataNode *base,
                  const std::string &outputDirAbsolute);
 }

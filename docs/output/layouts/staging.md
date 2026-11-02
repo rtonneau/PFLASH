@@ -14,7 +14,7 @@ esults`), then the tree after `/run/dumpDataAndReset`.
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/scheduler/endTime 1 ms            (after /run/initialize)
+/scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /control/shell dir /s /b <outdir>
 /run/dumpDataAndReset
@@ -59,8 +59,8 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/spatialOutput true     (before /run/initialize)
-/scheduler/endTime 1 ms            (after /run/initialize)
+/chem/meso/spatialOutput true  # (before /run/initialize)
+/scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /control/shell dir /s /b <outdir>
 /run/dumpDataAndReset
@@ -109,7 +109,7 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/enable false           (before /run/initialize)
+/chem/meso/enable false  # (before /run/initialize)
 /run/beamOn 2
 /control/shell dir /s /b <outdir>
 /run/dumpDataAndReset

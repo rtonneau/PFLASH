@@ -1,5 +1,7 @@
 /// \file ReactionTableDump.cc
-/// \brief Implementation of the ReactionTableDump utility functions
+/// Formats and exports the live Chemistry reaction networks.
+/// Dependencies: Geant4, DnaLogger and ScavengerReactionAccess; not standard-library-only.
+/// Thread safety: Freeze tables before reads; callers own streams; LabelFor initializes its cache once.
 
 #include "chemistry/ReactionTableDump.hh"
 
@@ -30,8 +32,8 @@ void WriteLine(std::ostream& out, const G4String& reactant1, const G4String& rea
 {
   std::vector<G4String> productNames;
   productNames.reserve(products.size());
-  for (const auto* p : products) {
-    productNames.push_back(p->GetName());
+  for (const auto* product : products) {
+    productNames.push_back(product->GetName());
   }
   out << ReactionTableDump::FormatReactionLabel(reactant1, reactant2, productNames) << "    k = "
       << (rate / kRateUnit) << " M^-1 s^-1\n";
@@ -43,17 +45,17 @@ namespace ReactionTableDump
 G4String FormatReactionLabel(const G4String& reactant1, const G4String& reactant2,
                               const std::vector<G4String>& productNames)
 {
-  std::ostringstream oss;
-  oss << reactant1 << " + " << reactant2 << " ->";
+  std::ostringstream label;
+  label << reactant1 << " + " << reactant2 << " ->";
   if (productNames.empty()) {
-    oss << " (no products)";
+    label << " (no products)";
   }
   else {
     for (std::size_t i = 0; i < productNames.size(); ++i) {
-      oss << (i == 0 ? " " : " + ") << productNames[i];
+      label << (i == 0 ? " " : " + ") << productNames[i];
     }
   }
-  return oss.str();
+  return label.str();
 }
 
 void WriteBimolecular(std::ostream& out)
@@ -61,14 +63,14 @@ void WriteBimolecular(std::ostream& out)
   auto* reactionTable = G4DNAMolecularReactionTable::GetReactionTable();
   auto reactions = reactionTable->GetVectorOfReactionData();
 
-  for (const auto* rd : reactions) {
+  for (const auto* reactionData : reactions) {
     std::vector<const G4MolecularConfiguration*> products;
-    const G4int nbProducts = rd->GetNbProducts();
+    const G4int nbProducts = reactionData->GetNbProducts();
     for (G4int i = 0; i < nbProducts; ++i) {
-      products.push_back(rd->GetProduct(i));
+      products.push_back(reactionData->GetProduct(i));
     }
-    WriteLine(out, rd->GetReactant1()->GetName(), rd->GetReactant2()->GetName(),
-             rd->GetObservedReactionRateConstant(), products);
+    WriteLine(out, reactionData->GetReactant1()->GetName(), reactionData->GetReactant2()->GetName(),
+             reactionData->GetObservedReactionRateConstant(), products);
   }
 }
 
@@ -90,18 +92,18 @@ void WriteBulkReactions(std::ostream& out)
 
     // The reaction map's iteration order is not stable from one process to
     // the next, so this molecule's lines are sorted before writing to keep
-    // the dump identical across runs and thread counts.
+    // this molecule's bulk lines stable; other sections retain table order.
     std::vector<std::string> lines;
     for (const auto& [mol, materialMap] : access->GetReactionMap()) {
-      for (const auto& [material, rd] : materialMap) {
+      for (const auto& [material, reactionData] : materialMap) {
         std::vector<const G4MolecularConfiguration*> products;
-        const G4int nbProducts = rd->GetNbProducts();
+        const G4int nbProducts = reactionData->GetNbProducts();
         for (G4int i = 0; i < nbProducts; ++i) {
-          products.push_back(rd->GetProduct(i));
+          products.push_back(reactionData->GetProduct(i));
         }
         std::ostringstream line;
         WriteLine(line, mol->GetName(), material->GetName(),
-                  rd->GetObservedReactionRateConstant(), products);
+                  reactionData->GetObservedReactionRateConstant(), products);
         lines.push_back(line.str());
       }
     }
@@ -140,15 +142,15 @@ void BuildLabelCache()
   auto* reactionTable = G4DNAMolecularReactionTable::GetReactionTable();
   gLabelCache.assign(reactionTable->GetNReactions(), G4String());
 
-  for (const auto* rd : reactionTable->GetVectorOfReactionData()) {
+  for (const auto* reactionData : reactionTable->GetVectorOfReactionData()) {
     std::vector<G4String> productNames;
-    const G4int nbProducts = rd->GetNbProducts();
+    const G4int nbProducts = reactionData->GetNbProducts();
     productNames.reserve(nbProducts);
     for (G4int i = 0; i < nbProducts; ++i) {
-      productNames.push_back(rd->GetProduct(i)->GetName());
+      productNames.push_back(reactionData->GetProduct(i)->GetName());
     }
-    gLabelCache.at(rd->GetReactionID() - 1) =
-        FormatReactionLabel(rd->GetReactant1()->GetName(), rd->GetReactant2()->GetName(),
+    gLabelCache.at(reactionData->GetReactionID() - 1) =
+        FormatReactionLabel(reactionData->GetReactant1()->GetName(), reactionData->GetReactant2()->GetName(),
                             productNames);
   }
 }

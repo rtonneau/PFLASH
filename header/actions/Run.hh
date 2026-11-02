@@ -1,3 +1,7 @@
+/// Collects event energy deposits and merges worker scoring results.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Thread-local accumulation; Geant4 serializes worker merges into the master run.
+
 #ifndef CHEM4_Run_h
 #define CHEM4_Run_h 1
 
@@ -12,16 +16,13 @@
 
 #include <string>
 
-/// Run class
-///
-/// In RecordEvent() there is collected information event per event
-/// from Hits Collections, and accumulated statistic for the run
 class G4VPrimitiveScorer;
 class DetectorConstruction;
+/// Collects event energy deposits and merges worker scoring results.
 class Run : public G4Run
 {
 public:
-    /// The beam as the primary generator had it set when this run started
+    /// Beam sampled at the first generated event on a worker/serial run
     /// (units carried in the member names, for the dump's manifest).
     struct Beam
     {
@@ -31,22 +32,34 @@ public:
         double direction[3] = {0., 0., 1.};
     };
 
+    /// Binds live action counters or owned fallbacks; requires initialized mfDetector/Species scoring.
     Run();
+    /// Destroy after callbacks and borrowed uses have finished.
     virtual ~Run();
 
+    /// Requires a non-null event and valid Species hit collection. Skips aborted events or missing hit collections.
+    /// Sums energy in Geant4 units (MeV), then increments the base run event count.
     virtual void RecordEvent(const G4Event *);
+    /// Requires another Run with valid scorers/counters, or this (a no-op).
+    /// Merge under Geant4's run-merge lock; no internal locking or type validation.
     virtual void Merge(const G4Run *);
 
-    G4double GetSumDose() const { return fSumEne; }
+    /// Historical name: returns summed energy deposit in MeV, not dose per mass. No failure path.
+    G4double GetSumDose() const { return fEnergyDeposit_MeV; }
+    /// Borrowed scorer owned by the sensitive detector; requires valid construction.
     G4VPrimitiveScorer *GetPrimitiveScorer() const { return fScorerRun; }
+    /// Borrowed counter for this run/action lifetime; use on its thread or during serialized merge.
     ReactionCounter *GetReactionCounter() const { return fReactionCounter; }
+    /// Borrowed process-count counter; same lifetime and threading contract.
     PhysicsInteractionCounter *GetInteractionCounter() const { return fInteractionCounter; }
+    /// Borrowed mesoscopic counter (times in ns); same lifetime and threading contract.
     MesoSpeciesCounter *GetMesoSpeciesCounter() const { return fMesoSpeciesCounter; }
+    /// Borrowed track table (nm, keV); same lifetime and threading contract.
     TrackLengthTable *GetTrackLengthTable() const { return fTrackLengthTable; }
 
-    // Beam sampled by PrimaryGeneratorAction from its gun on the first event of
-    // this run (on a worker thread in MT mode); Merge() carries it to the
-    // master run. Only the first call per run has an effect.
+    /// PrimaryGeneratorAction samples the first event; Merge carries the first available beam to the master.
+    /// Copies beam only if not yet captured; caller supplies keV, micrometres and unit direction.
+    /// No validation; string allocation exceptions propagate.
     void SetBeamIfUnset(const Beam &beam)
     {
         if (!fHasBeam)
@@ -55,14 +68,16 @@ public:
             fHasBeam = true;
         }
     }
+    /// Whether a beam was captured; no failure path.
     G4bool HasBeam() const { return fHasBeam; }
+    /// Borrowed beam for this Run lifetime; check HasBeam to distinguish defaults. No failure path.
     const Beam &GetBeam() const { return fBeam; }
-    // Seed of the random engine when this Run was created (on the master:
-    // at /run/beamOn, before the run's events consume random numbers).
+    /// Seed of the engine at Run construction; an integer seed, not complete RNG state.
+    /// No failure path; worker seeds are not merged into the master seed.
     long GetSeed() const { return fSeed; }
 
 private:
-    G4double fSumEne;
+    G4double fEnergyDeposit_MeV;
     G4VPrimitiveScorer *fScorerRun;
     // Points at TimeStepAction's live counter on a thread that runs chemistry
     // (the Serial master, or an MT worker); on the MT master (which never

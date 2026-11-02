@@ -1,4 +1,7 @@
 /// \file RunAccumulatorTest.cc
+/// Dependencies: Geant4 types/libraries and project code; no kernel initialization.
+/// Thread safety: Sequential test process; no concurrent execution within this test. Mutates
+/// process-wide test state.
 /// \brief Plain-assert unit tests for RunAccumulator (no test framework, no
 /// Geant4 runtime -- exercises pure accumulation/prefix-bookkeeping logic
 /// only. DumpAndReset's file-writing/species lookup lives in

@@ -1,4 +1,7 @@
 /// \file ChemistryRegistry.cc
+/// Stores Chemistry builders and the process-wide selection.
+/// Dependencies: Standard library plus the portable ChemistryTypes data header.
+/// Thread safety: Mutate only before workers start; subsequent registry access is read-only.
 #include "chemistry/ChemistryRegistry.hh"
 
 #include <algorithm>

@@ -1,4 +1,7 @@
 /// \file TrackLengthTableTest.cc
+/// Dependencies: Standard library and portable project code; no Geant4 dependency. Optional MSVC
+/// CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test.
 /// \brief Plain-assert unit tests for TrackLengthTable (std only).
 
 #include "scoring/TrackLengthTable.hh"

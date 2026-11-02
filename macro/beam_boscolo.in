@@ -1,3 +1,5 @@
+# Demonstrates BoscoloChem selection with two 10 keV electron events.
+
 /run/verbose 0
 /tracking/verbose 0
 /dnaLogger/verbose Info
@@ -9,6 +11,7 @@
 # /chem/list prints the available names.
 /chem/select BoscoloChem
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
 /gun/particle e-

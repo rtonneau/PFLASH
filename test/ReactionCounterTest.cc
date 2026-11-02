@@ -1,4 +1,7 @@
 /// \file ReactionCounterTest.cc
+/// Dependencies: Geant4 types/libraries and project code; no kernel initialization. Optional MSVC
+/// CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test.
 /// \brief Plain-assert unit tests for ReactionCounter (no test framework, no
 /// Geant4 runtime -- exercises pure accumulation/binning/merge logic only).
 

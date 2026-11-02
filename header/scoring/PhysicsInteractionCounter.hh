@@ -1,5 +1,7 @@
 /// \file PhysicsInteractionCounter.hh
-/// \brief Portable string-frequency counter for physical interaction counts
+/// \brief Count caller-supplied physical-interaction labels.
+/// Standard library and Geant4 types; no kernel services.
+/// Callers coordinate access to shared mutable counters and streams.
 ///
 /// Self-contained, project-agnostic unit: no OutputDir, DnaLogger, or other
 /// dnachem-min-specific includes -- only globals.hh (G4String) and the
@@ -17,23 +19,28 @@
 #include <iosfwd>
 #include <map>
 
+/// Mutable count table; allocations may throw. Stream writers use stream flags
+/// or enabled stream exceptions, without a separate success return.
 class PhysicsInteractionCounter
 {
  public:
+  /// Increment label by one; labels are accepted without interpretation.
   void Record(const G4String& label);
 
-  /// Adds `other`'s counts into this counter; `other` is left unchanged.
+  /// Add other's counts; a distinct source is unchanged. Self-merge doubles counts.
   void Merge(const PhysicsInteractionCounter& other);
 
+  /// Remove all recorded counts; leave configuration unchanged.
   void Clear();
 
   using Counts = std::map<G4String, G4long>;
+  /// Borrow the stored counts; callers must coordinate concurrent mutation.
   const Counts& GetCounts() const { return fCounts; }
 
   /// Writes one "<label>    count = N" line per label, sorted by label.
   void WriteAscii(std::ostream& out) const;
 
-  /// Writes a "label,count" header followed by one row per label.
+  /// Write a "label,count" header and sorted rows; labels are not CSV-escaped.
   void WriteCsv(std::ostream& out) const;
 
  private:

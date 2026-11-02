@@ -1,3 +1,8 @@
+/// \file RunAccumulatorMessenger.cc
+/// \brief Publish accumulated outputs and reset each completed dump.
+/// Requires project output components and Geant4 UI/analysis services.
+/// Invoke between runs on the master or serial thread, with workers idle.
+
 #include "scoring/RunAccumulatorMessenger.hh"
 #include "scoring/RunAccumulator.hh"
 #include "scoring/RunManifest.hh"
@@ -17,6 +22,66 @@
 #include <fstream>
 #include <string>
 #include <vector>
+
+namespace
+{
+void WriteSpeciesOutput(const G4String &prefix, std::vector<std::string> &files)
+{
+    auto *mfdet = dynamic_cast<G4MultiFunctionalDetector *>(
+        G4SDManager::GetSDMpointer()->FindSensitiveDetector("mfDetector"));
+    if (mfdet != nullptr)
+    {
+        G4int collectionId = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
+        auto *scorer = dynamic_cast<ScoreSpecies *>(mfdet->GetPrimitive(collectionId));
+        if (scorer != nullptr)
+        {
+            scorer->ASCII();          // Species.Txt (human-readable)
+            scorer->OutputAndClear(); // Species_nt_species(_all).csv, then clears the scorer
+            files.push_back(prefix + "Species.Txt");
+            files.push_back(prefix + "Species_nt_species.csv");
+#ifdef _ScoreSpecies_FOR_ALL_EVENTS
+            // Only written when ScoreSpecies is built with per-event output.
+            files.push_back(prefix + "Species_nt_species_all.csv");
+#endif
+        }
+    }
+}
+
+void WriteMesoscopicOutput(const G4String &prefix, std::vector<std::string> &files)
+{
+    // Species counts of the mesoscopic stage (hand-over to end time).
+    const MesoSpeciesCounter &mesoSpeciesCounter = RunAccumulator::GetAccumulatedMesoSpeciesCounter();
+    std::ofstream mesoOut(OutputDir::Resolve("SpeciesMeso.Txt"));
+    mesoSpeciesCounter.WriteAscii(mesoOut, RunAccumulator::GetAccumulatedEvents());
+    mesoOut.close();
+    files.push_back(prefix + "SpeciesMeso.Txt");
+
+    std::ofstream mesoCsv(OutputDir::Resolve("SpeciesMeso.csv"));
+    mesoSpeciesCounter.WriteCsv(mesoCsv);
+    mesoCsv.close();
+    files.push_back(prefix + "SpeciesMeso.csv");
+}
+
+void MoveSpatialOutput(const G4String &prefix, std::vector<std::string> &files)
+{
+    bool spatialMoved = false;
+    std::string spatialErr;
+    if (MesoSpatialFile::MoveStaged(OutputDir::GetDirectory(),
+                                    OutputDir::Resolve(MesoSpatialFile::FileName()),
+                                    spatialMoved, spatialErr))
+    {
+        if (spatialMoved)
+        {
+            files.push_back(prefix + MesoSpatialFile::FileName());
+        }
+    }
+    else
+    {
+        G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "MesoSpatialMoveFailed",
+                    JustWarning, spatialErr.c_str());
+    }
+}
+}  // namespace
 
 RunAccumulatorMessenger::RunAccumulatorMessenger()
     : G4UImessenger()
@@ -134,24 +199,7 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     // SD-registered accumulator (unlike energy/reactions/interactions,
     // which RunAccumulator tracks separately) -- same lookup Run::Run()
     // uses.
-    auto *mfdet = dynamic_cast<G4MultiFunctionalDetector *>(
-        G4SDManager::GetSDMpointer()->FindSensitiveDetector("mfDetector"));
-    if (mfdet != nullptr)
-    {
-        G4int collectionId = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
-        auto *scorer = dynamic_cast<ScoreSpecies *>(mfdet->GetPrimitive(collectionId));
-        if (scorer != nullptr)
-        {
-            scorer->ASCII();          // Species.Txt (human-readable)
-            scorer->OutputAndClear(); // Species_nt_species(_all).csv, then clears the scorer
-            files.push_back(prefix + "Species.Txt");
-            files.push_back(prefix + "Species_nt_species.csv");
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-            // Only written when ScoreSpecies is built with per-event output.
-            files.push_back(prefix + "Species_nt_species_all.csv");
-#endif
-        }
-    }
+    WriteSpeciesOutput(prefix, files);
 
     // Reactions
     const ReactionCounter &reactionCounter = RunAccumulator::GetAccumulatedReactionCounter();
@@ -170,15 +218,12 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     metadataOut.close();
     files.push_back(prefix + "ReactionsMetadata.csv");
 
-    // G4AnalysisManager's per-ntuple file registry (keyed by resolved
-    // filename) isn't cleared by CloseFile() alone -- a later dump cycle
-    // reusing the same ntuple names ("species"/"reactions") under a new
-    // prefix would otherwise report "already in use" and silently drop or
-    // rename its CSV output. Clear() (not Reset(), which only resets the
-    // ntuple/histogram bookings, not the file-name registry) empties that
-    // registry so each dump cycle starts clean. Harmless here -- this
-    // project never uses G4AnalysisManager's histogram features that
-    // Clear() also resets.
+    // Keep dump cycles independent: CloseFile leaves analysis bookings and
+    // file-manager state available for reuse. Clear removes them before the
+    // next prefix/subdir; Reset retains bookings and the file-manager registry.
+    // G4CsvFileManager::CreateNtupleFile renames an already registered name
+    // with "_bis"; preserving this Clear avoids that observed reuse problem.
+    // Clear also deletes histogram bookings; this project creates none.
     analysisManager->Clear();
 
     // Physics interactions
@@ -210,17 +255,7 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     if (MesoSettings::StageEnabled(MesoSettings::Current(),
                                    ChemUtils::GetCurrentTimeStepModel() == G4ChemTimeStepModel::SBS))
     {
-      // Species counts of the mesoscopic stage (hand-over to end time).
-      const MesoSpeciesCounter &mesoSpeciesCounter = RunAccumulator::GetAccumulatedMesoSpeciesCounter();
-      std::ofstream mesoOut(OutputDir::Resolve("SpeciesMeso.Txt"));
-      mesoSpeciesCounter.WriteAscii(mesoOut, RunAccumulator::GetAccumulatedEvents());
-      mesoOut.close();
-      files.push_back(prefix + "SpeciesMeso.Txt");
-
-      std::ofstream mesoCsv(OutputDir::Resolve("SpeciesMeso.csv"));
-      mesoSpeciesCounter.WriteCsv(mesoCsv);
-      mesoCsv.close();
-      files.push_back(prefix + "SpeciesMeso.csv");
+      WriteMesoscopicOutput(prefix, files);
     }
 
     // Pre-chemical files: move the per-event files staged since the last dump
@@ -240,24 +275,7 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
 
     // Meso spatial snapshots (/chem/meso/spatialOutput): move the staged HDF5
     // file into this dump (Resolve applies the prefix and subdir).
-    {
-        bool spatialMoved = false;
-        std::string spatialErr;
-        if (MesoSpatialFile::MoveStaged(OutputDir::GetDirectory(),
-                                        OutputDir::Resolve(MesoSpatialFile::FileName()),
-                                        spatialMoved, spatialErr))
-        {
-            if (spatialMoved)
-            {
-                files.push_back(prefix + MesoSpatialFile::FileName());
-            }
-        }
-        else
-        {
-            G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "MesoSpatialMoveFailed",
-                        JustWarning, spatialErr.c_str());
-        }
-    }
+    MoveSpatialOutput(prefix, files);
 
     // Energy deposit, beam and everything else that describes this dump.
     RunManifest::Write(prefix, subdir, files);

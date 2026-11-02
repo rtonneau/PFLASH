@@ -1,8 +1,11 @@
+# Demonstrates fixed reaction-count bins and a sub_run.mac energy scan.
+# The included sub-run macro supplies the energy and event count.
+
 /run/verbose 0
 /tracking/verbose 0
 
-# Info level so the "[RunAction] reaction counts written..." line is visible
-# (it's silent at the default Error level).
+# Info enables lifecycle diagnostics; reaction output is published at a dump
+# or by the automatic EndOfRun_ flush, not after every RunAction callback.
 /dnaLogger/verbose Info
 
 /process/dna/e-SolvationSubType Ritchie1994
@@ -21,7 +24,9 @@
 
 /run/outputDir .\results
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
+# After /run/initialize: override the Chemistry default end time.
 /scheduler/endTime 1 us
 
 /gun/particle e-
@@ -32,4 +37,6 @@
 # "/chem/reaction/UI" resets the shared G4DNAMolecularReactionTable and would
 # wipe the class-built reaction set.
 
+# Existing issue: the trailing comma reaches /gun/energy as "10," and
+# is rejected as a double. Kept unchanged for a separate behavior fix.
 /control/foreach macro/sub_run.mac energy 10,

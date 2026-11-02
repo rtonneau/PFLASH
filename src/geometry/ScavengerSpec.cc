@@ -1,5 +1,8 @@
 /// \file ScavengerSpec.cc
-/// \brief Implementation of the ScavengerSpec parsing and checks
+/// Parses scavenger concentrations and identifies unused bulk partners.
+/// Dependencies: Standard library plus ChemistryTypes; no Geant4 dependency.
+/// Thread safety: Functions have no shared mutable state; callers coordinate mutation of supplied objects.
+
 #include "geometry/ScavengerSpec.hh"
 
 #include <cmath>
@@ -9,12 +12,12 @@
 
 bool ScavengerSpec::Parse(const std::string& text, Entry& out, std::string& err)
 {
-  std::istringstream iss(text);
+  std::istringstream input(text);
   std::string species;
   std::string valueText;
   std::string unit;
   std::string extra;
-  if (!(iss >> species >> valueText >> unit) || (iss >> extra)) {
+  if (!(input >> species >> valueText >> unit) || (input >> extra)) {
     err = "expected '<species> <value> <unit>', got '" + text + "'";
     return false;
   }
@@ -25,14 +28,14 @@ bool ScavengerSpec::Parse(const std::string& text, Entry& out, std::string& err)
   }
 
   double value = 0.;
-  std::size_t used = 0;
+  std::size_t parsedCharacters = 0;
   try {
-    value = std::stod(valueText, &used);
+    value = std::stod(valueText, &parsedCharacters);
   }
   catch (const std::exception&) {
-    used = 0;
+    parsedCharacters = 0;
   }
-  if (used == 0 || used != valueText.size() || !std::isfinite(value)) {
+  if (parsedCharacters == 0 || parsedCharacters != valueText.size() || !std::isfinite(value)) {
     err = "invalid concentration '" + valueText + "' for " + species;
     return false;
   }
@@ -41,29 +44,29 @@ bool ScavengerSpec::Parse(const std::string& text, Entry& out, std::string& err)
     return false;
   }
 
-  double factor = 0.;
+  double molarityPerUnit = 0.;
   if (unit == "M") {
-    factor = 1.;
+    molarityPerUnit = 1.;
   }
   else if (unit == "mM") {
-    factor = 1e-3;
+    molarityPerUnit = 1e-3;
   }
   else if (unit == "uM") {
-    factor = 1e-6;
+    molarityPerUnit = 1e-6;
   }
   else if (unit == "%") {
     if (species != "O2") {
       err = "unit % is only defined for O2 (Henry's law, kH = 0.0013 M), not for " + species;
       return false;
     }
-    factor = kO2SaturationMolarity / 100.;
+    molarityPerUnit = kO2SaturationMolarity / 100.;
   }
   else {
     err = "unknown unit '" + unit + "' for " + species + " (use M, mM, uM, or % for O2)";
     return false;
   }
 
-  out = {species, value * factor};
+  out = {species, value * molarityPerUnit};
   return true;
 }
 

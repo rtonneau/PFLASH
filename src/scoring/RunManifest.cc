@@ -1,5 +1,7 @@
 /// \file RunManifest.cc
-/// \brief Implementation of RunManifest
+/// \brief Collect live settings and publish dump manifests and the index.
+/// Requires project components and Geant4 runtime services.
+/// Unsynchronized process state; use from the master or serial run lifecycle.
 
 #include "scoring/RunManifest.hh"
 
@@ -94,27 +96,64 @@ namespace
   // rows the means are null (there is nothing to average).
   DataNode TrackLengthSummary(const TrackLengthTable &table)
   {
-    const TrackLengthTable::Summary s = table.Summarize();
-    const bool any = s.nEvents > 0;
-    auto stat = [any](const TrackLengthTable::Stat &v) {
+    const TrackLengthTable::Summary summary = table.Summarize();
+    const bool any = summary.nEvents > 0;
+    auto stat = [any](const TrackLengthTable::Stat &columnStat) {
       DataNode node = DataNode::MakeObject();
-      node.Add("mean", any ? DataNode(v.mean) : DataNode());
-      node.Add("sem", any ? DataNode(v.sem) : DataNode());
+      node.Add("mean", any ? DataNode(columnStat.mean) : DataNode());
+      node.Add("sem", any ? DataNode(columnStat.sem) : DataNode());
       return node;
     };
     DataNode node = DataNode::MakeObject();
-    node.Add("events", static_cast<long>(s.nEvents));
-    node.Add("stopped", static_cast<long>(s.nStopped));
-    node.Add("escaped", static_cast<long>(s.nEscaped));
-    node.Add("killed", static_cast<long>(s.nKilled));
-    node.Add("primaryLength_nm", stat(s.primaryLength_nm));
-    node.Add("primaryEkin0_keV", stat(s.primaryEkin0_keV));
-    node.Add("primaryEkinEnd_keV", stat(s.primaryEkinEnd_keV));
-    node.Add("secondaryFirstGen_nm", stat(s.secondaryFirstGen_nm));
-    node.Add("nSecondaryFirstGen", stat(s.nSecondaryFirstGen));
-    node.Add("secondaryAll_nm", stat(s.secondaryAll_nm));
-    node.Add("nSecondaryAll", stat(s.nSecondaryAll));
+    node.Add("events", static_cast<long>(summary.nEvents));
+    node.Add("stopped", static_cast<long>(summary.nStopped));
+    node.Add("escaped", static_cast<long>(summary.nEscaped));
+    node.Add("killed", static_cast<long>(summary.nKilled));
+    node.Add("primaryLength_nm", stat(summary.primaryLength_nm));
+    node.Add("primaryEkin0_keV", stat(summary.primaryEkin0_keV));
+    node.Add("primaryEkinEnd_keV", stat(summary.primaryEkinEnd_keV));
+    node.Add("secondaryFirstGen_nm", stat(summary.secondaryFirstGen_nm));
+    node.Add("nSecondaryFirstGen", stat(summary.nSecondaryFirstGen));
+    node.Add("secondaryAll_nm", stat(summary.secondaryAll_nm));
+    node.Add("nSecondaryAll", stat(summary.nSecondaryAll));
     return node;
+  }
+  void AppendChemistryFields(DataNode &manifest, const ChemistryRegistry::Chemistry *chemistry,
+                             const DataNode &scavengers, const DnaChemistryWorld *chemistryWorld,
+                             const bool &mesoOn, const bool &sbs, const DataNode &mesoPixels)
+  {
+    manifest.Add("chemistry", (chemistry != nullptr) ? std::string(chemistry->name) : std::string());
+    manifest.Add("scavengers", scavengers);
+    manifest.Add("pH", (chemistryWorld != nullptr) ? chemistryWorld->GetpH() : 7.);
+    manifest.Add("halfBox_um",
+                 (chemistryWorld != nullptr) ? DataNode(chemistryWorld->GetHalfBox() / um) : DataNode());
+    manifest.Add("chemistryEndTime_ns", G4Scheduler::Instance()->GetEndTime() / ns);
+    manifest.Add("timeStepModel", std::string(ChemUtils::GetCurrentTimeStepModelName()));
+    manifest.Add("mesoEnabled", mesoOn);
+    manifest.Add("chemistryModel", mesoOn ? "IRT_syn+mesoscopic" : (sbs ? "SBS" : "IRT_syn"));
+    manifest.Add("handOverTime_ns",
+                 mesoOn ? DataNode(MesoSettings::Current().handOverTime) : DataNode());
+    manifest.Add("voxelSize_nm",
+                 mesoOn ? DataNode(MesoSettings::Current().voxelSize * mm / nm) : DataNode());
+    manifest.Add("mesoPixels", mesoPixels);
+    manifest.Add("mesoTimesPerDecade",
+                 mesoOn ? DataNode(MesoSettings::Current().timesPerDecade) : DataNode());
+    manifest.Add("mesoSpatialOutput", mesoOn && MesoSettings::Current().spatialOutput);
+  }
+
+  void AppendOutputFields(DataNode &manifest, const std::string &outputDir, const std::error_code &ec,
+                          const std::filesystem::path &absolute, const G4String &prefix,
+                          const G4String &subdir, const DataNode &fileList, const DataNode &runs)
+  {
+    manifest.Add("outputDirAsConfigured", outputDir);
+    manifest.Add("outputDirAbsolute", ec ? outputDir : absolute.lexically_normal().string());
+    manifest.Add("prefix", std::string(prefix));
+    manifest.Add("subdir", std::string(subdir));
+    manifest.Add("totalEvents", RunAccumulator::GetAccumulatedEvents());
+    manifest.Add("totalEnergyDeposit_eV", RunAccumulator::GetAccumulatedEnergy() / eV);
+    manifest.Add("trackLengths", TrackLengthSummary(RunAccumulator::GetAccumulatedTrackLengthTable()));
+    manifest.Add("files", fileList);
+    manifest.Add("runs", runs);
   }
 }
 
@@ -158,8 +197,8 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
                         const std::vector<std::string> &files)
 {
   const auto now = std::chrono::steady_clock::now();
-  const double elapsedSinceStart = std::chrono::duration<double>(now - gProcessStart).count();
-  const double elapsedSincePreviousDump =
+  const double elapsedSinceStart_s = std::chrono::duration<double>(now - gProcessStart).count();
+  const double elapsedSincePreviousDump_s =
       std::chrono::duration<double>(now - gPreviousDump.value_or(gProcessStart)).count();
   gPreviousDump = now;
 
@@ -184,9 +223,9 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
                           .Add("molarity_M", entry.molarity));
   }
 
-  // Initial mesh pixel count per side (same formula as TimeStepAction; the
-  // cell size actually used is voxelSize_nm unless the 65536 cap applied,
-  // ADR 0006). Needs the chemistry world for the box size.
+  // Use the same power-of-two pixel selection as TimeStepAction. Rounding and
+  // the 65536 overflow cap can both change the requested cell size (ADR 0006).
+  // The chemistry world supplies the box size.
   const bool sbs = ChemUtils::GetCurrentTimeStepModel() == G4ChemTimeStepModel::SBS;
   const bool mesoOn = MesoSettings::StageEnabled(MesoSettings::Current(), sbs);
   DataNode mesoPixels;
@@ -194,10 +233,10 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
     mesoPixels = DataNode(MesoSettings::PixelCount(2. * chemistryWorld->GetHalfBox(),
                                                    MesoSettings::Current().voxelSize * mm));
 
-  const std::string dir = OutputDir::GetDirectory();
+  const std::string outputDir = OutputDir::GetDirectory();
   std::error_code ec;
   const std::filesystem::path absolute =
-      std::filesystem::absolute(std::filesystem::path(dir.empty() ? "." : dir), ec);
+      std::filesystem::absolute(std::filesystem::path(outputDir.empty() ? "." : outputDir), ec);
 
   DataNode fileList = DataNode::MakeArray();
   for (const std::string &file : files)
@@ -212,38 +251,14 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
   DataNode manifest = DataNode::MakeObject();
   manifest.Add("schemaVersion", 1);
   manifest.Add("timestamp", Timestamp());
-  manifest.Add("elapsedSinceStart_s", elapsedSinceStart);
-  manifest.Add("elapsedSincePreviousDump_s", elapsedSincePreviousDump);
+  manifest.Add("elapsedSinceStart_s", elapsedSinceStart_s);
+  manifest.Add("elapsedSincePreviousDump_s", elapsedSincePreviousDump_s);
   manifest.Add("geant4Version", Geant4Version());
   manifest.Add("macro", std::string(gMacroName));
-  manifest.Add("chemistry", (chemistry != nullptr) ? std::string(chemistry->name) : std::string());
-  manifest.Add("scavengers", scavengers);
-  manifest.Add("pH", (chemistryWorld != nullptr) ? chemistryWorld->GetpH() : 7.);
-  manifest.Add("halfBox_um",
-               (chemistryWorld != nullptr) ? DataNode(chemistryWorld->GetHalfBox() / um) : DataNode());
-  manifest.Add("chemistryEndTime_ns", G4Scheduler::Instance()->GetEndTime() / ns);
-  manifest.Add("timeStepModel", std::string(ChemUtils::GetCurrentTimeStepModelName()));
-  manifest.Add("mesoEnabled", mesoOn);
-  manifest.Add("chemistryModel", mesoOn ? "IRT_syn+mesoscopic" : (sbs ? "SBS" : "IRT_syn"));
-  manifest.Add("handOverTime_ns",
-               mesoOn ? DataNode(MesoSettings::Current().handOverTime) : DataNode());
-  manifest.Add("voxelSize_nm",
-               mesoOn ? DataNode(MesoSettings::Current().voxelSize * mm / nm) : DataNode());
-  manifest.Add("mesoPixels", mesoPixels);
-  manifest.Add("mesoTimesPerDecade",
-               mesoOn ? DataNode(MesoSettings::Current().timesPerDecade) : DataNode());
-  manifest.Add("mesoSpatialOutput", mesoOn && MesoSettings::Current().spatialOutput);
+  AppendChemistryFields(manifest, chemistry, scavengers, chemistryWorld, mesoOn, sbs, mesoPixels);
   manifest.Add("runMode", (mtRunManager != nullptr) ? "MT" : "Serial");
   manifest.Add("threads", (mtRunManager != nullptr) ? mtRunManager->GetNumberOfThreads() : 1);
-  manifest.Add("outputDirAsConfigured", dir);
-  manifest.Add("outputDirAbsolute", ec ? dir : absolute.lexically_normal().string());
-  manifest.Add("prefix", std::string(prefix));
-  manifest.Add("subdir", std::string(subdir));
-  manifest.Add("totalEvents", RunAccumulator::GetAccumulatedEvents());
-  manifest.Add("totalEnergyDeposit_eV", RunAccumulator::GetAccumulatedEnergy() / eV);
-  manifest.Add("trackLengths", TrackLengthSummary(RunAccumulator::GetAccumulatedTrackLengthTable()));
-  manifest.Add("files", fileList);
-  manifest.Add("runs", runs);
+  AppendOutputFields(manifest, outputDir, ec, absolute, prefix, subdir, fileList, runs);
 
   // Results index: this dump joins the list. A flat dump with an empty prefix
   // has its per-dump manifest at the index's path (<outdir>/Manifest.json);
@@ -256,7 +271,7 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
   if (prefix.empty() && subdir.empty())
     gRootDumpManifest = manifest;
 
-  const std::string absoluteDir = ec ? dir : absolute.lexically_normal().string();
+  const std::string absoluteDir = ec ? outputDir : absolute.lexically_normal().string();
   const DataNode *rootBase = gRootDumpManifest ? &*gRootDumpManifest : nullptr;
 
   const G4String path = OutputDir::Resolve("Manifest.json");

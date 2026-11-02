@@ -1,3 +1,6 @@
+# Demonstrates default PureWater IRT_syn plus the Mesoscopic stage.
+# Two 100 keV electron runs accumulate into the automatic EndOfRun_ dump.
+
 /run/verbose 0
 /tracking/verbose 0
 /dnaLogger/verbose Error
@@ -18,6 +21,7 @@
 #/chem/env/scavenger O2 21 %
 #/chem/env/pH 7
 
+# Apply Chemistry/environment PreInit settings before initialization.
 /run/initialize
 
 /gun/particle e-
@@ -29,8 +33,8 @@
 # wipe the class-built reaction set.
 
 #/primaryKiller/eLossMin 1 keV # primary is killed if deposited E is greater than this value
-#/primaryKiller/eLossMax 2 keV # event is aborted if deposited E is greated than this value
-#/primaryKiller/minKineticE 0 keV # primary min energy below which primary is killed.
+#/primaryKiller/eLossMax 2 keV # event is aborted if deposited E is greater than this value
+#/primaryKiller/minKineticE 0 keV # Currently unhandled by SetNewValue; has no effect.
 #/primaryKiller/verbose 0
 
 /run/beamOn 4

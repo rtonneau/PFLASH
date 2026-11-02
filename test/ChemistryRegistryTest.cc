@@ -1,4 +1,8 @@
 /// \file ChemistryRegistryTest.cc
+/// Dependencies: Standard-library-only source and portable project code; current CMake target links
+/// Geant4 without initializing its kernel. Optional MSVC CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test. Mutates
+/// process-wide test state.
 /// \brief Plain-assert unit tests for ChemistryRegistry (no Geant4 runtime).
 #include "chemistry/ChemistryRegistry.hh"
 

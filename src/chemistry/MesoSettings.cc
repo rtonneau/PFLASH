@@ -1,4 +1,7 @@
 /// \file MesoSettings.cc
+/// Computes mesh sizes and record times from mesoscopic-stage settings.
+/// Dependencies: Standard library only.
+/// Thread safety: Helpers use local state; write Current() only before concurrent readers start.
 #include "chemistry/MesoSettings.hh"
 
 #include <cmath>
@@ -9,6 +12,7 @@ namespace MesoSettings
 namespace
 {
 constexpr int kMaxExponent = 30;
+constexpr double kEndTimeRelativeMargin = 1e-9;
 
 int UncappedPixelCount(double boxSide, double targetVoxel, int maxPixels)
 {
@@ -16,13 +20,13 @@ int UncappedPixelCount(double boxSide, double targetVoxel, int maxPixels)
     throw std::invalid_argument("MesoSettings::PixelCount: box side, voxel size and cap must be > 0");
   }
   long long best = 1;
-  double bestDiff = std::abs(boxSide - targetVoxel);
+  double bestCellSizeDifference = std::abs(boxSide - targetVoxel);
   for (int k = 1; k <= kMaxExponent; ++k) {
-    const long long p = 1LL << k;
-    const double diff = std::abs(boxSide / static_cast<double>(p) - targetVoxel);
-    if (diff <= bestDiff) {  // <=: ties go to the larger p
-      best = p;
-      bestDiff = diff;
+    const long long pixelCount = 1LL << k;
+    const double cellSizeDifference = std::abs(boxSide / static_cast<double>(pixelCount) - targetVoxel);
+    if (cellSizeDifference <= bestCellSizeDifference) {  // ties favor more pixels
+      best = pixelCount;
+      bestCellSizeDifference = cellSizeDifference;
     }
   }
   return static_cast<int>(best);
@@ -31,8 +35,8 @@ int UncappedPixelCount(double boxSide, double targetVoxel, int maxPixels)
 
 int PixelCount(double boxSide, double targetVoxel, int maxPixels)
 {
-  const int p = UncappedPixelCount(boxSide, targetVoxel, maxPixels);
-  return p < maxPixels ? p : maxPixels;
+  const int pixelCount = UncappedPixelCount(boxSide, targetVoxel, maxPixels);
+  return pixelCount < maxPixels ? pixelCount : maxPixels;
 }
 
 bool PixelCountCapped(double boxSide, double targetVoxel, int maxPixels)
@@ -47,11 +51,11 @@ std::vector<double> LogTimeGrid(double start, double end, int perDecade)
   }
   std::vector<double> grid{start};
   for (int k = 1;; ++k) {
-    const double t = start * std::pow(10., static_cast<double>(k) / perDecade);
+    const double recordTime = start * std::pow(10., static_cast<double>(k) / perDecade);
     // Relative margin so that start * 10^n landing a rounding error below end
     // does not leave two near-identical last values.
-    if (t >= end * (1. - 1e-9)) break;
-    grid.push_back(t);
+    if (recordTime >= end * (1. - kEndTimeRelativeMargin)) break;
+    grid.push_back(recordTime);
   }
   grid.push_back(end);
   return grid;

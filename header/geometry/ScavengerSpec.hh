@@ -1,4 +1,8 @@
 /// \file ScavengerSpec.hh
+/// Parses scavenger concentrations and identifies unused bulk partners.
+/// Dependencies: Standard library plus ChemistryTypes; no Geant4 dependency.
+/// Thread safety: Functions have no shared mutable state; callers coordinate mutation of supplied objects.
+
 /// \brief /chem/env/scavenger values: parsing, conversion to molarity, and the
 /// checks that need no Geant4 kernel.
 ///
@@ -32,18 +36,21 @@ namespace ScavengerSpec
   /// Parses "<species> <value> <unit>". unit: M, mM, uM, or % (O2 only, % of
   /// kO2SaturationMolarity). False + err for a wrong token count, a
   /// non-numeric or non-finite value, a negative value, an unknown unit, % on
-  /// a species other than O2, or a pH-owned species (IsPhOwned).
+  /// a species other than O2, or a pH-owned species (IsPhOwned). On failure out
+  /// is unchanged; success stores mol/L and leaves err unchanged. Allocation may throw.
   bool Parse(const std::string& text, Entry& out, std::string& err);
 
   /// True for the bulk species set by the water/pH model: H2O, H2O(B),
-  /// H3Op(B), OHm(B).
+  /// H3Op(B), OHm(B). Case-sensitive exact names; no failure path.
   bool IsPhOwned(const std::string& species);
 
   /// Replaces the entry with the same species (last wins) or appends it.
+  /// Entry molarity is mol/L; no validation. Caller owns list; allocation may throw.
   void Upsert(List& list, const Entry& entry);
 
   /// Species with molarity > 0 that are not the partner of any reaction in
   /// `reactions`, in list order: they would sit in the bulk without reacting.
+  /// Inputs are read-only; returns an owned list. Allocation exceptions propagate.
   std::vector<std::string> InertSpecies(const List& list,
                                         const ChemistryTypes::BulkReactionList& reactions);
 }  // namespace ScavengerSpec

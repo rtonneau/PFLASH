@@ -22,8 +22,10 @@ Data accumulates across runs and is written by a **dump**:
 | none in the macro | one automatic flush at exit with prefix `EndOfRun_` |
 
 The output directory is `--dir <path>` / `/run/outputDir <path>`, else
-`<exeDir>/results` (e.g. `build/results`), created at the first output; it is
-not the current directory, and with `--dir` the default folder is not created.
+normally `<exeDir>/results` (e.g. `build/results`), created at the first
+output. If executable lookup or lazy default-directory creation fails, the
+existing fallback is the current directory. With `--dir`, the default folder
+is not created.
 A dump writes the data since the previous dump (or process
 start) and resets the counters. Reusing a prefix or a subfolder name in one
 process is fatal.
@@ -92,8 +94,8 @@ produces the content.
 | File | Content | Writer | Appears | Typical size |
 |---|---|---|---|---|
 | `Manifest.json` | What produced the data beside it: timestamp, Chemistry, scavengers, pH, box, `timeStepModel` (`IRT_syn` or `SBS`), `mesoEnabled`, hand-over and end time, mesh settings, run mode, threads, output dir, prefix/subdir, totals, `files` (the data files of this dump), `runs[]` (beam, energy deposit, seed, wall time). In the output directory itself it is also the results index (`dumps[]`, see above) | `src/scoring/RunManifest.cc` via `JsonWriter` (index: `ResultsIndex`) | every dump, with the same prefix/subfolder as the data | 1.5 to 2 KB; index alone 0.6 KB |
-| `Species.Txt` | Species yields (G values) vs. time; up to the hand-over time, or the whole run when the mesoscopic stage is off | `src/scoring/ScoreSpecies.cc` | every dump | 0.5 to 1 KB |
-| `Species_nt_species.csv` | Same data as a CSV ntuple: `speciesID,number,nEvent,speciesName,time,sumG,sumG2` | `ScoreSpecies.cc` (Geant4 analysis manager) | every dump | 2 to 3 KB |
+| `Species.Txt` | Accumulated molecule counts vs. time; up to the hand-over time, or the whole run when the mesoscopic stage is off | `src/scoring/ScoreSpecies.cc` | every dump | 0.5 to 1 KB |
+| `Species_nt_species.csv` | Counts and per-event G-value sums: `speciesID,number,nEvent,speciesName,time,sumG,sumG2`; mean G = sumG/nEvent in molecules per 100 eV | `ScoreSpecies.cc` (Geant4 analysis manager) | every dump | 2 to 3 KB |
 | `Reactions.Txt` | Bimolecular reaction firing counts per time bin, particle-based stage only | `src/scoring/ReactionCounter.cc` | every dump | 2 KB |
 | `Reactions_nt_reactions.csv` | CSV ntuple `reactionId,time,count` | `ReactionCounter.cc` | every dump | under 1 KB |
 | `ReactionsMetadata.csv` | `reactionId,reaction` label map for the ntuple | `ReactionCounter.cc` | every dump | under 1 KB |

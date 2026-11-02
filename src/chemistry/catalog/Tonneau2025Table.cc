@@ -1,5 +1,8 @@
-/// ile Tonneau2025Table.cc
-/// rief Table 2 of Tonneau et al. 2025 as plain data (see Tonneau2025Table.hh
+/// \file Tonneau2025Table.cc
+/// Stores the 73 Tonneau2025 reaction rows as plain data.
+/// Dependencies: Standard library only; no other project dependencies.
+/// Thread safety: Function-local immutable tables support concurrent reads after initialization.
+/// \brief Table 2 of Tonneau et al. 2025 as plain data (see Tonneau2025Table.hh
 /// for the conventions and the list of remaining uncertainties)
 
 #include "chemistry/catalog/Tonneau2025Table.hh"

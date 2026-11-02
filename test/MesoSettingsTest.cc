@@ -1,4 +1,8 @@
 /// \file MesoSettingsTest.cc
+/// Dependencies: Standard library and portable project code; no Geant4 dependency. Optional MSVC
+/// CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test. Mutates
+/// process-wide test state.
 /// \brief Plain-assert unit tests for MesoSettings (no Geant4 runtime):
 /// pixel count, log time grid, defaults and the /chem/meso/enable switch.
 #include "chemistry/MesoSettings.hh"

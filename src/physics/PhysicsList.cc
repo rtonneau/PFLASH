@@ -1,5 +1,7 @@
 /// \file PhysicsList.cc
-/// \brief Implementation of the PhysicsList class
+/// Configures EM-DNA option2 and the selected Chemistry in dependency order.
+/// Dependencies: Geant4 and DnaChemistryList; not standard-library-only.
+/// Thread safety: Shared physics list; use only through Geant4 initialization callbacks.
 
 #include "physics/PhysicsList.hh"
 
@@ -14,14 +16,12 @@
 
 PhysicsList::PhysicsList()
   : G4VModularPhysicsList(),
-    // Pre-2026-10 default was G4EmDNAPhysics; kept here as reference.
-    // fEmDNAPhysicsList(new G4EmDNAPhysics(/*verbose*/ 0)),
     fEmDNAPhysicsList(new G4EmDNAPhysics_option2(/*verbose*/ 0)),
     fEmDNAChemistryList(new DnaChemistryList)
 {
-  const G4double defaultCut = 1. * nanometer;
+  const G4double defaultCut_mm = 1. * nanometer;
   G4ProductionCutsTable::GetProductionCutsTable()->SetEnergyRange(100 * eV, 1 * GeV);
-  SetDefaultCutValue(defaultCut);
+  SetDefaultCutValue(defaultCut_mm);
   SetVerboseLevel(0);
 
   // Default chemistry time-step model: IRT_syn (particle-based stage before
@@ -46,7 +46,8 @@ void PhysicsList::ConstructProcess()
 {
   AddTransportation();
   fEmDNAPhysicsList->ConstructProcess();
-  // Chemistry processes must be constructed after all other processes.
+  // Chemistry inspects/extends EM processes (including electron solvation),
+  // so keep its construction after transport and EM-DNA registration.
   fEmDNAChemistryList->ConstructProcess();
 }
 

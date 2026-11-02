@@ -1,5 +1,6 @@
 /// \file MacroResolver.cc
-/// \brief See MacroResolver.hh.
+/// \brief Ordered macro-file lookup; portable, standard library only.
+/// Stateless and safe for concurrent calls; filesystem changes are external.
 
 #include "core/MacroResolver.hh"
 
@@ -10,27 +11,27 @@ namespace MacroResolver
 {
 namespace
 {
-bool IsFile(const std::string& p)
+bool IsFile(const std::string& path)
 {
   std::error_code ec;
-  return std::filesystem::is_regular_file(std::filesystem::path(p), ec);
+  return std::filesystem::is_regular_file(std::filesystem::path(path), ec);
 }
 }  // namespace
 
 Result Resolve(const std::string& arg, const std::string& exeDir)
 {
   namespace fs = std::filesystem;
-  Result r;
-  r.tried.push_back(arg);
-  r.tried.push_back((fs::path(exeDir) / arg).string());
-  r.tried.push_back((fs::path(exeDir) / "macro" / arg).string());
-  for (const auto& c : r.tried) {
-    if (IsFile(c)) {
-      r.found = true;
-      r.path = c;
-      return r;
+  Result result;
+  result.tried.push_back(arg);
+  result.tried.push_back((fs::path(exeDir) / arg).string());
+  result.tried.push_back((fs::path(exeDir) / "macro" / arg).string());
+  for (const auto& candidatePath : result.tried) {
+    if (IsFile(candidatePath)) {
+      result.found = true;
+      result.path = candidatePath;
+      return result;
     }
   }
-  return r;
+  return result;
 }
 }  // namespace MacroResolver

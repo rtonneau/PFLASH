@@ -1,5 +1,7 @@
 /// \file TrackLengthTable.cc
-/// \brief Implementation of the TrackLengthTable class
+/// \brief Store and summarize per-event primary and secondary track lengths.
+/// Standard library only.
+/// Callers coordinate access to shared mutable tables and streams.
 
 #include "scoring/TrackLengthTable.hh"
 
@@ -51,62 +53,64 @@ template<typename Getter>
 TrackLengthTable::Stat ColumnStat(const std::vector<TrackLengthTable::Row>& rows, Getter get)
 {
   TrackLengthTable::Stat stat;
-  const std::size_t n = rows.size();
-  if (n == 0) return stat;
+  const std::size_t rowCount = rows.size();
+  if (rowCount == 0) return stat;
   double sum = 0.;
-  for (const auto& r : rows) sum += static_cast<double>(get(r));
-  stat.mean = sum / static_cast<double>(n);
-  if (n < 2) return stat;
-  double sq = 0.;
-  for (const auto& r : rows) {
-    const double d = static_cast<double>(get(r)) - stat.mean;
-    sq += d * d;
+  for (const auto& row : rows) sum += static_cast<double>(get(row));
+  stat.mean = sum / static_cast<double>(rowCount);
+  if (rowCount < 2) return stat;
+  double sumSquaredDeviations = 0.;
+  for (const auto& row : rows) {
+    const double deviation = static_cast<double>(get(row)) - stat.mean;
+    sumSquaredDeviations += deviation * deviation;
   }
-  const double stddev = std::sqrt(sq / static_cast<double>(n - 1));
-  stat.sem = stddev / std::sqrt(static_cast<double>(n));
+  const double stddev = std::sqrt(sumSquaredDeviations / static_cast<double>(rowCount - 1));
+  stat.sem = stddev / std::sqrt(static_cast<double>(rowCount));
   return stat;
 }
 }  // namespace
 
 TrackLengthTable::Summary TrackLengthTable::Summarize() const
 {
-  Summary s;
-  s.nEvents = fRows.size();
-  s.primaryLength_nm = ColumnStat(fRows, [](const Row& r) { return r.primaryLength_nm; });
-  s.primaryEkin0_keV = ColumnStat(fRows, [](const Row& r) { return r.primaryEkin0_keV; });
-  s.primaryEkinEnd_keV = ColumnStat(fRows, [](const Row& r) { return r.primaryEkinEnd_keV; });
-  s.secondaryFirstGen_nm = ColumnStat(fRows, [](const Row& r) { return r.secondaryFirstGen_nm; });
-  s.nSecondaryFirstGen = ColumnStat(fRows, [](const Row& r) { return r.nSecondaryFirstGen; });
-  s.secondaryAll_nm = ColumnStat(fRows, [](const Row& r) { return r.secondaryAll_nm; });
-  s.nSecondaryAll = ColumnStat(fRows, [](const Row& r) { return r.nSecondaryAll; });
-  for (const auto& r : fRows) {
-    switch (r.primaryEnd) {
+  Summary summary;
+  summary.nEvents = fRows.size();
+  summary.primaryLength_nm = ColumnStat(fRows, [](const Row& row) { return row.primaryLength_nm; });
+  summary.primaryEkin0_keV = ColumnStat(fRows, [](const Row& row) { return row.primaryEkin0_keV; });
+  summary.primaryEkinEnd_keV = ColumnStat(fRows, [](const Row& row) { return row.primaryEkinEnd_keV; });
+  summary.secondaryFirstGen_nm = ColumnStat(fRows, [](const Row& row) { return row.secondaryFirstGen_nm; });
+  summary.nSecondaryFirstGen = ColumnStat(fRows, [](const Row& row) { return row.nSecondaryFirstGen; });
+  summary.secondaryAll_nm = ColumnStat(fRows, [](const Row& row) { return row.secondaryAll_nm; });
+  summary.nSecondaryAll = ColumnStat(fRows, [](const Row& row) { return row.nSecondaryAll; });
+  for (const auto& row : fRows) {
+    switch (row.primaryEnd) {
       case End::Stopped:
-        ++s.nStopped;
+        ++summary.nStopped;
         break;
       case End::Escaped:
-        ++s.nEscaped;
+        ++summary.nEscaped;
         break;
       case End::Killed:
-        ++s.nKilled;
+        ++summary.nKilled;
         break;
     }
   }
-  return s;
+  return summary;
 }
 
 namespace
 {
-void WriteRows(std::ostream& out, const std::vector<TrackLengthTable::Row>& rows, char sep)
+constexpr int kTablePrecision = 6;
+
+void WriteRows(std::ostream& out, const std::vector<TrackLengthTable::Row>& rows, char separator)
 {
   const auto flags = out.flags();
   const auto precision = out.precision();
-  out << std::fixed << std::setprecision(6);
-  for (const auto& r : rows) {
-    out << r.run << sep << r.event << sep << r.primaryLength_nm << sep << r.primaryEkin0_keV << sep
-        << r.primaryEkinEnd_keV << sep << TrackLengthTable::EndToString(r.primaryEnd) << sep
-        << r.secondaryFirstGen_nm << sep << r.nSecondaryFirstGen << sep << r.secondaryAll_nm << sep
-        << r.nSecondaryAll << "\n";
+  out << std::fixed << std::setprecision(kTablePrecision);
+  for (const auto& row : rows) {
+    out << row.run << separator << row.event << separator << row.primaryLength_nm << separator << row.primaryEkin0_keV << separator
+        << row.primaryEkinEnd_keV << separator << TrackLengthTable::EndToString(row.primaryEnd) << separator
+        << row.secondaryFirstGen_nm << separator << row.nSecondaryFirstGen << separator << row.secondaryAll_nm << separator
+        << row.nSecondaryAll << "\n";
   }
   out.flags(flags);
   out.precision(precision);

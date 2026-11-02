@@ -1,3 +1,7 @@
+/// Collects primary and secondary-electron track lengths for each event.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
+
 #include <G4SystemOfUnits.hh>
 #include <G4Track.hh>
 #include <G4UnitsTable.hh>
@@ -10,7 +14,8 @@ TrackingAction::TrackingAction() : G4UserTrackingAction() {}
 
 void TrackingAction::PostUserTrackingAction(const G4Track *track)
 {
-  // Track 1 is the only primary (the gun fires one particle per event).
+  // Track 1 is the recorded primary; the project gun defaults to one particle.
+  // Multi-primary gun settings are outside this table's current convention.
   if (track->GetTrackID() == 1)
   {
     fEventRow.primaryLength_nm = track->GetTrackLength() / nm;
@@ -43,13 +48,6 @@ void TrackingAction::PostUserTrackingAction(const G4Track *track)
 
 void TrackingAction::PreUserTrackingAction(const G4Track * /*track*/)
 {
-  // if (track->GetParentID() == 0)
-  // {
-  //   G4cout << "New primary track, TrackID = "
-  //          << track->GetTrackID()
-  //          << ", Particle = " << track->GetDefinition()->GetParticleName()
-  //          << G4endl;
-  // }
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

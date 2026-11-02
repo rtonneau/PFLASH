@@ -1,4 +1,7 @@
-// EventAction.cc
+/// Stages pre-chemical event output and commits completed track-length rows.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
+
 #include "actions/EventAction.hh"
 #include "actions/TrackingAction.hh"
 #include "core/DnaLogger.hh"
@@ -41,15 +44,15 @@ void EventAction::BeginOfEventAction(const G4Event *event)
         // addendum). A fresh writer per event: FormattedText::CloseFile() is a
         // no-op until the first record, so a reused writer could keep a stale
         // stream open.
-        const G4String dir = OutputDir::GetDirectory();
-        std::string err;
-        if (!PreChemicalFiles::EnsureStagingDir(dir, err))
+        const G4String outputDirectory = OutputDir::GetDirectory();
+        std::string error;
+        if (!PreChemicalFiles::EnsureStagingDir(outputDirectory, error))
         {
             G4Exception("EventAction::BeginOfEventAction", "PreChemicalStagingDir",
-                        FatalException, err.c_str());
+                        FatalException, error.c_str());
         }
         const G4int runId = G4RunManager::GetRunManager()->GetCurrentRun()->GetRunID();
-        const std::string fileName = PreChemicalFiles::StagingDir(dir) + "/" +
+        const std::string fileName = PreChemicalFiles::StagingDir(outputDirectory) + "/" +
                                      PreChemicalFiles::StagedFileName(runId, eventId);
 
         auto *chemistryManager = G4DNAChemistryManager::Instance();

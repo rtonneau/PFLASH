@@ -1,8 +1,11 @@
 /// \file Tonneau2025TableTest.cc
+/// Dependencies: Geant4 types/libraries and project code; no kernel initialization. Optional MSVC
+/// CRT diagnostics.
+/// Thread safety: Sequential test process; no concurrent execution within this test.
 /// \brief Plain-assert unit tests for Tonneau2025Table and the Geant4-free part
 /// of Tonneau2025Reactions (routing, types, bulk-reaction list). No Geant4
 /// runtime: the reaction-table builder and HO3 creation need a live molecule
-/// table and are checked by the smoke run.
+/// table and require a separate integration run with Tonneau2025 selected.
 #include "chemistry/catalog/Tonneau2025Reactions.hh"
 #include "chemistry/catalog/Tonneau2025Table.hh"
 

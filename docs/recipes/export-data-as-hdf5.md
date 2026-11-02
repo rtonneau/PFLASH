@@ -32,17 +32,18 @@ that works instead:
    on-disk HDF5 file in a private, hidden staging directory, as soon as the
    event finishes — not buffered in memory, so a long run can't blow up
    process memory, and not written straight into the configured output
-   directory, so a reader never sees a half-written file.
+   directory, so readers of final dump files do not read an actively staged event file.
 2. **Move at dump time.** When a macro issues `/run/dumpDataAndReset [prefix]`
    or `/run/dumpDataAndResetToDir <subdir>`, the staged file is renamed
    (`std::filesystem::rename`, not copied) into the actual dump target and
-   listed in that dump's `Manifest.json`. A rename is atomic on the same
-   filesystem and cheap regardless of file size — unlike the counters, there
-   is no in-memory state to serialise at dump time, only a file move.
+   listed in that dump's `Manifest.json`. This implementation first removes an
+   existing destination, then renames; the combined operation is not transactional,
+   and a later rename failure can leave the old destination removed. There is
+   no in-memory state to serialise at dump time, only a file move.
 3. **Safety net.** The same end-of-process safety-net flush that catches
    un-dumped counters (prefix `EndOfRun_`, see `docs/output/README.md`) also
-   moves the staged HDF5 file, so data staged since the last dump is never
-   silently dropped if the macro forgets a final `/run/dumpDataAndReset`.
+   attempts to move the staged HDF5 file when accumulated data is pending.
+   It covers a missing final dump command, but output failures remain possible.
 
 Appending groups to an existing HDF5 file, rather than writing a new file per
 event, keeps the file count manageable for runs with many events and lets a
@@ -64,25 +65,24 @@ per-event HDF5 data, not a one-off tied to the mesoscopic stage. Verified
 against the actual source:
 
 - **Staging path.** `MesoSpatialFile::StagingDir(outputDir)`
-  (`MesoSpatialFile.cc:128-132`) returns
-  `outputDir + "/.pending_meso_spatial"` (or `.pending_meso_spatial` with no
-  `--dir`), mirroring the existing `.pending_prechem` convention
+  (`MesoSpatialFile.cc, StagingDir`) returns
+  `outputDir + "/.pending_meso_spatial"` (or `.pending_meso_spatial` when the supplied outputDir is empty), mirroring the existing `.pending_prechem` convention
   (`PreChemicalFiles`) rather than introducing a different staging
   directory name pattern. `StagedPath` appends the fixed file name
   (`FileName()`, `"SpeciesMesoSpatial.h5"`).
 - **Append per event.** `TimeStepAction::WriteSpatialSnapshots()`
-  (`src/chemistry/TimeStepAction.cc:634-653`) runs once per event, right
+  (`src/chemistry/TimeStepAction.cc`) runs once per event, right
   after the mesoscopic stage finishes recording that event's snapshots: it
   skips entirely when there are no records for this event
-  (`data.records.empty()`, `TimeStepAction.cc:638`), fills `runId`/`eventId`
+  (`data.records.empty()`, `TimeStepAction.cc`), fills `runId`/`eventId`
   from the current `G4Run`/`G4Event`, and calls
   `MesoSpatialFile::AppendEvent(MesoSpatialFile::StagedPath(OutputDir::GetDirectory()), species, data, err)`
-  (`TimeStepAction.cc:644-645`). A write failure is a `JustWarning`
+  (`TimeStepAction.cc`). A write failure is a `JustWarning`
   `G4Exception`, not fatal — one event's spatial data is lost, but the run
-  continues (`TimeStepAction.cc:646-650`).
+  continues (`TimeStepAction.cc`).
 - **What `AppendEvent` actually does**
-  (`MesoSpatialFile.cc:139-224`, verified line by line): validates the event
-  data shape first (`Validate`, `MesoSpatialFile.cc:97-120` — `position_nm`
+  (`MesoSpatialFile.cc, AppendEvent`, verified line by line): validates the event
+  data shape first (`Validate`, `MesoSpatialFile.cc, Validate` — `position_nm`
   size a multiple of 3, `counts` sized cells × species, every record's
   snapshot index in range) before touching the file at all; creates the
   staging folder if missing; opens the file `H5F_ACC_RDWR` if it already
@@ -93,16 +93,16 @@ against the actual source:
   to double-write or silently merge mismatched species lists; then creates
   `/run<R>/event<E>/snapshot<k>/` groups, writing `position_nm`/`counts`
   datasets once per distinct mesh state and hard-linking repeats
-  (`MesoSpatialFile.cc:192-216`) rather than duplicating identical data —
+  (`MesoSpatialFile.cc, WriteSnapshotRecords`) rather than duplicating identical data —
   specific to this writer's own schema, not a generic requirement of the
   staging pattern.
 - **Move at dump time.** `RunAccumulatorMessenger`'s `/run/dumpDataAndReset`
-  handler (`src/scoring/RunAccumulatorMessenger.cc:243-259`) calls
+  handler (`src/scoring/RunAccumulatorMessenger.cc, MoveSpatialOutput`) calls
   `MesoSpatialFile::MoveStaged(OutputDir::GetDirectory(), OutputDir::Resolve(MesoSpatialFile::FileName()), spatialMoved, spatialErr)`
   after moving the staged pre-chemical files and before writing
   `Manifest.json`; on success with `spatialMoved == true` it appends the
   (prefix-applied) file name to that dump's `files` list. `MoveStaged`
-  itself (`MesoSpatialFile.cc:226-244`) is a no-op returning `true` with
+  itself (`MesoSpatialFile.cc, MoveStaged`) is a no-op returning `true` with
   `moved = false` when nothing was staged — not every dump interval
   necessarily has spatial output — and otherwise creates the destination's
   parent directory, removes any pre-existing file at the destination, and
@@ -111,8 +111,8 @@ against the actual source:
 - **Safety net.** The same `FlushIfPending()` call from `sim.cc` that catches
   un-dumped counters at process exit (prefix `EndOfRun_`) reaches this same
   `RunAccumulatorMessenger` dump path, so a staged `SpeciesMesoSpatial.h5`
-  never manually dumped is still moved out of `.pending_meso_spatial/`
-  before the process exits.
+  is also offered for publication before exit when accumulated data is pending.
+  Publication failures still follow the normal warning path.
 - **Layout and format.** The exact group/attribute/dataset layout
   (`/run<R>/event<E>/snapshot<k>/`, datasets `position_nm`/`counts`,
   attributes `time_ns`/`cellSize_nm`) is
@@ -140,8 +140,8 @@ all use:
   the merge step at the end is the only synchronisation point.
 - **HDF5 export:** `MesoSpatialFile::AppendEvent` is guarded by a single
   process-wide `std::mutex` (`Hdf5Mutex()`, a function-local `static`,
-  `MesoSpatialFile.cc:22-25`; taken via `std::lock_guard` at the top of
-  `AppendEvent`, `MesoSpatialFile.cc:144`) so that under MT, every worker
+  `MesoSpatialFile.cc, Hdf5Mutex`; taken via `std::lock_guard` at the top of
+  `AppendEvent`, `MesoSpatialFile.cc, AppendEvent`) so that under MT, every worker
   thread's call to `AppendEvent` serialises on the *same* file — one worker's
   append fully completes (including the file-existence check, group
   creation and dataset writes) before another's begins.

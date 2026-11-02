@@ -1,4 +1,7 @@
 /// \file ChemistrySelectMessenger.cc
+/// Exposes Chemistry selection and listing commands.
+/// Dependencies: Geant4 UI and project registry; not standard-library-only.
+/// Thread safety: Create and dispatch on the master; selection changes are restricted to PreInit.
 #include "chemistry/ChemistrySelectMessenger.hh"
 
 #include "chemistry/ChemistryRegistry.hh"

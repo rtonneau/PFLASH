@@ -1,4 +1,8 @@
 /// \file ScavengerMessenger.hh
+/// Parses the PreInit bulk-scavenger command into the shared chemistry world.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Configure on the master before worker reads; follow Geant4 initialization callbacks.
+
 /// \brief /chem/env/scavenger <species> <value> <unit> (PreInit only).
 ///
 /// A plain G4UImessenger: the command takes three tokens, which
@@ -14,12 +18,18 @@
 class DnaChemistryWorld;
 class G4UIcommand;
 
+/// Parses the PreInit bulk-scavenger command into the shared chemistry world.
 class ScavengerMessenger : public G4UImessenger
 {
 public:
+  /// Borrows non-null world, which must outlive this messenger. Create after /chem/env/.
+  /// Registers a master-only PreInit command; Geant4/allocation failures propagate.
   explicit ScavengerMessenger(DnaChemistryWorld* world);
+  /// Deletes the owned UI command after dispatch stops.
   ~ScavengerMessenger() override;
 
+  /// Handles its own command, ignoring other pointers. Expects species/value/unit tokens.
+  /// Parse failure raises FatalException; successful concentrations are stored in mol/L.
   void SetNewValue(G4UIcommand* command, G4String newValue) override;
 
 private:

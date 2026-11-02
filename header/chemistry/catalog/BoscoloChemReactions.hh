@@ -1,4 +1,7 @@
 /// \file BoscoloChemReactions.hh
+/// Builds the BoscoloChem Chemistry reaction network.
+/// Dependencies: Geant4 plus ChemistryTypes; portable to Geant4 projects, not standard-library-only.
+/// Thread safety: Build shared tables/molecules on the master before workers; returned bulk lists are caller-owned.
 /// \brief BoscoloChem Chemistry: reaction-table and bulk-reaction list builders
 ///
 /// Reproduces Table 1 of Boscolo et al., "Impact of Target Oxygenation on the
@@ -7,8 +10,8 @@
 /// reactants/products dropped (water is not tracked).
 ///
 /// Self-contained, project-agnostic unit: no DnaChemistryWorld, DnaLogger, or
-/// other dnachem-min-specific includes -- only standard Geant4/Geant4-DNA
-/// headers. Copy-paste portable to another Geant4-DNA project.
+/// driver services. It uses Geant4/Geant4-DNA and the portable data headers
+/// listed below. Copy-paste portable to another Geant4-DNA project.
 ///
 /// The paper treats dissolved O2 as a continuum while (xvi), (xvii), (xxv) and
 /// (xxvi) produce O2, so (xiv) e_aq + O2 and (xv) H + O2 appear twice: in the
@@ -27,8 +30,8 @@
 /// lists as Type II or Type IV calls SetReactionType(1) (partially
 /// diffusion-controlled) unless ChemistryTypes::PartialReactionsEnabled() is
 /// false, which the driver sets for SBS; the others stay type 0 (fully
-/// diffusion-controlled). The bulk-reaction list keeps its own types (the
-/// acid-base equilibria 6/7/8). The driver also adds every bulk reaction to
+/// diffusion-controlled). Its two bulk entries have type 0 and no acid-base
+/// equilibria. The driver also adds every bulk reaction to
 /// the reaction table, for the mesoscopic stage; a bulk reaction whose pair
 /// is already in the table (e.g. e_aq + O2, tracked and bulk O2 share one
 /// configuration) must have the same rate and products and shares that entry.
@@ -47,12 +50,16 @@ namespace BoscoloChemReactions
   /// G4MoleculeTable::Instance()->GetConfiguration(name); raises a fatal
   /// G4Exception if any expected species is missing. Call after
   /// G4ChemDissociationChannels_option1::ConstructMolecule().
+  /// Requires non-null reactionTable; entries use Geant4 internal rate units.
+  /// Master-only construction; ownership of inserted reaction data passes to Geant4.
   void BuildBoscoloChemReactions(G4DNAMolecularReactionTable* reactionTable);
 
   /// The dissolved-O2 bulk reactions (xiv) e_aq + O2 -> O2- and (xv) H + O2 ->
   /// HO2 (inert at 0 concentration), as plain data. No acid-base buffer.
   /// Species are named as stored by G4ChemDissociationChannels_option1; the
   /// driver resolves them.
+  /// Returns caller-owned data with rates in Geant4 units; no kernel mutation.
+  /// Allocation exceptions propagate.
   ChemistryTypes::BulkReactionList BuildBoscoloChemBulkReactions();
 }  // namespace BoscoloChemReactions
 

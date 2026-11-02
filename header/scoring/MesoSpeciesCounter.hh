@@ -1,6 +1,7 @@
 /// \file MesoSpeciesCounter.hh
-/// \brief Portable (time, species) -> molecule-count table for the
-/// mesoscopic stage's record times
+/// \brief Accumulate molecule counts at Mesoscopic stage record times.
+/// Standard library only.
+/// Callers coordinate access to shared mutable counters and streams.
 ///
 /// Self-contained, project-agnostic unit: standard library only, no Geant4
 /// or other dnachem-min includes. Copy-paste portable to another Geant4-DNA
@@ -17,20 +18,25 @@
 #include <map>
 #include <string>
 
+/// Mutable count table; allocations may throw. Stream writers use stream flags
+/// or enabled stream exceptions, without a separate success return.
 class MesoSpeciesCounter
 {
  public:
-  /// Adds `count` molecules of `species` at `time` (sums with earlier Adds).
-  void Add(double time, const std::string& species, long count);
+  /// Add count molecules of species at time_ns (ns); values are not validated.
+  void Add(double time_ns, const std::string& species, long count);
 
-  /// Adds `other`'s counts into this counter; `other` is left unchanged.
+  /// Add other's counts; a distinct source is unchanged. Self-merge doubles counts.
   void Merge(const MesoSpeciesCounter& other);
 
+  /// Remove all recorded counts; leave configuration unchanged.
   void Clear();
 
+  /// True when no time/species entries have been recorded.
   bool Empty() const;
 
   using Counts = std::map<double, std::map<std::string, long>>;
+  /// Borrow the stored counts; callers must coordinate concurrent mutation.
   const Counts& GetCounts() const { return fCounts; }
 
   /// A "Time is in ns; mean count per event over N events" line, then per

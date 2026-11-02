@@ -1,4 +1,7 @@
 /// \file MesoMessenger.cc
+/// Exposes mesoscopic-stage configuration commands.
+/// Dependencies: Geant4 UI and MesoSettings; not standard-library-only.
+/// Thread safety: Master-only PreInit writes; workers subsequently read the settings.
 #include "chemistry/MesoMessenger.hh"
 
 #include "chemistry/MesoSettings.hh"

@@ -1,4 +1,8 @@
 /// \file ScavengerMessenger.cc
+/// Parses the PreInit bulk-scavenger command into the shared chemistry world.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: Configure on the master before worker reads; follow Geant4 initialization callbacks.
+
 #include "geometry/ScavengerMessenger.hh"
 
 #include "geometry/DnaChemistryWorld.hh"
@@ -20,13 +24,13 @@ ScavengerMessenger::ScavengerMessenger(DnaChemistryWorld* world) : fpWorld(world
   fpScavengerCmd->SetGuidance(
     "Repeating a species replaces its value; 0 means absent. The reactions come from the "
     "selected Chemistry (bulk reactions). Must be issued before /run/initialize.");
-  // All three are strings so ScavengerSpec reports every malformed value as a
-  // fatal error, instead of the UI rejecting a bad number non-fatally.
+  // String parameters let ScavengerSpec diagnose invalid numeric values.
+  // Missing required tokens can still be rejected by Geant4 before this callback.
   fpScavengerCmd->SetParameter(new G4UIparameter("species", 's', false));
   fpScavengerCmd->SetParameter(new G4UIparameter("value", 's', false));
   fpScavengerCmd->SetParameter(new G4UIparameter("unit", 's', false));
   fpScavengerCmd->AvailableForStates(G4State_PreInit);
-  // The world lives on the master only (as in the UHDR example).
+  // Configure the shared world on the master before workers read its composition.
   fpScavengerCmd->SetToBeBroadcasted(false);
 }
 
@@ -41,10 +45,10 @@ void ScavengerMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
     return;
   }
   ScavengerSpec::Entry entry;
-  std::string err;
-  if (!ScavengerSpec::Parse(newValue, entry, err)) {
+  std::string error;
+  if (!ScavengerSpec::Parse(newValue, entry, error)) {
     G4Exception("ScavengerMessenger::SetNewValue", "InvalidScavenger", FatalException,
-                err.c_str());
+                error.c_str());
     return;
   }
   fpWorld->SetScavenger(entry);

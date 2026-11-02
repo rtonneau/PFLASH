@@ -1,4 +1,7 @@
 /// \file Tonneau2025Table.hh
+/// Stores the 73 Tonneau2025 reaction rows as plain data.
+/// Dependencies: Standard library only; no other project dependencies.
+/// Thread safety: Function-local immutable tables support concurrent reads after initialization.
 /// \brief Table 2 of Tonneau et al., Phys. Med. Biol. 70 (2025) 235021, as plain data
 ///
 /// All 73 reactions of the paper's Table 2 (reactants, products, rate constant,
@@ -6,8 +9,8 @@
 /// Geant4, no other dnachem-min header. Copy-paste portable to another project
 /// (adjust the include path prefix on copy).
 ///
-/// The table is data, not a Chemistry: a builder (a later ticket) turns it into
-/// reaction-table entries and bulk reactions.
+/// Tonneau2025Reactions builds reaction-table entries and bulk reactions from
+/// this data; its Placements() table controls routing.
 ///
 /// Species names are the paper's, in ASCII: "e-aq", "H.", "OH.", "OH-", "H3O+",
 /// "O-", "O2-", "O3-", "HO2." (radical), "HO2-" (anion), "HO3", "O3", "O2",
@@ -17,10 +20,9 @@
 /// Water is kept as written in the paper (e.g. R23 "H. + H2O"); a builder
 /// that treats water as the solvent drops the "H2O" terms.
 ///
-/// Routing: `bulk` is true for R1, R23 and R58..R73, the water pseudo-first-
-/// order and acid-base/water equilibrium entries that a builder routes to a
-/// bulk-reaction list instead of the particle reaction table. Other
-/// first-order entries without water (R53, R55) and R56/R57 are not marked.
+/// Historical `bulk` metadata is true for R1, R23 and R58..R73. It is not
+/// the active routing rule: Tonneau2025Reactions::Placements handles tracked,
+/// bulk and buffer entries explicitly, including R53, R55, R56 and R57.
 ///
 /// Rate-constant units (`Unit`): SecondOrder = M^-1 s^-1 (the default),
 /// FirstOrder = s^-1 (pseudo-first-order in water, or a unimolecular decay),
@@ -81,16 +83,17 @@ namespace Tonneau2025Table
     Unit unit;
     char source;                 ///< 'A' Domnanich and Severin 2022, 'B' Joseph et al 2008,
                                  ///< 'C' Labarbe et al 2020, 'D' Buxton et al 1988
-    bool bulk;                   ///< water pseudo-first-order / equilibrium entry: route to bulk
+    bool bulk;                   ///< historical water/equilibrium marker; not the routing rule
   };
 
-  /// All 73 reactions, in table order (index i holds row i + 1). Built once.
+  /// All 73 reactions, in table order (index i holds row i + 1). Process-lifetime
+  /// immutable reference; allocation exceptions can propagate on first use.
   const std::vector<Reaction>& Reactions();
 
-  /// The row with this id (1..73), or nullptr.
+  /// Borrowed process-lifetime row for id 1..73, else nullptr; initializes Reactions().
   const Reaction* Find(int id);
 
-  /// "M^-1 s^-1", "s^-1" or "M s^-1".
+  /// Static unit label: "M^-1 s^-1", "s^-1" or "M s^-1"; unknown enum returns "".
   const char* UnitLabel(Unit unit);
 }  // namespace Tonneau2025Table
 

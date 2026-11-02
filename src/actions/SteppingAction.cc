@@ -1,5 +1,6 @@
-/// \file SteppingAction.cc
-/// \brief Implementation of the SteppingAction class
+/// Counts steps selected by the G4DNA process-name filter.
+/// Dependencies: Geant4 and project services; not standard-library-only.
+/// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
 
 #include "actions/SteppingAction.hh"
 
