@@ -1,5 +1,5 @@
 {
-  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to,label?}; flow[]{id,title,summary,files[],outputs[]}; tasks[]{id,title,summary,docs[],files[]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
+  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to}; flow[]{id,title,summary,files[],outputs[] (file names, not checked),docs[],branches[]{label,summary},review?}; tasks[]{id,title,summary,audience,docs[],files[]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
   "version": 1,
   "lanes": [
     {
@@ -802,6 +802,306 @@
       "to": "prechem"
     }
   ],
-  "flow": [],
-  "tasks": []
+  "flow": [
+    {
+      "id": "start",
+      "title": "1. Start-up",
+      "summary": "The program reads its command line (--threads, --dir), builds the geometry, physics and actions, and finds and runs the macro file that configures the beam and the chemistry.",
+      "files": [
+        "sim.cc",
+        "src/core/ArgParser.cc",
+        "src/core/MacroResolver.cc",
+        "src/actions/ActionInitialization.cc"
+      ],
+      "outputs": [],
+      "docs": [
+        "macro/example_meso.in"
+      ]
+    },
+    {
+      "id": "physics",
+      "title": "2. Physical stage",
+      "summary": "Beam electrons slow down in the water box and ionise or excite water molecules (Geant4-DNA physics). Every discrete physical interaction is counted, and the pre-chemical species are staged to a per-event file.",
+      "files": [
+        "src/physics/PhysicsList.cc",
+        "src/actions/PrimaryGeneratorAction.cc",
+        "src/actions/SteppingAction.cc",
+        "src/actions/EventAction.cc"
+      ],
+      "outputs": [
+        "PhysicsInteractions.Txt / .csv",
+        "PreChemical_run<R>_event<E>.txt"
+      ],
+      "docs": [
+        "docs/output/README.md"
+      ]
+    },
+    {
+      "id": "handoff",
+      "title": "3. Physics to chemistry",
+      "summary": "When the physical stage has no tracks left, the event's chemistry is started.",
+      "files": [
+        "src/actions/StackingAction.cc"
+      ],
+      "outputs": [],
+      "docs": []
+    },
+    {
+      "id": "mode",
+      "title": "4. Chemistry mode",
+      "summary": "Which model advances the chemistry is chosen in the macro before initialisation. The selected Chemistry (reaction network) is independent of this choice.",
+      "files": [
+        "src/chemistry/DnaChemistryList.cc",
+        "src/chemistry/ChemistryRegistry.cc"
+      ],
+      "outputs": [],
+      "docs": [
+        "docs/adr/0008-selectable-chemistry-modes.md",
+        "docs/adr/0002-named-chemistries.md"
+      ],
+      "branches": [
+        {
+          "label": "SBS",
+          "summary": "Step-by-step chemistry on tracked molecules for the whole run; no mesoscopic stage."
+        },
+        {
+          "label": "IRT_syn only",
+          "summary": "IRT_syn particle-based stage for the whole run (/chem/meso/enable false)."
+        },
+        {
+          "label": "IRT_syn + mesoscopic (default)",
+          "summary": "IRT_syn particle-based stage, then a hand-over to the mesoscopic stage."
+        }
+      ]
+    },
+    {
+      "id": "particle",
+      "title": "5. Particle-based stage",
+      "summary": "Molecules are tracked individually; they diffuse and react. Species counts over time and reaction firings are recorded. In the default mode this stage stops at the Hand-over time (default 5 ns).",
+      "files": [
+        "src/chemistry/TimeStepAction.cc",
+        "src/scoring/ScoreSpecies.cc",
+        "src/scoring/ReactionCounter.cc"
+      ],
+      "outputs": [
+        "Species.Txt / Species_nt_species.csv",
+        "Reactions.Txt / .csv"
+      ],
+      "docs": [
+        "docs/output/README.md"
+      ]
+    },
+    {
+      "id": "meso",
+      "title": "6. Hand-over and mesoscopic stage",
+      "summary": "Only with IRT_syn and the mesoscopic stage enabled: the remaining molecules are passed to counts per cell on a mesh and advanced to the end time (default 1 s). Mean counts are recorded on a logarithmic time grid; optional per-event spatial snapshots.",
+      "files": [
+        "src/chemistry/TimeStepAction.cc",
+        "src/chemistry/MesoSettings.cc",
+        "src/scoring/MesoSpeciesCounter.cc",
+        "src/scoring/MesoSpatialFile.cc"
+      ],
+      "outputs": [
+        "SpeciesMeso.Txt / .csv",
+        "SpeciesMesoSpatial.h5 (optional)"
+      ],
+      "docs": [
+        "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
+        "docs/output/SpeciesMesoSpatial-h5.md"
+      ],
+      "review": true
+    },
+    {
+      "id": "event-end",
+      "title": "7. End of event",
+      "summary": "The primary track's length and how it ended are stored in one row per event.",
+      "files": [
+        "src/actions/TrackingAction.cc",
+        "src/scoring/TrackLengthTable.cc"
+      ],
+      "outputs": [
+        "TrackLengths.Txt / .csv"
+      ],
+      "docs": [
+        "docs/output/README.md"
+      ]
+    },
+    {
+      "id": "dump",
+      "title": "8. Dump and manifest",
+      "summary": "Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) writes all files together with Manifest.json, which records what produced them.",
+      "files": [
+        "src/scoring/RunAccumulatorMessenger.cc",
+        "src/scoring/RunManifest.cc",
+        "src/core/OutputDir.cc"
+      ],
+      "outputs": [
+        "Manifest.json",
+        "results index (Manifest.json in the output folder)"
+      ],
+      "docs": [
+        "docs/output/README.md",
+        "docs/adr/0005-manifest-per-dump.md"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "run",
+      "title": "Run a simulation",
+      "audience": "everyone",
+      "summary": "Run sim with one of the example macros (one per chemistry mode); each runs 10 keV electrons and dumps results into sub-folders.",
+      "docs": [
+        "macro/example_sbs.in",
+        "macro/example_irt.in",
+        "macro/example_meso.in",
+        "README.md"
+      ],
+      "files": [
+        "sim.cc"
+      ]
+    },
+    {
+      "id": "read",
+      "title": "Read the output files",
+      "audience": "everyone",
+      "summary": "What every output file contains, and how the results folder is organised.",
+      "docs": [
+        "docs/output/README.md",
+        ".claude/skills/sim-output/SKILL.md",
+        "docs/output/SpeciesMesoSpatial-h5.md"
+      ],
+      "files": []
+    },
+    {
+      "id": "commands",
+      "title": "Look up a macro command",
+      "audience": "everyone",
+      "summary": "Reference list of every custom /command with the states in which it is allowed.",
+      "docs": [
+        "docs/recipes/dnachem-min-macro-command-reference.md"
+      ],
+      "files": []
+    },
+    {
+      "id": "chemistry",
+      "title": "Add a new Chemistry",
+      "audience": "developer",
+      "summary": "Define a new named reaction network that /chem/select can choose.",
+      "docs": [
+        "docs/recipes/add-a-new-chemistry.md",
+        "docs/adr/0002-named-chemistries.md"
+      ],
+      "files": [
+        "src/chemistry/catalog/PureWaterReactions.cc",
+        "src/chemistry/BuiltInChemistries.cc",
+        "header/chemistry/ChemistryTypes.hh"
+      ]
+    },
+    {
+      "id": "reaction",
+      "title": "Add a reaction or molecule",
+      "audience": "developer",
+      "summary": "Extend an existing Chemistry with one more reaction or molecule.",
+      "docs": [
+        "docs/recipes/add-a-reaction-or-molecule.md",
+        "docs/adr/0007-extra-molecules-per-chemistry.md"
+      ],
+      "files": [
+        "src/chemistry/catalog/PureWaterReactions.cc",
+        "src/chemistry/BuiltInChemistries.cc"
+      ]
+    },
+    {
+      "id": "macro-cmd",
+      "title": "Create a macro command",
+      "audience": "developer",
+      "summary": "Add a new /command backed by a messenger class.",
+      "docs": [
+        "docs/recipes/create-a-macro-command.md"
+      ],
+      "files": [
+        "src/chemistry/MesoMessenger.cc",
+        "src/chemistry/ChemistrySelectMessenger.cc"
+      ]
+    },
+    {
+      "id": "scorer",
+      "title": "Create a scorer",
+      "audience": "developer",
+      "summary": "Add a Geant4 primitive scorer and register it.",
+      "docs": [
+        "docs/recipes/create-a-scorer.md"
+      ],
+      "files": [
+        "src/geometry/DetectorConstruction.cc",
+        "src/actions/RunAction.cc"
+      ]
+    },
+    {
+      "id": "species-counter",
+      "title": "Create a species counter",
+      "audience": "developer",
+      "summary": "Count molecular species over time during the chemistry stage.",
+      "docs": [
+        "docs/recipes/create-a-species-counter.md"
+      ],
+      "files": [
+        "src/scoring/ScoreSpecies.cc",
+        "src/chemistry/TimeStepAction.cc"
+      ]
+    },
+    {
+      "id": "counter",
+      "title": "Add a per-run counter",
+      "audience": "developer",
+      "summary": "Add a plain accumulator that tallies something across an event or a run.",
+      "docs": [
+        "docs/recipes/add-a-per-run-counter.md"
+      ],
+      "files": [
+        "src/scoring/ReactionCounter.cc",
+        "src/scoring/TrackLengthTable.cc",
+        "src/actions/RunAction.cc"
+      ]
+    },
+    {
+      "id": "meso-count",
+      "title": "Mesoscopic species counting",
+      "audience": "developer",
+      "summary": "How species are counted after the hand-over to the mesoscopic stage.",
+      "docs": [
+        "docs/recipes/mesoscopic-3d-species-counting.md"
+      ],
+      "files": [
+        "src/chemistry/TimeStepAction.cc",
+        "src/scoring/MesoSpeciesCounter.cc"
+      ]
+    },
+    {
+      "id": "hdf5",
+      "title": "Export data as HDF5",
+      "audience": "developer",
+      "summary": "Write per-event structured binary output.",
+      "docs": [
+        "docs/recipes/export-data-as-hdf5.md"
+      ],
+      "files": [
+        "src/scoring/MesoSpatialFile.cc"
+      ]
+    },
+    {
+      "id": "decisions",
+      "title": "Read the design decisions",
+      "audience": "everyone",
+      "summary": "The eight architecture decision records and the project glossary.",
+      "docs": [
+        "CONTEXT.md",
+        "docs/adr/0001-baseline-acid-base-buffer.md",
+        "docs/adr/0003-clustered-source-layout.md",
+        "docs/adr/0004-scavenger-reactions-per-chemistry.md"
+      ],
+      "files": []
+    }
+  ]
 }

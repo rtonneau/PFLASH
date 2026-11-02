@@ -43,6 +43,19 @@
   .badge { display:inline-block; background:#fff3d6; color:var(--review); border:1px solid #f0d28a;
            border-radius:10px; padding:1px 8px; font-size:12px; margin-bottom:6px; }
   .placeholder { color:var(--muted); padding:30px 10px; }
+  .flow { display:flex; flex-direction:column; gap:10px; max-width:980px; }
+  .step, .task { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 14px; cursor:pointer; }
+  .step { display:flex; gap:16px; justify-content:space-between; }
+  .step:hover, .task:hover, .step:focus, .task:focus { border-color:var(--accent); outline:none; }
+  .step.sel, .task.sel { background:var(--sel); border-color:var(--accent); }
+  .step.review { border-style:dashed; border-color:var(--review); }
+  .step-title { font-weight:600; }
+  .step-sum { color:var(--muted); font-size:14px; }
+  .branches { margin-top:8px; display:grid; gap:4px; }
+  .branch { font-size:13.5px; padding:4px 8px; background:#f1f4f9; border-left:3px solid var(--accent); border-radius:3px; }
+  .outs { display:flex; flex-direction:column; gap:4px; align-items:flex-end; flex:none; max-width:260px; }
+  .out { font:12px ui-monospace, Consolas, monospace; background:#eef7ee; border:1px solid #b9dcb9; border-radius:10px; padding:1px 8px; }
+  .tasks { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; max-width:980px; }
   .legend { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
 </style>
 </head>
@@ -184,16 +197,79 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     stage.appendChild(root);
   }
 
-  function renderPlaceholder(name) {
+  // ---- run flow ----
+  function renderFlow() {
     stage.textContent = '';
-    stage.appendChild(el('div', { class: 'placeholder', text: name + ' view: coming in the next step.' }));
+    stage.appendChild(el('p', { class: 'legend', text: 'One simulation run, step by step. Click a step for the files involved; the right-hand tags are the output files it produces.' }));
+    const list = el('div', { class: 'flow' });
+    let selected = null;
+    DATA.flow.forEach(function (s) {
+      const card = el('div', { class: 'step' + (s.review ? ' review' : ''), tabindex: '0', role: 'button' });
+      card.appendChild(el('div', { class: 'step-main' }, [
+        el('div', { class: 'step-title', text: s.title }),
+        el('div', { class: 'step-sum', text: s.summary })
+      ]));
+      if (s.branches && s.branches.length) {
+        const br = el('div', { class: 'branches' });
+        s.branches.forEach(function (b) {
+          br.appendChild(el('div', { class: 'branch' }, [el('b', { text: b.label }), el('span', { text: ' ' + b.summary })]));
+        });
+        card.firstChild.appendChild(br);
+      }
+      const outs = el('div', { class: 'outs' });
+      (s.outputs || []).forEach(function (o) { outs.appendChild(el('span', { class: 'out', text: o })); });
+      card.appendChild(outs);
+      function pick() {
+        if (selected) selected.classList.remove('sel');
+        selected = card; card.classList.add('sel');
+        const item = { title: s.title, summary: s.summary, review: s.review, files: (s.files || []).concat(s.docs || []), symbols: [] };
+        showDetail(item, 'Run flow');
+      }
+      card.addEventListener('click', pick);
+      card.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+      list.appendChild(card);
+    });
+    stage.appendChild(list);
+  }
+
+  // ---- tasks ----
+  function renderTasks() {
+    stage.textContent = '';
+    stage.appendChild(el('p', { class: 'legend', text: 'Start from what you want to do. Click a task for the guide and the files involved.' }));
+    [['everyone', 'For everyone'], ['developer', 'For developers']].forEach(function (g) {
+      const tasks = DATA.tasks.filter(function (t) { return t.audience === g[0]; });
+      if (!tasks.length) return;
+      stage.appendChild(el('h3', { text: g[1] }));
+      const grid = el('div', { class: 'tasks' });
+      tasks.forEach(function (t) {
+        const card = el('div', { class: 'task', tabindex: '0', role: 'button' }, [
+          el('div', { class: 'step-title', text: t.title }), el('div', { class: 'step-sum', text: t.summary })]);
+        function pick() {
+          grid.querySelectorAll('.sel').forEach(function (x) { x.classList.remove('sel'); });
+          card.classList.add('sel');
+          detail.className = ''; detail.textContent = '';
+          detail.appendChild(el('h2', { text: t.title }));
+          detail.appendChild(el('p', { text: t.summary }));
+          detail.appendChild(el('h3', { text: 'Guides' }));
+          detail.appendChild(fileList(t.docs || []));
+          if (t.files && t.files.length) {
+            const d = el('details', {}, [el('summary', { text: 'Files you touch' }), fileList(t.files)]);
+            detail.appendChild(d);
+          }
+        }
+        card.addEventListener('click', pick);
+        card.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+        grid.appendChild(card);
+      });
+      stage.appendChild(grid);
+    });
   }
 
   // ---- tabs ----
   const VIEWS = [
     { id: 'map', label: 'Module map', render: renderModuleMap },
-    { id: 'flow', label: 'Run flow', render: function () { (window.renderFlow || renderPlaceholder.bind(null, 'Run flow'))(); } },
-    { id: 'tasks', label: 'Tasks', render: function () { (window.renderTasks || renderPlaceholder.bind(null, 'Tasks'))(); } }
+    { id: 'flow', label: 'Run flow', render: renderFlow },
+    { id: 'tasks', label: 'Tasks', render: renderTasks }
   ];
   function activate(id) {
     VIEWS.forEach(function (v) {

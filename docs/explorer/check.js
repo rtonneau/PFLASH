@@ -40,10 +40,18 @@ for (const lane of data.lanes || []) {
   for (const f of lane.otherFiles || []) { checkLink(f, 'lane ' + lane.id + ' otherFiles'); listed.add(f); }
 }
 for (const step of data.flow || []) {
-  for (const l of [...(step.files || []), ...(step.outputs || [])]) checkLink(l, 'flow ' + (step.id || ''));
+  for (const l of [...(step.files || []), ...(step.docs || [])]) checkLink(l, 'flow ' + (step.id || ''));
 }
 for (const t of data.tasks || []) {
   for (const l of [...(t.docs || []), ...(t.files || [])]) checkLink(l, 'task ' + (t.id || ''));
+}
+
+// Every recipe must be reachable from the Tasks view.
+const taskDocs = new Set((data.tasks || []).flatMap(t => t.docs || []));
+for (const f of fs.readdirSync(path.join(root, 'docs/recipes'))) {
+  if (f.endsWith('.md') && f !== 'README.md' && !taskDocs.has('docs/recipes/' + f)) {
+    problems.push('recipe not in a task: docs/recipes/' + f);
+  }
 }
 
 // Coverage: every file under src/ and header/ must be listed.
