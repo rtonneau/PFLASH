@@ -1,5 +1,5 @@
 {
-  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title,summary,overview,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{label,summary},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
+  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,role (a few plain words, at most 40 characters),summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title (\"N. Title\", numbered in order),summary,overview,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{id,label,summary,default?},modes?{branchId: note; a step without a branch id is skipped in that mode},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Only one flow step has branches (the chemistry mode, in the first phase). Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
   "version": 1,
   "lanes": [
     {
@@ -10,6 +10,7 @@
         {
           "id": "sim",
           "title": "sim.cc",
+          "role": "Starts the program",
           "summary": "The program's main(): parses the command line, picks Serial or multi-threaded running, builds the geometry, physics and actions, finds and executes the macro file, and flushes any pending output before exit.",
           "files": [
             "sim.cc"
@@ -30,6 +31,7 @@
         {
           "id": "action-init",
           "title": "ActionInitialization",
+          "role": "Creates the per-thread actions",
           "summary": "Creates all the user actions for each thread and sets the default chemistry end time (1 s with the mesoscopic stage, 1 us without).",
           "files": [
             "src/actions/ActionInitialization.cc",
@@ -43,6 +45,7 @@
         {
           "id": "primary-gen",
           "title": "PrimaryGeneratorAction",
+          "role": "Fires the beam particle",
           "summary": "Shoots the primary beam particle (set by /gun macro commands) and records the sampled beam into the run.",
           "files": [
             "src/actions/PrimaryGeneratorAction.cc",
@@ -55,6 +58,7 @@
         {
           "id": "run-action",
           "title": "Run and RunAction",
+          "role": "Begins and ends each run",
           "summary": "Run keeps per-run data and merges worker threads; RunAction starts and ends a run, applies the reaction time binning and records the run in the manifest.",
           "files": [
             "src/actions/RunAction.cc",
@@ -71,6 +75,7 @@
         {
           "id": "event-action",
           "title": "EventAction",
+          "role": "Bookkeeping for each event",
           "summary": "Per-event bookkeeping: stages pre-chemical files and commits the track-length row for events that were not aborted.",
           "files": [
             "src/actions/EventAction.cc",
@@ -83,6 +88,7 @@
         {
           "id": "tracking-action",
           "title": "TrackingAction",
+          "role": "Measures track lengths",
           "summary": "After each track, fills the event's track-length row: primary track length and how it ended (stopped, escaped or killed), plus secondary-electron lengths.",
           "files": [
             "src/actions/TrackingAction.cc",
@@ -95,6 +101,7 @@
         {
           "id": "stepping-action",
           "title": "SteppingAction",
+          "role": "Counts physical interactions",
           "summary": "Counts each discrete Geant4-DNA physical interaction (excluding transport) by process name.",
           "files": [
             "src/actions/SteppingAction.cc",
@@ -107,6 +114,7 @@
         {
           "id": "stacking-action",
           "title": "StackingAction",
+          "role": "Starts chemistry after physics",
           "summary": "When the physical stage has no tracks left, starts the chemistry for the event (the hand-off from physics to chemistry) and logs the stage change.",
           "files": [
             "src/actions/StackingAction.cc",
@@ -127,6 +135,7 @@
         {
           "id": "physics-list",
           "title": "PhysicsList",
+          "role": "Combines DNA physics and chemistry",
           "summary": "A simplified modular list that combines the Geant4-DNA electromagnetic physics (option 2) with the project's chemistry. IRT_syn is the default chemistry time-step model.",
           "files": [
             "src/physics/PhysicsList.cc",
@@ -148,6 +157,7 @@
         {
           "id": "detector",
           "title": "DetectorConstruction",
+          "role": "Builds the water box",
           "summary": "Builds the one water box (the whole geometry) and registers the PrimaryKiller scorer. Half-side set by /chem/env/halfBox (default 500 um).",
           "files": [
             "src/geometry/DetectorConstruction.cc",
@@ -161,6 +171,7 @@
         {
           "id": "chem-world",
           "title": "DnaChemistryWorld",
+          "role": "Describes the water: pH, scavengers",
           "summary": "Describes the chemical environment: box size, pH and exogenous scavengers (such as dissolved O2) that react through the selected Chemistry's bulk reactions.",
           "files": [
             "src/geometry/DnaChemistryWorld.cc",
@@ -174,6 +185,7 @@
         {
           "id": "scavenger-msg",
           "title": "Scavenger spec and messenger",
+          "role": "Reads scavenger settings",
           "summary": "Parses /chem/env/scavenger values (M, mM, uM, or % for O2) into a validated specification.",
           "files": [
             "src/geometry/ScavengerSpec.cc",
@@ -196,6 +208,7 @@
         {
           "id": "chem-list",
           "title": "DnaChemistryList",
+          "role": "Sets up molecules and reactions",
           "summary": "The driver of the chemical stage: defines the molecules, water dissociation channels, reaction table and time-step model (IRT_syn default, or SBS). Registers bulk reactions as scavenger processes.",
           "files": [
             "src/chemistry/DnaChemistryList.cc",
@@ -210,6 +223,7 @@
         {
           "id": "time-step",
           "title": "TimeStepAction",
+          "role": "Runs the chemistry over time",
           "summary": "Runs the particle-based stage and, in IRT_syn with the mesoscopic stage on, hands the remaining molecules over at the Hand-over time to the mesoscopic stage (Gillespie on a cell mesh).",
           "files": [
             "src/chemistry/TimeStepAction.cc",
@@ -223,6 +237,7 @@
         {
           "id": "meso-settings",
           "title": "MesoSettings",
+          "role": "Mesoscopic stage settings",
           "summary": "Portable settings for the mesoscopic stage: hand-over time, requested cell size, pixel count (capped) and the logarithmic recording time grid.",
           "files": [
             "src/chemistry/MesoSettings.cc",
@@ -238,6 +253,7 @@
         {
           "id": "meso-msg",
           "title": "MesoMessenger",
+          "role": "Mesoscopic stage commands",
           "summary": "Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade, spatialOutput).",
           "files": [
             "src/chemistry/MesoMessenger.cc",
@@ -250,6 +266,7 @@
         {
           "id": "registry",
           "title": "ChemistryRegistry",
+          "role": "Picks the named Chemistry",
           "summary": "Name-to-Chemistry registry and the once-per-process, case-insensitive selection.",
           "files": [
             "src/chemistry/ChemistryRegistry.cc",
@@ -266,6 +283,7 @@
         {
           "id": "select-msg",
           "title": "ChemistrySelectMessenger",
+          "role": "Chemistry selection commands",
           "summary": "Macro commands /chem/select <name> and /chem/list.",
           "files": [
             "src/chemistry/ChemistrySelectMessenger.cc",
@@ -278,6 +296,7 @@
         {
           "id": "reaction-dump",
           "title": "ReactionTableDump",
+          "role": "Writes the reaction table",
           "summary": "Writes the reaction table to a file (/chem/reaction/dump).",
           "files": [
             "src/chemistry/ReactionTableDump.cc",
@@ -290,6 +309,7 @@
         {
           "id": "pure-water",
           "title": "PureWater Chemistry",
+          "role": "Default reaction network",
           "summary": "The default Chemistry: base pure-water reactions, the O2-derived network and the pH-driven acid-base buffer.",
           "files": [
             "src/chemistry/catalog/PureWaterReactions.cc",
@@ -304,6 +324,7 @@
         {
           "id": "boscolo",
           "title": "BoscoloChem",
+          "role": "Boscolo 2020 reaction set",
           "summary": "Chemistry reproducing Table 1 of Boscolo et al. 2020 (26 reactions).",
           "files": [
             "src/chemistry/catalog/BoscoloChemReactions.cc",
@@ -317,6 +338,7 @@
         {
           "id": "tonneau",
           "title": "Tonneau2025",
+          "role": "Tonneau 2025 reaction set",
           "summary": "Chemistry with the 73-reaction network of Tonneau et al. 2025, including the extra molecule HO3.",
           "files": [
             "src/chemistry/catalog/Tonneau2025Reactions.cc",
@@ -332,6 +354,7 @@
         {
           "id": "farokhi",
           "title": "Farokhi2023",
+          "role": "Farokhi 2023 reaction set",
           "summary": "Chemistry with the 9 base-water reactions of Farokhi et al. 2023.",
           "files": [
             "src/chemistry/catalog/Farokhi2023Reactions.cc",
@@ -357,6 +380,7 @@
         {
           "id": "score-species",
           "title": "ScoreSpecies",
+          "role": "Counts molecules over time",
           "summary": "A Geant4 primitive scorer that follows the tracked molecules over time; it is the source of the Species files.",
           "files": [
             "src/scoring/ScoreSpecies.cc",
@@ -369,6 +393,7 @@
         {
           "id": "reaction-counter",
           "title": "ReactionCounter",
+          "role": "Counts reactions per time bin",
           "summary": "Counts how many times each reaction fires in each time bin (particle-based stage only).",
           "files": [
             "src/scoring/ReactionCounter.cc",
@@ -382,6 +407,7 @@
         {
           "id": "phys-counter",
           "title": "PhysicsInteractionCounter",
+          "role": "Stores interaction tallies",
           "summary": "Generic string-frequency counter used for physical-interaction counts.",
           "files": [
             "src/scoring/PhysicsInteractionCounter.cc",
@@ -394,6 +420,7 @@
         {
           "id": "meso-counter",
           "title": "MesoSpeciesCounter",
+          "role": "Counts molecules after hand-over",
           "summary": "Mean species count per event versus time in the mesoscopic stage.",
           "files": [
             "src/scoring/MesoSpeciesCounter.cc",
@@ -406,6 +433,7 @@
         {
           "id": "meso-spatial",
           "title": "MesoSpatialFile",
+          "role": "Saves mesh snapshots (HDF5)",
           "summary": "HDF5 writer for per-event spatial snapshots of the mesoscopic mesh.",
           "files": [
             "src/scoring/MesoSpatialFile.cc",
@@ -418,6 +446,7 @@
         {
           "id": "track-length",
           "title": "TrackLengthTable",
+          "role": "Table of track lengths",
           "summary": "One row per event with the primary track length, end reason and secondary-electron lengths.",
           "files": [
             "src/scoring/TrackLengthTable.cc",
@@ -430,6 +459,7 @@
         {
           "id": "primary-killer",
           "title": "PrimaryKiller",
+          "role": "Ends tracks at set limits",
           "summary": "Scorer that kills the primary electron after a configured energy loss and kills tracks leaving a bounding box.",
           "files": [
             "src/scoring/PrimaryKiller.cc",
@@ -442,6 +472,7 @@
         {
           "id": "accumulator",
           "title": "RunAccumulator",
+          "role": "Keeps results between dumps",
           "summary": "Process-wide accumulator that keeps energy deposit, counters and run entries across /run/beamOn calls until a dump.",
           "files": [
             "src/scoring/RunAccumulator.cc",
@@ -454,6 +485,7 @@
         {
           "id": "dump-msg",
           "title": "RunAccumulatorMessenger",
+          "role": "Writes results on request",
           "summary": "Provides /run/dumpDataAndReset and the exit-time safety-net flush.",
           "files": [
             "src/scoring/RunAccumulatorMessenger.cc",
@@ -467,6 +499,7 @@
         {
           "id": "manifest",
           "title": "RunManifest",
+          "role": "Describes each dump (Manifest.json)",
           "summary": "Builds Manifest.json for each dump (beam, seed, chemistry, environment, files).",
           "files": [
             "src/scoring/RunManifest.cc",
@@ -482,6 +515,7 @@
         {
           "id": "json",
           "title": "DataNode and JsonWriter",
+          "role": "Formats output as JSON",
           "summary": "Portable output tree and the JSON serialiser that writes it.",
           "files": [
             "src/scoring/DataNode.cc",
@@ -497,6 +531,7 @@
         {
           "id": "prechem",
           "title": "PreChemicalFiles",
+          "role": "Collects pre-chemical files",
           "summary": "Moves the staged per-event pre-chemical files into a dump.",
           "files": [
             "src/scoring/PreChemicalFiles.cc",
@@ -517,6 +552,7 @@
         {
           "id": "argparser",
           "title": "ArgParser",
+          "role": "Reads command-line flags",
           "summary": "Parses the --threads and --dir command-line flags.",
           "files": [
             "src/core/ArgParser.cc",
@@ -529,6 +565,7 @@
         {
           "id": "outputdir",
           "title": "OutputDir",
+          "role": "Decides where files go",
           "summary": "The process-wide output directory (default results next to the executable) and filename prefix used by every output site.",
           "files": [
             "src/core/OutputDir.cc",
@@ -544,6 +581,7 @@
         {
           "id": "logger",
           "title": "DnaLogger",
+          "role": "Project log messages",
           "summary": "The project's logger; level set by /dnaLogger/verbose.",
           "files": [
             "src/core/DnaLogger.cc",
@@ -558,6 +596,7 @@
         {
           "id": "macro-resolver",
           "title": "MacroResolver",
+          "role": "Finds the macro file",
           "summary": "Finds the macro: as given, then next to the executable, then in its macro/ folder.",
           "files": [
             "src/core/MacroResolver.cc",
@@ -578,6 +617,7 @@
         {
           "id": "m-example",
           "title": "Mode examples",
+          "role": "One macro per chemistry mode",
           "summary": "example_sbs.in, example_irt.in and example_meso.in: one macro per chemistry mode, 10 keV electrons, two sub-runs.",
           "files": [
             "macro/example_sbs.in",
@@ -589,6 +629,7 @@
         {
           "id": "m-beam",
           "title": "Beam examples",
+          "role": "Pure water, O2 and spatial runs",
           "summary": "beam.in (pure water), beam_o2.in (dissolved O2), beam_meso_spatial.in (spatial output).",
           "files": [
             "macro/beam.in",
@@ -600,6 +641,7 @@
         {
           "id": "m-chem",
           "title": "Chemistry examples",
+          "role": "Runs with other Chemistries",
           "summary": "beam_boscolo.in and beam_tonneau2025.in select other Chemistries.",
           "files": [
             "macro/beam_boscolo.in",
@@ -618,6 +660,7 @@
         {
           "id": "t-core",
           "title": "Core and output tests",
+          "role": "Checks core and output code",
           "summary": "Tests for argument parsing, output folder, macro lookup, JSON writing, results index and run accumulation.",
           "files": [
             "test/ArgParserTest.cc",
@@ -632,6 +675,7 @@
         {
           "id": "t-chem",
           "title": "Chemistry tests",
+          "role": "Checks chemistry helpers",
           "summary": "Tests for the registry, mesoscopic settings, reaction table dump, scavenger spec and the Tonneau2025 table.",
           "files": [
             "test/ChemistryRegistryTest.cc",
@@ -645,6 +689,7 @@
         {
           "id": "t-score",
           "title": "Scoring tests",
+          "role": "Checks counters and files",
           "summary": "Tests for counters, track lengths, spatial HDF5 file and pre-chemical files.",
           "files": [
             "test/ReactionCounterTest.cc",
@@ -846,8 +891,42 @@
       "overview": "Read the command line and run the macro that configures the simulation."
     },
     {
+      "id": "mode",
+      "title": "2. Chemistry mode",
+      "summary": "Chosen once, in the macro before /run/initialize: /process/chem/TimeStepModel (SBS or IRT_syn) and /chem/meso/enable. The choice then applies to every event. The selected Chemistry (reaction network) is independent of this choice.",
+      "phase": "setup",
+      "files": [
+        "src/chemistry/DnaChemistryList.cc",
+        "src/chemistry/ChemistryRegistry.cc"
+      ],
+      "outputs": [],
+      "docs": [
+        "docs/adr/0008-selectable-chemistry-modes.md",
+        "docs/adr/0002-named-chemistries.md"
+      ],
+      "branches": [
+        {
+          "id": "sbs",
+          "label": "SBS",
+          "summary": "Step-by-step chemistry on tracked molecules up to the end time; no mesoscopic stage (/process/chem/TimeStepModel SBS)."
+        },
+        {
+          "id": "irt",
+          "label": "IRT_syn only",
+          "summary": "IRT_syn particle-based stage up to the end time; no mesoscopic stage (/chem/meso/enable false)."
+        },
+        {
+          "id": "meso",
+          "label": "IRT_syn + mesoscopic",
+          "default": true,
+          "summary": "IRT_syn particle-based stage, then a hand-over to the mesoscopic stage."
+        }
+      ],
+      "overview": "Chosen once in the macro: SBS, IRT_syn only, or IRT_syn + mesoscopic."
+    },
+    {
       "id": "physics",
-      "title": "2. Physical stage",
+      "title": "3. Physical stage",
       "summary": "Beam electrons slow down in the water box and ionise or excite water molecules (Geant4-DNA physics). Every discrete physical interaction is counted, and the pre-chemical species are staged to a per-event file.",
       "phase": "event",
       "files": [
@@ -867,7 +946,7 @@
     },
     {
       "id": "handoff",
-      "title": "3. Physics to chemistry",
+      "title": "4. Physics to chemistry",
       "summary": "When the physical stage has no tracks left, the event's chemistry is started.",
       "phase": "event",
       "files": [
@@ -876,36 +955,6 @@
       "outputs": [],
       "docs": [],
       "overview": "When no physical tracks remain, start the event’s chemistry."
-    },
-    {
-      "id": "mode",
-      "title": "4. Chemistry mode",
-      "summary": "Which model advances the chemistry is chosen in the macro before initialisation. The selected Chemistry (reaction network) is independent of this choice.",
-      "phase": "event",
-      "files": [
-        "src/chemistry/DnaChemistryList.cc",
-        "src/chemistry/ChemistryRegistry.cc"
-      ],
-      "outputs": [],
-      "docs": [
-        "docs/adr/0008-selectable-chemistry-modes.md",
-        "docs/adr/0002-named-chemistries.md"
-      ],
-      "branches": [
-        {
-          "label": "SBS",
-          "summary": "Step-by-step chemistry on tracked molecules for the whole run; no mesoscopic stage."
-        },
-        {
-          "label": "IRT_syn only",
-          "summary": "IRT_syn particle-based stage for the whole run (/chem/meso/enable false)."
-        },
-        {
-          "label": "IRT_syn + mesoscopic (default)",
-          "summary": "IRT_syn particle-based stage, then a hand-over to the mesoscopic stage."
-        }
-      ],
-      "overview": "SBS, IRT_syn only, or IRT_syn + mesoscopic. Chosen before initialisation."
     },
     {
       "id": "particle",
@@ -924,7 +973,12 @@
       "docs": [
         "docs/output/README.md"
       ],
-      "overview": "Track individual molecules as they diffuse and react."
+      "overview": "Track individual molecules as they diffuse and react.",
+      "modes": {
+        "sbs": "Step-by-step model up to the end time (default 1 us).",
+        "irt": "IRT_syn up to the end time (default 1 us).",
+        "meso": "IRT_syn until the Hand-over time (default 5 ns); step 6 continues."
+      }
     },
     {
       "id": "meso",
@@ -947,7 +1001,10 @@
         "docs/output/SpeciesMesoSpatial-h5.md"
       ],
       "review": true,
-      "overview": "Pass remaining molecules to counts per cell and advance to the end time."
+      "overview": "Pass remaining molecules to counts per cell and advance to the end time.",
+      "modes": {
+        "meso": "From the Hand-over time to the end time (default 1 s)."
+      }
     },
     {
       "id": "event-end",
@@ -984,7 +1041,12 @@
         "docs/output/README.md",
         "docs/adr/0005-manifest-per-dump.md"
       ],
-      "overview": "Write accumulated results and the manifest, then reset for the next dump."
+      "overview": "Write accumulated results and the manifest, then reset for the next dump.",
+      "modes": {
+        "sbs": "No SpeciesMeso files: the mesoscopic stage is off.",
+        "irt": "No SpeciesMeso files: the mesoscopic stage is off.",
+        "meso": "Also writes SpeciesMeso.Txt / .csv, and SpeciesMesoSpatial.h5 when /chem/meso/spatialOutput is true."
+      }
     }
   ],
   "tasks": [

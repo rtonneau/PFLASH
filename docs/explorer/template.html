@@ -21,6 +21,7 @@
   button { font:inherit; color:inherit; }
   a { color:var(--accent); }
   :focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  [hidden] { display:none !important; }
   .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
   /* ---- header and tabs ---- */
@@ -68,16 +69,23 @@
   .node { position:relative; z-index:2; display:flex; align-items:center; gap:6px; width:100%; margin-top:6px; padding:6px 9px;
           text-align:left; background:#fbfcfd; border:1px solid var(--line); border-radius:7px; cursor:pointer;
           font-size:13.5px; line-height:1.3; transition:opacity .12s, border-color .12s; }
-  .node .t { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .node .t { flex:1; min-width:0; }
+  .node .nm { display:block; overflow-wrap:anywhere; }
+  .node .role { display:block; margin-top:1px; font-size:12px; line-height:1.3; color:var(--muted); }
   .node:hover { border-color:var(--accent-line); background:var(--surface); }
   .node.review { border-style:dashed; border-color:var(--review-line); }
-  .node .rel { display:none; font-size:11px; font-weight:600; padding:0 6px; border-radius:999px; white-space:nowrap; }
-  .node.out .rel.r-out { display:inline-block; background:var(--accent-soft); color:var(--accent); }
-  .node.in .rel.r-in { display:inline-block; background:var(--in-soft); color:var(--in); }
+  /* relationship tags sit on the box's top edge, so long class names never reflow */
+  .rel { display:none; font-size:10.5px; font-weight:600; line-height:14px; padding:0 6px; border-radius:999px;
+         white-space:nowrap; border:1px solid; background:var(--surface); }
+  .node .rel { position:absolute; top:-8px; right:10px; }
+  .rel.r-out { color:var(--accent); border-color:var(--accent); }
+  .rel.r-in { color:var(--in); border-color:var(--in); border-style:dashed; }
+  .node.out .rel.r-out, .node.in .rel.r-in, .legend .rel { display:inline-block; }
   .node.out { border-color:var(--accent); }
   .node.in { border-color:var(--in); border-style:dashed; }
   .node.sel { background:var(--accent); border:1px solid var(--accent); color:#fff; }
   .node.sel .flag { color:#fff; }
+  .node.sel .role { color:#e6eefc; }
   .other { display:block; width:100%; margin-top:6px; padding:4px 9px; text-align:left; border:1px dashed var(--line-strong);
            background:none; border-radius:7px; cursor:pointer; font-size:12.5px; color:var(--muted); }
   .other:hover { color:var(--accent); border-color:var(--accent-line); }
@@ -112,11 +120,34 @@
   .card.review { border-style:dashed; border-color:var(--review-line); }
   .card-title { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-weight:600; }
   .card-sum { color:var(--muted); font-size:14px; margin-top:2px; }
-  .fork { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; margin-top:10px; }
-  .fork div { border:1px solid var(--line); border-top:3px solid var(--line-strong); border-radius:6px; padding:6px 10px; font-size:13.5px; background:#fafbfc; }
-  .fork div.default { border-top-color:var(--accent); }
-  .fork b { display:block; }
-  .fork span { color:var(--muted); }
+  .fork { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; margin:6px 0 0; padding:0; list-style:none; }
+  .fork li { border:1px solid var(--line); border-left:3px solid var(--line-strong); border-radius:6px; padding:6px 10px; font-size:13.5px; background:#fafbfc; }
+  .fork li.current { border-color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }
+  .fork li.skipped > span { font-style:italic; }
+  .fork b { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; }
+  .fork b small { font-weight:400; color:var(--muted); }
+  .fork .shown { margin-left:auto; font-size:11.5px; color:var(--accent); }
+  .fork li > span { display:block; color:var(--muted); }
+  /* chemistry-mode chooser under step 2 of the run flow */
+  .mode-pick { margin:8px 0 0; padding:4px 12px 10px; border:1px solid var(--accent-line); border-radius:var(--radius); background:var(--surface); min-width:0; }
+  .mode-pick legend { padding:0 4px; font-size:12.5px; font-weight:600; color:var(--muted); }
+  .mode-pick .opts { display:flex; flex-wrap:wrap; gap:6px; }
+  .mode-pick label { display:inline-flex; align-items:center; gap:7px; min-height:32px; padding:3px 12px 3px 9px; border:1px solid var(--line-strong);
+                     border-radius:999px; cursor:pointer; font-size:13.5px; background:var(--surface); }
+  .mode-pick label:hover { border-color:var(--accent); }
+  .mode-pick input { margin:0; accent-color:var(--accent); }
+  .mode-pick input:focus-visible { outline:none; }
+  .mode-pick label:has(input:focus-visible) { outline:3px solid var(--accent); outline-offset:2px; }
+  .mode-pick label:has(input:checked) { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .mode-pick small { font-weight:400; color:var(--muted); }
+  .card-mode { display:block; margin-top:6px; padding:3px 9px; font-size:13px; line-height:1.4; border-left:3px solid var(--accent);
+               background:var(--accent-soft); border-radius:0 5px 5px 0; }
+  .card-mode b { color:var(--accent); font-weight:600; }
+  .card[aria-current=true] .card-mode { background:var(--surface); }
+  ol.steps > li.skipped .card { background:var(--sunk); border-style:dashed; border-color:var(--line-strong); }
+  ol.steps > li.skipped .card-title { color:var(--muted); }
+  ol.steps > li.skipped .card .tag { background:var(--surface); border:1px dashed var(--line-strong); }
+  ol.steps > li.skipped > .num { border-style:dashed; background:var(--sunk); }
   .writes { display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:8px; font-size:12.5px; color:var(--muted); }
 
   /* ---- tasks ---- */
@@ -136,6 +167,12 @@
   .link.l-out { border-left:3px solid var(--accent); }
   .link.l-in { border-left:3px dashed var(--in); }
   .link small { color:var(--muted); }
+  .mods { display:grid; gap:6px; }
+  .mods .link { display:block; width:100%; padding:5px 10px; }
+  .mods .link b { display:block; font-weight:500; overflow-wrap:anywhere; }
+  .mods .link span { display:block; font-size:12.5px; color:var(--muted); line-height:1.35; }
+  .mods .link:hover span { color:var(--muted); }
+  #detail .role-sub { margin:-4px 0 8px; color:var(--muted); font-size:14px; }
   details.code { margin-top:18px; border:1px solid var(--line); border-radius:var(--radius); background:#fafbfc; }
   details.code > summary { cursor:pointer; font-weight:600; padding:8px 12px; }
   details.code > div { padding:0 12px 10px; }
@@ -177,9 +214,8 @@
   #stage:has(.flow) > .intro { max-width:none; }
   .card[aria-current=true] { border:2px solid var(--accent); padding:9px 13px; background:var(--accent-soft); }
   .flow .card[aria-current=true] { padding:8px 13px; }
-  .mode-guide .fork { grid-template-columns:1fr; }
-  .mode-guide h3 { margin-top:0; }
-  .node.sel .t::before { content:'✓ '; }
+  #detail .fork { grid-template-columns:1fr; }
+  .node.sel .nm::before { content:'✓ '; }
   .chip-out, code { overflow-wrap:anywhere; }
   #detail h2:focus { outline-offset:4px; }
 
@@ -204,7 +240,7 @@
     .entry-points li { flex:1 1 160px; }
     .node { min-height:40px; }
     button.copy { min-height:32px; }
-    .edges { display:none; }
+    .edges, .legend svg { display:none; }
   }
   @media (max-width: 520px) {
     header, #stage, #detail { padding-left:12px; padding-right:12px; }
@@ -375,10 +411,13 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     b.addEventListener('click', function () { go(target[0], target[1], true); });
     return b;
   }
+  // Module links: the class name, then its plain-language role.
   function nodeLinks(ids, cls) {
-    return el('div', { class: 'links' }, ids.map(function (id) {
+    return el('div', { class: 'links mods' }, ids.map(function (id) {
       const n = nodeById[id];
-      return linkButton(n.title, null, ['map', id], cls);
+      const b = el('button', { type: 'button', class: 'link' + (cls ? ' ' + cls : '') }, [el('b', { text: n.title }), el('span', { text: n.role })]);
+      b.addEventListener('click', function () { go('map', id, true); });
+      return b;
     }));
   }
   function section(title, content) {
@@ -420,6 +459,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     map: ['The code, grouped by source folder. Each box is one part of the program.',
           'Select a box to read what it does in plain language, see which parts it works with (the map draws those arrows), and find its files. Use the search box to locate a file or class.'],
     flow: ['What happens during one simulation run, from start-up to the files on disk.',
+           'The chemistry mode is chosen once, at step 2. Pick a mode there to see which steps run and what changes.',
            'The shaded group repeats for every event (every primary particle). Select a step to see the modules and files involved and the output it writes.'],
     tasks: ['Start from what you want to do.',
             'Each task links the guide to read first and the modules and files involved.']
@@ -440,14 +480,6 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       const n = DATA.lanes.reduce(function (a, l) { return a + l.nodes.length; }, 0);
       parts.push(el('p', { class: 'kicker', text: n + ' parts in ' + DATA.lanes.length + ' folders, ' + DATA.edges.length + ' connections.' }));
     }
-    if (view === 'flow') {
-      DATA.flow.filter(function (s) { return s.branches && s.branches.length; }).forEach(function (s) {
-        parts.push(el('section', { class: 'mode-guide', 'aria-label': s.title }, [
-          el('h3', { text: stepTitle(s) }), branchList(s),
-          linkButton('Explore modes and source files →', null, ['flow', s.id])
-        ]));
-      });
-    }
     setDetail(parts);
   }
 
@@ -460,8 +492,9 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     const clear = el('button', { type: 'button', class: 'clear', 'aria-label': 'Clear search', text: '×', hidden: '' });
     const count = el('span', { class: 'count', id: 'find-count', 'aria-live': 'polite' });
     const legend = el('div', { class: 'legend', 'aria-label': 'Legend' }, [
-      el('span', {}, [legendLine('var(--accent)', false), 'selected part uses it']),
-      el('span', {}, [legendLine('var(--in)', true), 'it uses the selected part']),
+      el('span', {}, ['Selecting a box marks:']),
+      el('span', {}, [legendLine('var(--accent)', false), el('span', { class: 'rel r-out', text: 'used by selected' })]),
+      el('span', {}, [legendLine('var(--in)', true), el('span', { class: 'rel r-in', text: 'uses selected' })]),
       el('span', {}, [el('span', { class: 'flag', 'aria-hidden': 'true', text: '⚑' }), ' dashed: summary awaiting physics review'])
     ]);
     stage.appendChild(el('div', { class: 'toolbar' }, [
@@ -486,10 +519,10 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       const box = el('section', { class: 'lane', 'aria-label': lane.title }, [head]);
       lane.nodes.forEach(function (n) {
         const b = el('button', { type: 'button', class: 'node' + (n.review ? ' review' : ''), 'data-id': n.id }, [
-          el('span', { class: 't', text: n.title }),
+          el('span', { class: 't' }, [el('span', { class: 'nm', text: n.title }), el('span', { class: 'role', text: n.role })]),
           n.review ? flagEl() : null,
-          el('span', { class: 'rel r-out', text: 'used', title: 'The selected part uses, creates or fills this one' }),
-          el('span', { class: 'rel r-in', text: 'user', title: 'This part uses the selected one' })
+          el('span', { class: 'rel r-out', text: 'used by selected', title: 'The selected part uses, creates or fills this one' }),
+          el('span', { class: 'rel r-in', text: 'uses selected', title: 'This part uses the selected one' })
         ]);
         b.addEventListener('click', function () { go('map', !narrow.matches && mapState.sel === n.id ? null : n.id, true); });
         nodeEls[n.id] = b; box.appendChild(b);
@@ -516,7 +549,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       DATA.lanes.forEach(function (lane) {
         let any = false;
         lane.nodes.forEach(function (n) {
-          const hay = [n.title, n.summary].concat(n.files || [], n.symbols || []).join('\n').toLowerCase();
+          const hay = [n.title, n.role, n.summary].concat(n.files || [], n.symbols || []).join('\n').toLowerCase();
           const hit = hay.indexOf(q) >= 0;
           nodeEls[n.id].classList.toggle('match', hit);
           if (hit) { hits++; any = true; }
@@ -629,6 +662,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     setDetail([
       el('p', { class: 'kicker' }, ['Module map › ', laneBtn]),
       el('h2', { text: n.title }),
+      el('p', { class: 'role-sub', text: n.role }),
       n.review ? el('span', { class: 'badge', text: '⚑ Summary awaiting physics review' }) : null,
       el('p', { class: 'lead', text: n.summary }),
     ].concat(
@@ -651,15 +685,63 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   }
 
   // ---- run flow ----
-  let flowCards = {};
-  function branchList(s) {
-    return el('div', { class: 'fork', 'aria-label': 'Chemistry modes' }, s.branches.map(function (b) {
-      return el('div', { class: /default/i.test(b.label) ? 'default' : '' }, [el('b', { text: b.label }), el('span', { text: b.summary })]);
+  let flowCards = {}, flowParts = {};
+  // The chemistry mode is chosen once (the step with branches); the flow shows the run for one mode.
+  const modeStep = DATA.flow.filter(function (s) { return s.branches && s.branches.length; })[0] || null;
+  const modeById = {};
+  let flowMode = null;
+  if (modeStep) {
+    modeStep.branches.forEach(function (b) { modeById[b.id] = b; });
+    flowMode = (modeStep.branches.filter(function (b) { return b.default; })[0] || modeStep.branches[0]).id;
+  }
+  function has(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+  function stepRuns(s) { return !s.modes || !flowMode || has(s.modes, flowMode); }
+  // One row per mode: the branch summaries (notes omitted) or a step's per-mode notes.
+  function modeList(notes) {
+    return el('ul', { class: 'fork', 'aria-label': 'Chemistry modes' }, modeStep.branches.map(function (b) {
+      const runs = !notes || has(notes, b.id);
+      const cur = b.id === flowMode;
+      return el('li', { class: [cur ? 'current' : '', runs ? '' : 'skipped'].join(' ').trim() || null, 'aria-current': cur ? 'true' : null }, [
+        el('b', {}, [b.label, b.default ? el('small', { text: 'default' }) : null, cur ? el('span', { class: 'shown', text: 'shown in the flow' }) : null]),
+        el('span', { text: notes ? (runs ? notes[b.id] : 'Skipped: this step does not run in this mode.') : b.summary })
+      ]);
     }));
+  }
+  function modePicker() {
+    return el('fieldset', { class: 'mode-pick' }, [
+      el('legend', { text: 'Show the run for' }),
+      el('div', { class: 'opts' }, modeStep.branches.map(function (b) {
+        const input = el('input', { type: 'radio', name: 'flow-mode', value: b.id });
+        input.checked = b.id === flowMode;
+        input.addEventListener('change', function () { if (input.checked) setFlowMode(b.id); });
+        return el('label', {}, [input, el('span', { text: b.label }), b.default ? el('small', { text: 'default' }) : null]);
+      }))
+    ]);
+  }
+  function setFlowMode(id) {
+    flowMode = id;
+    applyFlowMode();
+    if (current === 'flow' && lastSel.flow) selectFlow(lastSel.flow, false);
+  }
+  // Mark the steps that do not run in the chosen mode and show each step's note for it.
+  function applyFlowMode() {
+    DATA.flow.forEach(function (s) {
+      const p = flowParts[s.id];
+      if (!p) return;
+      const runs = stepRuns(s);
+      const tagText = runs ? (s.condition || '') : 'Skipped in ' + modeById[flowMode].label + ' mode';
+      const note = runs && s.modes ? s.modes[flowMode] : '';
+      p.li.classList.toggle('skipped', !runs);
+      p.tag.textContent = tagText; p.tag.hidden = !tagText;
+      p.note.textContent = '';
+      if (note) p.note.append(el('b', { text: modeById[flowMode].label + ': ' }), note);
+      p.note.hidden = !note;
+      p.card.setAttribute('aria-describedby', [tagText ? p.tag.id : '', 'step-overview-' + s.id, note ? p.note.id : ''].join(' ').trim());
+    });
   }
   function renderFlow() {
     stage.textContent = '';
-    flowCards = {};
+    flowCards = {}; flowParts = {};
     renderStarts('flow');
     stage.appendChild(el('p', { class: 'intro', text: 'Follow a run from start-up to results. Select a step for its explanation, outputs and code. ⚑ = awaiting physics review.' }));
     const wrap = el('div', { class: 'flow' });
@@ -675,16 +757,22 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       const ol = el('ol', { class: 'steps' });
       gr.steps.forEach(function (s) {
         const card = el('button', { type: 'button', class: 'card' + (s.review ? ' review' : ''), 'aria-label': 'Step ' + stepNumber(s) + ': ' + stepTitle(s), 'aria-describedby': 'step-overview-' + s.id });
-        card.appendChild(el('div', { class: 'card-title' }, [stepTitle(s), s.condition ? el('span', { class: 'tag', text: s.condition }) : null, s.review ? flagEl() : null]));
+        const tag = el('span', { class: 'tag', id: 'step-state-' + s.id, hidden: '' });
+        const note = el('span', { class: 'card-mode', id: 'step-mode-' + s.id, hidden: '' });
+        card.appendChild(el('div', { class: 'card-title' }, [stepTitle(s), tag, s.review ? flagEl() : null]));
         card.appendChild(el('span', { id: 'step-overview-' + s.id, class: 'card-sum', text: s.overview || s.summary }));
+        card.appendChild(note);
         onActivate(card, function () { go('flow', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
         flowCards[s.id] = card;
-        ol.appendChild(el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card]));
+        const li = el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? modePicker() : null]);
+        flowParts[s.id] = { card: card, tag: tag, note: note, li: li };
+        ol.appendChild(li);
       });
       box.appendChild(ol);
       wrap.appendChild(box);
     });
     stage.appendChild(wrap);
+    applyFlowMode();
   }
   function selectFlow(id, scroll) {
     Object.keys(flowCards).forEach(function (k) { flowCards[k].removeAttribute('aria-current'); });
@@ -707,7 +795,8 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       s.condition ? el('span', { class: 'tag', text: s.condition }) : null,
       el('p', { class: 'lead', text: s.summary })
     ].concat(
-      section('Options', s.branches && s.branches.length ? branchList(s) : null),
+      section('Modes', s === modeStep ? modeList(null) : null),
+      section('In each mode', s.modes && modeStep ? modeList(s.modes) : null),
       section('Writes', s.outputs && s.outputs.length ? el('div', { class: 'links' }, s.outputs.map(function (o) { return el('span', { class: 'chip-out', text: o }); })) : null),
       section('Modules involved', mods.length ? nodeLinks(mods) : null),
       section('Read more', s.docs && s.docs.length ? fileList(s.docs, true) : null),
@@ -850,7 +939,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   });
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;
-    if (ev.target && ev.target.tagName === 'INPUT') return;
+    if (ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'radio') return;
     if (narrow.matches && main.classList.contains('inspecting')) { returnToView(); return; }
     if (lastSel[current]) { go(current, null, false); stage.focus(); }
   });

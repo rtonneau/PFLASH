@@ -33,9 +33,16 @@ function checkLink(p, where) {
   }
 }
 
+// Each map box shows its class name and a short plain-language role.
+const MAX_ROLE = 40;
 for (const lane of data.lanes || []) {
   for (const node of lane.nodes || []) {
     nodeCount++;
+    if (typeof node.role !== 'string' || !node.role.trim()) {
+      problems.push('node ' + node.id + ': missing plain-language role');
+    } else if (node.role.length > MAX_ROLE) {
+      problems.push('node ' + node.id + ': role longer than ' + MAX_ROLE + ' characters');
+    }
     for (const f of node.files || []) { checkLink(f, 'node ' + node.id); listed.add(f); }
   }
   for (const f of lane.otherFiles || []) { checkLink(f, 'lane ' + lane.id + ' otherFiles'); listed.add(f); }
@@ -78,6 +85,41 @@ for (const s of data.flow || []) {
   }
   if (s.phase && !phaseIds.has(s.phase)) problems.push('flow ' + s.id + ': unknown phase "' + s.phase + '"');
 }
+// Step titles are numbered in order ("1. Start-up", "2. ...").
+(data.flow || []).forEach(function (s, i) {
+  const m = /^(\d+)\.\s/.exec(s.title || '');
+  if (!m || +m[1] !== i + 1) problems.push('flow ' + s.id + ': title must start with "' + (i + 1) + '. "');
+});
+// Chemistry modes: one step defines them; it is chosen before /run/initialize, so it
+// belongs in the first phase. A step's "modes" keys must be mode ids from that step.
+const modeSteps = (data.flow || []).filter(s => s.branches && s.branches.length);
+if (modeSteps.length > 1) problems.push('flow: only one step may define branches (the chemistry mode)');
+const modeStep = modeSteps[0];
+const modeIds = new Set();
+if (modeStep) {
+  const firstPhase = (data.phases || [])[0];
+  if (firstPhase && modeStep.phase !== firstPhase.id) {
+    problems.push('flow ' + modeStep.id + ': the chemistry mode is chosen before the run, so its phase must be "' + firstPhase.id + '"');
+  }
+  for (const b of modeStep.branches) {
+    if (!b.id || modeIds.has(b.id)) problems.push('flow ' + modeStep.id + ': branch ids must be present and unique');
+    modeIds.add(b.id);
+  }
+  if (modeStep.branches.filter(b => b.default).length !== 1) {
+    problems.push('flow ' + modeStep.id + ': exactly one branch must be the default');
+  }
+}
+(data.flow || []).forEach(function (s, i) {
+  if (!s.modes) return;
+  if (!modeStep || i <= (data.flow || []).indexOf(modeStep)) {
+    problems.push('flow ' + s.id + ': "modes" needs an earlier step that defines the chemistry modes');
+    return;
+  }
+  for (const k of Object.keys(s.modes)) {
+    if (!modeIds.has(k)) problems.push('flow ' + s.id + ': unknown mode "' + k + '"');
+    if (typeof s.modes[k] !== 'string' || !s.modes[k].trim()) problems.push('flow ' + s.id + ': empty note for mode "' + k + '"');
+  }
+});
 const startSets = { map: nodeIds, flow: stepIds, tasks: taskIds };
 for (const view of Object.keys(data.startHere || {})) {
   const ids = startSets[view];
