@@ -30,6 +30,8 @@ Output data (species, mesoscopic species, reactions, physics-interaction counts,
 
 Project includes are rooted at `header/`, which is the only project include directory: `#include "chemistry/DnaChemistryList.hh"`. A new file goes in the directory of the concern it belongs to; a new Chemistry goes in `chemistry/catalog/`. Rationale: `docs/adr/0003-clustered-source-layout.md`.
 
+Architecture explorer: `docs/explorer/index.html` (data in `docs/explorer/architecture.json`). When you add, move or remove a file under `src/` or `header/`, list it in the JSON and run `node docs/explorer/build.js`; the `ExplorerCheck` ctest enforces it. See `docs/explorer/README.md`.
+
 ## Key Files
 
 - `sim.cc`: application setup. Runs Serial by default; `--threads N` (N > 0) selects the MT run manager (`G4RunManagerType::MT`), and, when MT was selected, `/run/numberOfThreads N` in a macro can override the worker count before `/run/initialize`. Set `kUseGui` to `true` only for interactive GUI runs. CLI flags (`--threads`, `--dir`) are registered here via `src/core/ArgParser.cc`.

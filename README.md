@@ -252,6 +252,7 @@ the full procedure, including `NDEBUG` and Debug-CRT-dialog pitfalls.
 - `src/`, `header/` — implementation and headers, mirrored in clusters: `core/` (`ArgParser`, `OutputDir`, `DnaLogger`), `actions/` (run, event, tracking, stacking and stepping actions), `geometry/` (`DetectorConstruction`, `DnaChemistryWorld`), `physics/` (`PhysicsList`), `chemistry/` (`DnaChemistryList`, `ChemistryRegistry`, `TimeStepAction`) with `chemistry/catalog/` (`PureWaterReactions`, `BoscoloChemReactions`), and `scoring/` (`ScoreSpecies`, `ReactionCounter`, `RunAccumulator`). Project includes are rooted at `header/`, e.g. `#include "chemistry/DnaChemistryList.hh"`.
 - `macro/` — runtime beam and chemistry configuration macros
 - `test/` — unit tests (CTest, no Geant4 kernel dependency)
+- `docs/explorer/` — interactive architecture explorer: open `docs/explorer/index.html` in a browser (module map, run flow, task guides)
 - `docs/adr/` — architecture decision records
 - `CONTEXT.md` — chemistry terminology glossary
 - `CLAUDE.md` — full project conventions and agent instructions
