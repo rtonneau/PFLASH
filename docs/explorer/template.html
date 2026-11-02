@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>dnachem-min architecture explorer</title>
+</head>
+<body>
+<h1>dnachem-min architecture explorer</h1>
+<div id="app"></div>
+<script>
+const DATA = /*__ARCHITECTURE_JSON__*/null;
+const app = document.getElementById('app');
+for (const lane of DATA.lanes) {
+  const h = document.createElement('h2');
+  h.textContent = lane.title;
+  app.appendChild(h);
+}
+</script>
+</body>
+</html>
