@@ -1,5 +1,5 @@
 {
-  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title,summary,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{label,summary},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
+  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title,summary,overview,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{label,summary},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
   "version": 1,
   "lanes": [
     {
@@ -842,7 +842,8 @@
       "outputs": [],
       "docs": [
         "macro/example_meso.in"
-      ]
+      ],
+      "overview": "Read the command line and run the macro that configures the simulation."
     },
     {
       "id": "physics",
@@ -861,7 +862,8 @@
       ],
       "docs": [
         "docs/output/README.md"
-      ]
+      ],
+      "overview": "Beam electrons interact with water; physical interactions are counted."
     },
     {
       "id": "handoff",
@@ -872,7 +874,8 @@
         "src/actions/StackingAction.cc"
       ],
       "outputs": [],
-      "docs": []
+      "docs": [],
+      "overview": "When no physical tracks remain, start the event’s chemistry."
     },
     {
       "id": "mode",
@@ -901,7 +904,8 @@
           "label": "IRT_syn + mesoscopic (default)",
           "summary": "IRT_syn particle-based stage, then a hand-over to the mesoscopic stage."
         }
-      ]
+      ],
+      "overview": "SBS, IRT_syn only, or IRT_syn + mesoscopic. Chosen before initialisation."
     },
     {
       "id": "particle",
@@ -919,7 +923,8 @@
       ],
       "docs": [
         "docs/output/README.md"
-      ]
+      ],
+      "overview": "Track individual molecules as they diffuse and react."
     },
     {
       "id": "meso",
@@ -941,7 +946,8 @@
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
         "docs/output/SpeciesMesoSpatial-h5.md"
       ],
-      "review": true
+      "review": true,
+      "overview": "Pass remaining molecules to counts per cell and advance to the end time."
     },
     {
       "id": "event-end",
@@ -957,7 +963,8 @@
       ],
       "docs": [
         "docs/output/README.md"
-      ]
+      ],
+      "overview": "Store the primary track’s length and how it ended."
     },
     {
       "id": "dump",
@@ -976,7 +983,8 @@
       "docs": [
         "docs/output/README.md",
         "docs/adr/0005-manifest-per-dump.md"
-      ]
+      ],
+      "overview": "Write accumulated results and the manifest, then reset for the next dump."
     }
   ],
   "tasks": [

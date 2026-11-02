@@ -81,9 +81,8 @@
   .other { display:block; width:100%; margin-top:6px; padding:4px 9px; text-align:left; border:1px dashed var(--line-strong);
            background:none; border-radius:7px; cursor:pointer; font-size:12.5px; color:var(--muted); }
   .other:hover { color:var(--accent); border-color:var(--accent-line); }
-  .has-sel .node:not(.sel):not(.in):not(.out) { opacity:.5; }
-  .searching .node:not(.match), .searching .other:not(.match) { opacity:.35; }
-  .searching .lane.nomatch .lane-head { opacity:.45; }
+  .has-sel .node:not(.sel):not(.in):not(.out) { background:var(--sunk); }
+  .searching .node:not(.match), .searching .other:not(.match) { background:var(--sunk); }
   .node.match, .other.match { background:var(--match); border-color:var(--match-line); opacity:1; }
   .node.sel.match { background:var(--accent); }
   .edges { position:absolute; inset:0; z-index:1; pointer-events:none; overflow:visible; }
@@ -159,14 +158,53 @@
   .pager button { flex:1; }
   .back { display:none; }
   .empty-help p { color:var(--muted); font-size:14px; }
+  .entry-points { display:flex; gap:8px; margin:0 0 16px; list-style:none; padding:0; }
+  .entry-points li { flex:1; min-width:0; }
+  .entry-points button { width:100%; height:100%; text-align:left; cursor:pointer; padding:9px 12px;
+    border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+  .entry-points button:hover { border-color:var(--accent); }
+  .entry-points b { display:block; font-size:13px; font-weight:600; }
+  .entry-points span { display:block; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+  .detail-nav { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:14px; }
+  .detail-nav .link { min-height:36px; overflow-wrap:anywhere; }
+  .flow .card { display:block; width:100%; text-align:left; padding:9px 14px; }
+  .flow .card-title::after { content:'›'; margin-left:auto; color:var(--accent); }
+  .flow .card-sum { font-size:13.5px; }
+  .flow .phase { padding:8px 12px 0; margin-bottom:10px; }
+  .flow .phase-head { display:flex; }
+  .flow .phase-head p { margin-top:2px; }
+  .flow .tag { font-size:11.5px; border-radius:4px; }
+  #stage:has(.flow) > .intro { max-width:none; }
+  .card[aria-current=true] { border:2px solid var(--accent); padding:9px 13px; background:var(--accent-soft); }
+  .flow .card[aria-current=true] { padding:8px 13px; }
+  .mode-guide .fork { grid-template-columns:1fr; }
+  .mode-guide h3 { margin-top:0; }
+  .node.sel .t::before { content:'✓ '; }
+  .chip-out, code { overflow-wrap:anywhere; }
+  #detail h2:focus { outline-offset:4px; }
 
   /* ---- narrow screens ---- */
   @media (max-width: 900px) {
     main { display:block; }
-    #detail { position:static; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
+    #detail { position:static; overflow:visible; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
     [role=tablist] { margin-left:0; }
     .legend { margin-left:0; }
     .back { display:inline-block; margin-bottom:10px; }
+    header { position:sticky; top:0; z-index:5; }
+    header p { display:none; }
+    header h1 { font-size:16px; }
+    main:not(.inspecting) #detail { display:none; }
+    main.inspecting #stage { display:none; }
+    main.inspecting #detail { border-top:0; min-height:70vh; }
+    .detail-nav { position:sticky; top:var(--header-height, 96px); z-index:4; background:var(--surface); }
+    html { scroll-padding-top:calc(var(--header-height, 96px) + 12px); }
+    .back { margin-bottom:0; }
+    .detail-nav .overview-return { display:none; }
+    .entry-points { flex-wrap:wrap; gap:6px; }
+    .entry-points li { flex:1 1 160px; }
+    .node { min-height:40px; }
+    button.copy { min-height:32px; }
+    .edges { display:none; }
   }
   @media (max-width: 520px) {
     header, #stage, #detail { padding-left:12px; padding-right:12px; }
@@ -196,10 +234,12 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   const stage = document.getElementById('stage');
   const detail = document.getElementById('detail');
   const tabsEl = document.getElementById('tabs');
+  const main = document.querySelector('main');
+  let mapQuery = '';
+  let overviewY = 0;
   // Links are relative to docs/explorer/index.html; repo files sit two levels up.
   const REPO = '../../';
   const narrow = window.matchMedia('(max-width: 900px)');
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function el(tag, attrs, children) {
     const e = document.createElement(tag);
@@ -286,11 +326,13 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   }
   function legacyCopy(text) {
     return new Promise(function (resolve, reject) {
+      const focused = document.activeElement;
       const ta = el('textarea', { readonly: '', style: 'position:fixed;top:-1000px;opacity:0' });
       ta.value = text; document.body.appendChild(ta); ta.select();
       let ok = false;
       try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
       ta.remove();
+      if (focused) focused.focus({ preventScroll: true });
       if (ok) resolve(); else reject(new Error('copy failed'));
     });
   }
@@ -345,16 +387,32 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   }
   function setDetail(children) {
     detail.textContent = '';
-    if (narrow.matches) {
-      const back = el('button', { type: 'button', class: 'link back', text: '↑ Back to the view' });
-      back.addEventListener('click', function () {
-        const cur = stage.querySelector('.sel, [aria-current=true]') || stage;
-        cur.scrollIntoView({ block: 'center', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
-        if (cur.focus) cur.focus({ preventScroll: true });
-      });
-      detail.appendChild(back);
+    const nav = el('nav', { class: 'detail-nav', 'aria-label': 'Return navigation' });
+    if (history.state && history.state.previous) {
+      const previous = el('button', { type: 'button', class: 'link' + (history.state.previous === viewLabel(current) ? ' overview-return' : ''), text: '← Back to ' + history.state.previous });
+      previous.addEventListener('click', function () { history.back(); });
+      nav.appendChild(previous);
     }
+    const back = el('button', { type: 'button', class: 'link back', text: '↑ Back to ' + viewLabel(current) });
+    back.addEventListener('click', returnToView);
+    nav.appendChild(back);
+    detail.appendChild(nav);
     children.forEach(function (c) { if (c) detail.appendChild(c); });
+    const heading = detail.querySelector('h2');
+    if (heading) heading.tabIndex = -1;
+    detail.scrollTop = 0;
+    detail.querySelectorAll('button, a, summary').forEach(function (e, i) { e.dataset.focus = 'detail-' + i; });
+  }
+  function returnToView() {
+    main.classList.remove('inspecting');
+    const cur = stage.querySelector('.node.sel, .lane.sel .lane-head, [aria-current=true]') || stage;
+    window.scrollTo(0, overviewY);
+    cur.focus({ preventScroll: true });
+    if (narrow.matches) cur.scrollIntoView({ block: 'center' });
+  }
+  function renderStarts(view) {
+    const starts = (DATA.startHere && DATA.startHere[view]) || [];
+    stage.appendChild(el('ul', { class: 'entry-points', 'aria-label': 'Start here' }, starts.map(function (s) { return startItem(view, s); })));
   }
 
   // ---- empty state: how to read the view, and where to start ----
@@ -371,19 +429,25 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     if (view === 'map' && nodeById[s.id]) title = nodeById[s.id].title;
     if (view === 'flow' && stepById[s.id]) title = 'Step ' + stepNumber(stepById[s.id]) + ': ' + stepTitle(stepById[s.id]);
     if (view === 'tasks' && taskById[s.id]) title = taskById[s.id].title;
-    const b = el('button', { type: 'button' }, [el('b', { text: title }), el('span', { text: s.why })]);
+    const b = el('button', { type: 'button' }, [el('b', { text: s.why }), el('span', { text: title })]);
     b.addEventListener('click', function () { go(view, s.id, true); });
     return el('li', {}, [b]);
   }
   function showEmpty(view) {
-    const starts = (DATA.startHere && DATA.startHere[view]) || [];
     const parts = [el('h2', { text: 'How to read this view' }),
       el('div', { class: 'empty-help' }, HELP[view].map(function (t) { return el('p', { text: t }); }))];
     if (view === 'map') {
       const n = DATA.lanes.reduce(function (a, l) { return a + l.nodes.length; }, 0);
       parts.push(el('p', { class: 'kicker', text: n + ' parts in ' + DATA.lanes.length + ' folders, ' + DATA.edges.length + ' connections.' }));
     }
-    if (starts.length) parts.push(el('h3', { text: 'Start here' }), el('ul', { class: 'start' }, starts.map(function (s) { return startItem(view, s); })));
+    if (view === 'flow') {
+      DATA.flow.filter(function (s) { return s.branches && s.branches.length; }).forEach(function (s) {
+        parts.push(el('section', { class: 'mode-guide', 'aria-label': s.title }, [
+          el('h3', { text: stepTitle(s) }), branchList(s),
+          linkButton('Explore modes and source files →', null, ['flow', s.id])
+        ]));
+      });
+    }
     setDetail(parts);
   }
 
@@ -391,6 +455,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   let mapState = null;
   function renderMap() {
     stage.textContent = '';
+    renderStarts('map');
     const input = el('input', { type: 'search', id: 'find', placeholder: 'Find a part, file or symbol', autocomplete: 'off', 'aria-describedby': 'find-count' });
     const clear = el('button', { type: 'button', class: 'clear', 'aria-label': 'Clear search', text: '×', hidden: '' });
     const count = el('span', { class: 'count', id: 'find-count', 'aria-live': 'polite' });
@@ -426,7 +491,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
           el('span', { class: 'rel r-out', text: 'used', title: 'The selected part uses, creates or fills this one' }),
           el('span', { class: 'rel r-in', text: 'user', title: 'This part uses the selected one' })
         ]);
-        b.addEventListener('click', function () { go('map', mapState.sel === n.id ? null : n.id, true); });
+        b.addEventListener('click', function () { go('map', !narrow.matches && mapState.sel === n.id ? null : n.id, true); });
         nodeEls[n.id] = b; box.appendChild(b);
       });
       if (lane.otherFiles && lane.otherFiles.length) {
@@ -443,6 +508,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
 
     function runSearch() {
       const q = input.value.trim().toLowerCase();
+      mapQuery = input.value;
       clear.hidden = !q;
       lanesEl.classList.toggle('searching', !!q);
       if (!q) { count.textContent = ''; Object.keys(nodeEls).forEach(function (id) { nodeEls[id].classList.remove('match'); }); Object.keys(otherEls).forEach(function (id) { otherEls[id].classList.remove('match'); }); Object.keys(laneEls).forEach(function (id) { laneEls[id].classList.remove('nomatch'); }); return; }
@@ -468,14 +534,19 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     input.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape') { input.value = ''; runSearch(); ev.stopPropagation(); }
       if (ev.key === 'Enter') {
+        ev.preventDefault();
         const first = lanesEl.querySelector('.node.match, .other.match');
-        if (first) { first.click(); first.focus(); }
+        if (first) { first.focus(); first.click(); }
       }
     });
     clear.addEventListener('click', function () { input.value = ''; runSearch(); input.focus(); });
 
-    if (window.ResizeObserver) new ResizeObserver(function () { drawEdges(); }).observe(lanesEl);
-    else window.addEventListener('resize', drawEdges);
+    input.value = mapQuery;
+    runSearch();
+    if (window.ResizeObserver) {
+      mapState.observer = new ResizeObserver(drawEdges);
+      mapState.observer.observe(lanesEl);
+    }
   }
   function legendLine(color, dashed) {
     const s = svg('svg', { width: 26, height: 10, viewBox: '0 0 26 10' });
@@ -488,9 +559,9 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   function drawEdges() {
     if (!mapState) return;
     const g = mapState.edges;
-    Array.prototype.slice.call(g.querySelectorAll('path.e')).forEach(function (p) { p.remove(); });
+    Array.prototype.slice.call(g.querySelectorAll('path.e, path.halo')).forEach(function (p) { p.remove(); });
     const id = mapState.sel;
-    if (!id || id.indexOf('lane:') === 0) return;
+    if (!id || id.indexOf('lane:') === 0 || narrow.matches) return;
     const base = mapState.wrap.getBoundingClientRect();
     g.setAttribute('width', mapState.wrap.scrollWidth); g.setAttribute('height', mapState.wrap.scrollHeight);
     function box(nid) {
@@ -581,10 +652,16 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
 
   // ---- run flow ----
   let flowCards = {};
+  function branchList(s) {
+    return el('div', { class: 'fork', 'aria-label': 'Chemistry modes' }, s.branches.map(function (b) {
+      return el('div', { class: /default/i.test(b.label) ? 'default' : '' }, [el('b', { text: b.label }), el('span', { text: b.summary })]);
+    }));
+  }
   function renderFlow() {
     stage.textContent = '';
     flowCards = {};
-    stage.appendChild(el('p', { class: 'intro', text: 'One simulation run, in order. Green tags are the files a step writes; ⚑ marks a summary awaiting physics review. Select a step for the modules and files behind it.' }));
+    renderStarts('flow');
+    stage.appendChild(el('p', { class: 'intro', text: 'Follow a run from start-up to results. Select a step for its explanation, outputs and code. ⚑ = awaiting physics review.' }));
     const wrap = el('div', { class: 'flow' });
     const groups = [];
     DATA.flow.forEach(function (s) {
@@ -597,18 +674,10 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       if (ph) box.appendChild(el('div', { class: 'phase-head' }, [el('h2', { text: ph.title }), el('p', { text: ph.summary })]));
       const ol = el('ol', { class: 'steps' });
       gr.steps.forEach(function (s) {
-        const card = el('div', { class: 'card' + (s.review ? ' review' : ''), tabindex: '0', role: 'button', 'aria-label': 'Step ' + stepNumber(s) + ': ' + stepTitle(s) });
+        const card = el('button', { type: 'button', class: 'card' + (s.review ? ' review' : ''), 'aria-label': 'Step ' + stepNumber(s) + ': ' + stepTitle(s), 'aria-describedby': 'step-overview-' + s.id });
         card.appendChild(el('div', { class: 'card-title' }, [stepTitle(s), s.condition ? el('span', { class: 'tag', text: s.condition }) : null, s.review ? flagEl() : null]));
-        card.appendChild(el('div', { class: 'card-sum', text: s.summary }));
-        if (s.branches && s.branches.length) {
-          card.appendChild(el('div', { class: 'fork', 'aria-label': 'Options' }, s.branches.map(function (b) {
-            return el('div', { class: /default/i.test(b.label) ? 'default' : '' }, [el('b', { text: b.label }), el('span', { text: b.summary })]);
-          })));
-        }
-        if (s.outputs && s.outputs.length) {
-          card.appendChild(el('div', { class: 'writes' }, [el('span', { text: 'Writes' })].concat(s.outputs.map(function (o) { return el('span', { class: 'chip-out', text: o }); }))));
-        }
-        onActivate(card, function () { go('flow', card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
+        card.appendChild(el('span', { id: 'step-overview-' + s.id, class: 'card-sum', text: s.overview || s.summary }));
+        onActivate(card, function () { go('flow', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
         flowCards[s.id] = card;
         ol.appendChild(el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card]));
       });
@@ -638,9 +707,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       s.condition ? el('span', { class: 'tag', text: s.condition }) : null,
       el('p', { class: 'lead', text: s.summary })
     ].concat(
-      section('Options', s.branches && s.branches.length ? el('div', { class: 'fork' }, s.branches.map(function (b) {
-        return el('div', { class: /default/i.test(b.label) ? 'default' : '' }, [el('b', { text: b.label }), el('span', { text: b.summary })]);
-      })) : null),
+      section('Options', s.branches && s.branches.length ? branchList(s) : null),
       section('Writes', s.outputs && s.outputs.length ? el('div', { class: 'links' }, s.outputs.map(function (o) { return el('span', { class: 'chip-out', text: o }); })) : null),
       section('Modules involved', mods.length ? nodeLinks(mods) : null),
       section('Read more', s.docs && s.docs.length ? fileList(s.docs, true) : null),
@@ -653,6 +720,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   function renderTasks() {
     stage.textContent = '';
     taskCards = {};
+    renderStarts('tasks');
     stage.appendChild(el('p', { class: 'intro', text: 'Start from what you want to do. Select a task for the guide to read and the parts of the code involved.' }));
     [['everyone', 'For everyone'], ['developer', 'For developers']].forEach(function (g) {
       const tasks = DATA.tasks.filter(function (t) { return t.audience === g[0]; });
@@ -665,7 +733,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
         const card = el('div', { class: 'card', tabindex: '0', role: 'button' }, [
           el('div', { class: 'card-title', text: t.title }), el('div', { class: 'card-sum', text: t.summary }),
           el('div', { class: 'meta', text: meta.join(' · ') })]);
-        onActivate(card, function () { go('tasks', card.getAttribute('aria-current') === 'true' ? null : t.id, true); });
+        onActivate(card, function () { go('tasks', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : t.id, true); });
         taskCards[t.id] = card;
         grid.appendChild(card);
       });
@@ -700,18 +768,42 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   const lastSel = {};
   let current = null;
   let userAction = false;
+  let serial = Date.now(), currentKey = null, activeHash = null;
+  const visits = new Map();
+  function viewLabel(view) { return ({ map: 'Module map', flow: 'Run flow', tasks: 'Tasks' })[view] || 'view'; }
+  function selectionLabel() {
+    const id = lastSel[current];
+    const item = current === 'map' ? (nodeById[id] || laneById[(id || '').slice(5)]) : current === 'flow' ? stepById[id] : taskById[id];
+    return item ? item.title.replace(/^\d+\.\s*/, '') : viewLabel(current);
+  }
+  function rememberVisit() {
+    if (currentKey === null) return;
+    visits.set(currentKey, { y: window.scrollY, detailY: detail.scrollTop, query: mapQuery,
+      inspecting: main.classList.contains('inspecting'), overviewY: overviewY,
+      focus: document.activeElement && document.activeElement.dataset.focus });
+  }
   function go(view, id, fromUser) {
+    rememberVisit();
     userAction = !!fromUser;
     const h = '#' + view + (id ? '/' + encodeURIComponent(id) : '');
-    if (location.hash === h) route(); else location.hash = h;
+    if (location.hash !== h) {
+      history.pushState({ explorer: true, key: ++serial, previous: selectionLabel() }, '', h);
+    }
+    route(false);
   }
-  function route() {
+  function route(restoring) {
     const m = /^#([a-z]+)(?:\/(.+))?$/.exec(location.hash);
     let view = m && VIEWS.some(function (v) { return v.id === m[1]; }) ? m[1] : 'map';
-    const id = m && m[2] ? decodeURIComponent(m[2]) : null;
+    let id = null;
+    try { id = m && m[2] ? decodeURIComponent(m[2]) : null; } catch (e) { /* Invalid deep link: show overview. */ }
+    if (id && !(view === 'map' ? nodeById[id] || (id.indexOf('lane:') === 0 && laneById[id.slice(5)]) : view === 'flow' ? stepById[id] : taskById[id])) id = null;
+    if (!history.state || !history.state.explorer) history.replaceState({ explorer: true, key: ++serial }, '');
+    const saved = restoring && visits.get(history.state.key);
+    const fromDetail = detail.contains(document.activeElement);
+    if (saved) mapQuery = saved.query;
     const v = VIEWS.filter(function (x) { return x.id === view; })[0];
     const switched = current !== view;
-    if (switched) {
+    if (switched || (saved && mapState && mapState.input.value !== mapQuery)) {
       current = view;
       VIEWS.forEach(function (x) {
         const on = x.id === view;
@@ -719,18 +811,34 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
         x.btn.tabIndex = on ? 0 : -1;
       });
       stage.setAttribute('aria-labelledby', 'tab-' + view);
+      if (mapState && mapState.observer) mapState.observer.disconnect();
       mapState = null;
       v.render();
+      stage.querySelectorAll('button, input, [role=button]').forEach(function (e, i) { e.dataset.focus = 'stage-' + view + '-' + i; });
     }
     lastSel[view] = id;
-    v.select(id, switched || userAction);
-    if (id && userAction && narrow.matches) detail.scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    if (!main.classList.contains('inspecting')) overviewY = window.scrollY;
+    main.classList.toggle('inspecting', saved ? saved.inspecting : !!id && (userAction || restoring || currentKey === null));
+    v.select(id, !saved && !narrow.matches && (switched || fromDetail));
+    currentKey = history.state.key;
+    activeHash = location.hash;
+    if (saved) {
+      overviewY = saved.overviewY;
+      window.scrollTo(0, saved.y);
+      detail.scrollTop = saved.detailY;
+      const focused = saved.focus && document.querySelector('[data-focus="' + saved.focus + '"]');
+      if (focused) focused.focus({ preventScroll: true });
+    } else if (id && (fromDetail || (narrow.matches && main.classList.contains('inspecting')))) {
+      detail.querySelector('h2').focus({ preventScroll: true });
+      if (narrow.matches) window.scrollTo(0, 0);
+    } else if (switched && (!id || narrow.matches)) window.scrollTo(0, 0);
     userAction = false;
   }
   VIEWS.forEach(function (v, i) {
-    v.btn = el('button', { role: 'tab', type: 'button', id: 'tab-' + v.id, 'aria-controls': 'stage', text: v.label });
+    v.btn = el('button', { role: 'tab', type: 'button', id: 'tab-' + v.id, 'data-focus': 'tab-' + v.id, 'aria-controls': 'stage', text: v.label });
     v.btn.addEventListener('click', function () { go(v.id, lastSel[v.id] || null, false); });
     v.btn.addEventListener('keydown', function (ev) {
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       let j = null;
       if (ev.key === 'ArrowRight') j = (i + 1) % VIEWS.length;
       if (ev.key === 'ArrowLeft') j = (i + VIEWS.length - 1) % VIEWS.length;
@@ -743,10 +851,24 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;
     if (ev.target && ev.target.tagName === 'INPUT') return;
-    if (lastSel[current]) go(current, null, false);
+    if (narrow.matches && main.classList.contains('inspecting')) { returnToView(); return; }
+    if (lastSel[current]) { go(current, null, false); stage.focus(); }
   });
-  window.addEventListener('hashchange', route);
-  route();
+  history.scrollRestoration = 'manual';
+  window.addEventListener('popstate', function () { rememberVisit(); route(true); });
+  window.addEventListener('hashchange', function () {
+    if (activeHash !== location.hash) { rememberVisit(); route(true); }
+  });
+  window.addEventListener('resize', drawEdges);
+  if (window.ResizeObserver) new ResizeObserver(function (entries) {
+    document.documentElement.style.setProperty('--header-height', entries[0].target.offsetHeight + 'px');
+  }).observe(document.querySelector('header'));
+  narrow.addEventListener('change', function () {
+    if (!narrow.matches) main.classList.remove('inspecting');
+    else if (detail.contains(document.activeElement) && lastSel[current]) main.classList.add('inspecting');
+    drawEdges();
+  });
+  route(false);
 
   window.Explorer = { DATA: DATA, go: go };
 })();

@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { render } = require('./build.js');
+const vm = require('vm');
 
 const root = path.resolve(__dirname, '..', '..');
 const jsonPath = path.join(__dirname, 'architecture.json');
@@ -72,6 +73,9 @@ for (const e of data.edges || []) {
   }
 }
 for (const s of data.flow || []) {
+  if (typeof s.overview !== 'string' || !s.overview.trim()) {
+    problems.push('flow ' + s.id + ': missing plain-language overview');
+  }
   if (s.phase && !phaseIds.has(s.phase)) problems.push('flow ' + s.id + ': unknown phase "' + s.phase + '"');
 }
 const startSets = { map: nodeIds, flow: stepIds, tasks: taskIds };
@@ -90,10 +94,24 @@ for (const f of sources) {
 }
 
 // Freshness of the committed page.
+const rendered = render();
+// The double-clickable artifact must embed its renderer and data. Catch accidental
+// runtime dependencies and script syntax errors without requiring a browser/server.
+if (/<(?:script|link|img|iframe)\b[^>]*\b(?:src|href)\s*=/i.test(rendered) ||
+    /@import\b|url\(\s*['"]?(?:https?:)?\/\//i.test(rendered)) {
+  problems.push('generated page loads an external asset; keep the explorer self-contained');
+}
+for (const match of rendered.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+  try { new vm.Script(match[1], { filename: 'explorer-inline.js' }); }
+  catch (error) { problems.push('renderer syntax: ' + error.message); }
+  if (/\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|import)\s*\(/.test(match[1])) {
+    problems.push('renderer has a network/module loader; data and code must be embedded');
+  }
+}
 const indexPath = path.join(__dirname, 'index.html');
 if (!fs.existsSync(indexPath)) {
   problems.push('index.html missing; run node docs/explorer/build.js');
-} else if (fs.readFileSync(indexPath, 'utf8') !== render()) {
+} else if (fs.readFileSync(indexPath, 'utf8') !== rendered) {
   problems.push('index.html is stale; run node docs/explorer/build.js');
 }
 
