@@ -2,19 +2,216 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>dnachem-min architecture explorer</title>
+<style>
+  :root { --bg:#f7f8fa; --fg:#1d2330; --muted:#5b6475; --line:#b9c0cc; --card:#fff;
+          --accent:#1f6feb; --review:#c27800; --sel:#e6f0ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.45 system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:14px 20px 0; background:#fff; border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 2px; font-size:20px; }
+  header p { margin:0 0 10px; color:var(--muted); }
+  nav { display:flex; gap:4px; }
+  nav button { border:1px solid var(--line); border-bottom:none; background:#eef0f4; padding:7px 16px;
+               border-radius:6px 6px 0 0; font:inherit; cursor:pointer; color:var(--fg); }
+  nav button[aria-selected="true"] { background:var(--bg); font-weight:600; color:var(--accent); }
+  main { display:flex; align-items:flex-start; }
+  #stage { flex:1; overflow:auto; padding:16px; min-width:0; }
+  #detail { width:380px; flex:none; position:sticky; top:0; max-height:100vh; overflow:auto;
+            background:var(--card); border-left:1px solid var(--line); padding:16px 18px; }
+  #detail.empty { color:var(--muted); }
+  .lane-title { font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; fill:var(--muted); }
+  .lane-bg { fill:#fff; stroke:var(--line); }
+  .node rect { fill:var(--card); stroke:var(--line); stroke-width:1.2; rx:6; }
+  .node:hover rect, .node:focus rect { stroke:var(--accent); }
+  .node.sel rect { fill:var(--sel); stroke:var(--accent); stroke-width:2; }
+  .node.review rect { stroke:var(--review); stroke-dasharray:4 3; }
+  .node text { font-size:12.5px; fill:var(--fg); pointer-events:none; }
+  .node { cursor:pointer; outline:none; }
+  .edge { fill:none; stroke:#9aa4b5; stroke-width:1.2; opacity:.55; }
+  .edge.hi { stroke:var(--accent); opacity:1; stroke-width:2; }
+  h2 { margin:0 0 6px; font-size:18px; }
+  h3 { margin:16px 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  details { margin-top:14px; border:1px solid var(--line); border-radius:6px; padding:6px 10px; background:#fafbfc; }
+  summary { cursor:pointer; font-weight:600; }
+  ul.files { list-style:none; padding:0; margin:8px 0 0; }
+  ul.files li { display:flex; gap:6px; align-items:center; margin:3px 0; }
+  ul.files a { color:var(--accent); word-break:break-all; font:12.5px ui-monospace, Consolas, monospace; }
+  button.copy { border:1px solid var(--line); background:#fff; border-radius:4px; cursor:pointer; font-size:11px; padding:1px 6px; }
+  code { font:12.5px ui-monospace, Consolas, monospace; background:#eef0f4; padding:1px 4px; border-radius:3px; }
+  .badge { display:inline-block; background:#fff3d6; color:var(--review); border:1px solid #f0d28a;
+           border-radius:10px; padding:1px 8px; font-size:12px; margin-bottom:6px; }
+  .placeholder { color:var(--muted); padding:30px 10px; }
+  .legend { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+</style>
 </head>
 <body>
-<h1>dnachem-min architecture explorer</h1>
-<div id="app"></div>
+<header>
+  <h1>dnachem-min architecture explorer</h1>
+  <p>Click a box to see what it does, in plain language, and where it lives in the code.</p>
+  <nav role="tablist" id="tabs"></nav>
+</header>
+<main>
+  <section id="stage" role="tabpanel"></section>
+  <aside id="detail" class="empty" aria-live="polite">Select a box to see its description.</aside>
+</main>
 <script>
 const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to,label?}; flow[]{id,title,summary,files[],outputs[]}; tasks[]{id,title,summary,docs[],files[]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.","version":1,"lanes":[{"id":"app","title":"Application entry","summary":"Program start-up: wires the run manager, physics, actions and macro, then runs.","nodes":[{"id":"sim","title":"sim.cc","summary":"The program's main(): parses the command line, picks Serial or multi-threaded running, builds the geometry, physics and actions, finds and executes the macro file, and flushes any pending output before exit.","files":["sim.cc"],"symbols":["main","kUseGui"]}],"otherFiles":[]},{"id":"actions","title":"Actions","summary":"Per-run, per-event and per-track hooks that Geant4 calls while the simulation runs.","nodes":[{"id":"action-init","title":"ActionInitialization","summary":"Creates all the user actions for each thread and sets the default chemistry end time (1 s with the mesoscopic stage, 1 us without).","files":["src/actions/ActionInitialization.cc","header/actions/ActionInitialization.hh"],"symbols":["ActionInitialization::Build"],"review":true},{"id":"primary-gen","title":"PrimaryGeneratorAction","summary":"Shoots the primary beam particle (set by /gun macro commands) and records the sampled beam into the run.","files":["src/actions/PrimaryGeneratorAction.cc","header/actions/PrimaryGeneratorAction.hh"],"symbols":["PrimaryGeneratorAction"]},{"id":"run-action","title":"Run and RunAction","summary":"Run keeps per-run data and merges worker threads; RunAction starts and ends a run, applies the reaction time binning and records the run in the manifest.","files":["src/actions/RunAction.cc","header/actions/RunAction.hh","src/actions/Run.cc","header/actions/Run.hh"],"symbols":["RunAction::BeginOfRunAction","RunAction::EndOfRunAction","Run::Merge"]},{"id":"event-action","title":"EventAction","summary":"Per-event bookkeeping: stages pre-chemical files and commits the track-length row for events that were not aborted.","files":["src/actions/EventAction.cc","header/actions/EventAction.hh"],"symbols":["EventAction"]},{"id":"tracking-action","title":"TrackingAction","summary":"After each track, fills the event's track-length row: primary track length and how it ended (stopped, escaped or killed), plus secondary-electron lengths.","files":["src/actions/TrackingAction.cc","header/actions/TrackingAction.hh"],"symbols":["TrackingAction::PostUserTrackingAction"]},{"id":"stepping-action","title":"SteppingAction","summary":"Counts each discrete Geant4-DNA physical interaction (excluding transport) by process name.","files":["src/actions/SteppingAction.cc","header/actions/SteppingAction.hh"],"symbols":["SteppingAction"]},{"id":"stacking-action","title":"StackingAction","summary":"When the physical stage has no tracks left, starts the chemistry for the event (the hand-off from physics to chemistry) and logs the stage change.","files":["src/actions/StackingAction.cc","header/actions/StackingAction.hh"],"symbols":["StackingAction::NewStage"]}],"otherFiles":[]},{"id":"physics","title":"Physics","summary":"The physical stage: how electrons slow down and ionise water.","nodes":[{"id":"physics-list","title":"PhysicsList","summary":"A simplified modular list that combines the Geant4-DNA electromagnetic physics (option 2) with the project's chemistry. IRT_syn is the default chemistry time-step model.","files":["src/physics/PhysicsList.cc","header/physics/PhysicsList.hh"],"symbols":["PhysicsList"],"review":true}],"otherFiles":[]},{"id":"geometry","title":"Geometry and environment","summary":"The single homogeneous water box and the dissolved substances in it.","nodes":[{"id":"detector","title":"DetectorConstruction","summary":"Builds the one water box (the whole geometry) and registers the PrimaryKiller scorer. Half-side set by /chem/env/halfBox (default 500 um).","files":["src/geometry/DetectorConstruction.cc","header/geometry/DetectorConstruction.hh"],"symbols":["DetectorConstruction::Construct","ConstructSDandField"]},{"id":"chem-world","title":"DnaChemistryWorld","summary":"Describes the chemical environment: box size, pH and exogenous scavengers (such as dissolved O2) that react through the selected Chemistry's bulk reactions.","files":["src/geometry/DnaChemistryWorld.cc","header/geometry/DnaChemistryWorld.hh"],"symbols":["DnaChemistryWorld"],"review":true},{"id":"scavenger-msg","title":"Scavenger spec and messenger","summary":"Parses /chem/env/scavenger values (M, mM, uM, or % for O2) into a validated specification.","files":["src/geometry/ScavengerSpec.cc","header/geometry/ScavengerSpec.hh","src/geometry/ScavengerMessenger.cc","header/geometry/ScavengerMessenger.hh"],"symbols":["ScavengerSpec"]}],"otherFiles":[]},{"id":"chemistry","title":"Chemistry","summary":"The chemical stages: what species exist, which reactions occur, and how time advances.","nodes":[{"id":"chem-list","title":"DnaChemistryList","summary":"The driver of the chemical stage: defines the molecules, water dissociation channels, reaction table and time-step model (IRT_syn default, or SBS). Registers bulk reactions as scavenger processes.","files":["src/chemistry/DnaChemistryList.cc","header/chemistry/DnaChemistryList.hh"],"symbols":["DnaChemistryList","CheckTimeStepModel"],"review":true},{"id":"time-step","title":"TimeStepAction","summary":"Runs the particle-based stage and, in IRT_syn with the mesoscopic stage on, hands the remaining molecules over at the Hand-over time to the mesoscopic stage (Gillespie on a cell mesh).","files":["src/chemistry/TimeStepAction.cc","header/chemistry/TimeStepAction.hh"],"symbols":["TimeStepAction"],"review":true},{"id":"meso-settings","title":"MesoSettings","summary":"Portable settings for the mesoscopic stage: hand-over time, requested cell size, pixel count (capped) and the logarithmic recording time grid.","files":["src/chemistry/MesoSettings.cc","header/chemistry/MesoSettings.hh"],"symbols":["MesoSettings::Values","PixelCount","LogTimeGrid"],"review":true},{"id":"meso-msg","title":"MesoMessenger","summary":"Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade, spatialOutput).","files":["src/chemistry/MesoMessenger.cc","header/chemistry/MesoMessenger.hh"],"symbols":["MesoMessenger"]},{"id":"registry","title":"ChemistryRegistry","summary":"Name-to-Chemistry registry and the once-per-process, case-insensitive selection.","files":["src/chemistry/ChemistryRegistry.cc","header/chemistry/ChemistryRegistry.hh","src/chemistry/BuiltInChemistries.cc","header/chemistry/BuiltInChemistries.hh","header/chemistry/ChemistryTypes.hh"],"symbols":["ChemistryRegistry::Register","Select"]},{"id":"select-msg","title":"ChemistrySelectMessenger","summary":"Macro commands /chem/select <name> and /chem/list.","files":["src/chemistry/ChemistrySelectMessenger.cc","header/chemistry/ChemistrySelectMessenger.hh"],"symbols":["ChemistrySelectMessenger"]},{"id":"reaction-dump","title":"ReactionTableDump","summary":"Writes the reaction table to a file (/chem/reaction/dump).","files":["src/chemistry/ReactionTableDump.cc","header/chemistry/ReactionTableDump.hh"],"symbols":["ReactionTableDump::FormatReactionLabel"]},{"id":"pure-water","title":"PureWater Chemistry","summary":"The default Chemistry: base pure-water reactions, the O2-derived network and the pH-driven acid-base buffer.","files":["src/chemistry/catalog/PureWaterReactions.cc","header/chemistry/catalog/PureWaterReactions.hh"],"symbols":["BuildPureWaterReactions","BuildPureWaterBulkReactions"],"review":true},{"id":"boscolo","title":"BoscoloChem","summary":"Chemistry reproducing Table 1 of Boscolo et al. 2020 (26 reactions).","files":["src/chemistry/catalog/BoscoloChemReactions.cc","header/chemistry/catalog/BoscoloChemReactions.hh"],"symbols":["BoscoloChemReactions"],"review":true},{"id":"tonneau","title":"Tonneau2025","summary":"Chemistry with the 73-reaction network of Tonneau et al. 2025, including the extra molecule HO3.","files":["src/chemistry/catalog/Tonneau2025Reactions.cc","header/chemistry/catalog/Tonneau2025Reactions.hh","src/chemistry/catalog/Tonneau2025Table.cc","header/chemistry/catalog/Tonneau2025Table.hh"],"symbols":["Tonneau2025Reactions"],"review":true},{"id":"farokhi","title":"Farokhi2023","summary":"Chemistry with the 9 base-water reactions of Farokhi et al. 2023.","files":["src/chemistry/catalog/Farokhi2023Reactions.cc","header/chemistry/catalog/Farokhi2023Reactions.hh"],"symbols":["Farokhi2023Reactions"],"review":true}],"otherFiles":["header/chemistry/ChemUtils.hh","header/chemistry/ScavengerReactionAccess.hh","src/chemistry/ChemUtils.cc"]},{"id":"scoring","title":"Scoring and output","summary":"Everything that counts, accumulates and writes results.","nodes":[{"id":"score-species","title":"ScoreSpecies","summary":"A Geant4 primitive scorer that follows the tracked molecules over time; it is the source of the Species files.","files":["src/scoring/ScoreSpecies.cc","header/scoring/ScoreSpecies.hh"],"symbols":["ScoreSpecies"]},{"id":"reaction-counter","title":"ReactionCounter","summary":"Counts how many times each reaction fires in each time bin (particle-based stage only).","files":["src/scoring/ReactionCounter.cc","header/scoring/ReactionCounter.hh"],"symbols":["ReactionCounter","ConfigureBinEdges"]},{"id":"phys-counter","title":"PhysicsInteractionCounter","summary":"Generic string-frequency counter used for physical-interaction counts.","files":["src/scoring/PhysicsInteractionCounter.cc","header/scoring/PhysicsInteractionCounter.hh"],"symbols":["PhysicsInteractionCounter::Record"]},{"id":"meso-counter","title":"MesoSpeciesCounter","summary":"Mean species count per event versus time in the mesoscopic stage.","files":["src/scoring/MesoSpeciesCounter.cc","header/scoring/MesoSpeciesCounter.hh"],"symbols":["MesoSpeciesCounter"]},{"id":"meso-spatial","title":"MesoSpatialFile","summary":"HDF5 writer for per-event spatial snapshots of the mesoscopic mesh.","files":["src/scoring/MesoSpatialFile.cc","header/scoring/MesoSpatialFile.hh"],"symbols":["MesoSpatialFile::AppendEvent"]},{"id":"track-length","title":"TrackLengthTable","summary":"One row per event with the primary track length, end reason and secondary-electron lengths.","files":["src/scoring/TrackLengthTable.cc","header/scoring/TrackLengthTable.hh"],"symbols":["TrackLengthTable"]},{"id":"primary-killer","title":"PrimaryKiller","summary":"Scorer that kills the primary electron after a configured energy loss and kills tracks leaving a bounding box.","files":["src/scoring/PrimaryKiller.cc","header/scoring/PrimaryKiller.hh"],"symbols":["PrimaryKiller"]},{"id":"accumulator","title":"RunAccumulator","summary":"Process-wide accumulator that keeps energy deposit, counters and run entries across /run/beamOn calls until a dump.","files":["src/scoring/RunAccumulator.cc","header/scoring/RunAccumulator.hh"],"symbols":["RunAccumulator"]},{"id":"dump-msg","title":"RunAccumulatorMessenger","summary":"Provides /run/dumpDataAndReset and the exit-time safety-net flush.","files":["src/scoring/RunAccumulatorMessenger.cc","header/scoring/RunAccumulatorMessenger.hh"],"symbols":["RunAccumulatorMessenger","FlushIfPending"]},{"id":"manifest","title":"RunManifest","summary":"Builds Manifest.json for each dump (beam, seed, chemistry, environment, files).","files":["src/scoring/RunManifest.cc","header/scoring/RunManifest.hh","src/scoring/ResultsIndex.cc","header/scoring/ResultsIndex.hh"],"symbols":["RunManifest::RecordRun","RunManifest::Write"]},{"id":"json","title":"DataNode and JsonWriter","summary":"Portable output tree and the JSON serialiser that writes it.","files":["src/scoring/DataNode.cc","header/scoring/DataNode.hh","src/scoring/JsonWriter.cc","header/scoring/JsonWriter.hh"],"symbols":["DataNode","JsonWriter::Write"]},{"id":"prechem","title":"PreChemicalFiles","summary":"Moves the staged per-event pre-chemical files into a dump.","files":["src/scoring/PreChemicalFiles.cc","header/scoring/PreChemicalFiles.hh"],"symbols":["PreChemicalFiles::MoveStaged"]}],"otherFiles":[]},{"id":"core","title":"Core utilities","summary":"Cross-cutting services: command line, output folder, logging, macro lookup.","nodes":[{"id":"argparser","title":"ArgParser","summary":"Parses the --threads and --dir command-line flags.","files":["src/core/ArgParser.cc","header/core/ArgParser.hh"],"symbols":["ArgParser"]},{"id":"outputdir","title":"OutputDir","summary":"The process-wide output directory (default results next to the executable) and filename prefix used by every output site.","files":["src/core/OutputDir.cc","header/core/OutputDir.hh","src/core/OutputDirMessenger.cc","header/core/OutputDirMessenger.hh"],"symbols":["OutputDir::Resolve","/run/outputDir"]},{"id":"logger","title":"DnaLogger","summary":"The project's logger; level set by /dnaLogger/verbose.","files":["src/core/DnaLogger.cc","header/core/DnaLogger.hh","src/core/DnaLoggerMessenger.cc","header/core/DnaLoggerMessenger.hh"],"symbols":["DnaLogger"]},{"id":"macro-resolver","title":"MacroResolver","summary":"Finds the macro: as given, then next to the executable, then in its macro/ folder.","files":["src/core/MacroResolver.cc","header/core/MacroResolver.hh"],"symbols":["MacroResolver"]}],"otherFiles":[]},{"id":"macro","title":"Macros","summary":"Runtime configuration: beam, chemistry and dumps.","nodes":[{"id":"m-example","title":"Mode examples","summary":"example_sbs.in, example_irt.in and example_meso.in: one macro per chemistry mode, 10 keV electrons, two sub-runs.","files":["macro/example_sbs.in","macro/example_irt.in","macro/example_meso.in"],"symbols":[]},{"id":"m-beam","title":"Beam examples","summary":"beam.in (pure water), beam_o2.in (dissolved O2), beam_meso_spatial.in (spatial output).","files":["macro/beam.in","macro/beam_o2.in","macro/beam_meso_spatial.in"],"symbols":[]},{"id":"m-chem","title":"Chemistry examples","summary":"beam_boscolo.in and beam_tonneau2025.in select other Chemistries.","files":["macro/beam_boscolo.in","macro/beam_tonneau2025.in"],"symbols":[]}],"otherFiles":[]},{"id":"test","title":"Unit tests","summary":"Plain-assert tests built by CMake and run with ctest from build-ninja.","nodes":[{"id":"t-core","title":"Core and output tests","summary":"Tests for argument parsing, output folder, macro lookup, JSON writing, results index and run accumulation.","files":["test/ArgParserTest.cc","test/OutputDirTest.cc","test/MacroResolverTest.cc","test/JsonWriterTest.cc","test/ResultsIndexTest.cc","test/RunAccumulatorTest.cc"],"symbols":[]},{"id":"t-chem","title":"Chemistry tests","summary":"Tests for the registry, mesoscopic settings, reaction table dump, scavenger spec and the Tonneau2025 table.","files":["test/ChemistryRegistryTest.cc","test/MesoSettingsTest.cc","test/ReactionTableDumpTest.cc","test/Tonneau2025TableTest.cc","test/ScavengerSpecTest.cc"],"symbols":[]},{"id":"t-score","title":"Scoring tests","summary":"Tests for counters, track lengths, spatial HDF5 file and pre-chemical files.","files":["test/ReactionCounterTest.cc","test/PhysicsInteractionCounterTest.cc","test/MesoSpeciesCounterTest.cc","test/MesoSpatialFileTest.cc","test/TrackLengthTableTest.cc","test/PreChemicalFilesTest.cc"],"symbols":[]}],"otherFiles":[]}],"edges":[{"from":"sim","to":"physics-list"},{"from":"sim","to":"detector"},{"from":"sim","to":"action-init"},{"from":"sim","to":"macro-resolver"},{"from":"sim","to":"argparser"},{"from":"action-init","to":"run-action"},{"from":"action-init","to":"event-action"},{"from":"action-init","to":"tracking-action"},{"from":"action-init","to":"stepping-action"},{"from":"action-init","to":"primary-gen"},{"from":"physics-list","to":"chem-list"},{"from":"chem-list","to":"registry"},{"from":"registry","to":"pure-water"},{"from":"registry","to":"boscolo"},{"from":"registry","to":"tonneau"},{"from":"registry","to":"farokhi"},{"from":"chem-list","to":"time-step"},{"from":"time-step","to":"meso-settings"},{"from":"meso-msg","to":"meso-settings"},{"from":"select-msg","to":"registry"},{"from":"chem-list","to":"chem-world"},{"from":"detector","to":"primary-killer"},{"from":"scavenger-msg","to":"chem-world"},{"from":"time-step","to":"reaction-counter"},{"from":"time-step","to":"meso-counter"},{"from":"time-step","to":"meso-spatial"},{"from":"stepping-action","to":"phys-counter"},{"from":"tracking-action","to":"track-length"},{"from":"run-action","to":"accumulator"},{"from":"accumulator","to":"dump-msg"},{"from":"dump-msg","to":"manifest"},{"from":"manifest","to":"json"},{"from":"dump-msg","to":"outputdir"},{"from":"event-action","to":"prechem"},{"from":"dump-msg","to":"prechem"}],"flow":[],"tasks":[]};
-const app = document.getElementById('app');
-for (const lane of DATA.lanes) {
-  const h = document.createElement('h2');
-  h.textContent = lane.title;
-  app.appendChild(h);
-}
+
+(function () {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const stage = document.getElementById('stage');
+  const detail = document.getElementById('detail');
+  const tabsEl = document.getElementById('tabs');
+  // Links are relative to docs/explorer/index.html; repo files sit two levels up.
+  const REPO = '../../';
+
+  function el(tag, attrs, children) {
+    const e = document.createElement(tag);
+    for (const k in (attrs || {})) {
+      if (k === 'text') e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]);
+    }
+    for (const c of children || []) e.appendChild(c);
+    return e;
+  }
+  function svg(tag, attrs) {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const k in (attrs || {})) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // ---- detail panel (shared by all views) ----
+  function fileList(files) {
+    const ul = el('ul', { class: 'files' });
+    for (const f of files) {
+      const path = f.split('#')[0];
+      const a = el('a', { href: REPO + f, text: f, target: '_blank', rel: 'noopener' });
+      const btn = el('button', { class: 'copy', type: 'button', text: 'copy', title: 'Copy path' });
+      btn.addEventListener('click', function () {
+        const done = function () { btn.textContent = 'copied'; setTimeout(function () { btn.textContent = 'copy'; }, 1200); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(path).then(done, done);
+        else done();
+      });
+      ul.appendChild(el('li', {}, [btn, a]));
+    }
+    return ul;
+  }
+  function showDetail(item, laneTitle) {
+    detail.className = '';
+    detail.textContent = '';
+    if (item.review) detail.appendChild(el('div', { class: 'badge', text: 'summary awaiting physics review' }));
+    detail.appendChild(el('h2', { text: item.title }));
+    if (laneTitle) detail.appendChild(el('div', { class: 'legend', text: laneTitle }));
+    detail.appendChild(el('p', { text: item.summary }));
+    const code = el('details', {});
+    code.appendChild(el('summary', { text: 'Where in the code' }));
+    if (item.files && item.files.length) code.appendChild(fileList(item.files));
+    if (item.symbols && item.symbols.length) {
+      code.appendChild(el('h3', { text: 'Key symbols' }));
+      const p = el('p', {});
+      item.symbols.forEach(function (s, i) {
+        if (i) p.appendChild(document.createTextNode(' '));
+        p.appendChild(el('code', { text: s }));
+      });
+      code.appendChild(p);
+    }
+    detail.appendChild(code);
+  }
+
+  // ---- module map ----
+  const COL_W = 210, NODE_W = 186, NODE_H = 38, GAP = 12, TOP = 44, PAD = 12;
+
+  function renderModuleMap() {
+    stage.textContent = '';
+    stage.appendChild(el('p', { class: 'legend', text: 'Columns are source folders. Arrows show which part uses which. Dashed orange outline: summary still awaiting physics review.' }));
+    const pos = {};
+    const lanes = DATA.lanes;
+    let maxH = 0;
+    lanes.forEach(function (lane, li) {
+      lane.nodes.forEach(function (n, ni) {
+        pos[n.id] = { x: li * COL_W + PAD + 4, y: TOP + ni * (NODE_H + GAP) };
+      });
+      maxH = Math.max(maxH, TOP + lane.nodes.length * (NODE_H + GAP));
+    });
+    const W = lanes.length * COL_W + PAD, H = maxH + PAD;
+    const root = svg('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, role: 'group', 'aria-label': 'Module map' });
+
+    lanes.forEach(function (lane, li) {
+      root.appendChild(svg('rect', { class: 'lane-bg', x: li * COL_W + PAD / 2, y: 0, width: COL_W - 4, height: H, rx: 8 }));
+      const t = svg('text', { class: 'lane-title', x: li * COL_W + PAD + 4, y: 26 });
+      t.textContent = lane.title.length > 22 ? lane.title.slice(0, 21) + '…' : lane.title;
+      const tt = svg('title'); tt.textContent = lane.summary;
+      t.appendChild(tt);
+      root.appendChild(t);
+    });
+
+    const edgeEls = [];
+    (DATA.edges || []).forEach(function (e) {
+      const a = pos[e.from], b = pos[e.to];
+      if (!a || !b) return;
+      const x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2, x2 = b.x, y2 = b.y + NODE_H / 2;
+      let d;
+      if (a.x < b.x) { const m = (x1 + x2) / 2; d = 'M' + x1 + ',' + y1 + ' C' + m + ',' + y1 + ' ' + m + ',' + y2 + ' ' + x2 + ',' + y2; }
+      else if (a.x > b.x) { const m = (a.x + b.x + NODE_W) / 2; d = 'M' + a.x + ',' + y1 + ' C' + m + ',' + y1 + ' ' + m + ',' + y2 + ' ' + (b.x + NODE_W) + ',' + y2; }
+      else { const o = NODE_W + 8; d = 'M' + x1 + ',' + y1 + ' C' + (x1 + o / 2) + ',' + y1 + ' ' + (x1 + o / 2) + ',' + y2 + ' ' + x2 + ',' + y2 + ' '; d = 'M' + (a.x + NODE_W) + ',' + y1 + ' C' + (a.x + NODE_W + 14) + ',' + y1 + ' ' + (a.x + NODE_W + 14) + ',' + y2 + ' ' + (b.x + NODE_W) + ',' + y2; }
+      const p = svg('path', { class: 'edge', d: d });
+      root.appendChild(p);
+      edgeEls.push({ p: p, from: e.from, to: e.to });
+    });
+
+    let selected = null;
+    function select(g, n, lane) {
+      if (selected) selected.classList.remove('sel');
+      selected = g; g.classList.add('sel');
+      edgeEls.forEach(function (x) { x.p.classList.toggle('hi', x.from === n.id || x.to === n.id); });
+      showDetail(n, lane.title);
+    }
+
+    lanes.forEach(function (lane) {
+      lane.nodes.forEach(function (n) {
+        const p = pos[n.id];
+        const g = svg('g', { class: 'node' + (n.review ? ' review' : ''), tabindex: 0, role: 'button', transform: 'translate(' + p.x + ',' + p.y + ')', 'aria-label': n.title });
+        g.appendChild(svg('rect', { width: NODE_W, height: NODE_H }));
+        const t = svg('text', { x: 9, y: NODE_H / 2 + 4.5 });
+        t.textContent = n.title.length > 27 ? n.title.slice(0, 26) + '…' : n.title;
+        g.appendChild(t);
+        g.addEventListener('click', function () { select(g, n, lane); });
+        g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(g, n, lane); } });
+        root.appendChild(g);
+      });
+    });
+    stage.appendChild(root);
+  }
+
+  function renderPlaceholder(name) {
+    stage.textContent = '';
+    stage.appendChild(el('div', { class: 'placeholder', text: name + ' view: coming in the next step.' }));
+  }
+
+  // ---- tabs ----
+  const VIEWS = [
+    { id: 'map', label: 'Module map', render: renderModuleMap },
+    { id: 'flow', label: 'Run flow', render: function () { (window.renderFlow || renderPlaceholder.bind(null, 'Run flow'))(); } },
+    { id: 'tasks', label: 'Tasks', render: function () { (window.renderTasks || renderPlaceholder.bind(null, 'Tasks'))(); } }
+  ];
+  function activate(id) {
+    VIEWS.forEach(function (v) {
+      v.btn.setAttribute('aria-selected', v.id === id ? 'true' : 'false');
+      if (v.id === id) { detail.className = 'empty'; detail.textContent = 'Select a box to see its description.'; v.render(); }
+    });
+    location.hash = id;
+  }
+  VIEWS.forEach(function (v) {
+    v.btn = el('button', { role: 'tab', type: 'button', text: v.label });
+    v.btn.addEventListener('click', function () { activate(v.id); });
+    tabsEl.appendChild(v.btn);
+  });
+  const start = location.hash.slice(1);
+  activate(VIEWS.some(function (v) { return v.id === start; }) ? start : 'map');
+
+  window.Explorer = { DATA: DATA, el: el, svg: svg, stage: stage, showDetail: showDetail, fileList: fileList, REPO: REPO };
+})();
 </script>
 </body>
 </html>
