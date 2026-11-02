@@ -3,151 +3,805 @@
   "version": 1,
   "lanes": [
     {
+      "id": "app",
+      "title": "Application entry",
+      "summary": "Program start-up: wires the run manager, physics, actions and macro, then runs.",
+      "nodes": [
+        {
+          "id": "sim",
+          "title": "sim.cc",
+          "summary": "The program's main(): parses the command line, picks Serial or multi-threaded running, builds the geometry, physics and actions, finds and executes the macro file, and flushes any pending output before exit.",
+          "files": [
+            "sim.cc"
+          ],
+          "symbols": [
+            "main",
+            "kUseGui"
+          ]
+        }
+      ],
+      "otherFiles": []
+    },
+    {
       "id": "actions",
-      "title": "actions",
-      "summary": "TODO",
-      "nodes": [],
-      "otherFiles": [
-        "header/actions/ActionInitialization.hh",
-        "header/actions/EventAction.hh",
-        "header/actions/PrimaryGeneratorAction.hh",
-        "header/actions/Run.hh",
-        "header/actions/RunAction.hh",
-        "header/actions/StackingAction.hh",
-        "header/actions/SteppingAction.hh",
-        "header/actions/TrackingAction.hh",
-        "src/actions/ActionInitialization.cc",
-        "src/actions/EventAction.cc",
-        "src/actions/PrimaryGeneratorAction.cc",
-        "src/actions/Run.cc",
-        "src/actions/RunAction.cc",
-        "src/actions/StackingAction.cc",
-        "src/actions/SteppingAction.cc",
-        "src/actions/TrackingAction.cc"
-      ]
-    },
-    {
-      "id": "chemistry",
-      "title": "chemistry",
-      "summary": "TODO",
-      "nodes": [],
-      "otherFiles": [
-        "header/chemistry/BuiltInChemistries.hh",
-        "header/chemistry/ChemUtils.hh",
-        "header/chemistry/ChemistryRegistry.hh",
-        "header/chemistry/ChemistrySelectMessenger.hh",
-        "header/chemistry/ChemistryTypes.hh",
-        "header/chemistry/DnaChemistryList.hh",
-        "header/chemistry/MesoMessenger.hh",
-        "header/chemistry/MesoSettings.hh",
-        "header/chemistry/ReactionTableDump.hh",
-        "header/chemistry/ScavengerReactionAccess.hh",
-        "header/chemistry/TimeStepAction.hh",
-        "header/chemistry/catalog/BoscoloChemReactions.hh",
-        "header/chemistry/catalog/Farokhi2023Reactions.hh",
-        "header/chemistry/catalog/PureWaterReactions.hh",
-        "header/chemistry/catalog/Tonneau2025Reactions.hh",
-        "header/chemistry/catalog/Tonneau2025Table.hh",
-        "src/chemistry/BuiltInChemistries.cc",
-        "src/chemistry/ChemUtils.cc",
-        "src/chemistry/ChemistryRegistry.cc",
-        "src/chemistry/ChemistrySelectMessenger.cc",
-        "src/chemistry/DnaChemistryList.cc",
-        "src/chemistry/MesoMessenger.cc",
-        "src/chemistry/MesoSettings.cc",
-        "src/chemistry/ReactionTableDump.cc",
-        "src/chemistry/TimeStepAction.cc",
-        "src/chemistry/catalog/BoscoloChemReactions.cc",
-        "src/chemistry/catalog/Farokhi2023Reactions.cc",
-        "src/chemistry/catalog/PureWaterReactions.cc",
-        "src/chemistry/catalog/Tonneau2025Reactions.cc",
-        "src/chemistry/catalog/Tonneau2025Table.cc"
-      ]
-    },
-    {
-      "id": "core",
-      "title": "core",
-      "summary": "TODO",
-      "nodes": [],
-      "otherFiles": [
-        "header/core/ArgParser.hh",
-        "header/core/DnaLogger.hh",
-        "header/core/DnaLoggerMessenger.hh",
-        "header/core/MacroResolver.hh",
-        "header/core/OutputDir.hh",
-        "header/core/OutputDirMessenger.hh",
-        "src/core/ArgParser.cc",
-        "src/core/DnaLogger.cc",
-        "src/core/DnaLoggerMessenger.cc",
-        "src/core/MacroResolver.cc",
-        "src/core/OutputDir.cc",
-        "src/core/OutputDirMessenger.cc"
-      ]
-    },
-    {
-      "id": "geometry",
-      "title": "geometry",
-      "summary": "TODO",
-      "nodes": [],
-      "otherFiles": [
-        "header/geometry/DetectorConstruction.hh",
-        "header/geometry/DnaChemistryWorld.hh",
-        "header/geometry/ScavengerMessenger.hh",
-        "header/geometry/ScavengerSpec.hh",
-        "src/geometry/DetectorConstruction.cc",
-        "src/geometry/DnaChemistryWorld.cc",
-        "src/geometry/ScavengerMessenger.cc",
-        "src/geometry/ScavengerSpec.cc"
-      ]
+      "title": "Actions",
+      "summary": "Per-run, per-event and per-track hooks that Geant4 calls while the simulation runs.",
+      "nodes": [
+        {
+          "id": "action-init",
+          "title": "ActionInitialization",
+          "summary": "Creates all the user actions for each thread and sets the default chemistry end time (1 s with the mesoscopic stage, 1 us without).",
+          "files": [
+            "src/actions/ActionInitialization.cc",
+            "header/actions/ActionInitialization.hh"
+          ],
+          "symbols": [
+            "ActionInitialization::Build"
+          ],
+          "review": true
+        },
+        {
+          "id": "primary-gen",
+          "title": "PrimaryGeneratorAction",
+          "summary": "Shoots the primary beam particle (set by /gun macro commands) and records the sampled beam into the run.",
+          "files": [
+            "src/actions/PrimaryGeneratorAction.cc",
+            "header/actions/PrimaryGeneratorAction.hh"
+          ],
+          "symbols": [
+            "PrimaryGeneratorAction"
+          ]
+        },
+        {
+          "id": "run-action",
+          "title": "Run and RunAction",
+          "summary": "Run keeps per-run data and merges worker threads; RunAction starts and ends a run, applies the reaction time binning and records the run in the manifest.",
+          "files": [
+            "src/actions/RunAction.cc",
+            "header/actions/RunAction.hh",
+            "src/actions/Run.cc",
+            "header/actions/Run.hh"
+          ],
+          "symbols": [
+            "RunAction::BeginOfRunAction",
+            "RunAction::EndOfRunAction",
+            "Run::Merge"
+          ]
+        },
+        {
+          "id": "event-action",
+          "title": "EventAction",
+          "summary": "Per-event bookkeeping: stages pre-chemical files and commits the track-length row for events that were not aborted.",
+          "files": [
+            "src/actions/EventAction.cc",
+            "header/actions/EventAction.hh"
+          ],
+          "symbols": [
+            "EventAction"
+          ]
+        },
+        {
+          "id": "tracking-action",
+          "title": "TrackingAction",
+          "summary": "After each track, fills the event's track-length row: primary track length and how it ended (stopped, escaped or killed), plus secondary-electron lengths.",
+          "files": [
+            "src/actions/TrackingAction.cc",
+            "header/actions/TrackingAction.hh"
+          ],
+          "symbols": [
+            "TrackingAction::PostUserTrackingAction"
+          ]
+        },
+        {
+          "id": "stepping-action",
+          "title": "SteppingAction",
+          "summary": "Counts each discrete Geant4-DNA physical interaction (excluding transport) by process name.",
+          "files": [
+            "src/actions/SteppingAction.cc",
+            "header/actions/SteppingAction.hh"
+          ],
+          "symbols": [
+            "SteppingAction"
+          ]
+        },
+        {
+          "id": "stacking-action",
+          "title": "StackingAction",
+          "summary": "When the physical stage has no tracks left, starts the chemistry for the event (the hand-off from physics to chemistry) and logs the stage change.",
+          "files": [
+            "src/actions/StackingAction.cc",
+            "header/actions/StackingAction.hh"
+          ],
+          "symbols": [
+            "StackingAction::NewStage"
+          ]
+        }
+      ],
+      "otherFiles": []
     },
     {
       "id": "physics",
-      "title": "physics",
-      "summary": "TODO",
-      "nodes": [],
+      "title": "Physics",
+      "summary": "The physical stage: how electrons slow down and ionise water.",
+      "nodes": [
+        {
+          "id": "physics-list",
+          "title": "PhysicsList",
+          "summary": "A simplified modular list that combines the Geant4-DNA electromagnetic physics (option 2) with the project's chemistry. IRT_syn is the default chemistry time-step model.",
+          "files": [
+            "src/physics/PhysicsList.cc",
+            "header/physics/PhysicsList.hh"
+          ],
+          "symbols": [
+            "PhysicsList"
+          ],
+          "review": true
+        }
+      ],
+      "otherFiles": []
+    },
+    {
+      "id": "geometry",
+      "title": "Geometry and environment",
+      "summary": "The single homogeneous water box and the dissolved substances in it.",
+      "nodes": [
+        {
+          "id": "detector",
+          "title": "DetectorConstruction",
+          "summary": "Builds the one water box (the whole geometry) and registers the PrimaryKiller scorer. Half-side set by /chem/env/halfBox (default 500 um).",
+          "files": [
+            "src/geometry/DetectorConstruction.cc",
+            "header/geometry/DetectorConstruction.hh"
+          ],
+          "symbols": [
+            "DetectorConstruction::Construct",
+            "ConstructSDandField"
+          ]
+        },
+        {
+          "id": "chem-world",
+          "title": "DnaChemistryWorld",
+          "summary": "Describes the chemical environment: box size, pH and exogenous scavengers (such as dissolved O2) that react through the selected Chemistry's bulk reactions.",
+          "files": [
+            "src/geometry/DnaChemistryWorld.cc",
+            "header/geometry/DnaChemistryWorld.hh"
+          ],
+          "symbols": [
+            "DnaChemistryWorld"
+          ],
+          "review": true
+        },
+        {
+          "id": "scavenger-msg",
+          "title": "Scavenger spec and messenger",
+          "summary": "Parses /chem/env/scavenger values (M, mM, uM, or % for O2) into a validated specification.",
+          "files": [
+            "src/geometry/ScavengerSpec.cc",
+            "header/geometry/ScavengerSpec.hh",
+            "src/geometry/ScavengerMessenger.cc",
+            "header/geometry/ScavengerMessenger.hh"
+          ],
+          "symbols": [
+            "ScavengerSpec"
+          ]
+        }
+      ],
+      "otherFiles": []
+    },
+    {
+      "id": "chemistry",
+      "title": "Chemistry",
+      "summary": "The chemical stages: what species exist, which reactions occur, and how time advances.",
+      "nodes": [
+        {
+          "id": "chem-list",
+          "title": "DnaChemistryList",
+          "summary": "The driver of the chemical stage: defines the molecules, water dissociation channels, reaction table and time-step model (IRT_syn default, or SBS). Registers bulk reactions as scavenger processes.",
+          "files": [
+            "src/chemistry/DnaChemistryList.cc",
+            "header/chemistry/DnaChemistryList.hh"
+          ],
+          "symbols": [
+            "DnaChemistryList",
+            "CheckTimeStepModel"
+          ],
+          "review": true
+        },
+        {
+          "id": "time-step",
+          "title": "TimeStepAction",
+          "summary": "Runs the particle-based stage and, in IRT_syn with the mesoscopic stage on, hands the remaining molecules over at the Hand-over time to the mesoscopic stage (Gillespie on a cell mesh).",
+          "files": [
+            "src/chemistry/TimeStepAction.cc",
+            "header/chemistry/TimeStepAction.hh"
+          ],
+          "symbols": [
+            "TimeStepAction"
+          ],
+          "review": true
+        },
+        {
+          "id": "meso-settings",
+          "title": "MesoSettings",
+          "summary": "Portable settings for the mesoscopic stage: hand-over time, requested cell size, pixel count (capped) and the logarithmic recording time grid.",
+          "files": [
+            "src/chemistry/MesoSettings.cc",
+            "header/chemistry/MesoSettings.hh"
+          ],
+          "symbols": [
+            "MesoSettings::Values",
+            "PixelCount",
+            "LogTimeGrid"
+          ],
+          "review": true
+        },
+        {
+          "id": "meso-msg",
+          "title": "MesoMessenger",
+          "summary": "Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade, spatialOutput).",
+          "files": [
+            "src/chemistry/MesoMessenger.cc",
+            "header/chemistry/MesoMessenger.hh"
+          ],
+          "symbols": [
+            "MesoMessenger"
+          ]
+        },
+        {
+          "id": "registry",
+          "title": "ChemistryRegistry",
+          "summary": "Name-to-Chemistry registry and the once-per-process, case-insensitive selection.",
+          "files": [
+            "src/chemistry/ChemistryRegistry.cc",
+            "header/chemistry/ChemistryRegistry.hh",
+            "src/chemistry/BuiltInChemistries.cc",
+            "header/chemistry/BuiltInChemistries.hh",
+            "header/chemistry/ChemistryTypes.hh"
+          ],
+          "symbols": [
+            "ChemistryRegistry::Register",
+            "Select"
+          ]
+        },
+        {
+          "id": "select-msg",
+          "title": "ChemistrySelectMessenger",
+          "summary": "Macro commands /chem/select <name> and /chem/list.",
+          "files": [
+            "src/chemistry/ChemistrySelectMessenger.cc",
+            "header/chemistry/ChemistrySelectMessenger.hh"
+          ],
+          "symbols": [
+            "ChemistrySelectMessenger"
+          ]
+        },
+        {
+          "id": "reaction-dump",
+          "title": "ReactionTableDump",
+          "summary": "Writes the reaction table to a file (/chem/reaction/dump).",
+          "files": [
+            "src/chemistry/ReactionTableDump.cc",
+            "header/chemistry/ReactionTableDump.hh"
+          ],
+          "symbols": [
+            "ReactionTableDump::FormatReactionLabel"
+          ]
+        },
+        {
+          "id": "pure-water",
+          "title": "PureWater Chemistry",
+          "summary": "The default Chemistry: base pure-water reactions, the O2-derived network and the pH-driven acid-base buffer.",
+          "files": [
+            "src/chemistry/catalog/PureWaterReactions.cc",
+            "header/chemistry/catalog/PureWaterReactions.hh"
+          ],
+          "symbols": [
+            "BuildPureWaterReactions",
+            "BuildPureWaterBulkReactions"
+          ],
+          "review": true
+        },
+        {
+          "id": "boscolo",
+          "title": "BoscoloChem",
+          "summary": "Chemistry reproducing Table 1 of Boscolo et al. 2020 (26 reactions).",
+          "files": [
+            "src/chemistry/catalog/BoscoloChemReactions.cc",
+            "header/chemistry/catalog/BoscoloChemReactions.hh"
+          ],
+          "symbols": [
+            "BoscoloChemReactions"
+          ],
+          "review": true
+        },
+        {
+          "id": "tonneau",
+          "title": "Tonneau2025",
+          "summary": "Chemistry with the 73-reaction network of Tonneau et al. 2025, including the extra molecule HO3.",
+          "files": [
+            "src/chemistry/catalog/Tonneau2025Reactions.cc",
+            "header/chemistry/catalog/Tonneau2025Reactions.hh",
+            "src/chemistry/catalog/Tonneau2025Table.cc",
+            "header/chemistry/catalog/Tonneau2025Table.hh"
+          ],
+          "symbols": [
+            "Tonneau2025Reactions"
+          ],
+          "review": true
+        },
+        {
+          "id": "farokhi",
+          "title": "Farokhi2023",
+          "summary": "Chemistry with the 9 base-water reactions of Farokhi et al. 2023.",
+          "files": [
+            "src/chemistry/catalog/Farokhi2023Reactions.cc",
+            "header/chemistry/catalog/Farokhi2023Reactions.hh"
+          ],
+          "symbols": [
+            "Farokhi2023Reactions"
+          ],
+          "review": true
+        }
+      ],
       "otherFiles": [
-        "header/physics/PhysicsList.hh",
-        "src/physics/PhysicsList.cc"
+        "header/chemistry/ChemUtils.hh",
+        "header/chemistry/ScavengerReactionAccess.hh",
+        "src/chemistry/ChemUtils.cc"
       ]
     },
     {
       "id": "scoring",
-      "title": "scoring",
-      "summary": "TODO",
-      "nodes": [],
-      "otherFiles": [
-        "header/scoring/DataNode.hh",
-        "header/scoring/JsonWriter.hh",
-        "header/scoring/MesoSpatialFile.hh",
-        "header/scoring/MesoSpeciesCounter.hh",
-        "header/scoring/PhysicsInteractionCounter.hh",
-        "header/scoring/PreChemicalFiles.hh",
-        "header/scoring/PrimaryKiller.hh",
-        "header/scoring/ReactionCounter.hh",
-        "header/scoring/ResultsIndex.hh",
-        "header/scoring/RunAccumulator.hh",
-        "header/scoring/RunAccumulatorMessenger.hh",
-        "header/scoring/RunManifest.hh",
-        "header/scoring/ScoreSpecies.hh",
-        "header/scoring/TrackLengthTable.hh",
-        "src/scoring/DataNode.cc",
-        "src/scoring/JsonWriter.cc",
-        "src/scoring/MesoSpatialFile.cc",
-        "src/scoring/MesoSpeciesCounter.cc",
-        "src/scoring/PhysicsInteractionCounter.cc",
-        "src/scoring/PreChemicalFiles.cc",
-        "src/scoring/PrimaryKiller.cc",
-        "src/scoring/ReactionCounter.cc",
-        "src/scoring/ResultsIndex.cc",
-        "src/scoring/RunAccumulator.cc",
-        "src/scoring/RunAccumulatorMessenger.cc",
-        "src/scoring/RunManifest.cc",
-        "src/scoring/ScoreSpecies.cc",
-        "src/scoring/TrackLengthTable.cc"
-      ]
+      "title": "Scoring and output",
+      "summary": "Everything that counts, accumulates and writes results.",
+      "nodes": [
+        {
+          "id": "score-species",
+          "title": "ScoreSpecies",
+          "summary": "A Geant4 primitive scorer that follows the tracked molecules over time; it is the source of the Species files.",
+          "files": [
+            "src/scoring/ScoreSpecies.cc",
+            "header/scoring/ScoreSpecies.hh"
+          ],
+          "symbols": [
+            "ScoreSpecies"
+          ]
+        },
+        {
+          "id": "reaction-counter",
+          "title": "ReactionCounter",
+          "summary": "Counts how many times each reaction fires in each time bin (particle-based stage only).",
+          "files": [
+            "src/scoring/ReactionCounter.cc",
+            "header/scoring/ReactionCounter.hh"
+          ],
+          "symbols": [
+            "ReactionCounter",
+            "ConfigureBinEdges"
+          ]
+        },
+        {
+          "id": "phys-counter",
+          "title": "PhysicsInteractionCounter",
+          "summary": "Generic string-frequency counter used for physical-interaction counts.",
+          "files": [
+            "src/scoring/PhysicsInteractionCounter.cc",
+            "header/scoring/PhysicsInteractionCounter.hh"
+          ],
+          "symbols": [
+            "PhysicsInteractionCounter::Record"
+          ]
+        },
+        {
+          "id": "meso-counter",
+          "title": "MesoSpeciesCounter",
+          "summary": "Mean species count per event versus time in the mesoscopic stage.",
+          "files": [
+            "src/scoring/MesoSpeciesCounter.cc",
+            "header/scoring/MesoSpeciesCounter.hh"
+          ],
+          "symbols": [
+            "MesoSpeciesCounter"
+          ]
+        },
+        {
+          "id": "meso-spatial",
+          "title": "MesoSpatialFile",
+          "summary": "HDF5 writer for per-event spatial snapshots of the mesoscopic mesh.",
+          "files": [
+            "src/scoring/MesoSpatialFile.cc",
+            "header/scoring/MesoSpatialFile.hh"
+          ],
+          "symbols": [
+            "MesoSpatialFile::AppendEvent"
+          ]
+        },
+        {
+          "id": "track-length",
+          "title": "TrackLengthTable",
+          "summary": "One row per event with the primary track length, end reason and secondary-electron lengths.",
+          "files": [
+            "src/scoring/TrackLengthTable.cc",
+            "header/scoring/TrackLengthTable.hh"
+          ],
+          "symbols": [
+            "TrackLengthTable"
+          ]
+        },
+        {
+          "id": "primary-killer",
+          "title": "PrimaryKiller",
+          "summary": "Scorer that kills the primary electron after a configured energy loss and kills tracks leaving a bounding box.",
+          "files": [
+            "src/scoring/PrimaryKiller.cc",
+            "header/scoring/PrimaryKiller.hh"
+          ],
+          "symbols": [
+            "PrimaryKiller"
+          ]
+        },
+        {
+          "id": "accumulator",
+          "title": "RunAccumulator",
+          "summary": "Process-wide accumulator that keeps energy deposit, counters and run entries across /run/beamOn calls until a dump.",
+          "files": [
+            "src/scoring/RunAccumulator.cc",
+            "header/scoring/RunAccumulator.hh"
+          ],
+          "symbols": [
+            "RunAccumulator"
+          ]
+        },
+        {
+          "id": "dump-msg",
+          "title": "RunAccumulatorMessenger",
+          "summary": "Provides /run/dumpDataAndReset and the exit-time safety-net flush.",
+          "files": [
+            "src/scoring/RunAccumulatorMessenger.cc",
+            "header/scoring/RunAccumulatorMessenger.hh"
+          ],
+          "symbols": [
+            "RunAccumulatorMessenger",
+            "FlushIfPending"
+          ]
+        },
+        {
+          "id": "manifest",
+          "title": "RunManifest",
+          "summary": "Builds Manifest.json for each dump (beam, seed, chemistry, environment, files).",
+          "files": [
+            "src/scoring/RunManifest.cc",
+            "header/scoring/RunManifest.hh",
+            "src/scoring/ResultsIndex.cc",
+            "header/scoring/ResultsIndex.hh"
+          ],
+          "symbols": [
+            "RunManifest::RecordRun",
+            "RunManifest::Write"
+          ]
+        },
+        {
+          "id": "json",
+          "title": "DataNode and JsonWriter",
+          "summary": "Portable output tree and the JSON serialiser that writes it.",
+          "files": [
+            "src/scoring/DataNode.cc",
+            "header/scoring/DataNode.hh",
+            "src/scoring/JsonWriter.cc",
+            "header/scoring/JsonWriter.hh"
+          ],
+          "symbols": [
+            "DataNode",
+            "JsonWriter::Write"
+          ]
+        },
+        {
+          "id": "prechem",
+          "title": "PreChemicalFiles",
+          "summary": "Moves the staged per-event pre-chemical files into a dump.",
+          "files": [
+            "src/scoring/PreChemicalFiles.cc",
+            "header/scoring/PreChemicalFiles.hh"
+          ],
+          "symbols": [
+            "PreChemicalFiles::MoveStaged"
+          ]
+        }
+      ],
+      "otherFiles": []
+    },
+    {
+      "id": "core",
+      "title": "Core utilities",
+      "summary": "Cross-cutting services: command line, output folder, logging, macro lookup.",
+      "nodes": [
+        {
+          "id": "argparser",
+          "title": "ArgParser",
+          "summary": "Parses the --threads and --dir command-line flags.",
+          "files": [
+            "src/core/ArgParser.cc",
+            "header/core/ArgParser.hh"
+          ],
+          "symbols": [
+            "ArgParser"
+          ]
+        },
+        {
+          "id": "outputdir",
+          "title": "OutputDir",
+          "summary": "The process-wide output directory (default results next to the executable) and filename prefix used by every output site.",
+          "files": [
+            "src/core/OutputDir.cc",
+            "header/core/OutputDir.hh",
+            "src/core/OutputDirMessenger.cc",
+            "header/core/OutputDirMessenger.hh"
+          ],
+          "symbols": [
+            "OutputDir::Resolve",
+            "/run/outputDir"
+          ]
+        },
+        {
+          "id": "logger",
+          "title": "DnaLogger",
+          "summary": "The project's logger; level set by /dnaLogger/verbose.",
+          "files": [
+            "src/core/DnaLogger.cc",
+            "header/core/DnaLogger.hh",
+            "src/core/DnaLoggerMessenger.cc",
+            "header/core/DnaLoggerMessenger.hh"
+          ],
+          "symbols": [
+            "DnaLogger"
+          ]
+        },
+        {
+          "id": "macro-resolver",
+          "title": "MacroResolver",
+          "summary": "Finds the macro: as given, then next to the executable, then in its macro/ folder.",
+          "files": [
+            "src/core/MacroResolver.cc",
+            "header/core/MacroResolver.hh"
+          ],
+          "symbols": [
+            "MacroResolver"
+          ]
+        }
+      ],
+      "otherFiles": []
+    },
+    {
+      "id": "macro",
+      "title": "Macros",
+      "summary": "Runtime configuration: beam, chemistry and dumps.",
+      "nodes": [
+        {
+          "id": "m-example",
+          "title": "Mode examples",
+          "summary": "example_sbs.in, example_irt.in and example_meso.in: one macro per chemistry mode, 10 keV electrons, two sub-runs.",
+          "files": [
+            "macro/example_sbs.in",
+            "macro/example_irt.in",
+            "macro/example_meso.in"
+          ],
+          "symbols": []
+        },
+        {
+          "id": "m-beam",
+          "title": "Beam examples",
+          "summary": "beam.in (pure water), beam_o2.in (dissolved O2), beam_meso_spatial.in (spatial output).",
+          "files": [
+            "macro/beam.in",
+            "macro/beam_o2.in",
+            "macro/beam_meso_spatial.in"
+          ],
+          "symbols": []
+        },
+        {
+          "id": "m-chem",
+          "title": "Chemistry examples",
+          "summary": "beam_boscolo.in and beam_tonneau2025.in select other Chemistries.",
+          "files": [
+            "macro/beam_boscolo.in",
+            "macro/beam_tonneau2025.in"
+          ],
+          "symbols": []
+        }
+      ],
+      "otherFiles": []
+    },
+    {
+      "id": "test",
+      "title": "Unit tests",
+      "summary": "Plain-assert tests built by CMake and run with ctest from build-ninja.",
+      "nodes": [
+        {
+          "id": "t-core",
+          "title": "Core and output tests",
+          "summary": "Tests for argument parsing, output folder, macro lookup, JSON writing, results index and run accumulation.",
+          "files": [
+            "test/ArgParserTest.cc",
+            "test/OutputDirTest.cc",
+            "test/MacroResolverTest.cc",
+            "test/JsonWriterTest.cc",
+            "test/ResultsIndexTest.cc",
+            "test/RunAccumulatorTest.cc"
+          ],
+          "symbols": []
+        },
+        {
+          "id": "t-chem",
+          "title": "Chemistry tests",
+          "summary": "Tests for the registry, mesoscopic settings, reaction table dump, scavenger spec and the Tonneau2025 table.",
+          "files": [
+            "test/ChemistryRegistryTest.cc",
+            "test/MesoSettingsTest.cc",
+            "test/ReactionTableDumpTest.cc",
+            "test/Tonneau2025TableTest.cc",
+            "test/ScavengerSpecTest.cc"
+          ],
+          "symbols": []
+        },
+        {
+          "id": "t-score",
+          "title": "Scoring tests",
+          "summary": "Tests for counters, track lengths, spatial HDF5 file and pre-chemical files.",
+          "files": [
+            "test/ReactionCounterTest.cc",
+            "test/PhysicsInteractionCounterTest.cc",
+            "test/MesoSpeciesCounterTest.cc",
+            "test/MesoSpatialFileTest.cc",
+            "test/TrackLengthTableTest.cc",
+            "test/PreChemicalFilesTest.cc"
+          ],
+          "symbols": []
+        }
+      ],
+      "otherFiles": []
     }
   ],
-  "edges": [],
+  "edges": [
+    {
+      "from": "sim",
+      "to": "physics-list"
+    },
+    {
+      "from": "sim",
+      "to": "detector"
+    },
+    {
+      "from": "sim",
+      "to": "action-init"
+    },
+    {
+      "from": "sim",
+      "to": "macro-resolver"
+    },
+    {
+      "from": "sim",
+      "to": "argparser"
+    },
+    {
+      "from": "action-init",
+      "to": "run-action"
+    },
+    {
+      "from": "action-init",
+      "to": "event-action"
+    },
+    {
+      "from": "action-init",
+      "to": "tracking-action"
+    },
+    {
+      "from": "action-init",
+      "to": "stepping-action"
+    },
+    {
+      "from": "action-init",
+      "to": "primary-gen"
+    },
+    {
+      "from": "physics-list",
+      "to": "chem-list"
+    },
+    {
+      "from": "chem-list",
+      "to": "registry"
+    },
+    {
+      "from": "registry",
+      "to": "pure-water"
+    },
+    {
+      "from": "registry",
+      "to": "boscolo"
+    },
+    {
+      "from": "registry",
+      "to": "tonneau"
+    },
+    {
+      "from": "registry",
+      "to": "farokhi"
+    },
+    {
+      "from": "chem-list",
+      "to": "time-step"
+    },
+    {
+      "from": "time-step",
+      "to": "meso-settings"
+    },
+    {
+      "from": "meso-msg",
+      "to": "meso-settings"
+    },
+    {
+      "from": "select-msg",
+      "to": "registry"
+    },
+    {
+      "from": "chem-list",
+      "to": "chem-world"
+    },
+    {
+      "from": "detector",
+      "to": "primary-killer"
+    },
+    {
+      "from": "scavenger-msg",
+      "to": "chem-world"
+    },
+    {
+      "from": "time-step",
+      "to": "reaction-counter"
+    },
+    {
+      "from": "time-step",
+      "to": "meso-counter"
+    },
+    {
+      "from": "time-step",
+      "to": "meso-spatial"
+    },
+    {
+      "from": "stepping-action",
+      "to": "phys-counter"
+    },
+    {
+      "from": "tracking-action",
+      "to": "track-length"
+    },
+    {
+      "from": "run-action",
+      "to": "accumulator"
+    },
+    {
+      "from": "accumulator",
+      "to": "dump-msg"
+    },
+    {
+      "from": "dump-msg",
+      "to": "manifest"
+    },
+    {
+      "from": "manifest",
+      "to": "json"
+    },
+    {
+      "from": "dump-msg",
+      "to": "outputdir"
+    },
+    {
+      "from": "event-action",
+      "to": "prechem"
+    },
+    {
+      "from": "dump-msg",
+      "to": "prechem"
+    }
+  ],
   "flow": [],
   "tasks": []
 }
