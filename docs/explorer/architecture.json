@@ -1,5 +1,5 @@
 {
-  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to}; flow[]{id,title,summary,files[],outputs[] (file names, not checked),docs[],branches[]{label,summary},review?}; tasks[]{id,title,summary,audience,docs[],files[]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
+  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title,summary,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{label,summary},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
   "version": 1,
   "lanes": [
     {
@@ -726,10 +726,6 @@
       "to": "farokhi"
     },
     {
-      "from": "chem-list",
-      "to": "time-step"
-    },
-    {
       "from": "time-step",
       "to": "meso-settings"
     },
@@ -778,8 +774,8 @@
       "to": "accumulator"
     },
     {
-      "from": "accumulator",
-      "to": "dump-msg"
+      "from": "dump-msg",
+      "to": "accumulator"
     },
     {
       "from": "dump-msg",
@@ -800,6 +796,35 @@
     {
       "from": "dump-msg",
       "to": "prechem"
+    },
+    {
+      "from": "action-init",
+      "to": "stacking-action"
+    },
+    {
+      "from": "action-init",
+      "to": "time-step"
+    },
+    {
+      "from": "detector",
+      "to": "score-species"
+    }
+  ],
+  "phases": [
+    {
+      "id": "setup",
+      "title": "Once, at start-up",
+      "summary": "The program is configured before any particle is shot."
+    },
+    {
+      "id": "event",
+      "title": "For every event",
+      "summary": "Repeated for each primary particle shot by /run/beamOn: the physical stage first, then the chemistry."
+    },
+    {
+      "id": "output",
+      "title": "When results are written",
+      "summary": "Data from all events accumulates until the macro asks for a dump, or the program exits."
     }
   ],
   "flow": [
@@ -807,6 +832,7 @@
       "id": "start",
       "title": "1. Start-up",
       "summary": "The program reads its command line (--threads, --dir), builds the geometry, physics and actions, and finds and runs the macro file that configures the beam and the chemistry.",
+      "phase": "setup",
       "files": [
         "sim.cc",
         "src/core/ArgParser.cc",
@@ -822,6 +848,7 @@
       "id": "physics",
       "title": "2. Physical stage",
       "summary": "Beam electrons slow down in the water box and ionise or excite water molecules (Geant4-DNA physics). Every discrete physical interaction is counted, and the pre-chemical species are staged to a per-event file.",
+      "phase": "event",
       "files": [
         "src/physics/PhysicsList.cc",
         "src/actions/PrimaryGeneratorAction.cc",
@@ -840,6 +867,7 @@
       "id": "handoff",
       "title": "3. Physics to chemistry",
       "summary": "When the physical stage has no tracks left, the event's chemistry is started.",
+      "phase": "event",
       "files": [
         "src/actions/StackingAction.cc"
       ],
@@ -850,6 +878,7 @@
       "id": "mode",
       "title": "4. Chemistry mode",
       "summary": "Which model advances the chemistry is chosen in the macro before initialisation. The selected Chemistry (reaction network) is independent of this choice.",
+      "phase": "event",
       "files": [
         "src/chemistry/DnaChemistryList.cc",
         "src/chemistry/ChemistryRegistry.cc"
@@ -878,6 +907,7 @@
       "id": "particle",
       "title": "5. Particle-based stage",
       "summary": "Molecules are tracked individually; they diffuse and react. Species counts over time and reaction firings are recorded. In the default mode this stage stops at the Hand-over time (default 5 ns).",
+      "phase": "event",
       "files": [
         "src/chemistry/TimeStepAction.cc",
         "src/scoring/ScoreSpecies.cc",
@@ -895,6 +925,8 @@
       "id": "meso",
       "title": "6. Hand-over and mesoscopic stage",
       "summary": "Only with IRT_syn and the mesoscopic stage enabled: the remaining molecules are passed to counts per cell on a mesh and advanced to the end time (default 1 s). Mean counts are recorded on a logarithmic time grid; optional per-event spatial snapshots.",
+      "phase": "event",
+      "condition": "Only in IRT_syn + mesoscopic mode (the default)",
       "files": [
         "src/chemistry/TimeStepAction.cc",
         "src/chemistry/MesoSettings.cc",
@@ -915,6 +947,7 @@
       "id": "event-end",
       "title": "7. End of event",
       "summary": "The primary track's length and how it ended are stored in one row per event.",
+      "phase": "event",
       "files": [
         "src/actions/TrackingAction.cc",
         "src/scoring/TrackLengthTable.cc"
@@ -930,6 +963,7 @@
       "id": "dump",
       "title": "8. Dump and manifest",
       "summary": "Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) writes all files together with Manifest.json, which records what produced them.",
+      "phase": "output",
       "files": [
         "src/scoring/RunAccumulatorMessenger.cc",
         "src/scoring/RunManifest.cc",
@@ -1098,10 +1132,51 @@
       "docs": [
         "CONTEXT.md",
         "docs/adr/0001-baseline-acid-base-buffer.md",
+        "docs/adr/0002-named-chemistries.md",
         "docs/adr/0003-clustered-source-layout.md",
-        "docs/adr/0004-scavenger-reactions-per-chemistry.md"
+        "docs/adr/0004-scavenger-reactions-per-chemistry.md",
+        "docs/adr/0005-manifest-per-dump.md",
+        "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
+        "docs/adr/0007-extra-molecules-per-chemistry.md",
+        "docs/adr/0008-selectable-chemistry-modes.md"
       ],
       "files": []
     }
-  ]
+  ],
+  "startHere": {
+    "map": [
+      {
+        "id": "sim",
+        "why": "Where the program starts"
+      },
+      {
+        "id": "chem-list",
+        "why": "The driver of the chemical stage"
+      },
+      {
+        "id": "dump-msg",
+        "why": "How results reach the disk"
+      }
+    ],
+    "flow": [
+      {
+        "id": "start",
+        "why": "Begin at the beginning"
+      },
+      {
+        "id": "mode",
+        "why": "The three chemistry modes"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "run",
+        "why": "First time here"
+      },
+      {
+        "id": "read",
+        "why": "You already have results"
+      }
+    ]
+  }
 }

@@ -54,6 +54,35 @@ for (const f of fs.readdirSync(path.join(root, 'docs/recipes'))) {
   }
 }
 
+// Every ADR must be reachable from the Tasks view.
+for (const f of fs.readdirSync(path.join(root, 'docs/adr'))) {
+  if (/^\d{4}-.*\.md$/.test(f) && !taskDocs.has('docs/adr/' + f)) {
+    problems.push('ADR not in a task: docs/adr/' + f);
+  }
+}
+
+// Ids used by edges, flow phases and "start here" entries must exist.
+const nodeIds = new Set((data.lanes || []).flatMap(l => (l.nodes || []).map(n => n.id)));
+const stepIds = new Set((data.flow || []).map(s => s.id));
+const taskIds = new Set((data.tasks || []).map(t => t.id));
+const phaseIds = new Set((data.phases || []).map(p => p.id));
+for (const e of data.edges || []) {
+  for (const end of [e.from, e.to]) {
+    if (!nodeIds.has(end)) problems.push('edge ' + e.from + ' -> ' + e.to + ': unknown node "' + end + '"');
+  }
+}
+for (const s of data.flow || []) {
+  if (s.phase && !phaseIds.has(s.phase)) problems.push('flow ' + s.id + ': unknown phase "' + s.phase + '"');
+}
+const startSets = { map: nodeIds, flow: stepIds, tasks: taskIds };
+for (const view of Object.keys(data.startHere || {})) {
+  const ids = startSets[view];
+  if (!ids) { problems.push('startHere: unknown view "' + view + '"'); continue; }
+  for (const s of data.startHere[view]) {
+    if (!ids.has(s.id)) problems.push('startHere.' + view + ': unknown id "' + s.id + '"');
+  }
+}
+
 // Coverage: every file under src/ and header/ must be listed.
 const sources = [...walk('src', []), ...walk('header', [])];
 for (const f of sources) {

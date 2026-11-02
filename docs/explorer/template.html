@@ -5,87 +5,209 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>dnachem-min architecture explorer</title>
 <style>
-  :root { --bg:#f7f8fa; --fg:#1d2330; --muted:#5b6475; --line:#b9c0cc; --card:#fff;
-          --accent:#1f6feb; --review:#c27800; --sel:#e6f0ff; }
-  * { box-sizing: border-box; }
-  body { margin:0; font:15px/1.45 system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--fg); }
-  header { padding:14px 20px 0; background:#fff; border-bottom:1px solid var(--line); }
-  header h1 { margin:0 0 2px; font-size:20px; }
-  header p { margin:0 0 10px; color:var(--muted); }
-  nav { display:flex; gap:4px; }
-  nav button { border:1px solid var(--line); border-bottom:none; background:#eef0f4; padding:7px 16px;
-               border-radius:6px 6px 0 0; font:inherit; cursor:pointer; color:var(--fg); }
-  nav button[aria-selected="true"] { background:var(--bg); font-weight:600; color:var(--accent); }
-  main { display:flex; align-items:flex-start; }
-  #stage { flex:1; overflow:auto; padding:16px; min-width:0; }
-  #detail { width:380px; flex:none; position:sticky; top:0; max-height:100vh; overflow:auto;
-            background:var(--card); border-left:1px solid var(--line); padding:16px 18px; }
-  #detail.empty { color:var(--muted); }
-  .lane-title { font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; fill:var(--muted); }
-  .lane-bg { fill:#fff; stroke:var(--line); }
-  .node rect { fill:var(--card); stroke:var(--line); stroke-width:1.2; rx:6; }
-  .node:hover rect, .node:focus rect { stroke:var(--accent); }
-  .node.sel rect { fill:var(--sel); stroke:var(--accent); stroke-width:2; }
-  .node.review rect { stroke:var(--review); stroke-dasharray:4 3; }
-  .node text { font-size:12.5px; fill:var(--fg); pointer-events:none; }
-  .node { cursor:pointer; outline:none; }
-  .edge { fill:none; stroke:#9aa4b5; stroke-width:1.2; opacity:.55; }
-  .edge.hi { stroke:var(--accent); opacity:1; stroke-width:2; }
-  h2 { margin:0 0 6px; font-size:18px; }
-  h3 { margin:16px 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
-  details { margin-top:14px; border:1px solid var(--line); border-radius:6px; padding:6px 10px; background:#fafbfc; }
-  summary { cursor:pointer; font-weight:600; }
-  ul.files { list-style:none; padding:0; margin:8px 0 0; }
-  ul.files li { display:flex; gap:6px; align-items:center; margin:3px 0; }
-  ul.files a { color:var(--accent); word-break:break-all; font:12.5px ui-monospace, Consolas, monospace; }
-  button.copy { border:1px solid var(--line); background:#fff; border-radius:4px; cursor:pointer; font-size:11px; padding:1px 6px; }
-  code { font:12.5px ui-monospace, Consolas, monospace; background:#eef0f4; padding:1px 4px; border-radius:3px; }
-  .badge { display:inline-block; background:#fff3d6; color:var(--review); border:1px solid #f0d28a;
-           border-radius:10px; padding:1px 8px; font-size:12px; margin-bottom:6px; }
-  .placeholder { color:var(--muted); padding:30px 10px; }
-  .flow { display:flex; flex-direction:column; gap:10px; max-width:980px; }
-  .step, .task { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 14px; cursor:pointer; }
-  .step { display:flex; gap:16px; justify-content:space-between; }
-  .step:hover, .task:hover, .step:focus, .task:focus { border-color:var(--accent); outline:none; }
-  .step.sel, .task.sel { background:var(--sel); border-color:var(--accent); }
-  .step.review { border-style:dashed; border-color:var(--review); }
-  .step-title { font-weight:600; }
-  .step-sum { color:var(--muted); font-size:14px; }
-  .branches { margin-top:8px; display:grid; gap:4px; }
-  .branch { font-size:13.5px; padding:4px 8px; background:#f1f4f9; border-left:3px solid var(--accent); border-radius:3px; }
-  .outs { display:flex; flex-direction:column; gap:4px; align-items:flex-end; flex:none; max-width:260px; }
-  .out { font:12px ui-monospace, Consolas, monospace; background:#eef7ee; border:1px solid #b9dcb9; border-radius:10px; padding:1px 8px; }
-  .tasks { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; max-width:980px; }
-  .legend { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+  :root {
+    --bg:#f5f6f8; --surface:#fff; --sunk:#f0f2f5; --fg:#1a2030; --muted:#525b6c;
+    --line:#d6dbe3; --line-strong:#a9b1be;
+    --accent:#1d5bc9; --accent-soft:#e7effc; --accent-line:#8fb0ea;
+    --in:#6a4bb5; --in-soft:#f1edfa;
+    --review:#8f5300; --review-line:#c98a12; --review-soft:#fff5e0;
+    --match:#fff3c4; --match-line:#c79a00;
+    --mono:ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --radius:8px;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-padding-top:12px; }
+  body { margin:0; font:15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  button { font:inherit; color:inherit; }
+  a { color:var(--accent); }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+  /* ---- header and tabs ---- */
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:10px 28px; padding:12px 20px;
+           background:var(--surface); border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:18px; letter-spacing:-.01em; }
+  header p { margin:0; color:var(--muted); font-size:13.5px; }
+  [role=tablist] { display:flex; gap:2px; padding:3px; background:var(--sunk); border-radius:9px; margin-left:auto; }
+  [role=tab] { border:0; background:transparent; padding:6px 16px; border-radius:7px; cursor:pointer; color:var(--muted); font-weight:500; }
+  [role=tab]:hover { color:var(--fg); }
+  [role=tab][aria-selected=true] { background:var(--surface); color:var(--accent); font-weight:600; box-shadow:0 1px 2px rgba(20,30,50,.12); }
+
+  /* ---- layout ---- */
+  main { display:grid; grid-template-columns:minmax(0,1fr) 370px; align-items:start; }
+  #stage { padding:16px 20px 32px; min-width:0; }
+  #detail { position:sticky; top:0; max-height:100vh; overflow:auto; background:var(--surface);
+            border-left:1px solid var(--line); padding:18px 20px 28px; min-height:calc(100vh - 60px); }
+  .intro { margin:0 0 12px; color:var(--muted); font-size:13.5px; max-width:80ch; }
+
+  /* ---- shared bits ---- */
+  .flag { display:inline-flex; align-items:center; gap:4px; color:var(--review); font-size:12px; font-weight:600; white-space:nowrap; }
+  .badge { display:inline-block; background:var(--review-soft); color:var(--review); border:1px solid var(--review-line);
+           border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600; }
+  .tag { display:inline-block; background:var(--sunk); color:var(--muted); border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600; }
+  .chip-out { display:inline-block; font:12px var(--mono); background:#edf6ef; color:#1d5130; border:1px solid #b7d9c0; border-radius:6px; padding:1px 7px; }
+  code { font:12.5px var(--mono); background:var(--sunk); padding:1px 5px; border-radius:4px; }
+
+  /* ---- module map ---- */
+  .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 18px; margin:0 0 14px; }
+  .search { position:relative; flex:0 1 340px; }
+  .search input { width:100%; padding:7px 30px 7px 11px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); }
+  .search input:focus-visible { outline-offset:0; }
+  .search .clear { position:absolute; right:4px; top:50%; transform:translateY(-50%); border:0; background:none; cursor:pointer; color:var(--muted); font-size:16px; padding:2px 6px; }
+  .count { font-size:13px; color:var(--muted); min-width:9ch; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; color:var(--muted); margin-left:auto; align-items:center; }
+  .legend svg { vertical-align:middle; margin-right:4px; }
+  .map-wrap { position:relative; }
+  .lanes { columns:220px; column-gap:14px; }
+  .lane { break-inside:avoid; margin:0 0 14px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:4px 10px 10px; }
+  .lane-head { display:block; width:100%; text-align:left; border:0; background:none; padding:6px 2px 4px; cursor:pointer; border-radius:6px; }
+  .lane-head b { display:block; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--fg); }
+  .lane-head span { display:block; font-size:12.5px; color:var(--muted); line-height:1.35; margin-top:1px; }
+  .lane-head:hover b { color:var(--accent); }
+  .lane.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .node { position:relative; z-index:2; display:flex; align-items:center; gap:6px; width:100%; margin-top:6px; padding:6px 9px;
+          text-align:left; background:#fbfcfd; border:1px solid var(--line); border-radius:7px; cursor:pointer;
+          font-size:13.5px; line-height:1.3; transition:opacity .12s, border-color .12s; }
+  .node .t { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .node:hover { border-color:var(--accent-line); background:var(--surface); }
+  .node.review { border-style:dashed; border-color:var(--review-line); }
+  .node .rel { display:none; font-size:11px; font-weight:600; padding:0 6px; border-radius:999px; white-space:nowrap; }
+  .node.out .rel.r-out { display:inline-block; background:var(--accent-soft); color:var(--accent); }
+  .node.in .rel.r-in { display:inline-block; background:var(--in-soft); color:var(--in); }
+  .node.out { border-color:var(--accent); }
+  .node.in { border-color:var(--in); border-style:dashed; }
+  .node.sel { background:var(--accent); border:1px solid var(--accent); color:#fff; }
+  .node.sel .flag { color:#fff; }
+  .other { display:block; width:100%; margin-top:6px; padding:4px 9px; text-align:left; border:1px dashed var(--line-strong);
+           background:none; border-radius:7px; cursor:pointer; font-size:12.5px; color:var(--muted); }
+  .other:hover { color:var(--accent); border-color:var(--accent-line); }
+  .has-sel .node:not(.sel):not(.in):not(.out) { opacity:.5; }
+  .searching .node:not(.match), .searching .other:not(.match) { opacity:.35; }
+  .searching .lane.nomatch .lane-head { opacity:.45; }
+  .node.match, .other.match { background:var(--match); border-color:var(--match-line); opacity:1; }
+  .node.sel.match { background:var(--accent); }
+  .edges { position:absolute; inset:0; z-index:1; pointer-events:none; overflow:visible; }
+  .edges path { fill:none; stroke-width:2; }
+  .edges path.halo { stroke:#fff; stroke-width:6; stroke-opacity:.9; }
+  .edges .e-out { stroke:var(--accent); }
+  .edges .e-in { stroke:var(--in); stroke-dasharray:6 4; }
+
+  /* ---- run flow ---- */
+  .flow { max-width:1040px; }
+  .phase { margin:0 0 14px; padding:12px 14px 4px; border:1px solid transparent; border-radius:12px; }
+  .phase-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 8px; }
+  .phase-head h2 { margin:0; font-size:15px; }
+  .phase-head p { margin:0; color:var(--muted); font-size:13.5px; }
+  .phase.loop { background:#eef2f8; border-color:#d3dbe8; }
+  .phase.loop .phase-head h2::before { content:"\21BB"; margin-right:6px; color:var(--accent); font-weight:400; }
+  ol.steps { list-style:none; margin:0; padding:0; }
+  ol.steps > li { position:relative; padding:0 0 10px 46px; }
+  ol.steps > li::before { content:""; position:absolute; left:15px; top:30px; bottom:-2px; width:2px; background:var(--line); }
+  ol.steps > li:last-child::before { display:none; }
+  .num { position:absolute; left:0; top:8px; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
+         background:var(--surface); border:2px solid var(--line-strong); font-weight:700; font-size:14px; color:var(--muted); }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:10px 14px; cursor:pointer; }
+  .card:hover { border-color:var(--accent-line); }
+  .card[aria-current=true] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:#fbfdff; }
+  li:has(> .card[aria-current=true]) > .num { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .card.review { border-style:dashed; border-color:var(--review-line); }
+  .card-title { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-weight:600; }
+  .card-sum { color:var(--muted); font-size:14px; margin-top:2px; }
+  .fork { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; margin-top:10px; }
+  .fork div { border:1px solid var(--line); border-top:3px solid var(--line-strong); border-radius:6px; padding:6px 10px; font-size:13.5px; background:#fafbfc; }
+  .fork div.default { border-top-color:var(--accent); }
+  .fork b { display:block; }
+  .fork span { color:var(--muted); }
+  .writes { display:flex; flex-wrap:wrap; gap:5px; align-items:center; margin-top:8px; font-size:12.5px; color:var(--muted); }
+
+  /* ---- tasks ---- */
+  .tasks-group h2 { font-size:15px; margin:4px 0 8px; }
+  .tasks { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px; max-width:1100px; margin-bottom:20px; }
+  .meta { margin-top:6px; font-size:12.5px; color:var(--muted); }
+
+  /* ---- detail panel ---- */
+  .kicker { font-size:12.5px; color:var(--muted); margin:0 0 4px; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; }
+  .kicker button { border:0; background:none; padding:0; color:var(--accent); cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+  #detail h2 { margin:0 0 8px; font-size:19px; line-height:1.25; overflow-wrap:anywhere; }
+  #detail .lead { margin:8px 0 0; }
+  #detail h3 { margin:18px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .links { display:flex; flex-wrap:wrap; gap:6px; }
+  .link { border:1px solid var(--line); background:var(--surface); border-radius:6px; padding:3px 9px; cursor:pointer; font-size:13.5px; text-align:left; }
+  .link:hover { border-color:var(--accent); color:var(--accent); }
+  .link.l-out { border-left:3px solid var(--accent); }
+  .link.l-in { border-left:3px dashed var(--in); }
+  .link small { color:var(--muted); }
+  details.code { margin-top:18px; border:1px solid var(--line); border-radius:var(--radius); background:#fafbfc; }
+  details.code > summary { cursor:pointer; font-weight:600; padding:8px 12px; }
+  details.code > div { padding:0 12px 10px; }
+  ul.files { list-style:none; padding:0; margin:4px 0 0; }
+  ul.files li { display:flex; gap:8px; align-items:flex-start; padding:4px 0; border-top:1px solid #edf0f3; }
+  ul.files li:first-child { border-top:0; }
+  ul.files a { text-decoration:none; min-width:0; flex:1; }
+  ul.files a:hover .fn { text-decoration:underline; }
+  .fn { display:block; font:13px var(--mono); overflow-wrap:anywhere; }
+  .fk { font:600 11px system-ui, sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-right:6px; }
+  .fd { display:block; font:11.5px var(--mono); color:var(--muted); overflow-wrap:anywhere; }
+  button.copy { flex:none; border:1px solid var(--line); background:var(--surface); border-radius:5px; cursor:pointer; font-size:11.5px; padding:1px 7px; margin-top:1px; color:var(--muted); }
+  button.copy:hover { color:var(--accent); border-color:var(--accent); }
+  .start { list-style:none; padding:0; margin:6px 0 0; display:grid; gap:6px; }
+  .start button { width:100%; text-align:left; border:1px solid var(--line); background:var(--surface); border-radius:var(--radius); padding:8px 12px; cursor:pointer; }
+  .start button:hover { border-color:var(--accent); }
+  .start b { display:block; }
+  .start span { font-size:13px; color:var(--muted); }
+  .pager { display:flex; justify-content:space-between; gap:8px; margin-top:20px; }
+  .pager button { flex:1; }
+  .back { display:none; }
+  .empty-help p { color:var(--muted); font-size:14px; }
+
+  /* ---- narrow screens ---- */
+  @media (max-width: 900px) {
+    main { display:block; }
+    #detail { position:static; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
+    [role=tablist] { margin-left:0; }
+    .legend { margin-left:0; }
+    .back { display:inline-block; margin-bottom:10px; }
+  }
+  @media (max-width: 520px) {
+    header, #stage, #detail { padding-left:12px; padding-right:12px; }
+    ol.steps > li { padding-left:40px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; scroll-behavior:auto !important; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>dnachem-min architecture explorer</h1>
-  <p>Click a box to see what it does, in plain language, and where it lives in the code.</p>
-  <nav role="tablist" id="tabs"></nav>
+  <div>
+    <h1>dnachem-min architecture explorer</h1>
+    <p>How the simulation is organised, how one run proceeds, and where to start for common tasks.</p>
+  </div>
+  <div role="tablist" id="tabs" aria-label="Views"></div>
 </header>
 <main>
-  <section id="stage" role="tabpanel"></section>
-  <aside id="detail" class="empty" aria-live="polite">Select a box to see its description.</aside>
+  <section id="stage" role="tabpanel" tabindex="-1"></section>
+  <aside id="detail" aria-live="polite" aria-label="Details"></aside>
 </main>
 <script>
 const DATA = /*__ARCHITECTURE_JSON__*/null;
 
 (function () {
+  'use strict';
   const SVGNS = 'http://www.w3.org/2000/svg';
   const stage = document.getElementById('stage');
   const detail = document.getElementById('detail');
   const tabsEl = document.getElementById('tabs');
   // Links are relative to docs/explorer/index.html; repo files sit two levels up.
   const REPO = '../../';
+  const narrow = window.matchMedia('(max-width: 900px)');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function el(tag, attrs, children) {
     const e = document.createElement(tag);
     for (const k in (attrs || {})) {
+      if (attrs[k] === undefined || attrs[k] === null || attrs[k] === false) continue;
       if (k === 'text') e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]);
     }
-    for (const c of children || []) e.appendChild(c);
+    for (const c of children || []) if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
     return e;
   }
   function svg(tag, attrs) {
@@ -93,200 +215,540 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     for (const k in (attrs || {})) e.setAttribute(k, attrs[k]);
     return e;
   }
+  function onActivate(node, fn) {
+    node.addEventListener('click', fn);
+    if (node.tagName !== 'BUTTON') {
+      node.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fn(); }
+      });
+    }
+  }
+  function flagEl() {
+    return el('span', { class: 'flag', title: 'Summary awaiting physics review' },
+      [el('span', { 'aria-hidden': 'true', text: '⚑' }), el('span', { class: 'sr-only', text: 'Summary awaiting physics review' })]);
+  }
 
-  // ---- detail panel (shared by all views) ----
-  function fileList(files) {
+  // ---- indexes (computed from the JSON; nothing here is curated) ----
+  const nodeById = {}, laneOfNode = {}, laneById = {}, nodesOfFile = {};
+  DATA.lanes.forEach(function (lane) {
+    laneById[lane.id] = lane;
+    lane.nodes.forEach(function (n) {
+      nodeById[n.id] = n; laneOfNode[n.id] = lane;
+      (n.files || []).forEach(function (f) { (nodesOfFile[f] = nodesOfFile[f] || []).push(n.id); });
+    });
+  });
+  const stepById = {}, taskById = {}, phaseById = {};
+  DATA.flow.forEach(function (s, i) { s.index = i; stepById[s.id] = s; });
+  DATA.tasks.forEach(function (t) { taskById[t.id] = t; });
+  (DATA.phases || []).forEach(function (p) { phaseById[p.id] = p; });
+  const usesOf = {}, usedBy = {};
+  (DATA.edges || []).forEach(function (e) {
+    (usesOf[e.from] = usesOf[e.from] || []).push(e.to);
+    (usedBy[e.to] = usedBy[e.to] || []).push(e.from);
+  });
+  function nodesForFiles(files) {
+    const out = [];
+    (files || []).forEach(function (f) { (nodesOfFile[f] || []).forEach(function (id) { if (out.indexOf(id) < 0) out.push(id); }); });
+    return out;
+  }
+  function stepsForNode(id) {
+    return DATA.flow.filter(function (s) { return nodesForFiles(s.files).indexOf(id) >= 0; });
+  }
+  function tasksForNode(id) {
+    return DATA.tasks.filter(function (t) { return nodesForFiles(t.files).indexOf(id) >= 0; });
+  }
+  function stepNumber(s) { const m = /^(\d+)\.\s*/.exec(s.title); return m ? m[1] : String(s.index + 1); }
+  function stepTitle(s) { return s.title.replace(/^\d+\.\s*/, ''); }
+
+  // ---- file and doc lists ----
+  function humanize(slug) { const s = slug.replace(/[-_]+/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function describePath(p) {
+    const file = p.split('#')[0];
+    const parts = file.split('/');
+    const base = parts.pop();
+    const dir = parts.join('/');
+    let m;
+    // sub: the muted second line (full path for documents, folder for code and macros)
+    const folder = dir ? dir + '/' : '(repository root)';
+    if ((m = /^docs\/adr\/(\d{4})-(.+)\.md$/.exec(file))) return { kind: 'ADR ' + m[1], name: humanize(m[2]), sub: file };
+    if ((m = /^docs\/recipes\/(.+)\.md$/.exec(file))) return { kind: 'Recipe', name: humanize(m[1]), sub: file };
+    if (/^macro\//.test(file)) return { kind: 'Macro', name: base, sub: folder };
+    if (base === 'SKILL.md') return { kind: 'Skill', name: parts[parts.length - 1], sub: file };
+    if (base === 'README.md') return { kind: 'Guide', name: dir ? dir + ' overview' : 'Project README', sub: file };
+    if (/\.md$/.test(base)) return { kind: 'Guide', name: humanize(base.replace(/\.md$/, '')), sub: file };
+    return { kind: '', name: base, sub: folder };
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext !== false && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () { return legacyCopy(text); });
+    }
+    return legacyCopy(text);
+  }
+  function legacyCopy(text) {
+    return new Promise(function (resolve, reject) {
+      const ta = el('textarea', { readonly: '', style: 'position:fixed;top:-1000px;opacity:0' });
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      ta.remove();
+      if (ok) resolve(); else reject(new Error('copy failed'));
+    });
+  }
+  function fileList(files, asDocs) {
     const ul = el('ul', { class: 'files' });
-    for (const f of files) {
+    files.forEach(function (f) {
       const path = f.split('#')[0];
-      const a = el('a', { href: REPO + f, text: f, target: '_blank', rel: 'noopener' });
-      const btn = el('button', { class: 'copy', type: 'button', text: 'copy', title: 'Copy path' });
+      const d = describePath(f);
+      const a = el('a', { href: REPO + f, target: '_blank', rel: 'noopener' }, [
+        el('span', { class: 'fn' }, [d.kind && asDocs ? el('span', { class: 'fk', text: d.kind }) : null, d.name]),
+        el('span', { class: 'fd', text: d.sub })
+      ]);
+      const btn = el('button', { class: 'copy', type: 'button', text: 'Copy', 'aria-label': 'Copy path ' + path, title: 'Copy ' + path });
       btn.addEventListener('click', function () {
-        const done = function () { btn.textContent = 'copied'; setTimeout(function () { btn.textContent = 'copy'; }, 1200); };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(path).then(done, done);
-        else done();
+        const show = function (msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); };
+        copyText(path).then(function () { show('Copied'); }, function () { show('Failed'); });
       });
       ul.appendChild(el('li', {}, [btn, a]));
-    }
+    });
     return ul;
   }
-  function showDetail(item, laneTitle) {
-    detail.className = '';
-    detail.textContent = '';
-    if (item.review) detail.appendChild(el('div', { class: 'badge', text: 'summary awaiting physics review' }));
-    detail.appendChild(el('h2', { text: item.title }));
-    if (laneTitle) detail.appendChild(el('div', { class: 'legend', text: laneTitle }));
-    detail.appendChild(el('p', { text: item.summary }));
-    const code = el('details', {});
-    code.appendChild(el('summary', { text: 'Where in the code' }));
-    if (item.files && item.files.length) code.appendChild(fileList(item.files));
-    if (item.symbols && item.symbols.length) {
-      code.appendChild(el('h3', { text: 'Key symbols' }));
-      const p = el('p', {});
-      item.symbols.forEach(function (s, i) {
-        if (i) p.appendChild(document.createTextNode(' '));
-        p.appendChild(el('code', { text: s }));
-      });
-      code.appendChild(p);
+  // "Where in the code" remembers whether the reader opened it.
+  let codeOpen = false;
+  function codeSection(label, files, symbols) {
+    if (!(files && files.length) && !(symbols && symbols.length)) return null;
+    const inner = el('div');
+    if (files && files.length) inner.appendChild(fileList(files, false));
+    if (symbols && symbols.length) {
+      inner.appendChild(el('h3', { text: 'Key symbols' }));
+      const p = el('p', { style: 'margin:0' });
+      symbols.forEach(function (s, i) { if (i) p.appendChild(document.createTextNode(' ')); p.appendChild(el('code', { text: s })); });
+      inner.appendChild(p);
     }
-    detail.appendChild(code);
+    const d = el('details', { class: 'code', open: codeOpen ? '' : null }, [el('summary', { text: label }), inner]);
+    d.addEventListener('toggle', function () { codeOpen = d.open; });
+    return d;
+  }
+  function linkButton(label, sub, target, cls) {
+    const b = el('button', { type: 'button', class: 'link' + (cls ? ' ' + cls : '') }, [label, sub ? el('small', { text: ' ' + sub }) : null]);
+    b.addEventListener('click', function () { go(target[0], target[1], true); });
+    return b;
+  }
+  function nodeLinks(ids, cls) {
+    return el('div', { class: 'links' }, ids.map(function (id) {
+      const n = nodeById[id];
+      return linkButton(n.title, null, ['map', id], cls);
+    }));
+  }
+  function section(title, content) {
+    if (!content) return [];
+    return [el('h3', { text: title }), content];
+  }
+  function setDetail(children) {
+    detail.textContent = '';
+    if (narrow.matches) {
+      const back = el('button', { type: 'button', class: 'link back', text: '↑ Back to the view' });
+      back.addEventListener('click', function () {
+        const cur = stage.querySelector('.sel, [aria-current=true]') || stage;
+        cur.scrollIntoView({ block: 'center', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+        if (cur.focus) cur.focus({ preventScroll: true });
+      });
+      detail.appendChild(back);
+    }
+    children.forEach(function (c) { if (c) detail.appendChild(c); });
+  }
+
+  // ---- empty state: how to read the view, and where to start ----
+  const HELP = {
+    map: ['The code, grouped by source folder. Each box is one part of the program.',
+          'Select a box to read what it does in plain language, see which parts it works with (the map draws those arrows), and find its files. Use the search box to locate a file or class.'],
+    flow: ['What happens during one simulation run, from start-up to the files on disk.',
+           'The shaded group repeats for every event (every primary particle). Select a step to see the modules and files involved and the output it writes.'],
+    tasks: ['Start from what you want to do.',
+            'Each task links the guide to read first and the modules and files involved.']
+  };
+  function startItem(view, s) {
+    let title = s.id;
+    if (view === 'map' && nodeById[s.id]) title = nodeById[s.id].title;
+    if (view === 'flow' && stepById[s.id]) title = 'Step ' + stepNumber(stepById[s.id]) + ': ' + stepTitle(stepById[s.id]);
+    if (view === 'tasks' && taskById[s.id]) title = taskById[s.id].title;
+    const b = el('button', { type: 'button' }, [el('b', { text: title }), el('span', { text: s.why })]);
+    b.addEventListener('click', function () { go(view, s.id, true); });
+    return el('li', {}, [b]);
+  }
+  function showEmpty(view) {
+    const starts = (DATA.startHere && DATA.startHere[view]) || [];
+    const parts = [el('h2', { text: 'How to read this view' }),
+      el('div', { class: 'empty-help' }, HELP[view].map(function (t) { return el('p', { text: t }); }))];
+    if (view === 'map') {
+      const n = DATA.lanes.reduce(function (a, l) { return a + l.nodes.length; }, 0);
+      parts.push(el('p', { class: 'kicker', text: n + ' parts in ' + DATA.lanes.length + ' folders, ' + DATA.edges.length + ' connections.' }));
+    }
+    if (starts.length) parts.push(el('h3', { text: 'Start here' }), el('ul', { class: 'start' }, starts.map(function (s) { return startItem(view, s); })));
+    setDetail(parts);
   }
 
   // ---- module map ----
-  const COL_W = 210, NODE_W = 186, NODE_H = 38, GAP = 12, TOP = 44, PAD = 12;
-
-  function renderModuleMap() {
+  let mapState = null;
+  function renderMap() {
     stage.textContent = '';
-    stage.appendChild(el('p', { class: 'legend', text: 'Columns are source folders. Arrows show which part uses which. Dashed orange outline: summary still awaiting physics review.' }));
-    const pos = {};
-    const lanes = DATA.lanes;
-    let maxH = 0;
-    lanes.forEach(function (lane, li) {
-      lane.nodes.forEach(function (n, ni) {
-        pos[n.id] = { x: li * COL_W + PAD + 4, y: TOP + ni * (NODE_H + GAP) };
-      });
-      maxH = Math.max(maxH, TOP + lane.nodes.length * (NODE_H + GAP));
+    const input = el('input', { type: 'search', id: 'find', placeholder: 'Find a part, file or symbol', autocomplete: 'off', 'aria-describedby': 'find-count' });
+    const clear = el('button', { type: 'button', class: 'clear', 'aria-label': 'Clear search', text: '×', hidden: '' });
+    const count = el('span', { class: 'count', id: 'find-count', 'aria-live': 'polite' });
+    const legend = el('div', { class: 'legend', 'aria-label': 'Legend' }, [
+      el('span', {}, [legendLine('var(--accent)', false), 'selected part uses it']),
+      el('span', {}, [legendLine('var(--in)', true), 'it uses the selected part']),
+      el('span', {}, [el('span', { class: 'flag', 'aria-hidden': 'true', text: '⚑' }), ' dashed: summary awaiting physics review'])
+    ]);
+    stage.appendChild(el('div', { class: 'toolbar' }, [
+      el('label', { class: 'sr-only', for: 'find', text: 'Find a part, file or symbol' }),
+      el('div', { class: 'search' }, [input, clear]), count, legend]));
+
+    const wrap = el('div', { class: 'map-wrap' });
+    const edges = svg('svg', { class: 'edges', 'aria-hidden': 'true' });
+    const defs = svg('defs');
+    [['a-out', 'var(--accent)'], ['a-in', 'var(--in)']].forEach(function (m) {
+      const mk = svg('marker', { id: m[0], viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
+      const p = svg('path', { d: 'M0,0 L10,5 L0,10 z' }); p.style.fill = m[1];
+      mk.appendChild(p); defs.appendChild(mk);
     });
-    const W = lanes.length * COL_W + PAD, H = maxH + PAD;
-    const root = svg('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, role: 'group', 'aria-label': 'Module map' });
-
-    lanes.forEach(function (lane, li) {
-      root.appendChild(svg('rect', { class: 'lane-bg', x: li * COL_W + PAD / 2, y: 0, width: COL_W - 4, height: H, rx: 8 }));
-      const t = svg('text', { class: 'lane-title', x: li * COL_W + PAD + 4, y: 26 });
-      t.textContent = lane.title.length > 22 ? lane.title.slice(0, 21) + '…' : lane.title;
-      const tt = svg('title'); tt.textContent = lane.summary;
-      t.appendChild(tt);
-      root.appendChild(t);
-    });
-
-    const edgeEls = [];
-    (DATA.edges || []).forEach(function (e) {
-      const a = pos[e.from], b = pos[e.to];
-      if (!a || !b) return;
-      const x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2, x2 = b.x, y2 = b.y + NODE_H / 2;
-      let d;
-      if (a.x < b.x) { const m = (x1 + x2) / 2; d = 'M' + x1 + ',' + y1 + ' C' + m + ',' + y1 + ' ' + m + ',' + y2 + ' ' + x2 + ',' + y2; }
-      else if (a.x > b.x) { const m = (a.x + b.x + NODE_W) / 2; d = 'M' + a.x + ',' + y1 + ' C' + m + ',' + y1 + ' ' + m + ',' + y2 + ' ' + (b.x + NODE_W) + ',' + y2; }
-      else { const o = NODE_W + 8; d = 'M' + x1 + ',' + y1 + ' C' + (x1 + o / 2) + ',' + y1 + ' ' + (x1 + o / 2) + ',' + y2 + ' ' + x2 + ',' + y2 + ' '; d = 'M' + (a.x + NODE_W) + ',' + y1 + ' C' + (a.x + NODE_W + 14) + ',' + y1 + ' ' + (a.x + NODE_W + 14) + ',' + y2 + ' ' + (b.x + NODE_W) + ',' + y2; }
-      const p = svg('path', { class: 'edge', d: d });
-      root.appendChild(p);
-      edgeEls.push({ p: p, from: e.from, to: e.to });
-    });
-
-    let selected = null;
-    function select(g, n, lane) {
-      if (selected) selected.classList.remove('sel');
-      selected = g; g.classList.add('sel');
-      edgeEls.forEach(function (x) { x.p.classList.toggle('hi', x.from === n.id || x.to === n.id); });
-      showDetail(n, lane.title);
-    }
-
-    lanes.forEach(function (lane) {
+    edges.appendChild(defs);
+    const lanesEl = el('div', { class: 'lanes' });
+    const nodeEls = {}, laneEls = {}, otherEls = {};
+    DATA.lanes.forEach(function (lane) {
+      const head = el('button', { type: 'button', class: 'lane-head', 'aria-label': lane.title + ': ' + lane.summary + ' (folder details)' },
+        [el('b', { text: lane.title }), el('span', { text: lane.summary })]);
+      head.addEventListener('click', function () { go('map', 'lane:' + lane.id, true); });
+      const box = el('section', { class: 'lane', 'aria-label': lane.title }, [head]);
       lane.nodes.forEach(function (n) {
-        const p = pos[n.id];
-        const g = svg('g', { class: 'node' + (n.review ? ' review' : ''), tabindex: 0, role: 'button', transform: 'translate(' + p.x + ',' + p.y + ')', 'aria-label': n.title });
-        g.appendChild(svg('rect', { width: NODE_W, height: NODE_H }));
-        const t = svg('text', { x: 9, y: NODE_H / 2 + 4.5 });
-        t.textContent = n.title.length > 27 ? n.title.slice(0, 26) + '…' : n.title;
-        g.appendChild(t);
-        g.addEventListener('click', function () { select(g, n, lane); });
-        g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(g, n, lane); } });
-        root.appendChild(g);
+        const b = el('button', { type: 'button', class: 'node' + (n.review ? ' review' : ''), 'data-id': n.id }, [
+          el('span', { class: 't', text: n.title }),
+          n.review ? flagEl() : null,
+          el('span', { class: 'rel r-out', text: 'used', title: 'The selected part uses, creates or fills this one' }),
+          el('span', { class: 'rel r-in', text: 'user', title: 'This part uses the selected one' })
+        ]);
+        b.addEventListener('click', function () { go('map', mapState.sel === n.id ? null : n.id, true); });
+        nodeEls[n.id] = b; box.appendChild(b);
       });
+      if (lane.otherFiles && lane.otherFiles.length) {
+        const o = el('button', { type: 'button', class: 'other', text: '+ ' + lane.otherFiles.length + ' other file' + (lane.otherFiles.length > 1 ? 's' : '') });
+        o.addEventListener('click', function () { go('map', 'lane:' + lane.id, true); });
+        otherEls[lane.id] = o; box.appendChild(o);
+      }
+      laneEls[lane.id] = box; lanesEl.appendChild(box);
     });
-    stage.appendChild(root);
+    wrap.appendChild(edges); wrap.appendChild(lanesEl);
+    stage.appendChild(wrap);
+
+    mapState = { sel: null, wrap: wrap, edges: edges, lanesEl: lanesEl, nodeEls: nodeEls, laneEls: laneEls, otherEls: otherEls, input: input };
+
+    function runSearch() {
+      const q = input.value.trim().toLowerCase();
+      clear.hidden = !q;
+      lanesEl.classList.toggle('searching', !!q);
+      if (!q) { count.textContent = ''; Object.keys(nodeEls).forEach(function (id) { nodeEls[id].classList.remove('match'); }); Object.keys(otherEls).forEach(function (id) { otherEls[id].classList.remove('match'); }); Object.keys(laneEls).forEach(function (id) { laneEls[id].classList.remove('nomatch'); }); return; }
+      let hits = 0;
+      DATA.lanes.forEach(function (lane) {
+        let any = false;
+        lane.nodes.forEach(function (n) {
+          const hay = [n.title, n.summary].concat(n.files || [], n.symbols || []).join('\n').toLowerCase();
+          const hit = hay.indexOf(q) >= 0;
+          nodeEls[n.id].classList.toggle('match', hit);
+          if (hit) { hits++; any = true; }
+        });
+        if (otherEls[lane.id]) {
+          const hit = lane.otherFiles.join('\n').toLowerCase().indexOf(q) >= 0;
+          otherEls[lane.id].classList.toggle('match', hit);
+          if (hit) { hits++; any = true; }
+        }
+        laneEls[lane.id].classList.toggle('nomatch', !any);
+      });
+      count.textContent = hits ? hits + (hits === 1 ? ' match' : ' matches') : 'No match';
+    }
+    input.addEventListener('input', runSearch);
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') { input.value = ''; runSearch(); ev.stopPropagation(); }
+      if (ev.key === 'Enter') {
+        const first = lanesEl.querySelector('.node.match, .other.match');
+        if (first) { first.click(); first.focus(); }
+      }
+    });
+    clear.addEventListener('click', function () { input.value = ''; runSearch(); input.focus(); });
+
+    if (window.ResizeObserver) new ResizeObserver(function () { drawEdges(); }).observe(lanesEl);
+    else window.addEventListener('resize', drawEdges);
+  }
+  function legendLine(color, dashed) {
+    const s = svg('svg', { width: 26, height: 10, viewBox: '0 0 26 10' });
+    const p = svg('path', { d: 'M1,5 H19', 'stroke-width': 2 });
+    p.style.stroke = color; if (dashed) p.setAttribute('stroke-dasharray', '4 3');
+    const h = svg('path', { d: 'M18,1 L25,5 L18,9 z' }); h.style.fill = color;
+    s.appendChild(p); s.appendChild(h);
+    return s;
+  }
+  function drawEdges() {
+    if (!mapState) return;
+    const g = mapState.edges;
+    Array.prototype.slice.call(g.querySelectorAll('path.e')).forEach(function (p) { p.remove(); });
+    const id = mapState.sel;
+    if (!id || id.indexOf('lane:') === 0) return;
+    const base = mapState.wrap.getBoundingClientRect();
+    g.setAttribute('width', mapState.wrap.scrollWidth); g.setAttribute('height', mapState.wrap.scrollHeight);
+    function box(nid) {
+      const r = mapState.nodeEls[nid].getBoundingClientRect();
+      return { l: r.left - base.left, r: r.right - base.left, t: r.top - base.top, b: r.bottom - base.top, cx: (r.left + r.right) / 2 - base.left, cy: (r.top + r.bottom) / 2 - base.top };
+    }
+    function path(fromId, toId, cls) {
+      const a = box(fromId), b = box(toId);
+      let d;
+      if (b.l > a.r + 4 || a.l > b.r + 4) {
+        // different columns: leave from the facing sides
+        const right = b.cx > a.cx;
+        const x1 = right ? a.r : a.l, x2 = right ? b.l : b.r;
+        const k = Math.max(24, Math.abs(x2 - x1) / 2);
+        d = 'M' + x1 + ',' + a.cy + ' C' + (x1 + (right ? k : -k)) + ',' + a.cy + ' ' + (x2 + (right ? -k : k)) + ',' + b.cy + ' ' + x2 + ',' + b.cy;
+      } else {
+        // same column: loop round the right-hand side
+        const x = Math.max(a.r, b.r);
+        const bulge = Math.min(22, 8 + Math.abs(b.cy - a.cy) / 12);
+        d = 'M' + a.r + ',' + a.cy + ' C' + (x + bulge) + ',' + a.cy + ' ' + (x + bulge) + ',' + b.cy + ' ' + b.r + ',' + b.cy;
+      }
+      // a pale halo, painted below every edge, keeps arrows legible over card text
+      g.insertBefore(svg('path', { class: 'halo', d: d }), g.firstChild);
+      g.appendChild(svg('path', { class: 'e ' + cls, d: d, 'marker-end': 'url(#' + (cls === 'e-out' ? 'a-out' : 'a-in') + ')' }));
+    }
+    (usesOf[id] || []).forEach(function (t) { path(id, t, 'e-out'); });
+    (usedBy[id] || []).forEach(function (f) { path(f, id, 'e-in'); });
+  }
+  function selectMap(id, scroll) {
+    const s = mapState;
+    s.sel = id;
+    Object.keys(s.nodeEls).forEach(function (k) {
+      const b = s.nodeEls[k];
+      b.classList.remove('sel', 'in', 'out');
+      b.removeAttribute('aria-pressed');
+    });
+    Object.keys(s.laneEls).forEach(function (k) { s.laneEls[k].classList.remove('sel'); });
+    s.lanesEl.classList.toggle('has-sel', !!id && id.indexOf('lane:') !== 0);
+    if (!id) { drawEdges(); showEmpty('map'); return; }
+    if (id.indexOf('lane:') === 0) {
+      const lane = laneById[id.slice(5)];
+      if (!lane) { go('map', null, false); return; }
+      s.laneEls[lane.id].classList.add('sel');
+      drawEdges();
+      showLane(lane);
+      if (scroll) s.laneEls[lane.id].scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    const n = nodeById[id];
+    if (!n) { go('map', null, false); return; }
+    s.nodeEls[id].classList.add('sel');
+    s.nodeEls[id].setAttribute('aria-pressed', 'true');
+    (usesOf[id] || []).forEach(function (t) { s.nodeEls[t].classList.add('out'); });
+    (usedBy[id] || []).forEach(function (f) { s.nodeEls[f].classList.add('in'); });
+    drawEdges();
+    showNode(n);
+    if (scroll) s.nodeEls[id].scrollIntoView({ block: 'nearest' });
+  }
+  function showNode(n) {
+    const lane = laneOfNode[n.id];
+    const laneBtn = el('button', { type: 'button', text: lane.title });
+    laneBtn.addEventListener('click', function () { go('map', 'lane:' + lane.id, true); });
+    const steps = stepsForNode(n.id), tasks = tasksForNode(n.id);
+    const uses = usesOf[n.id] || [], users = usedBy[n.id] || [];
+    setDetail([
+      el('p', { class: 'kicker' }, ['Module map › ', laneBtn]),
+      el('h2', { text: n.title }),
+      n.review ? el('span', { class: 'badge', text: '⚑ Summary awaiting physics review' }) : null,
+      el('p', { class: 'lead', text: n.summary }),
+    ].concat(
+      section('Uses, creates or fills', uses.length ? nodeLinks(uses, 'l-out') : null),
+      section('Is used by', users.length ? nodeLinks(users, 'l-in') : null),
+      section('In the run flow', steps.length ? el('div', { class: 'links' }, steps.map(function (st) { return linkButton('Step ' + stepNumber(st) + ':', stepTitle(st), ['flow', st.id]); })) : null),
+      section('Related tasks', tasks.length ? el('div', { class: 'links' }, tasks.map(function (t) { return linkButton(t.title, null, ['tasks', t.id]); })) : null),
+      [codeSection('Where in the code', n.files, n.symbols)]
+    ));
+  }
+  function showLane(lane) {
+    setDetail([
+      el('p', { class: 'kicker', text: 'Module map › Folder' }),
+      el('h2', { text: lane.title }),
+      el('p', { class: 'lead', text: lane.summary })
+    ].concat(
+      section('Parts', nodeLinks(lane.nodes.map(function (n) { return n.id; }))),
+      section('Other files', lane.otherFiles && lane.otherFiles.length ? fileList(lane.otherFiles, false) : null)
+    ));
   }
 
   // ---- run flow ----
+  let flowCards = {};
   function renderFlow() {
     stage.textContent = '';
-    stage.appendChild(el('p', { class: 'legend', text: 'One simulation run, step by step. Click a step for the files involved; the right-hand tags are the output files it produces.' }));
-    const list = el('div', { class: 'flow' });
-    let selected = null;
+    flowCards = {};
+    stage.appendChild(el('p', { class: 'intro', text: 'One simulation run, in order. Green tags are the files a step writes; ⚑ marks a summary awaiting physics review. Select a step for the modules and files behind it.' }));
+    const wrap = el('div', { class: 'flow' });
+    const groups = [];
     DATA.flow.forEach(function (s) {
-      const card = el('div', { class: 'step' + (s.review ? ' review' : ''), tabindex: '0', role: 'button' });
-      card.appendChild(el('div', { class: 'step-main' }, [
-        el('div', { class: 'step-title', text: s.title }),
-        el('div', { class: 'step-sum', text: s.summary })
-      ]));
-      if (s.branches && s.branches.length) {
-        const br = el('div', { class: 'branches' });
-        s.branches.forEach(function (b) {
-          br.appendChild(el('div', { class: 'branch' }, [el('b', { text: b.label }), el('span', { text: ' ' + b.summary })]));
-        });
-        card.firstChild.appendChild(br);
-      }
-      const outs = el('div', { class: 'outs' });
-      (s.outputs || []).forEach(function (o) { outs.appendChild(el('span', { class: 'out', text: o })); });
-      card.appendChild(outs);
-      function pick() {
-        if (selected) selected.classList.remove('sel');
-        selected = card; card.classList.add('sel');
-        const item = { title: s.title, summary: s.summary, review: s.review, files: (s.files || []).concat(s.docs || []), symbols: [] };
-        showDetail(item, 'Run flow');
-      }
-      card.addEventListener('click', pick);
-      card.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
-      list.appendChild(card);
+      const last = groups[groups.length - 1];
+      if (last && last.phase === (s.phase || '')) last.steps.push(s); else groups.push({ phase: s.phase || '', steps: [s] });
     });
-    stage.appendChild(list);
+    groups.forEach(function (gr) {
+      const ph = phaseById[gr.phase];
+      const box = el('section', { class: 'phase' + (gr.phase === 'event' ? ' loop' : ''), 'aria-label': ph ? ph.title : 'Steps' });
+      if (ph) box.appendChild(el('div', { class: 'phase-head' }, [el('h2', { text: ph.title }), el('p', { text: ph.summary })]));
+      const ol = el('ol', { class: 'steps' });
+      gr.steps.forEach(function (s) {
+        const card = el('div', { class: 'card' + (s.review ? ' review' : ''), tabindex: '0', role: 'button', 'aria-label': 'Step ' + stepNumber(s) + ': ' + stepTitle(s) });
+        card.appendChild(el('div', { class: 'card-title' }, [stepTitle(s), s.condition ? el('span', { class: 'tag', text: s.condition }) : null, s.review ? flagEl() : null]));
+        card.appendChild(el('div', { class: 'card-sum', text: s.summary }));
+        if (s.branches && s.branches.length) {
+          card.appendChild(el('div', { class: 'fork', 'aria-label': 'Options' }, s.branches.map(function (b) {
+            return el('div', { class: /default/i.test(b.label) ? 'default' : '' }, [el('b', { text: b.label }), el('span', { text: b.summary })]);
+          })));
+        }
+        if (s.outputs && s.outputs.length) {
+          card.appendChild(el('div', { class: 'writes' }, [el('span', { text: 'Writes' })].concat(s.outputs.map(function (o) { return el('span', { class: 'chip-out', text: o }); }))));
+        }
+        onActivate(card, function () { go('flow', card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
+        flowCards[s.id] = card;
+        ol.appendChild(el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card]));
+      });
+      box.appendChild(ol);
+      wrap.appendChild(box);
+    });
+    stage.appendChild(wrap);
+  }
+  function selectFlow(id, scroll) {
+    Object.keys(flowCards).forEach(function (k) { flowCards[k].removeAttribute('aria-current'); });
+    if (!id) { showEmpty('flow'); return; }
+    const s = stepById[id];
+    if (!s) { go('flow', null, false); return; }
+    flowCards[id].setAttribute('aria-current', 'true');
+    if (scroll) flowCards[id].scrollIntoView({ block: 'nearest' });
+    const ph = phaseById[s.phase];
+    const mods = nodesForFiles(s.files);
+    const prev = DATA.flow[s.index - 1], next = DATA.flow[s.index + 1];
+    const pager = el('div', { class: 'pager' }, [
+      prev ? linkButton('← Step ' + stepNumber(prev), null, ['flow', prev.id]) : el('span'),
+      next ? linkButton('Step ' + stepNumber(next) + ' →', null, ['flow', next.id]) : el('span')
+    ]);
+    setDetail([
+      el('p', { class: 'kicker', text: 'Run flow › Step ' + stepNumber(s) + ' of ' + DATA.flow.length + (ph ? ' · ' + ph.title : '') }),
+      el('h2', { text: stepTitle(s) }),
+      s.review ? el('span', { class: 'badge', text: '⚑ Summary awaiting physics review' }) : null,
+      s.condition ? el('span', { class: 'tag', text: s.condition }) : null,
+      el('p', { class: 'lead', text: s.summary })
+    ].concat(
+      section('Options', s.branches && s.branches.length ? el('div', { class: 'fork' }, s.branches.map(function (b) {
+        return el('div', { class: /default/i.test(b.label) ? 'default' : '' }, [el('b', { text: b.label }), el('span', { text: b.summary })]);
+      })) : null),
+      section('Writes', s.outputs && s.outputs.length ? el('div', { class: 'links' }, s.outputs.map(function (o) { return el('span', { class: 'chip-out', text: o }); })) : null),
+      section('Modules involved', mods.length ? nodeLinks(mods) : null),
+      section('Read more', s.docs && s.docs.length ? fileList(s.docs, true) : null),
+      [codeSection('Where in the code', s.files, null), pager]
+    ));
   }
 
   // ---- tasks ----
+  let taskCards = {};
   function renderTasks() {
     stage.textContent = '';
-    stage.appendChild(el('p', { class: 'legend', text: 'Start from what you want to do. Click a task for the guide and the files involved.' }));
+    taskCards = {};
+    stage.appendChild(el('p', { class: 'intro', text: 'Start from what you want to do. Select a task for the guide to read and the parts of the code involved.' }));
     [['everyone', 'For everyone'], ['developer', 'For developers']].forEach(function (g) {
       const tasks = DATA.tasks.filter(function (t) { return t.audience === g[0]; });
       if (!tasks.length) return;
-      stage.appendChild(el('h3', { text: g[1] }));
       const grid = el('div', { class: 'tasks' });
       tasks.forEach(function (t) {
-        const card = el('div', { class: 'task', tabindex: '0', role: 'button' }, [
-          el('div', { class: 'step-title', text: t.title }), el('div', { class: 'step-sum', text: t.summary })]);
-        function pick() {
-          grid.querySelectorAll('.sel').forEach(function (x) { x.classList.remove('sel'); });
-          card.classList.add('sel');
-          detail.className = ''; detail.textContent = '';
-          detail.appendChild(el('h2', { text: t.title }));
-          detail.appendChild(el('p', { text: t.summary }));
-          detail.appendChild(el('h3', { text: 'Guides' }));
-          detail.appendChild(fileList(t.docs || []));
-          if (t.files && t.files.length) {
-            const d = el('details', {}, [el('summary', { text: 'Files you touch' }), fileList(t.files)]);
-            detail.appendChild(d);
-          }
-        }
-        card.addEventListener('click', pick);
-        card.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+        const nd = (t.docs || []).length, nf = (t.files || []).length;
+        const meta = [nd + (nd === 1 ? ' guide' : ' guides')];
+        if (nf) meta.push(nf + (nf === 1 ? ' file' : ' files'));
+        const card = el('div', { class: 'card', tabindex: '0', role: 'button' }, [
+          el('div', { class: 'card-title', text: t.title }), el('div', { class: 'card-sum', text: t.summary }),
+          el('div', { class: 'meta', text: meta.join(' · ') })]);
+        onActivate(card, function () { go('tasks', card.getAttribute('aria-current') === 'true' ? null : t.id, true); });
+        taskCards[t.id] = card;
         grid.appendChild(card);
       });
-      stage.appendChild(grid);
+      stage.appendChild(el('section', { class: 'tasks-group', 'aria-label': g[1] }, [el('h2', { text: g[1] }), grid]));
     });
+  }
+  function selectTask(id, scroll) {
+    Object.keys(taskCards).forEach(function (k) { taskCards[k].removeAttribute('aria-current'); });
+    if (!id) { showEmpty('tasks'); return; }
+    const t = taskById[id];
+    if (!t) { go('tasks', null, false); return; }
+    taskCards[id].setAttribute('aria-current', 'true');
+    if (scroll) taskCards[id].scrollIntoView({ block: 'nearest' });
+    const mods = nodesForFiles(t.files);
+    setDetail([
+      el('p', { class: 'kicker', text: 'Tasks › ' + (t.audience === 'developer' ? 'For developers' : 'For everyone') }),
+      el('h2', { text: t.title }),
+      el('p', { class: 'lead', text: t.summary })
+    ].concat(
+      section('Read first', (t.docs || []).length ? fileList(t.docs, true) : null),
+      section('Modules involved', mods.length ? nodeLinks(mods) : null),
+      [codeSection('Files you touch', t.files, null)]
+    ));
   }
 
-  // ---- tabs ----
+  // ---- views, tabs and routing (#view or #view/id; the back button works) ----
   const VIEWS = [
-    { id: 'map', label: 'Module map', render: renderModuleMap },
-    { id: 'flow', label: 'Run flow', render: renderFlow },
-    { id: 'tasks', label: 'Tasks', render: renderTasks }
+    { id: 'map', label: 'Module map', render: renderMap, select: selectMap },
+    { id: 'flow', label: 'Run flow', render: renderFlow, select: selectFlow },
+    { id: 'tasks', label: 'Tasks', render: renderTasks, select: selectTask }
   ];
-  function activate(id) {
-    VIEWS.forEach(function (v) {
-      v.btn.setAttribute('aria-selected', v.id === id ? 'true' : 'false');
-      if (v.id === id) { detail.className = 'empty'; detail.textContent = 'Select a box to see its description.'; v.render(); }
-    });
-    location.hash = id;
+  const lastSel = {};
+  let current = null;
+  let userAction = false;
+  function go(view, id, fromUser) {
+    userAction = !!fromUser;
+    const h = '#' + view + (id ? '/' + encodeURIComponent(id) : '');
+    if (location.hash === h) route(); else location.hash = h;
   }
-  VIEWS.forEach(function (v) {
-    v.btn = el('button', { role: 'tab', type: 'button', text: v.label });
-    v.btn.addEventListener('click', function () { activate(v.id); });
+  function route() {
+    const m = /^#([a-z]+)(?:\/(.+))?$/.exec(location.hash);
+    let view = m && VIEWS.some(function (v) { return v.id === m[1]; }) ? m[1] : 'map';
+    const id = m && m[2] ? decodeURIComponent(m[2]) : null;
+    const v = VIEWS.filter(function (x) { return x.id === view; })[0];
+    const switched = current !== view;
+    if (switched) {
+      current = view;
+      VIEWS.forEach(function (x) {
+        const on = x.id === view;
+        x.btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        x.btn.tabIndex = on ? 0 : -1;
+      });
+      stage.setAttribute('aria-labelledby', 'tab-' + view);
+      mapState = null;
+      v.render();
+    }
+    lastSel[view] = id;
+    v.select(id, switched || userAction);
+    if (id && userAction && narrow.matches) detail.scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    userAction = false;
+  }
+  VIEWS.forEach(function (v, i) {
+    v.btn = el('button', { role: 'tab', type: 'button', id: 'tab-' + v.id, 'aria-controls': 'stage', text: v.label });
+    v.btn.addEventListener('click', function () { go(v.id, lastSel[v.id] || null, false); });
+    v.btn.addEventListener('keydown', function (ev) {
+      let j = null;
+      if (ev.key === 'ArrowRight') j = (i + 1) % VIEWS.length;
+      if (ev.key === 'ArrowLeft') j = (i + VIEWS.length - 1) % VIEWS.length;
+      if (ev.key === 'Home') j = 0;
+      if (ev.key === 'End') j = VIEWS.length - 1;
+      if (j !== null) { ev.preventDefault(); VIEWS[j].btn.focus(); go(VIEWS[j].id, lastSel[VIEWS[j].id] || null, false); }
+    });
     tabsEl.appendChild(v.btn);
   });
-  const start = location.hash.slice(1);
-  activate(VIEWS.some(function (v) { return v.id === start; }) ? start : 'map');
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+    if (ev.target && ev.target.tagName === 'INPUT') return;
+    if (lastSel[current]) go(current, null, false);
+  });
+  window.addEventListener('hashchange', route);
+  route();
 
-  window.Explorer = { DATA: DATA, el: el, svg: svg, stage: stage, showDetail: showDetail, fileList: fileList, REPO: REPO };
+  window.Explorer = { DATA: DATA, go: go };
 })();
 </script>
 </body>
