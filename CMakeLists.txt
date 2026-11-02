@@ -156,3 +156,11 @@ add_test(NAME MacroResolverTest COMMAND MacroResolverTest)
 add_executable(ResultsIndexTest test/ResultsIndexTest.cc src/scoring/ResultsIndex.cc src/scoring/DataNode.cc src/scoring/JsonWriter.cc)
 target_include_directories(ResultsIndexTest PRIVATE ${project_include_dirs})
 add_test(NAME ResultsIndexTest COMMAND ResultsIndexTest)
+
+# Architecture explorer (docs/explorer): link, file-coverage and freshness check.
+# Skipped when Node is not installed.
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+  add_test(NAME ExplorerCheck
+           COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/check.js)
+endif()
