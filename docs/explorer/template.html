@@ -63,8 +63,8 @@
   .count { font-size:13px; color:var(--muted); min-width:9ch; }
   .legend { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:var(--muted); margin:0 0 20px; align-items:center; }
   .legend svg { vertical-align:middle; margin-right:4px; }
-  .map-wrap { position:relative; }
-  .lanes { columns:250px; column-gap:24px; }
+  .map-wrap { position:relative; padding:40px 40px 0; }
+  .lanes { columns:250px; column-gap:56px; }
   .lane { break-inside:avoid; margin:0 0 20px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px; }
   .lane-title { margin:0; }
   .lane-head { display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:0; background:none; min-height:32px; padding:0 2px; cursor:pointer; border-radius:6px; }
@@ -103,7 +103,7 @@
   .node.match, .other.match { background:var(--match); border-color:var(--match-line); opacity:1; }
   .node.sel.match { background:var(--accent); }
   .edges { position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; overflow:visible; }
-  .edges path { fill:none; stroke-width:2; }
+  .edges path { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
   .edges path.halo { stroke:#fff; stroke-width:6; stroke-opacity:.9; }
   .edges .e-out { stroke:var(--accent); }
   .edges .e-in { stroke:var(--in); stroke-dasharray:6 4; }
@@ -119,6 +119,8 @@
   ol.steps { list-style:none; margin:0; padding:0; }
   ol.steps > li { position:relative; padding:0 0 10px 46px; }
   ol.steps > li::before { content:""; position:absolute; left:15px; top:30px; bottom:-2px; width:2px; background:var(--line); }
+  ol.steps > li:not(:last-child)::after { content:""; position:absolute; left:12px; bottom:2px;
+    width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); }
   ol.steps > li:last-child::before { display:none; }
   .num { position:absolute; left:0; top:8px; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
          background:var(--surface); border:2px solid var(--line-strong); font-weight:700; font-size:14px; color:var(--muted); }
@@ -252,6 +254,8 @@
     .node { min-height:40px; }
     button.copy { min-height:32px; }
     .edges, .legend svg { display:none; }
+    .map-wrap { padding:0; }
+    .lanes { column-gap:24px; }
   }
   @media (max-width: 520px) {
     header, #stage, #detail { padding-left:12px; padding-right:12px; }
@@ -548,7 +552,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     const edges = svg('svg', { class: 'edges', 'aria-hidden': 'true' });
     const defs = svg('defs');
     [['a-out', 'var(--accent)'], ['a-in', 'var(--in)']].forEach(function (m) {
-      const mk = svg('marker', { id: m[0], viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
+      const mk = svg('marker', { id: m[0], viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
       const p = svg('path', { d: 'M0,0 L10,5 L0,10 z' }); p.style.fill = m[1];
       mk.appendChild(p); defs.appendChild(mk);
     });
@@ -655,26 +659,57 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       const r = mapState.nodeEls[nid].getBoundingClientRect();
       return { l: r.left - base.left, r: r.right - base.left, t: r.top - base.top, b: r.bottom - base.top, cx: (r.left + r.right) / 2 - base.left, cy: (r.top + r.bottom) / 2 - base.top };
     }
-    function path(fromId, toId, cls) {
-      // Filtered parts have no diagram position; their links remain in details.
-      if (!mapState.nodeEls[fromId].getClientRects().length || !mapState.nodeEls[toId].getClientRects().length) return;
-      const a = box(fromId), b = box(toId);
-      let d;
-      if (b.l > a.r + 4 || a.l > b.r + 4) {
-        // different columns: leave from the facing sides
-        const right = b.cx > a.cx;
-        const x1 = right ? a.r : a.l, x2 = right ? b.l : b.r;
-        const k = Math.max(24, Math.abs(x2 - x1) / 2);
-        d = 'M' + x1 + ',' + a.cy + ' C' + (x1 + (right ? k : -k)) + ',' + a.cy + ' ' + (x2 + (right ? -k : k)) + ',' + b.cy + ' ' + x2 + ',' + b.cy;
-      } else {
-        // same column: loop round the right-hand side
-        const x = Math.max(a.r, b.r);
-        const bulge = Math.min(22, 8 + Math.abs(b.cy - a.cy) / 12);
-        d = 'M' + a.r + ',' + a.cy + ' C' + (x + bulge) + ',' + a.cy + ' ' + (x + bulge) + ',' + b.cy + ' ' + b.r + ',' + b.cy;
+    let routeIndex = 0;
+    const connections = (usesOf[id] || []).length + (usedBy[id] || []).length;
+    function laneBox(nid) {
+      const r = mapState.laneEls[laneOfNode[nid].id].getBoundingClientRect();
+      return { l: r.left - base.left, r: r.right - base.left };
+    }
+    // Round orthogonal corners without letting curves cut into the cards.
+    function rounded(points) {
+      let d = 'M' + points[0].join(',');
+      for (let i = 1; i < points.length - 1; i++) {
+        const a = points[i - 1], b = points[i], c = points[i + 1];
+        const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
+        const radius = Math.min(7, ab / 2, bc / 2);
+        if (!ab || !bc) continue;
+        const before = [b[0] + (a[0] - b[0]) * radius / ab, b[1] + (a[1] - b[1]) * radius / ab];
+        const after = [b[0] + (c[0] - b[0]) * radius / bc, b[1] + (c[1] - b[1]) * radius / bc];
+        d += ' L' + before.join(',') + ' Q' + b.join(',') + ' ' + after.join(',');
       }
-      // a pale halo, painted below every edge, keeps arrows legible over card text
-      g.insertBefore(svg('path', { class: 'halo', d: d }), g.firstChild);
-      g.appendChild(svg('path', { class: 'e ' + cls, d: d, 'marker-end': 'url(#' + (cls === 'e-out' ? 'a-out' : 'a-in') + ')' }));
+      return d + ' L' + points[points.length - 1].join(',');
+    }
+    function path(fromId, toId, cls) {
+      // Hidden search results have no position; their links remain in details.
+      if (!mapState.nodeEls[fromId].getClientRects().length || !mapState.nodeEls[toId].getClientRects().length) return;
+      const a = box(fromId), b = box(toId), la = laneBox(fromId), lb = laneBox(toId);
+      const index = routeIndex++, track = 8 + index * 4;
+      const port = (index - (connections - 1) / 2) * 5;
+      const ay = a.cy + (fromId === id ? port : 0), by = b.cy + (toId === id ? port : 0);
+      let points;
+      if (Math.abs(la.l - lb.l) < 2) {
+        const x = Math.max(la.r, lb.r) + track;
+        points = [[a.r, ay], [x, ay], [x, by], [b.r, by]];
+      } else {
+        const right = lb.l > la.l;
+        const x1 = right ? a.r : a.l, x2 = right ? b.l : b.r;
+        const gutter1 = right ? la.r + track : la.l - track;
+        const gutter2 = right ? lb.l - track : lb.r + track;
+        const gap = right ? lb.l - la.r : la.l - lb.r;
+        if (gap < 60) {
+          // Adjacent columns share a reserved gutter, never a card's interior.
+          points = [[x1, ay], [gutter1, ay], [gutter1, by], [x2, by]];
+        } else {
+          // Non-adjacent columns go above all folders, clear of their headings.
+          const y = 6 + index * 4;
+          points = [[x1, ay], [gutter1, ay], [gutter1, y], [gutter2, y], [gutter2, by], [x2, by]];
+        }
+      }
+      const d = rounded(points);
+      g.appendChild(svg('path', { class: 'halo', d: d }));
+      g.appendChild(svg('path', { class: 'e ' + cls, d: d, 'data-from': fromId, 'data-to': toId,
+        'marker-end': 'url(#' + (cls === 'e-out' ? 'a-out' : 'a-in') + ')' }));
     }
     (usesOf[id] || []).forEach(function (t) { path(id, t, 'e-out'); });
     (usedBy[id] || []).forEach(function (f) { path(f, id, 'e-in'); });
