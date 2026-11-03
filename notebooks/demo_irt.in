@@ -1,0 +1,13 @@
+# Pure-water, particle-stage demonstration (two 10 keV electron events).
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+/process/dna/e-SolvationSubType Ritchie1994
+/process/chem/TimeStepModel IRT_syn
+/chem/meso/enable false
+/run/initialize
+/gun/particle e-
+/gun/energy 10 keV
+/random/setSeeds 12345 67890
+/run/beamOn 2
+/run/dumpDataAndReset
