@@ -31,6 +31,40 @@ The map's Find box searches titles, roles, summaries, file names and symbols. Ma
 
 The detail panel's **Back to …** action follows browser history. During the current page session it restores the search, scroll position and keyboard focus. Tabs remember selections and retain the map search. Each view has a visible introduction and suggested starting points on desktop and narrow screens. On narrow screens, selection opens a dedicated detail view; **Back to Module map / Run flow / Tasks** (or Escape) returns to the selected item. Arrow keys switch tabs; Enter opens the first search match. The keyboard skip link goes straight to the explorer. Copy-path buttons announce success or failure to screen readers. The chosen chemistry mode is kept while the page is open. Full run explanations, per-mode comparisons and output names live in details.
 
+## Run flow catalogue
+
+The Run flow is grouped in six phases (setup, physical, physico-chemical, heterogeneous particle-based, mesoscopic, output), each with a time window line. A step with a `catalog` field shows a table in its details: `physics` (processes, models and energy ranges of `G4EmDNAPhysics_option2` for the chosen beam particle), `prechem` (dissociation channels, electron solvation, product displacement, initial species) or `reactions` (the full reaction table of the chosen Chemistry). The step's `commands[]` are listed with a link to the Macro builder step when `builder` is set, and its `parts[]` link to Module map boxes.
+
+Two choosers sit above the tables and are kept for the page session with the chemistry mode: **Chemistry** (any registered Chemistry) and, for the physics table, **Beam particle** (`e-` or `proton`). The same reaction tables are reachable from a Chemistry's box in the Module map and from the Chemistry options of the Macro builder.
+
+### Catalogue files
+
+| File | Source | Edit by |
+|---|---|---|
+| `catalog.json` | the live chemistry, exported by `sim` (`/chem/reaction/exportJson`, `src/chemistry/CatalogExport.cc`) for every Chemistry of `macro-builder.js` | regenerate, never by hand |
+| `physics-catalog.json` | hand-written from the Geant4 11.4.1 source (processes, models, ranges, solvation, displacement, time windows); each row has a `ref` | hand, verify against source |
+| `catalog-view.js` | view model: turns the two files into table rows, rate-constant text and filters (`catalog-view.test.js`, `CatalogViewTest` ctest) | code |
+
+Regenerate `catalog.json` after any change to a Chemistry's molecules, reactions or rates (`src/chemistry/catalog/*.cc`, `DnaChemistryList.cc`), then rebuild the page:
+
+```bash
+node docs/explorer/export-catalog.js --sim build/sim.exe    # rewrite catalog.json
+node docs/explorer/export-catalog.js --sim build/sim.exe --check   # compare only
+node docs/explorer/build.js && node docs/explorer/check.js
+```
+
+The generator runs `sim` once per Chemistry with a three-line macro (`/chem/select`, `/chem/reaction/exportJson`, `/run/initialize`), 300 s limit each. If `sim` cannot start, is killed or times out, the message says so, followed by the tail of its output.
+
+Notes on what the tables show:
+
+- Bimolecular tables exclude `mesoOnly` reactions: bulk pairs that exist only in the mesoscopic reaction table. They are listed under **Bulk reactions**.
+- Two type columns (IRT_syn, SBS). The SBS column is derived, always 0 (fully diffusion-controlled), and is not exported; the IRT_syn column is the exported type.
+- Rows of `physics-catalog.json` marked `"review": true` show an "unverified" badge.
+
+### CatalogExportCheck
+
+The `CatalogExportCheck` ctest runs `export-catalog.js --check`: it regenerates the catalogue from a live `sim` and fails when the committed `catalog.json` differs (rate constants compared to a relative tolerance of 1e-9, everything else exactly). When the ctest tree is Debug (`build-ninja/`), it runs the RelWithDebInfo `build/sim.exe` instead of the Debug target: the Debug sim crashes at `/run/initialize` (its CRT is mixed with the release Geant4 install). Override the executable with `-DCATALOG_EXPORT_SIM=<path>` at configure time. So `build/` must be built and current: a missing or stale `build/sim.exe` makes the check fail, loudly, with the tail of the sim output. `CatalogExportScriptTest` covers the comparison logic without a sim.
+
 ## Macro builder
 
 The **Macro builder** tab (`index.html#builder`, or `#builder/<step>`) guides the reader through writing a simulation macro (`.in` file) for the current code: basics and logging, Chemistry model, timing and mesoscopic stage (two separate groups), water environment, beam, runs and output, then review and export. It is a view of its own (the Module map is not shown under it); the guide sits beside a live preview of the macro, and on narrow screens a Guide / Preview switch shows one at a time. Each Chemistry option links to its full description in the Module map.
@@ -57,7 +91,14 @@ node docs/explorer/macro-builder.test.js   # builder model tests
 
 ## What the check enforces
 
-`check.js` also runs as the `ExplorerCheck` ctest test. It fails when a linked path does not exist, when a file under `src/` or `header/` is not listed in the JSON, when a recipe in `docs/recipes/` or an ADR in `docs/adr/` is missing from the Tasks view, when an edge, phase or `startHere` entry names an unknown id, when `phases`, `catalog`, `commands[].builder` or `parts` are invalid, when `catalog.json` does not hold exactly the Chemistries of `macro-builder.js` (with numeric rate constants and integer types; `CATALOG_PATH=<file>` points the check at another file, for testing), when a `physics-catalog.json` row has no `ref`, or when `index.html` is out of date.
+`check.js` also runs as the `ExplorerCheck` ctest test. It fails when a linked path does not exist, when a file under `src/` or `header/` is not listed in the JSON, when a recipe in `docs/recipes/` or an ADR in `docs/adr/` is missing from the Tasks view, when an edge, phase or `startHere` entry names an unknown id, when `phases`, `catalog`, `commands[].builder` or `parts` are invalid, or when `index.html` is out of date. In detail, for the catalogue:
+
+- the phases are exactly the six ids `setup`, `physical`, `prechem`, `hetero`, `meso`, `output`, in order, each with window text; a step's `catalog` is `physics`, `prechem` or `reactions`; each `commands[].cmd` starts with `/`; a `commands[].builder`, when present, is a Macro builder `STEPS` id; each `parts` entry is a Module map node id;
+- the Chemistries in `catalog.json`, in `macro-builder.js` `CHEMISTRIES` and registered in `src/chemistry/BuiltInChemistries.cc` are the same set (`CATALOG_PATH=<file>` and `BUILTIN_PATH=<file>` point the check at other files, for testing);
+- every reaction in `catalog.json` has a numeric `k_M-1s-1` and an integer `type`;
+- every row of `physics-catalog.json` has a non-empty `ref`, and the four time windows have text.
+
+Whether `catalog.json` still matches the live chemistry is not checked here (it needs a built `sim`); `CatalogExportCheck` does that.
 
 It also checks box roles (present, at most 40 characters), step numbering, the chemistry-mode data (one mode step in the first phase, unique branch ids, one default, `modes` keys that name a branch), run overviews, embedded JavaScript syntax and the absence of external assets or runtime network loaders (an inline `data:` URI, such as the favicon built from `docs/assets/dnachem-min-icon.svg`, is allowed). These structural offline checks complement browser inspection over a temporary loopback server; they do not constitute a browser test of `file://`.
 
