@@ -1,0 +1,19 @@
+name: docs-checks
+
+# Lightweight checks that need no Geant4 build: the architecture explorer
+# (paths, source coverage, freshness of index.html) and the macro-builder model.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  explorer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node docs/explorer/check.js
+      - run: node docs/explorer/macro-builder.test.js

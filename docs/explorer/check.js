@@ -139,7 +139,8 @@ for (const f of sources) {
 const rendered = render();
 // The double-clickable artifact must embed its renderer and data. Catch accidental
 // runtime dependencies and script syntax errors without requiring a browser/server.
-if (/<(?:script|link|img|iframe)\b[^>]*\b(?:src|href)\s*=/i.test(rendered) ||
+// A data: URI (the embedded favicon) is inline, so it is allowed.
+if (/<(?:script|link|img|iframe)\b[^>]*\b(?:src|href)\s*=\s*(?!["']?data:)/i.test(rendered) ||
     /@import\b|url\(\s*['"]?(?:https?:)?\/\//i.test(rendered)) {
   problems.push('generated page loads an external asset; keep the explorer self-contained');
 }

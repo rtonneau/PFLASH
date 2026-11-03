@@ -58,6 +58,6 @@ node docs/explorer/macro-builder.test.js   # builder model tests
 
 `check.js` also runs as the `ExplorerCheck` ctest test. It fails when a linked path does not exist, when a file under `src/` or `header/` is not listed in the JSON, when a recipe in `docs/recipes/` or an ADR in `docs/adr/` is missing from the Tasks view, when an edge, phase or `startHere` entry names an unknown id, or when `index.html` is out of date.
 
-It also checks box roles (present, at most 40 characters), step numbering, the chemistry-mode data (one mode step in the first phase, unique branch ids, one default, `modes` keys that name a branch), run overviews, embedded JavaScript syntax and the absence of external assets or runtime network loaders. These structural offline checks complement browser inspection over a temporary loopback server; they do not constitute a browser test of `file://`.
+It also checks box roles (present, at most 40 characters), step numbering, the chemistry-mode data (one mode step in the first phase, unique branch ids, one default, `modes` keys that name a branch), run overviews, embedded JavaScript syntax and the absence of external assets or runtime network loaders (an inline `data:` URI, such as the favicon built from `docs/assets/dnachem-min-icon.svg`, is allowed). These structural offline checks complement browser inspection over a temporary loopback server; they do not constitute a browser test of `file://`.
 
 Needs Node only for rebuilding and checking, not for reading.
