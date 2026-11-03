@@ -2,7 +2,10 @@
 // Tests for diffCatalog in export-catalog.js (CatalogExportScriptTest ctest).
 'use strict';
 const assert = require('assert');
-const { diffCatalog, exportOne } = require('./export-catalog.js');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { diffCatalog, exportOne, staleSources, addChemistry } = require('./export-catalog.js');
 
 let passed = 0;
 function test(name, fn) {
@@ -38,6 +41,37 @@ test('string difference is reported', () => {
 test('a sim that cannot start reports the spawn error, not "exit null"', () => {
   assert.throws(() => exportOne('/nonexistent/path/to/sim', 'PureWater'),
     e => /could not run/.test(e.message) && /ENOENT/.test(e.message) && !/exit null/.test(e.message));
+});
+
+test('staleSources lists chemistry files newer than the sim, and only those', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'stale-'));
+  try {
+    const sim = path.join(root, 'sim.exe');
+    const write = (rel, t) => {
+      const f = path.join(root, rel);
+      fs.mkdirSync(path.dirname(f), { recursive: true });
+      fs.writeFileSync(f, '');
+      fs.utimesSync(f, t, t);
+    };
+    write('sim.exe', 2000);
+    write('src/chemistry/Old.cc', 1000);
+    write('src/chemistry/catalog/New.cc', 3000);
+    write('header/chemistry/New.hh', 3000);
+    write('src/core/Unrelated.cc', 3000);
+    assert.deepStrictEqual(staleSources(sim, root).sort(), ['header/chemistry/New.hh', 'src/chemistry/catalog/New.cc']);
+    assert.deepStrictEqual(staleSources(sim, root, ['src/core']), ['src/core/Unrelated.cc']);
+    fs.utimesSync(sim, 4000, 4000);
+    assert.deepStrictEqual(staleSources(sim, root), []);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+test('addChemistry rejects an export that is not IRT_syn', () => {
+  const cat = { geant4Version: null, chemistries: {} };
+  assert.throws(() => addChemistry(cat, 'PureWater', { timeStepModel: 'SBS', geant4Version: '11.4.1' }), /IRT_syn/);
+  addChemistry(cat, 'PureWater', { chemistry: 'PureWater', timeStepModel: 'IRT_syn', geant4Version: '11.4.1' });
+  assert.deepStrictEqual(cat.chemistries.PureWater, { timeStepModel: 'IRT_syn', geant4Version: '11.4.1' });
+  assert.throws(() => addChemistry(cat, 'X', { timeStepModel: 'IRT_syn', geant4Version: '11.3.0' }), /geant4Version/);
 });
 
 if (!process.exitCode) console.log('export-catalog tests passed: ' + passed);

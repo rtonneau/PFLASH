@@ -10,6 +10,9 @@ const os = require('os');
 const cp = require('child_process');
 
 const CATALOG_PATH = path.join(__dirname, 'catalog.json');
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
+// Sources whose change alters the exported catalogue; the sim must be newer than all of them.
+const CHEMISTRY_DIRS = ['src/chemistry', 'header/chemistry'];
 const REL_TOL = 1e-9;
 const SIM_TIMEOUT_MS = 300000;
 
@@ -43,11 +46,43 @@ function diffCatalog(a, b) {
   return out;
 }
 
+// Files under dirs (relative to root) modified after the sim binary, as root-relative paths with
+// "/" separators. The sim must exist (the caller reports a missing one).
+function staleSources(sim, root, dirs) {
+  const simTime = fs.statSync(sim).mtimeMs;
+  const stale = [];
+  function walk(rel) {
+    const abs = path.join(root, rel);
+    if (!fs.existsSync(abs)) return;
+    const st = fs.statSync(abs);
+    if (!st.isDirectory()) {
+      if (st.mtimeMs > simTime) stale.push(rel);
+      return;
+    }
+    for (const e of fs.readdirSync(abs)) walk(rel + '/' + e);
+  }
+  (dirs || CHEMISTRY_DIRS).forEach(walk);
+  return stale;
+}
+
+// The catalogue's type column is the IRT_syn type (SBS keeps every type 0), so every export
+// must come from IRT_syn. Adds one exported Chemistry to cat, after checking it.
+function addChemistry(cat, name, o) {
+  if (o.timeStepModel !== 'IRT_syn') {
+    throw new Error('Chemistry ' + name + ' was exported with time-step model ' + o.timeStepModel + ', expected IRT_syn');
+  }
+  if (cat.geant4Version === null) cat.geant4Version = o.geant4Version;
+  else if (cat.geant4Version !== o.geant4Version) throw new Error('geant4Version differs for ' + name);
+  delete o.chemistry;
+  cat.chemistries[name] = o;
+}
+
 function exportOne(sim, name) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-' + name + '-'));
   try {
     const macro = path.join(tmp, 'export.in');
-    fs.writeFileSync(macro, '/chem/select ' + name + '\n/chem/reaction/exportJson cat.json\n/run/initialize\n');
+    fs.writeFileSync(macro, '/chem/select ' + name + '\n/process/chem/TimeStepModel IRT_syn\n' +
+      '/chem/reaction/exportJson cat.json\n/run/initialize\n');
     const r = cp.spawnSync(sim, [macro, '--dir', tmp], { encoding: 'utf8', maxBuffer: 1 << 28, timeout: SIM_TIMEOUT_MS });
     const out = (r.stdout || '') + (r.stderr || '');
     const file = path.join(tmp, 'cat.json');
@@ -69,13 +104,7 @@ function exportOne(sim, name) {
 function buildCatalog(sim) {
   const names = require('./macro-builder.js').CHEMISTRIES.map(c => c.value);
   const cat = { generatedBy: 'docs/explorer/export-catalog.js', geant4Version: null, chemistries: {} };
-  names.forEach(n => {
-    const o = exportOne(sim, n);
-    if (cat.geant4Version === null) cat.geant4Version = o.geant4Version;
-    else if (cat.geant4Version !== o.geant4Version) throw new Error('geant4Version differs for ' + n);
-    delete o.chemistry;
-    cat.chemistries[n] = o;
-  });
+  names.forEach(n => addChemistry(cat, n, exportOne(sim, n)));
   return cat;
 }
 
@@ -88,6 +117,17 @@ function main(argv) {
   }
   if (!sim) { console.error('usage: node export-catalog.js --sim <path-to-sim> [--check]'); return 2; }
   sim = path.resolve(sim);
+  if (!fs.existsSync(sim)) {
+    console.error('sim not found: ' + sim + '\nBuild it first (build/ is the RelWithDebInfo tree, see .claude/geant4-instructions.md).');
+    return 1;
+  }
+  const stale = staleSources(sim, REPO_ROOT);
+  if (stale.length) {
+    console.error('sim is older than ' + stale.length + ' chemistry source file(s), so its catalogue may be stale: ' + sim);
+    stale.slice(0, 10).forEach(f => console.error('  ' + f));
+    console.error('Rebuild build/ (cmake --build build --target sim), then run this again.');
+    return 1;
+  }
   let cat;
   try { cat = buildCatalog(sim); } catch (e) { console.error(e.message); return 1; }
   if (!check) {
@@ -107,5 +147,5 @@ function main(argv) {
   return 0;
 }
 
-module.exports = { diffCatalog, buildCatalog, exportOne };
+module.exports = { diffCatalog, buildCatalog, exportOne, staleSources, addChemistry };
 if (require.main === module) process.exitCode = main(process.argv.slice(2));

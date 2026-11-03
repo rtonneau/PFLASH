@@ -183,10 +183,12 @@ if(NODE_EXECUTABLE)
   # A Debug sim built against the release Geant4 install mixes CRTs and crashes at
   # /run/initialize (heap corruption), so the check runs the RelWithDebInfo sim of
   # ../build when this is a Debug tree; override with -DCATALOG_EXPORT_SIM=<path>.
+  # That path is used even when it does not exist yet: export-catalog.js then fails with
+  # "sim not found", and it fails when the sim is older than any chemistry source.
   set(CATALOG_EXPORT_SIM "" CACHE FILEPATH "sim executable used by CatalogExportCheck (default: this target, or build/sim.exe for Debug)")
   if(CATALOG_EXPORT_SIM)
     set(_catalogSim "${CATALOG_EXPORT_SIM}")
-  elseif(CMAKE_BUILD_TYPE STREQUAL "Debug" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build/sim${CMAKE_EXECUTABLE_SUFFIX}")
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(_catalogSim "${CMAKE_CURRENT_SOURCE_DIR}/build/sim${CMAKE_EXECUTABLE_SUFFIX}")
   else()
     set(_catalogSim "$<TARGET_FILE:sim>")

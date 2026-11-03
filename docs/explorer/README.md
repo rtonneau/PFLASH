@@ -53,17 +53,20 @@ node docs/explorer/export-catalog.js --sim build/sim.exe --check   # compare onl
 node docs/explorer/build.js && node docs/explorer/check.js
 ```
 
-The generator runs `sim` once per Chemistry with a three-line macro (`/chem/select`, `/chem/reaction/exportJson`, `/run/initialize`), 300 s limit each. If `sim` cannot start, is killed or times out, the message says so, followed by the tail of its output.
+The generator runs `sim` once per Chemistry with a four-line macro (`/chem/select`, `/process/chem/TimeStepModel IRT_syn`, `/chem/reaction/exportJson`, `/run/initialize`), 300 s limit each, and refuses an export whose `timeStepModel` is not `IRT_syn` (the type column is the IRT_syn type). If `sim` cannot start, is killed or times out, the message says so, followed by the tail of its output. Before running anything it fails when the `sim` path does not exist, or when any file under `src/chemistry/` or `header/chemistry/` is newer than the `sim` binary (rebuild `build/` first).
+
+Rate constants: every reaction and bulk reaction has an `order`. Order 1 is a reaction with an H2O partner, which Geant4 uses as a first-order rate (`G4DNAScavengerProcess` takes the rate itself as the propensity; the mesoscopic Gillespie counts Avogadro x volume water molecules per cell), so its constant is `k_s-1` in s^-1. Order 2 is every other pair, with `k_M-1s-1` in M^-1 s^-1. Each row has exactly one of the two keys, and the tables print the unit per row.
 
 Notes on what the tables show:
 
 - Bimolecular tables exclude `mesoOnly` reactions: bulk pairs that exist only in the mesoscopic reaction table. They are listed under **Bulk reactions**.
+- A bulk reaction whose partner is also a tracked species (bulk O2 is the tracked `O2`) has the same pair as a bimolecular reaction; the driver shares that entry, so the mesoscopic table holds the pair once. Such bulk rows show **Also bimolecular: Yes** (`sharesTracked` in `catalog-view.js`).
 - Two type columns (IRT_syn, SBS). The SBS column is derived, always 0 (fully diffusion-controlled), and is not exported; the IRT_syn column is the exported type.
 - Rows of `physics-catalog.json` marked `"review": true` show an "unverified" badge.
 
 ### CatalogExportCheck
 
-The `CatalogExportCheck` ctest runs `export-catalog.js --check`: it regenerates the catalogue from a live `sim` and fails when the committed `catalog.json` differs (rate constants compared to a relative tolerance of 1e-9, everything else exactly). When the ctest tree is Debug (`build-ninja/`), it runs the RelWithDebInfo `build/sim.exe` instead of the Debug target: the Debug sim crashes at `/run/initialize` (its CRT is mixed with the release Geant4 install). Override the executable with `-DCATALOG_EXPORT_SIM=<path>` at configure time. So `build/` must be built and current: a missing or stale `build/sim.exe` makes the check fail, loudly, with the tail of the sim output. `CatalogExportScriptTest` covers the comparison logic without a sim.
+The `CatalogExportCheck` ctest runs `export-catalog.js --check`: it regenerates the catalogue from a live `sim` and fails when the committed `catalog.json` differs (rate constants compared to a relative tolerance of 1e-9, everything else exactly). When the ctest tree is Debug (`build-ninja/`), it runs the RelWithDebInfo `build/sim.exe` instead of the Debug target: the Debug sim crashes at `/run/initialize` (its CRT is mixed with the release Geant4 install). Override the executable with `-DCATALOG_EXPORT_SIM=<path>` at configure time. So `build/` must be built and current. A missing `build/sim.exe` fails with `sim not found`. A `build/sim.exe` older than any file under `src/chemistry/` or `header/chemistry/` fails with the list of newer files and a request to rebuild `build/`: the comparison alone would pass for a stale binary whose output still matches the old `catalog.json`. The age test uses file modification times, so it cannot see a change outside those two directories. `CatalogExportScriptTest` covers the comparison, the age test and the IRT_syn guard without a sim.
 
 ## Macro builder
 
@@ -95,7 +98,7 @@ node docs/explorer/macro-builder.test.js   # builder model tests
 
 - the phases are exactly the six ids `setup`, `physical`, `prechem`, `hetero`, `meso`, `output`, in order, each with window text; a step's `catalog` is `physics`, `prechem` or `reactions`; each `commands[].cmd` starts with `/`; a `commands[].builder`, when present, is a Macro builder `STEPS` id; each `parts` entry is a Module map node id;
 - the Chemistries in `catalog.json`, in `macro-builder.js` `CHEMISTRIES` and registered in `src/chemistry/BuiltInChemistries.cc` are the same set (`CATALOG_PATH=<file>` and `BUILTIN_PATH=<file>` point the check at other files, for testing);
-- every reaction in `catalog.json` has a numeric `k_M-1s-1` and an integer `type`;
+- every Chemistry in `catalog.json` has `timeStepModel` `IRT_syn`; every reaction and bulk reaction has `order` 1 or 2 and a finite number under its key (`k_s-1` or `k_M-1s-1`); every reaction has an integer `type`; every reactant, product, bulk partner and bulk product is one of that Chemistry's `molecules`;
 - every row of `physics-catalog.json` has a non-empty `ref`, and the four time windows have text.
 
 Whether `catalog.json` still matches the live chemistry is not checked here (it needs a built `sim`); `CatalogExportCheck` does that.
