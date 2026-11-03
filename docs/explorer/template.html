@@ -1794,8 +1794,8 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       });
       wrap.appendChild(opts);
       if (f.id === 'chemistry' && CHEMISTRIES.indexOf(value) >= 0) {
-        const nReactions = CatalogView.reactionRows(CATALOG, value).length;
-        const det = el('details', { class: 'b-reactions' }, [el('summary', { text: 'Show the ' + nReactions + ' reactions of ' + value }),
+        const nReactions = CatalogView.reactionRows(CATALOG, value).length, nBulk = CatalogView.bulkRows(CATALOG, value).length;
+        const det = el('details', { class: 'b-reactions' }, [el('summary', { text: 'Show the ' + nReactions + ' bimolecular and ' + nBulk + ' bulk reactions of ' + value }),
           reactionTableEl(value, { highlight: bcfg.model === 'SBS' ? 'sbs' : 'irt', filter: true })]);
         det.open = bChemTableOpen;
         det.addEventListener('toggle', function () { bChemTableOpen = det.open; });

@@ -34,7 +34,7 @@
     // node: the Chemistry's box in the explorer Module map (architecture.json), its full description.
     { value: 'PureWater', label: 'PureWater', node: 'pure-water', note: 'Default. Base pure-water reactions plus the full O2-derived network and an acid-base buffer (pH has an effect).', buffer: true },
     { value: 'BoscoloChem', label: 'BoscoloChem', node: 'boscolo', note: 'Table 1 of Boscolo et al. 2020 (26 reactions). No acid-base buffer: pH has no chemical effect.', buffer: false },
-    { value: 'Tonneau2025', label: 'Tonneau2025', node: 'tonneau', note: 'Table 2 of Tonneau et al. 2025 (73 reactions, adds the HO3 molecule). Has buffer ions: pH has an effect.', buffer: true },
+    { value: 'Tonneau2025', label: 'Tonneau2025', node: 'tonneau', note: 'Table 2 of Tonneau et al. 2025, adds the HO3 molecule. Its 73 rows become 63 bimolecular and 24 bulk reactions here (some rows are both; R58 is the pH buffer). Has buffer ions: pH has an effect.', buffer: true },
     { value: 'Farokhi2023', label: 'Farokhi2023', node: 'farokhi', note: 'The 9 base-water reactions of Farokhi et al. 2023. No acid-base buffer: pH has no chemical effect.', buffer: false }
   ];
   function chemistryInfo(name) { return CHEMISTRIES.filter(function (c) { return c.value === name; })[0] || null; }

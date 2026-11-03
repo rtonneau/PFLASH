@@ -85,6 +85,9 @@ assert.ok(V.dissociationRows(real, 'PureWater').length > 0);
 assert.ok(V.filterRows(rr, 'oh').every(r => /oh/i.test(r.label.replace(/°/g, ''))));
 assert.ok(V.filterRows(rr, 'oh').some(r => r.reactants.includes('°OH')));
 assert.deepStrictEqual(V.chemistryNames(real), MB.CHEMISTRIES.map(c => c.value));
+// The Macro builder's Tonneau2025 note quotes the catalogue's counts; keep them in step.
+const tNote = MB.CHEMISTRIES.find(c => c.value === 'Tonneau2025').note;
+assert.ok(tNote.indexOf(V.reactionRows(real, 'Tonneau2025').length + ' bimolecular and ' + V.bulkRows(real, 'Tonneau2025').length + ' bulk') >= 0, tNote);
 
 // physics
 assert.deepStrictEqual(V.physicsRows(physics, 'e-'), physics.particles['e-']);

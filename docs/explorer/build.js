@@ -21,7 +21,7 @@ const CATALOG_VIEW_MARKER = '/*__CATALOG_VIEW_JS__*/';
 function inlineJson(file) {
   const data = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
   return JSON.stringify(data)
-    .replace(/</g, '\u003c')
+    .replace(/</g, '\\u003c')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
 }

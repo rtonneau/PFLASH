@@ -1056,7 +1056,7 @@
     {
       "id": "prechem",
       "title": "5. Physico-chemical stage",
-      "summary": "When the physical stage has no tracks left, the event's chemistry is started: the ionised, excited and attached water molecules are created as molecules and dissociate. The pre-chemical species are staged to a per-event file.",
+      "summary": "During the physical stage, each ionisation, excitation or dissociative attachment creates a water molecule track as it happens (G4DNAChemistryManager::CreateWaterMolecule, time-stamped 1 ps) and writes its line to the per-event pre-chemical file (staged); the electron solvation model adds each solvated electron the same way (CreateSolvatedElectron). When the physical stage has no tracks left, StackingAction starts the event's chemistry, and the water molecules then dissociate into the initial species.",
       "phase": "prechem",
       "catalog": "prechem",
       "files": [
