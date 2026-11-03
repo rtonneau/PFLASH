@@ -30,17 +30,17 @@ on disk rather than inferred from its manifest alone.
 
 ## 2. Build and execute the first notebook pass
 
-- [ ] Create one compact vertical-slice notebook with a user-editable dump
+- [x] Create one compact vertical-slice notebook with a user-editable dump
   path. Display provenance, settings, events, deposited energy and available
   files before analyzing results.
-- [ ] Demonstrate physical interaction counts and event-level track lengths;
+- [x] Demonstrate physical interaction counts and event-level track lengths;
   pre-chemical water modifications and solvated-electron positions; and
   species evolution and reaction counts. Include mesoscopic aggregate counts
   when available, identifying the hand-over and the observable being plotted.
-- [ ] Use existing G4Utils interfaces where they fit. Keep exploratory readers
+- [x] Use existing G4Utils interfaces where they fit. Keep exploratory readers
   and calculations small and visible; document their assumptions and failures.
   Handle missing optional files with a clear explanation.
-- [ ] Compare representative parsed rows and calculations with the source
+- [x] Compare representative parsed rows and calculations with the source
   files and the current simulation scoring code. Show units, normalization,
   sample size and applicable stage limitations beside the results.
 
