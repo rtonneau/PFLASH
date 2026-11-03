@@ -244,7 +244,7 @@
       {
         "model": "Terrisol1990",
         "macroValue": "Terrisol1990",
-        "what": "3D standard deviation interpolated from a table of energies 0.2 to 9 eV (Terrisol and Beaudre 1990); an energy above 9 eV is a fatal error in this model.",
+        "what": "3D standard deviation interpolated from a table of energies 0.2 to 9 eV (Terrisol and Beaudre 1990); an energy above 9 eV is a fatal error in this model. Its 3D-to-1D sigma conversion differs from the other models: sigma1D = sigma3D / sqrt(3 - 8/pi) (factor 1/(3-8/pi) on the variance).",
         "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAOneStepThermalizationModel.cc"
       }
     ]
@@ -260,8 +260,8 @@
         "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
       },
       {
-        "case": "Ionisation_DissociationDecay: parent H2O+ molecule",
-        "what": "Displacement of the mother molecule (GetMotherMoleculeDisplacement).",
+        "case": "Parent molecule offset: Ionisation_DissociationDecay, AutoIonisation and the double, triple and quadruple ionisation channels",
+        "what": "Displacement of the mother molecule (GetMotherMoleculeDisplacement). The other types (A1B1, B1A1, B1A1_2, DissociativeAttachment) return a zero offset.",
         "rms_nm": 2.0,
         "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
       },
@@ -296,14 +296,14 @@
         "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
       },
       {
-        "case": "Double, triple and quadruple ionisation channels: H3O+ (and the other products not listed below)",
-        "what": "Radius used for every H3O+ except the extra ones noted next; O(3P) stays at the origin (radius 0).",
+        "case": "Double, triple and quadruple ionisation channels: H3O+",
+        "what": "Radius used for every H3O+ except the extra ones noted in the next rows; O(3P) stays at the origin (radius 0).",
         "rms_nm": 1.2,
         "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
       },
       {
         "case": "Double, triple and quadruple ionisation channels: OH and the extra H3O+",
-        "what": "The OH uses this radius; the extra H3O+ (second in DoubleIonisation_DissociationDecay1, second in Decay2, third and fourth in the triple and quadruple cases) uses it too and, where an OH is present, is also shifted by that OH's offset.",
+        "what": "The OH uses this radius; the extra H3O+ (second in DoubleIonisation_DissociationDecay1, second in Decay2, third and fourth in the triple and quadruple cases) uses it too and, where an OH is present, is also shifted by that OH's offset. In DoubleIonisation_DissociationDecay3 the OH product is not in the radius map, so it gets 0 (see next row).",
         "rms_nm": 0.3,
         "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
       },
@@ -312,12 +312,18 @@
         "what": "Radius of the H atom.",
         "rms_nm": 0.8,
         "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "DoubleIonisation_DissociationDecay3: OH",
+        "what": "The OH is not in the radius map of this case (the map default is 0), so it gets a zero offset.",
+        "rms_nm": 0,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
       }
     ],
     "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
   },
   "meso": {
-    "partialPairs": "Reaction type 1 (partially diffusion-controlled) does not change the Gillespie propensity: G4DNAGillespieDirectMethod::PropensityFunction uses GetObservedReactionRateConstant() divided by Avogadro times the voxel volume, and G4DNAMolecularReactionData::SetReactionType(1) leaves that observed rate unchanged (it sets the reaction radius, effective radius, diffusion and activation rates and probability). The one place type 1 can matter in the mesoscopic stage is the mesh-resolution check, which reads GetEffectiveReactionRadius.",
+    "partialPairs": "Reaction type does not change the Gillespie propensity: G4DNAGillespieDirectMethod::PropensityFunction uses GetObservedReactionRateConstant() divided by Avogadro times the voxel volume, and G4DNAMolecularReactionData::SetReactionType(1) leaves that observed rate unchanged (it sets the reaction radius, effective radius, diffusion and activation rates and probability). The mesh-resolution check in G4DNAEventScheduler reads the effective reaction radius. The reaction type is also used as a key into the equilibrium processes of G4DNAGillespieDirectMethod (types 6, 7 and 8 are registered there); types 0 and 1 are not registered and pass unaffected.",
     "reactionsRecorded": false,
     "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAGillespieDirectMethod.cc"
   },
