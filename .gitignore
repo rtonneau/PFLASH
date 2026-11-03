@@ -63,3 +63,6 @@ hook-posttooluse.log
 
 # Python bytecode (analysis scripts)
 __pycache__/
+
+# Jupyter autosave checkpoints
+.ipynb_checkpoints/

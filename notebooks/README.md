@@ -1,8 +1,9 @@
 # Demonstration data for dnachem-min notebooks
 
-These two small, seeded runs provide the input for the planned notebooks. They
-are workflow examples, not converged radiolysis results. Keep generated output
-outside Git and set notebook input paths to your own output directories.
+These two small, seeded runs provide input for the
+[vertical-slice notebook](vertical_slice.ipynb). They are workflow examples,
+not converged radiolysis results. Keep generated output outside Git and set
+notebook input paths to your own output directories.
 
 ## Reproduce the runs
 
@@ -37,10 +38,14 @@ and spatial output, hands over at the default 5 ns, and ends at 1 ms. The first
 seed in each pair appears in `Manifest.json`. These seeds do not guarantee
 byte-identical chemistry results across runs.
 
-The notebook input paths are the two directories under `$scratch`; set them to
-your own absolute or relative paths. `--dir` creates the leaf directory, and
-each macro's `/run/dumpDataAndReset` writes bare filenames there. Reusing an
-output directory overwrites prior data, so choose a fresh one for each run.
+The notebook's configuration cell defines `IRT_DUMP` and `MESO_DUMP`, defaulting
+to `DEV_DIR/GEANT4/SIM/dnachem-min/.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the/irt`
+and `.../meso-spatial`, respectively.
+Edit those variables for your own absolute or relative dump paths. Use
+unprefixed dump directories containing their own `Manifest.json`, not the
+results-index directory or a filename-prefixed dump. `--dir` creates the leaf
+directory, and each macro's `/run/dumpDataAndReset` writes bare filenames
+there. Reusing an output directory overwrites prior data, so choose a fresh one.
 
 ## Verify the outputs
 
@@ -84,17 +89,26 @@ The CSV ntuples from Geant4 include metadata lines before their data rows.
 
 ## Python and Jupyter
 
-Use Python 3.10+ with `ipykernel`, `pandas`, `numpy`, `h5py`, `matplotlib`, and
-an editable [G4Utils](https://github.com/rtonneau/G4Utils) checkout:
+The checked Windows environment is the `GEANT4` Conda environment at
+`E:\miniconda3\envs\GEANT4`, selected as the Jupyter kernel. It uses Python
+3.13.11 and an editable [G4Utils](https://github.com/rtonneau/G4Utils)
+checkout at `D:\DEV\PYTHON\G4Utils` (G4Utils 0.4.0). Checked versions are
+pandas 3.0.0, numpy 2.4.2, h5py 3.16.0, matplotlib 3.10.8, ipykernel 6.31.0,
+JupyterLab 4.6.4, and Jupyter Server 2.21.1. For other setups, use a compatible
+Python environment with `ipykernel`, `pandas`, `numpy`, `h5py`, `matplotlib`,
+and an editable G4Utils checkout:
 
 ```powershell
-cd path\to\G4Utils
-python -m pip install -e .
+conda activate GEANT4
+$g4utilsCheckout = Join-Path $env:DEV_DIR 'PYTHON/G4Utils'
+python -m pip install -e $g4utilsCheckout
 python -m pip install ipykernel matplotlib
+python -m ipykernel install --user --name GEANT4 --display-name 'Python (GEANT4)'
 ```
 
-Select that Python environment as the Jupyter kernel. In a cell, check the
-imports before opening a dump:
+In Jupyter, select the registered `Python (GEANT4)` kernel. The checked
+server's default `python3` kernel also used that environment's interpreter.
+In a cell, check the imports before opening a dump:
 
 ```python
 import h5py, matplotlib, numpy, pandas
@@ -102,39 +116,57 @@ from g4utils.DnaChem import Dump, Simulation, load_species, load_reactions
 from g4utils.HDF5 import SpeciesMesoSpatialFile
 ```
 
+Open `vertical_slice.ipynb`, edit `IRT_DUMP` and `MESO_DUMP` in its
+configuration cell, then choose **Restart Kernel and Run All Cells**. Check
+the printed kernel executable against your intended environment. The default
+paths require `DEV_DIR`; missing required inputs raise errors with regeneration
+guidance. Missing optional mesoscopic aggregate or spatial output is explained
+and skipped. Relative input paths resolve from the kernel's working directory.
+
 G4Utils currently reads manifests, species/reaction ntuples and mesoscopic
 spatial HDF5. Its `Dump.has_meso` concerns the **spatial HDF5 file**, not
 `SpeciesMeso.csv`. Physical-interaction, track-length, pre-chemical and
-aggregate mesoscopic readers are not yet part of that API; the first notebook
-pass will inspect those formats directly. See `notebooks/PLAN.md` for scope.
+aggregate mesoscopic readers are not yet part of that API; this notebook keeps
+small direct readers visible. See `PLAN.md` for the later report and library work.
 
-## Checked environment and limits
+## Checked reproduction and limits
 
-On 2026-11-03, both commands completed with exit code 0 using dnachem-min
-commit `322b32b`, `sim.exe` from the `RelWithDebInfo` build, and Geant4
-`geant4-11-04-patch-01` (11.4.1). The live Jupyter kernel used Python 3.13.9
-at `C:\Users\rtonneau\AppData\Local\anaconda3\python.exe`. Kernel imports of
-all packages and G4Utils symbols shown above succeeded. Installed versions:
-`pandas 2.3.3`, `numpy 2.3.5`, `h5py 3.15.1`, `matplotlib 3.10.6`,
-`ipykernel 6.31.0`. G4Utils was editable from `C:\DEV\python\G4Utils` at
-commit `a456290`; installed package metadata reported `0.3.0` while the
-checkout's `pyproject.toml` says `0.4.0`. Reinstall the checkout if precise
-package metadata is needed.
+On 2026-11-03, the regenerated manifests report runtime tag
+`geant4-11-04-patch-03` (11.4.3), `PureWater`, Serial `IRT_syn`, no added
+scavenger, 10 keV electrons, 2 events, and 20,000 eV deposited energy. The
+IRT-only run uses seeds `12345 67890`, disables meso, and runs to 1000 ns. The
+separate mesoscopic run uses seeds `23456 78901`, hands over at 5 ns, and runs
+to 1,000,000 ns. These are distinct seeded simulations, not a continuous
+trajectory. The existing `RelWithDebInfo` executable was used; its exact source
+revision is not established by the run records.
 
-Each manifest reported 2 events and 20,000 eV deposited energy. The IRT run
-produced 12 nonempty required files; the mesoscopic run produced 15, including
-a 6.8 MB HDF5 file. Both logs contain the dump and completion markers and no
-fatal exception. The mesoscopic log reports `WrongResolution` twice: the
-requested 6.25 nm cell is capped to about 15.26 nm on the default 1 mm box.
-Read each snapshot's `cellSize_nm` rather than assuming the requested value.
-The generated data and logs are ignored under `.scratch/` and are not part of
-this repository.
+The `vertical_slice.ipynb` notebook was executed through Jupyter MCP in a fresh
+isolated GEANT4 kernel on 2026-11-03. All 10 code cells completed; four plots were
+reviewed, raw CSV values and optional missing-file handling were checked. All
+required files were present and nonempty: 12 for IRT and 15 for mesoscopic
+output. G4Utils editable metadata points to `D:\DEV\PYTHON\G4Utils` at source
+revision `a45629041f1d47b1e2d7b9b367aa0a95443a732f`.
+
+Both simulation commands completed with exit code 0; their logs contain dump
+and completion markers and no fatal exception. The mesoscopic output includes
+a 6.8 MB format-version-2 HDF5 file, with 55 snapshots for each of the two
+events. Generated data and logs are ignored under `.scratch/`.
 
 Physical interaction totals are discrete process counts, not track histories.
 `TrackLengths.csv` excludes aborted events. Pre-chemical files are selected
-water modification and solvated-electron records. `Reactions.*` counts only
-particle-stage bimolecular reactions handled by the reaction hook; mesoscopic
-reaction firings and scavenger/acid-base reactions are absent. `SpeciesMeso.Txt`
-is mean molecule count per event, while `SpeciesMeso.csv` sums counts over
-events. Do not combine either with particle-stage G-values without accounting
-for stage, time grid, and normalization.
+water modification and solvated-electron records. `Reactions.*` counts
+particle-stage bimolecular reactions handled by the reaction hook. Bulk
+acid-base and scavenger channels bypass it, while mobile-particle bimolecular
+reactions such as H3O+ + OH- are counted. Mesoscopic reaction firings are not
+recorded there. `SpeciesMeso.Txt` is mean molecule count per event, while
+`SpeciesMeso.csv` sums counts over events. Do not combine either with
+particle-stage G-values without accounting for stage, time grid, and
+normalization.
+
+Mesh dimensions are capped at 65,536 pixels per side. On the default 1 mm box,
+the requested 6.25 nm cells become 15.258789 nm cells in the snapshots. The logs contain
+two `WrongResolution` warnings: the observed O^-1 + H3O^1 reaction radius is
+6.3164 nm, at least the actual cell size divided by pi. This is a known
+baseline mesh-initialization warning; the cap alone does not explain the
+condition, and this does not imply all resolution warnings are benign. Read
+each snapshot's `cellSize_nm` rather than assuming the requested value.
