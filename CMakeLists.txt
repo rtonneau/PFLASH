@@ -173,6 +173,9 @@ if(NODE_EXECUTABLE)
   # Macro builder model: command generation, ordering, compatibility, validation.
   add_test(NAME MacroBuilderTest
            COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/macro-builder.test.js)
+  # Catalogue view model: rows, k text, filtering.
+  add_test(NAME CatalogViewTest
+           COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/catalog-view.test.js)
   # Pure comparison logic of the catalogue generator.
   add_test(NAME CatalogExportScriptTest
            COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/export-catalog.test.js)
