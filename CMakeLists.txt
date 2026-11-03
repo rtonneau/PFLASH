@@ -173,4 +173,22 @@ if(NODE_EXECUTABLE)
   # Macro builder model: command generation, ordering, compatibility, validation.
   add_test(NAME MacroBuilderTest
            COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/macro-builder.test.js)
+  # Pure comparison logic of the catalogue generator.
+  add_test(NAME CatalogExportScriptTest
+           COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/export-catalog.test.js)
+  # Drift check: committed catalog.json must equal the live chemistry of this sim.
+  # A Debug sim built against the release Geant4 install mixes CRTs and crashes at
+  # /run/initialize (heap corruption), so the check runs the RelWithDebInfo sim of
+  # ../build when this is a Debug tree; override with -DCATALOG_EXPORT_SIM=<path>.
+  set(CATALOG_EXPORT_SIM "" CACHE FILEPATH "sim executable used by CatalogExportCheck (default: this target, or build/sim.exe for Debug)")
+  if(CATALOG_EXPORT_SIM)
+    set(_catalogSim "${CATALOG_EXPORT_SIM}")
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Debug" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build/sim${CMAKE_EXECUTABLE_SUFFIX}")
+    set(_catalogSim "${CMAKE_CURRENT_SOURCE_DIR}/build/sim${CMAKE_EXECUTABLE_SUFFIX}")
+  else()
+    set(_catalogSim "$<TARGET_FILE:sim>")
+  endif()
+  add_test(NAME CatalogExportCheck
+           COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/export-catalog.js
+                   --check --sim ${_catalogSim})
 endif()
