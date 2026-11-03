@@ -1,5 +1,7 @@
 # dnachem-min
 
+[![Architecture explorer](https://img.shields.io/badge/docs-architecture_explorer-0a7ea4?logo=githubpages&logoColor=white)](https://rtonneau.github.io/dnachem-min/explorer/)
+
 Minimal Geant4-DNA example for studying water radiolysis from electron beams.
 It provides the common physics, chemistry, and scoring basis for
 conventional and ultra-high-dose-rate (UHDR) irradiation studies. UHDR is a
