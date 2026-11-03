@@ -126,6 +126,8 @@
   .connection-group, .connection-hub { min-width:0; }
   .connection-heading { display:flex; align-items:center; gap:6px; margin:0 0 12px; font-size:12px; line-height:1.4; color:var(--muted); }
   .connection-heading .tag { margin-left:auto; }
+  .connection-heading svg, .connection-heading .tag { flex:none; }
+  .connection-label { min-width:0; overflow-wrap:anywhere; }
   .connection-group.incoming .connection-heading { color:var(--in); }
   .connection-group.outgoing .connection-heading { color:var(--out); }
   .connection-map .node { margin:0; min-height:74px; padding:8px 12px; background:var(--surface); }
@@ -149,6 +151,7 @@
     main:has(.connections-mode) { grid-template-columns:minmax(0,1fr); }
     main:has(.connections-mode) #detail { position:static; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
     .connection-details { display:block; }
+    main:has(.connections-mode) #detail .back { display:inline-block; }
   }
 
   /* ---- run flow ---- */
@@ -521,7 +524,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
       previous.addEventListener('click', function () { history.back(); });
       nav.appendChild(previous);
     }
-    const back = el('button', { type: 'button', class: 'link back', text: '↑ Back to ' + viewLabel(current) });
+    const back = el('button', { type: 'button', class: 'link back', text: '↑ Back to ' + (current === 'map' && connectionsOnly && !narrow.matches && nodeById[lastSel.map] ? 'connections' : viewLabel(current)) });
     back.addEventListener('click', returnToView);
     nav.appendChild(back);
     detail.appendChild(nav);
@@ -538,7 +541,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     if (!cur.getClientRects().length) cur = stage.querySelector('input') || stage;
     window.scrollTo(0, overviewY);
     cur.focus({ preventScroll: true });
-    if (narrow.matches) cur.scrollIntoView({ block: 'center' });
+    if (narrow.matches || (current === 'map' && connectionsOnly && getComputedStyle(detail).position === 'static')) cur.scrollIntoView({ block: 'center' });
   }
   function renderStarts(view) {
     const starts = (DATA.startHere && DATA.startHere[view]) || [];
@@ -732,38 +735,32 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
         n.review ? flagEl() : null
       ]);
       b.addEventListener('click', function () { go('map', id, true); });
-      function trace(on) {
-        if (!s.focusEdges || kind === 'sel') return;
-        s.network.classList.toggle('tracing', on);
-        s.focusEdges.querySelectorAll('.e').forEach(function (p) {
-          p.classList.toggle('traced', on && (p.dataset.from === id || p.dataset.to === id));
-        });
-      }
-      b.addEventListener('mouseenter', function () { trace(true); });
-      b.addEventListener('mouseleave', function () { trace(document.activeElement === b); });
-      b.addEventListener('focus', function () { trace(true); });
-      b.addEventListener('blur', function () { trace(false); });
+      b.addEventListener('mouseenter', traceConnection);
+      b.addEventListener('mouseleave', traceConnection);
+      b.addEventListener('focus', traceConnection);
+      b.addEventListener('blur', traceConnection);
       s.focusedEls[kind + ':' + id] = b;
       return b;
     }
     function group(ids, kind, title) {
       if (!ids.length) return;
-      const heading = el('h3', { class: 'connection-heading' }, [legendLine(kind === 'in' ? 'var(--in)' : 'var(--out)', kind === 'in'), title,
-        el('span', { class: 'tag', text: ids.length, 'aria-label': ids.length + ' parts' })]);
+      const heading = el('h3', { class: 'connection-heading' }, [legendLine(kind === 'in' ? 'var(--in)' : 'var(--out)', kind === 'in'), el('span', { class: 'connection-label', text: title }),
+        el('span', { class: 'tag', text: ids.length, 'aria-label': ids.length + (ids.length === 1 ? ' part' : ' parts') })]);
       columns.appendChild(el('section', { class: 'connection-group ' + (kind === 'in' ? 'incoming' : 'outgoing'), 'aria-label': title },
         [heading].concat(ids.map(function (id) { return card(id, kind); }))));
     }
-    group(incoming, 'in', 'Uses selected');
+    group(incoming, 'in', 'Uses ' + selected.title);
     const readDetails = el('button', { type: 'button', class: 'link connection-details', 'data-focus': 'connection-details', text: 'Read explanation and files ↓' });
     readDetails.addEventListener('click', function () {
+      overviewY = window.scrollY;
       const heading = detail.querySelector('h2');
       heading.focus({ preventScroll: true });
-      heading.scrollIntoView({ block: 'start' });
+      detail.scrollIntoView({ block: 'start' });
     });
     columns.appendChild(el('div', { class: 'connection-hub' }, [
       el('h3', { class: 'connection-heading', text: 'Selected part' }), card(selected.id, 'sel'), readDetails
     ]));
-    group(outgoing, 'out', 'Selected uses, creates or fills');
+    group(outgoing, 'out', selected.title + ' uses, creates or fills');
     s.network.appendChild(columns);
     s.network.appendChild(el('p', { class: incoming.length || outgoing.length ? 'connection-tip' : 'connection-empty',
       text: incoming.length || outgoing.length ? 'Arrows point from the part doing the using to the part it uses. Hover or focus a connected part to trace its arrow.' : 'No direct connections are listed for this part. Turn off Connections only to browse every folder.' }));
@@ -796,11 +793,19 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     }
     connect(usedBy[s.sel] || [], 'in');
     connect(usesOf[s.sel] || [], 'out');
-    // A resize rebuilds paths; retain the keyboard's current traced connection.
+    traceConnection();
+  }
+  // Redrawing arrows must preserve the pointer's trace as well as keyboard focus.
+  function traceConnection() {
+    const s = mapState;
+    if (!s || !s.focusEdges) return;
     const active = document.activeElement;
-    const traceId = active && s.network.contains(active) && !active.classList.contains('sel') ? active.dataset.id : null;
+    const hovered = s.network.querySelector('.node:not(.sel):hover');
+    const focused = active && active.matches('.node:not(.sel)') && s.network.contains(active) ? active : null;
+    const target = focused || hovered;
+    const traceId = target && target.dataset.id;
     s.network.classList.toggle('tracing', !!traceId);
-    if (traceId) g.querySelectorAll('.e').forEach(function (p) { p.classList.toggle('traced', p.dataset.from === traceId || p.dataset.to === traceId); });
+    s.focusEdges.querySelectorAll('.e').forEach(function (p) { p.classList.toggle('traced', !!traceId && (p.dataset.from === traceId || p.dataset.to === traceId)); });
   }
   function legendLine(color, dashed) {
     const s = svg('svg', { width: 26, height: 10, viewBox: '0 0 26 10' });
@@ -815,6 +820,8 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     const selected = mapState.sel && nodeById[mapState.sel];
     const focused = !!selected && connectionsOnly;
     stage.classList.toggle('connections-mode', focused);
+    const back = detail.querySelector('.back');
+    if (back) back.textContent = '↑ Back to ' + (focused && !narrow.matches ? 'connections' : 'Module map');
     mapState.wrap.hidden = focused;
     mapState.network.hidden = !focused;
     mapState.focusButton.disabled = !selected;
@@ -1190,10 +1197,11 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
       v.render();
       stage.querySelectorAll('button, input, [role=button]').forEach(function (e, i) { e.dataset.focus = 'stage-' + view + '-' + i; });
     }
+    const externalSelection = !userAction && id !== lastSel[view];
     lastSel[view] = id;
     if (!main.classList.contains('inspecting')) overviewY = window.scrollY;
     main.classList.toggle('inspecting', saved ? saved.inspecting : !!id && (userAction || restoring || currentKey === null));
-    v.select(id, !saved && !narrow.matches && (switched || fromDetail), !!saved || retainingSelection);
+    v.select(id, !saved && !narrow.matches && (switched || fromDetail || externalSelection), !!saved || retainingSelection);
     currentKey = history.state.key;
     activeHash = location.hash;
     if (saved) {
@@ -1202,6 +1210,13 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
       detail.scrollTop = saved.detailY;
       const focused = saved.focus && document.querySelector('[data-focus="' + saved.focus + '"]');
       if (focused) focused.focus({ preventScroll: true });
+    } else if (id && externalSelection && view === 'map' && !narrow.matches) {
+      // A new URL selection belongs to the map, even if the previous explanation
+      // held focus. Saved history and explicit detail links keep their own focus.
+      const target = id.indexOf('lane:') === 0 ? mapState.laneEls[id.slice(5)].querySelector('.lane-head') :
+        connectionsOnly ? mapState.focusedEls['sel:' + id] : mapState.nodeEls[id];
+      target.focus({ preventScroll: true });
+      if (connectionsOnly && nodeById[id]) mapState.network.scrollIntoView({ block: 'start' });
     } else if (id && (fromDetail || (narrow.matches && main.classList.contains('inspecting')))) {
       detail.querySelector('h2').focus({ preventScroll: true });
       if (narrow.matches) window.scrollTo(0, 0);
@@ -1227,6 +1242,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;
     if (ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'radio') return;
     if (narrow.matches && main.classList.contains('inspecting')) { returnToView(); return; }
+    if (current === 'map' && connectionsOnly && lastSel.map && detail.contains(document.activeElement) && getComputedStyle(detail).position === 'static') { returnToView(); return; }
     if (lastSel[current]) { go(current, null, false); stage.focus(); }
   });
   history.scrollRestoration = 'manual';
