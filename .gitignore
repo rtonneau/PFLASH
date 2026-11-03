@@ -63,7 +63,3 @@ hook-posttooluse.log
 
 # Python bytecode (analysis scripts)
 __pycache__/
-.work/sessions/.current-session
-.work/sessions/.pending-seeds.json*
-.work/sessions/*/.write-payload.md
-.work/sessions/*/.changelog-payload.md
