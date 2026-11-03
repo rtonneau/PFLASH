@@ -1,0 +1,15 @@
+# Pure-water mesoscopic demonstration with per-event spatial snapshots.
+/run/verbose 0
+/tracking/verbose 0
+/dnaLogger/verbose Info
+/process/dna/e-SolvationSubType Ritchie1994
+/process/chem/TimeStepModel IRT_syn
+/chem/meso/enable true
+/chem/meso/spatialOutput true
+/run/initialize
+/scheduler/endTime 1 ms
+/gun/particle e-
+/gun/energy 10 keV
+/random/setSeeds 23456 78901
+/run/beamOn 2
+/run/dumpDataAndReset
