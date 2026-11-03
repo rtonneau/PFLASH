@@ -63,6 +63,13 @@
   .count { font-size:13px; color:var(--muted); min-width:9ch; }
   .legend { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:var(--muted); margin:0 0 20px; align-items:center; }
   .legend svg { vertical-align:middle; margin-right:4px; }
+  .map-scope { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; margin:0 0 8px; }
+  .map-scope button { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 12px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); cursor:pointer; font-size:13px; font-weight:600; }
+  .map-scope button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+  .map-scope button:disabled { cursor:default; color:var(--muted); border-color:var(--line); }
+  .map-scope p { margin:0; color:var(--muted); font-size:13px; overflow-wrap:anywhere; }
+  .lanes.focused .node:not(.sel):not(.in):not(.out), .lanes.focused .other,
+  .lanes.focused .lane:not(:has(.node.sel, .node.in, .node.out)) { display:none; }
   .map-wrap { position:relative; padding:40px 40px 0; }
   .lanes { columns:250px; column-gap:56px; }
   .lane { break-inside:avoid; margin:0 0 20px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px; }
@@ -528,6 +535,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
 
   // ---- module map ----
   let mapState = null;
+  let connectionsOnly = false;
   function renderMap() {
     stage.textContent = '';
     renderViewHeading('map', 'Browse by source folder. Select a part to see its explanation, connections and files.');
@@ -545,6 +553,14 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
       el('label', { class: 'search-label', for: 'find', text: 'Find a part, file or symbol' }),
       el('div', { class: 'search' }, [input, clear]), count]));
     stage.appendChild(legend);
+    const focusButton = el('button', { type: 'button', 'aria-pressed': 'false', 'aria-describedby': 'map-scope-note', text: 'Connections only' });
+    const scopeNote = el('p', { id: 'map-scope-note', 'aria-live': 'polite' });
+    stage.appendChild(el('div', { class: 'map-scope' }, [focusButton, scopeNote]));
+    focusButton.addEventListener('click', function () {
+      connectionsOnly = !connectionsOnly;
+      if (connectionsOnly) { input.value = ''; mapQuery = ''; mapState.runSearch(); }
+      drawEdges();
+    });
     const noResults = el('p', { class: 'no-results', hidden: '', text: 'No matching parts. Try a shorter name, a file path or a symbol. Clear the search to see every folder.' });
     stage.appendChild(noResults);
 
@@ -584,7 +600,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     wrap.appendChild(edges); wrap.appendChild(lanesEl);
     stage.appendChild(wrap);
 
-    mapState = { sel: null, wrap: wrap, edges: edges, lanesEl: lanesEl, nodeEls: nodeEls, laneEls: laneEls, otherEls: otherEls, input: input };
+    mapState = { sel: null, wrap: wrap, edges: edges, lanesEl: lanesEl, nodeEls: nodeEls, laneEls: laneEls, otherEls: otherEls, input: input, focusButton: focusButton, scopeNote: scopeNote, count: count };
 
     function runSearch() {
       const q = input.value.trim().toLowerCase();
@@ -621,7 +637,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
       drawEdges();
     }
     mapState.runSearch = runSearch;
-    input.addEventListener('input', runSearch);
+    input.addEventListener('input', function () { connectionsOnly = false; runSearch(); });
     input.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape') { input.value = ''; runSearch(); ev.stopPropagation(); }
       if (ev.key === 'Enter') {
@@ -649,6 +665,22 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
   }
   function drawEdges() {
     if (!mapState) return;
+    const selected = mapState.sel && nodeById[mapState.sel];
+    const focused = !!selected && connectionsOnly;
+    mapState.lanesEl.classList.toggle('focused', focused);
+    mapState.focusButton.disabled = !selected;
+    if (!mapState.input.value.trim()) {
+      const visibleCount = Object.values(mapState.nodeEls).filter(function (e) { return e.getClientRects().length; }).length;
+      mapState.count.textContent = (focused ? visibleCount + ' of ' : '') + Object.keys(mapState.nodeEls).length + ' parts';
+    }
+    DATA.lanes.forEach(function (lane) {
+      const visibleCount = lane.nodes.filter(function (n) { return mapState.nodeEls[n.id].getClientRects().length; }).length;
+      mapState.laneEls[lane.id].querySelector('.lane-count').textContent = focused ? visibleCount + ' / ' + lane.nodes.length : lane.nodes.length;
+    });
+    mapState.focusButton.setAttribute('aria-pressed', focused ? 'true' : 'false');
+    const related = selected ? new Set((usesOf[selected.id] || []).concat(usedBy[selected.id] || [])) : null;
+    const scopeText = selected ? (focused ? 'Showing ' : 'Focus on ') + selected.title + ' and ' + related.size + ' connected parts.' : 'Select a part to focus on its connections.';
+    if (mapState.scopeNote.textContent !== scopeText) mapState.scopeNote.textContent = scopeText;
     const g = mapState.edges;
     Array.prototype.slice.call(g.querySelectorAll('path.e, path.halo')).forEach(function (p) { p.remove(); });
     const id = mapState.sel;
@@ -684,13 +716,19 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
       // Hidden search results have no position; their links remain in details.
       if (!mapState.nodeEls[fromId].getClientRects().length || !mapState.nodeEls[toId].getClientRects().length) return;
       const a = box(fromId), b = box(toId), la = laneBox(fromId), lb = laneBox(toId);
-      const index = routeIndex++, track = 8 + index * 4;
-      const port = (index - (connections - 1) / 2) * 5;
+      const index = routeIndex++;
+      // Keep every track inside the 40px outer margin / 56px column gutter.
+      const track = 10 + index * Math.min(6, 24 / Math.max(1, connections - 1));
+      const selectedBox = fromId === id ? a : b;
+      const portSpacing = Math.min(7, (selectedBox.b - selectedBox.t - 24) / Math.max(1, connections - 1));
+      const port = (index - (connections - 1) / 2) * portSpacing;
       const ay = a.cy + (fromId === id ? port : 0), by = b.cy + (toId === id ? port : 0);
       let points;
       if (Math.abs(la.l - lb.l) < 2) {
-        const x = Math.max(la.r, lb.r) + track;
-        points = [[a.r, ay], [x, ay], [x, by], [b.r, by]];
+        // Same-column links use the left gutter, separating local loops from
+        // the outgoing fan toward the next column on the right.
+        const x = Math.min(la.l, lb.l) - track;
+        points = [[a.l, ay], [x, ay], [x, by], [b.l, by]];
       } else {
         const right = lb.l > la.l;
         const x1 = right ? a.r : a.l, x2 = right ? b.l : b.r;
@@ -702,12 +740,12 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
           points = [[x1, ay], [gutter1, ay], [gutter1, by], [x2, by]];
         } else {
           // Non-adjacent columns go above all folders, clear of their headings.
-          const y = 6 + index * 4;
+          const y = 6 + index * Math.min(6, 24 / Math.max(1, connections - 1));
           points = [[x1, ay], [gutter1, ay], [gutter1, y], [gutter2, y], [gutter2, by], [x2, by]];
         }
       }
       const d = rounded(points);
-      g.appendChild(svg('path', { class: 'halo', d: d }));
+      g.insertBefore(svg('path', { class: 'halo', d: d }), g.querySelector('path.e'));
       g.appendChild(svg('path', { class: 'e ' + cls, d: d, 'data-from': fromId, 'data-to': toId,
         'marker-end': 'url(#' + (cls === 'e-out' ? 'a-out' : 'a-in') + ')' }));
     }
@@ -966,7 +1004,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
   function rememberVisit() {
     if (currentKey === null) return;
     visits.set(currentKey, { y: window.scrollY, detailY: detail.scrollTop, query: mapQuery,
-      inspecting: main.classList.contains('inspecting'), overviewY: overviewY,
+      inspecting: main.classList.contains('inspecting'), overviewY: overviewY, connectionsOnly: connectionsOnly,
       focus: document.activeElement && document.activeElement.dataset.focus });
   }
   function go(view, id, fromUser) {
@@ -987,7 +1025,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     if (!history.state || !history.state.explorer) history.replaceState({ explorer: true, key: ++serial }, '');
     const saved = restoring && visits.get(history.state.key);
     const fromDetail = detail.contains(document.activeElement);
-    if (saved) mapQuery = saved.query;
+    if (saved) { mapQuery = saved.query; connectionsOnly = saved.connectionsOnly; }
     const v = VIEWS.filter(function (x) { return x.id === view; })[0];
     const switched = current !== view;
     const retainingSelection = !userAction && id === lastSel[view];
