@@ -258,6 +258,8 @@
   #detail .role-sub { margin:-4px 0 8px; color:var(--muted); font-size:14px; }
   details.code { margin-top:18px; border:1px solid var(--line); border-radius:var(--radius); background:#fafbfc; }
   details.code > summary { cursor:pointer; font-weight:600; padding:8px 12px; }
+  details.b-reactions { margin-top:10px; }
+  details.b-reactions > summary { cursor:pointer; font-weight:600; }
   details.code > div { padding:0 12px 10px; }
   ul.files { list-style:none; padding:0; margin:4px 0 0; }
   ul.files li { display:flex; gap:8px; align-items:flex-start; padding:4px 0; border-top:1px solid #edf0f3; }
@@ -1093,6 +1095,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     laneBtn.addEventListener('click', function () { go('map', 'lane:' + lane.id, true); });
     const steps = stepsForNode(n.id), tasks = tasksForNode(n.id);
     const uses = usesOf[n.id] || [], users = usedBy[n.id] || [];
+    const chemBox = window.MacroBuilder.CHEMISTRIES.filter(function (c) { return c.node === n.id; })[0] || null;
     setDetail([
       el('p', { class: 'kicker' }, ['Module map › ', laneBtn]),
       el('h2', { text: n.title }),
@@ -1100,6 +1103,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       n.review ? el('span', { class: 'badge', text: '⚑ Summary awaiting physics review' }) : null,
       el('p', { class: 'lead', text: n.summary }),
     ].concat(
+      section('Reactions', chemBox ? reactionTableEl(chemBox.value, { highlight: null, filter: true }) : null),
       section('Uses, creates or fills', uses.length ? nodeLinks(uses, 'l-out') : null),
       section('Is used by', users.length ? nodeLinks(users, 'l-in') : null),
       section('In the run flow', steps.length ? el('div', { class: 'links' }, steps.map(function (st) { return linkButton('Step ' + stepNumber(st) + ':', stepTitle(st), ['flow', st.id]); })) : null),
@@ -1742,6 +1746,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   }
 
   // groupExplained: the enclosing group already shows why this field is unavailable.
+  let bChemTableOpen = false;
   function renderField(f, groupExplained) {
     if (!MB.visible(bcfg, f)) return null;
     if (f.type === 'runs') return renderRuns(f);
@@ -1784,6 +1789,14 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
         opts.appendChild(el('label', { class: 'b-opt' + (oa ? ' off' : '') }, [input, text]));
       });
       wrap.appendChild(opts);
+      if (f.id === 'chemistry' && CHEMISTRIES.indexOf(value) >= 0) {
+        const nReactions = CatalogView.reactionRows(CATALOG, value).length;
+        const det = el('details', { class: 'b-reactions' }, [el('summary', { text: 'Show the ' + nReactions + ' reactions of ' + value }),
+          reactionTableEl(value, { highlight: bcfg.model === 'SBS' ? 'sbs' : 'irt', filter: true })]);
+        det.open = bChemTableOpen;
+        det.addEventListener('toggle', function () { bChemTableOpen = det.open; });
+        wrap.appendChild(det);
+      }
     } else {
       const row = el('div', { class: 'b-input' });
       const common = { id: inputId, 'aria-describedby': describedBy, 'aria-invalid': err ? 'true' : null, disabled: disabled ? '' : null };

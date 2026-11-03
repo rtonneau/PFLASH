@@ -310,7 +310,7 @@
           "id": "pure-water",
           "title": "PureWater Chemistry",
           "role": "Default reaction network",
-          "summary": "The default Chemistry: base pure-water reactions, the O2-derived network and the pH-driven acid-base buffer.",
+          "summary": "The default Chemistry: base pure-water reactions, the O2-derived network and the pH-driven acid-base buffer. It has 45 bimolecular reactions and 23 bulk reactions; the full table is below.",
           "files": [
             "src/chemistry/catalog/PureWaterReactions.cc",
             "header/chemistry/catalog/PureWaterReactions.hh"
@@ -325,7 +325,7 @@
           "id": "boscolo",
           "title": "BoscoloChem",
           "role": "Boscolo 2020 reaction set",
-          "summary": "Chemistry reproducing Table 1 of Boscolo et al. 2020 (26 reactions).",
+          "summary": "Chemistry reproducing Table 1 of Boscolo et al. 2020: 26 bimolecular reactions and 2 bulk reactions (no acid-base buffer). The full table is below.",
           "files": [
             "src/chemistry/catalog/BoscoloChemReactions.cc",
             "header/chemistry/catalog/BoscoloChemReactions.hh"
@@ -339,7 +339,7 @@
           "id": "tonneau",
           "title": "Tonneau2025",
           "role": "Tonneau 2025 reaction set",
-          "summary": "Chemistry with the 73-reaction network of Tonneau et al. 2025, including the extra molecule HO3.",
+          "summary": "Chemistry with the reaction network of Table 2 of Tonneau et al. 2025, including the extra molecule HO3. It has 63 bimolecular reactions and 24 bulk reactions; the Table 2 rows missing from the bimolecular table are bulk reactions or the R58 buffer, so the count is not 73. The full table is below.",
           "files": [
             "src/chemistry/catalog/Tonneau2025Reactions.cc",
             "header/chemistry/catalog/Tonneau2025Reactions.hh",
@@ -355,7 +355,7 @@
           "id": "farokhi",
           "title": "Farokhi2023",
           "role": "Farokhi 2023 reaction set",
-          "summary": "Chemistry with the 9 base-water reactions of Farokhi et al. 2023.",
+          "summary": "Chemistry with the 9 base-water reactions of Farokhi et al. 2023: 9 bimolecular reactions and 3 bulk reactions (the three dissolved-O2 scavenger reactions). The full table is below.",
           "files": [
             "src/chemistry/catalog/Farokhi2023Reactions.cc",
             "header/chemistry/catalog/Farokhi2023Reactions.hh"
