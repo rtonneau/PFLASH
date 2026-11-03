@@ -1954,9 +1954,17 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
         '"Save to a folder…" opens your browser\'s save dialog, where you choose the folder (for example macro/ in your copy of the repository). Nothing is written without your choice in that dialog.' :
         'This browser has no save-to-folder dialog here, so use Download.',
         ' Download saves to the browser\'s download location (usually your Downloads folder); move the file into macro/ yourself. ',
-        'A web page cannot write into the repository or create folders there on its own.'])]));
+        'A web page cannot write into the repository or create folders there on its own.']),
+      el('p', {}, ['No build of your own? Download ',
+        el('a', { href: SIM_ZIP_URL, text: 'dnachem-min-win64.zip' }),
+        ' from the latest GitHub release: sim.exe with its HDF5 DLLs and the example macros, for Windows x64. ',
+        'It runs on your own Geant4 install, which must be the same version (11.4.1) and build (MSVC x64, shared, multithreaded, with Qt and OpenGL) with its bin folder on PATH; ',
+        'README.txt and check-env.ps1 in the zip explain and check this. Unzip it, put the macro into its ',
+        el('code', { text: 'macro/' }), ' folder and run ', el('code', { text: '.\\sim.exe ' + finalName }), ' from the unzipped folder.'])]));
     panel.appendChild(box);
   }
+  // Prebuilt package (docs/release.md): stable asset name, so this always points at the newest release.
+  const SIM_ZIP_URL = 'https://github.com/rtonneau/dnachem-min/releases/latest/download/dnachem-min-win64.zip';
   function downloadMacro() {
     if (MB.errors(MB.validate(bcfg)).length) return;
     const name = MB.sanitizeFilename(bcfg.filename);

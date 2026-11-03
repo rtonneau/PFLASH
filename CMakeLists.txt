@@ -154,6 +154,39 @@ add_custom_command(
     COMMENT "Copying macro files to output directory..."
 )
 
+# ---- Release package (GitHub Release asset, built locally, see docs/release.md) ----
+# `cpack` in the run build dir produces dnachem-min-win64.zip: sim.exe, the two
+# HDF5 DLLs (vcpkg, no further dependency), macro/, a README and an environment
+# check. Geant4, Qt and the MSVC runtime are NOT shipped: the user's own Geant4
+# install provides them (sim.exe loads the G4*.dll by name, so it must be the
+# same Geant4 version and build options, see packaging/README.txt).
+install(TARGETS sim RUNTIME DESTINATION .)
+install(FILES $<TARGET_FILE:hdf5::hdf5-shared> $<TARGET_FILE:hdf5::hdf5_cpp-shared>
+        DESTINATION .)
+install(DIRECTORY macro/ DESTINATION macro
+        FILES_MATCHING PATTERN "*.in" PATTERN "*.mac")
+install(FILES packaging/README.txt packaging/check-env.ps1 DESTINATION .)
+find_package(Git QUIET)
+install(CODE "
+  set(_version unknown)
+  if(NOT \"${GIT_EXECUTABLE}\" STREQUAL \"\")
+    execute_process(COMMAND \"${GIT_EXECUTABLE}\" describe --tags --always --dirty
+                    WORKING_DIRECTORY \"${PROJECT_SOURCE_DIR}\"
+                    OUTPUT_VARIABLE _version OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  endif()
+  file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/VERSION.txt\"
+       \"dnachem-min \${_version}\\nbuilt against Geant4 ${Geant4_VERSION}\\n\")
+")
+set(CPACK_GENERATOR ZIP)
+set(CPACK_PACKAGE_NAME dnachem-min)
+if(WIN32)
+  set(CPACK_PACKAGE_FILE_NAME dnachem-min-win64)
+else()
+  set(CPACK_PACKAGE_FILE_NAME dnachem-min-${CMAKE_SYSTEM_NAME})
+endif()
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+include(CPack)
+
 # Standalone unit test for MacroResolver (standard library only).
 add_executable(MacroResolverTest test/MacroResolverTest.cc src/core/MacroResolver.cc)
 target_include_directories(MacroResolverTest PRIVATE ${project_include_dirs})

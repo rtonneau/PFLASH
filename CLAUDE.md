@@ -14,6 +14,8 @@ Requirements: Geant4 with DNA models (verified here with 11.4.1; older versions 
 
 How to build, run and test (MSVC environment, the `build/` vs `build-ninja/` split, background runs, verification checklist) is in `.claude/geant4-instructions.md`; the values it uses are the `build`, `run` and `test` sections of `.claude/.claude-project.json`. Follow it instead of re-deriving the procedure.
 
+Prebuilt Windows package (`dnachem-min-win64.zip` on GitHub Releases, linked from the Macro builder; `sim.exe` + HDF5 DLLs + `macro/`, built locally with `cpack`, user supplies Geant4): `docs/release.md`, user-facing text in `packaging/`.
+
 Queued/tracked runs and analysis across projects: the global `/g4run` skill, specified (not yet built) in `~/dotfiles/claude/skills/g4run/SPEC.md`; see `docs/agents/g4run.md`.
 
 Project-specific: `build/` is RelWithDebInfo (run `sim`), `build-ninja/` is Debug (ctest). `sim.cc` looks up the macro argument in this order: the argument as given, then `<exedir>/<arg>`, then `<exedir>/macro/<arg>`. Pass the filename only, from the run build dir (the build copies `macro/` there):
