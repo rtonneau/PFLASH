@@ -40,8 +40,17 @@
   [role=tab][aria-selected=true] { background:var(--surface); color:var(--accent); font-weight:600; box-shadow:0 1px 2px rgba(20,30,50,.12); }
 
   /* ---- layout ---- */
-  main { display:grid; grid-template-columns:minmax(0,1fr) 370px; align-items:start; }
-  #stage { padding:24px 24px 40px; min-width:0; }
+  /* --detail-w is set by dragging the panel edge (#detail-resize); unset = the default width of each view. */
+  main { display:grid; grid-template-columns:minmax(0,1fr) var(--detail-w, 370px); align-items:start; }
+  #stage { grid-column:1; grid-row:1; padding:24px 24px 40px; min-width:0; }
+  #detail { grid-column:2; grid-row:1; }
+  #detail-resize { grid-column:2; grid-row:1; justify-self:start; align-self:start; position:sticky; top:var(--header-height, 80px); z-index:3;
+                   width:10px; margin-left:-5px; height:calc(100vh - var(--header-height, 80px)); cursor:col-resize; touch-action:none; }
+  #detail-resize::after { content:''; position:absolute; left:4px; top:0; bottom:0; width:2px; background:transparent; transition:background .12s; }
+  #detail-resize:hover::after, #detail-resize.dragging::after { background:var(--accent); }
+  #detail-resize:focus-visible { outline:none; }
+  #detail-resize:focus-visible::after { background:var(--accent); width:4px; left:3px; }
+  main.resizing { cursor:col-resize; user-select:none; }
   #detail { position:sticky; top:var(--header-height, 80px); max-height:calc(100vh - var(--header-height, 80px)); overflow:auto; background:var(--surface);
             border-left:1px solid var(--line); padding:20px 24px 32px; min-height:calc(100vh - var(--header-height, 80px)); }
   .view-heading { margin:0 0 4px; font-size:24px; line-height:1.25; letter-spacing:-.025em; }
@@ -150,6 +159,8 @@
   .connection-details { display:none; margin-top:12px; width:100%; }
   @media (min-width:901px) and (max-width:1250px) {
     main:has(.connections-mode) { grid-template-columns:minmax(0,1fr); }
+    main:has(.connections-mode) #detail { grid-column:1; grid-row:2; }
+    main:has(.connections-mode) #detail-resize { display:none; }
     main:has(.connections-mode) #detail { position:static; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
     .connection-details { display:block; }
     main:has(.connections-mode) #detail .back { display:inline-block; }
@@ -206,9 +217,12 @@
   .cat caption { text-align:left; padding:6px 10px; color:var(--muted); font-size:12.5px; }
   .cat th, .cat td { text-align:left; vertical-align:top; padding:5px 10px; border-top:1px solid var(--line); }
   .cat thead th { background:var(--sunk); font-weight:600; white-space:nowrap; border-top:0; }
-  .cat td.num, .cat th.num { white-space:nowrap; }
+  .cat td.cat-num, .cat th.cat-num { white-space:nowrap; }
   .cat td.mono, .cat .ref { font:12px var(--mono); }
-  .cat .ref { color:var(--muted); overflow-wrap:anywhere; }
+  .cat .ref { color:var(--muted); white-space:nowrap; }
+  .cat td.prose { min-width:34ch; }
+  .cat td.mono { overflow-wrap:normal; }
+  .cat .nw { white-space:nowrap; }
   .cat .hl { background:var(--accent-soft); }
   .cat thead th.hl { color:var(--accent); }
   .unverified { display:inline-block; margin-left:6px; font-size:11.5px; font-weight:600; color:var(--review); background:var(--review-soft); border:1px solid var(--review-line); border-radius:999px; padding:0 7px; }
@@ -306,7 +320,7 @@
 
   /* ---- macro builder: guide in #stage, live preview in #detail ---- */
   :root { --bad:#a3271f; --bad-soft:#fdeeec; --ok:#1d6b3a; --ok-soft:#eaf6ee; }
-  main.building { grid-template-columns:minmax(0,1fr) minmax(370px,42%); }
+  main.building { grid-template-columns:minmax(0,1fr) var(--detail-w, minmax(370px,42%)); }
   .b-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 14px; }
   .b-btn { min-height:40px; padding:7px 14px; border:1px solid var(--line-strong); border-radius:7px; background:var(--surface); cursor:pointer; font-size:13.5px; font-weight:600; }
   .b-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
@@ -418,6 +432,7 @@
     .b-switch small { display:block; font-weight:400; font-size:12px; }
     .b-pre { max-height:none; }
     main { display:block; }
+    #detail-resize { display:none; }
     #detail { position:static; overflow:visible; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
     [role=tablist] { margin-left:0; }
     .legend { margin-left:0; }
@@ -475,6 +490,8 @@
 </header>
 <main>
   <section id="stage" role="tabpanel" tabindex="-1"></section>
+  <div id="detail-resize" role="separator" aria-orientation="vertical" aria-controls="detail" tabindex="0"
+       aria-label="Resize details panel" title="Drag to resize the details panel; double-click to reset"></div>
   <aside id="detail" aria-live="polite" aria-label="Details"></aside>
 </main>
 <div id="copy-status" class="sr-only" role="status" aria-atomic="true"></div>
@@ -1258,7 +1275,12 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       el('thead', {}, [el('tr', {}, head.map(function (h) { return el('th', { scope: 'col', class: h.cls || null, text: h.text }); }))]), tb]);
     return { wrap: el('div', { class: 'tbl-wrap', tabindex: '0', role: 'region', 'aria-label': caption }, [t]), tbody: tb };
   }
-  function refEl(ref) { return ref ? el('span', { class: 'ref', text: ref }) : '—'; }
+  // Show the file name only; the full reference (G4:<path> or repo path) is the tooltip and accessible name.
+  function refEl(ref) {
+    if (!ref) return '—';
+    const short = ref.replace(/^G4:/, '').split('/').pop();
+    return el('span', { class: 'ref', title: ref, 'aria-label': ref, text: short });
+  }
   function reviewMark(r) { return r.review ? el('span', { class: 'unverified', text: 'unverified' }) : null; }
 
   // Reaction table of a Chemistry. opts: {highlight: 'irt'|'sbs'|null, filter: true}
@@ -1271,15 +1293,15 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const reactions = CV.reactionRows(CATALOG, chemistry), bulk = CV.bulkRows(CATALOG, chemistry);
     const nMeso = CV.mesoOnlyCount(CATALOG, chemistry), nShared = CV.sharedBulkCount(CATALOG, chemistry);
     // k is per row: s⁻¹ for first-order (H2O partner) reactions, M⁻¹ s⁻¹ otherwise.
-    const kCell = function (r) { return { c: r.kText + ' ' + r.unit, cls: 'num' }; };
+    const kCell = function (r) { return { c: r.kText + ' ' + r.unit, cls: 'cat-num' }; };
     const reactionCells = function (r) {
-      return [{ c: r.label, cls: 'mono' }, kCell(r), { c: String(r.typeIrt), cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { c: String(r.typeSbs), cls: 'num' + (hl === 'sbs' ? ' hl' : '') }];
+      return [{ c: r.label, cls: 'mono' }, kCell(r), { c: String(r.typeIrt), cls: 'cat-num' + (hl === 'irt' ? ' hl' : '') }, { c: String(r.typeSbs), cls: 'cat-num' + (hl === 'sbs' ? ' hl' : '') }];
     };
     const bulkCells = function (r) { return [{ c: r.label, cls: 'mono' }, kCell(r), r.driver ? el('code', { text: r.driver }) : 'Always on', r.sharesTracked ? 'Yes' : '—']; };
     const bi = table(chemistry + ': bimolecular reactions',
-      [{ text: 'Reaction' }, { text: 'k', cls: 'num' }, { text: 'Type under IRT_syn', cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { text: 'Type under SBS', cls: 'num' + (hl === 'sbs' ? ' hl' : '') }],
+      [{ text: 'Reaction' }, { text: 'k', cls: 'cat-num' }, { text: 'Type under IRT_syn', cls: 'cat-num' + (hl === 'irt' ? ' hl' : '') }, { text: 'Type under SBS', cls: 'cat-num' + (hl === 'sbs' ? ' hl' : '') }],
       reactions.map(reactionCells), rIds);
-    const bk = table(chemistry + ': bulk reactions', [{ text: 'Reaction' }, { text: 'k', cls: 'num' }, { text: 'Set by' }, { text: 'Also bimolecular' }], bulk.map(bulkCells), bIds);
+    const bk = table(chemistry + ': bulk reactions', [{ text: 'Reaction' }, { text: 'k', cls: 'cat-num' }, { text: 'Set by' }, { text: 'Also bimolecular' }], bulk.map(bulkCells), bIds);
     const count = el('p', { class: 'cat-note', role: 'status', 'aria-live': 'polite' });
     const upd = function (q) {
       const fr = CV.filterRows(reactions, q), fb = CV.filterRows(bulk, q);
@@ -1307,26 +1329,26 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const CV = window.CatalogView;
     const parts = [];
     parts.push(el('h4', { class: 'cat-sub', text: 'Dissociation channels' }));
-    parts.push(table(chemistry + ': dissociation channels', [{ text: 'Excited or ionised state' }, { text: 'Channel' }, { text: 'Probability', cls: 'num' }, { text: 'Products' }, { text: 'Displacement type', cls: 'num' }],
+    parts.push(table(chemistry + ': dissociation channels', [{ text: 'Excited or ionised state' }, { text: 'Channel' }, { text: 'Probability', cls: 'cat-num' }, { text: 'Products' }, { text: 'Displacement type', cls: 'cat-num' }],
       CV.dissociationRows(CATALOG, chemistry).map(function (r) {
-        return [{ c: r.state, cls: 'mono' }, { c: r.name, cls: 'mono' }, { c: r.probabilityText, cls: 'num' }, { c: r.products.length ? r.products.join(', ') : '(none)', cls: 'mono' }, { c: String(r.displacementType), cls: 'num' }];
+        return [{ c: r.state, cls: 'mono' }, { c: r.name, cls: 'mono' }, { c: r.probabilityText, cls: 'cat-num' }, { c: r.products.length ? r.products.join(', ') : '(none)', cls: 'mono' }, { c: String(r.displacementType), cls: 'cat-num' }];
       })).wrap);
     const sol = PHYSICS.solvation;
     parts.push(el('h4', { class: 'cat-sub', text: 'Electron solvation' }));
     parts.push(table('Electron solvation models', [{ text: 'Model' }, { text: 'Macro value' }, { text: 'What it does' }, { text: 'Source' }],
-      [[{ c: sol.default.model + ' (default)', cls: 'mono' }, { c: '(not set)', cls: 'mono' }, sol.default.what, refEl(sol.default.ref)]].concat(sol.alternatives.map(function (a) {
-        return [{ c: a.model, cls: 'mono' }, { c: '/process/dna/e-SolvationSubType ' + a.macroValue, cls: 'mono' }, a.what, refEl(a.ref)];
+      [[{ c: sol.default.model + ' (default)', cls: 'mono' }, { c: '(not set)', cls: 'mono' }, { c: sol.default.what, cls: 'prose' }, refEl(sol.default.ref)]].concat(sol.alternatives.map(function (a) {
+        return [{ c: a.model, cls: 'mono' }, { c: '/process/dna/e-SolvationSubType ' + a.macroValue, cls: 'mono' }, { c: a.what, cls: 'prose' }, refEl(a.ref)];
       }))).wrap);
     const d = PHYSICS.displacement;
     parts.push(el('h4', { class: 'cat-sub', text: 'Product displacement' }));
     parts.push(table('Displacement cases handled by G4DNAWaterDissociationDisplacer (Geant4); the channels this project installs are listed above',
-      [{ text: 'Case' }, { text: 'What happens' }, { text: 'Rrms (nm)', cls: 'num' }, { text: 'Source' }],
-      d.rows.map(function (r) { return [r.case, r.what, { c: r.rms_nm === undefined || r.rms_nm === null ? '—' : String(r.rms_nm), cls: 'num' }, refEl(r.ref)]; })).wrap);
+      [{ text: 'Case' }, { text: 'What happens' }, { text: 'Rrms (nm)', cls: 'cat-num' }, { text: 'Source' }],
+      d.rows.map(function (r) { return [{ c: r.case, cls: 'prose' }, { c: r.what, cls: 'prose' }, { c: r.rms_nm === undefined || r.rms_nm === null ? '—' : String(r.rms_nm), cls: 'cat-num' }, refEl(r.ref)]; })).wrap);
     parts.push(el('p', { class: 'cat-note', text: d.what }));
     parts.push(el('h4', { class: 'cat-sub', text: 'Molecules' }));
-    parts.push(table(chemistry + ': molecules', [{ text: 'Name' }, { text: 'D (m² s⁻¹)', cls: 'num' }, { text: 'Radius (nm)', cls: 'num' }, { text: 'Charge', cls: 'num' }],
+    parts.push(table(chemistry + ': molecules', [{ text: 'Name' }, { text: 'D (m² s⁻¹)', cls: 'cat-num' }, { text: 'Radius (nm)', cls: 'cat-num' }, { text: 'Charge', cls: 'cat-num' }],
       CV.moleculeRows(CATALOG, chemistry).map(function (m) {
-        return [{ c: m.name + (m.extra ? ' (this Chemistry only)' : ''), cls: 'mono' }, { c: String(m.D), cls: 'num' }, { c: String(m.radius_nm), cls: 'num' }, { c: String(m.charge), cls: 'num' }];
+        return [{ c: m.name + (m.extra ? ' (this Chemistry only)' : ''), cls: 'mono' }, { c: String(m.D), cls: 'cat-num' }, { c: String(m.radius_nm), cls: 'cat-num' }, { c: String(m.charge), cls: 'cat-num' }];
       })).wrap);
     return el('div', { class: 'prechem-table' }, parts);
   }
@@ -1334,9 +1356,9 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   function physicsEl(particle) {
     const rows = window.CatalogView.physicsRows(PHYSICS, particle);
     const t = table(PHYSICS.physicsConstructor + ' processes for ' + particle,
-      [{ text: 'Process' }, { text: 'Model' }, { text: 'From', cls: 'num' }, { text: 'To', cls: 'num' }, { text: 'Note' }, { text: 'Source' }],
+      [{ text: 'Process' }, { text: 'Model' }, { text: 'From', cls: 'cat-num' }, { text: 'To', cls: 'cat-num' }, { text: 'Note' }, { text: 'Source' }],
       rows.map(function (r) {
-        return [{ c: el('span', {}, [r.process, reviewMark(r)]), cls: 'mono' }, r.model, { c: r.eMin || '—', cls: 'num' }, { c: r.eMax || '—', cls: 'num' }, r.note || '', refEl(r.ref)];
+        return [{ c: el('span', {}, [el('span', { class: 'nw', text: r.process }), reviewMark(r)]), cls: 'mono' }, { c: r.model, cls: 'prose' }, { c: r.eMin || '—', cls: 'cat-num' }, { c: r.eMax || '—', cls: 'cat-num' }, { c: r.note || '', cls: 'prose' }, refEl(r.ref)];
       }));
     return el('div', { class: 'physics-table' }, [t.wrap]);
   }
@@ -2093,6 +2115,61 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     if (activeHash !== location.hash) { rememberVisit(); route(true); }
   });
   window.addEventListener('resize', drawEdges);
+
+  // ---- resizable details panel (desktop): drag the left edge, arrow keys, double-click resets ----
+  const RESIZE_KEY = 'dnachem-explorer-detail-width';
+  const resizer = document.getElementById('detail-resize');
+  const DETAIL_MIN = 300, STAGE_MIN = 360;
+  function detailMax() { return Math.max(DETAIL_MIN, main.clientWidth - STAGE_MIN); }
+  function setDetailWidth(w, save) {
+    if (w === null) main.style.removeProperty('--detail-w');
+    else {
+      w = Math.round(Math.min(detailMax(), Math.max(DETAIL_MIN, w)));
+      main.style.setProperty('--detail-w', w + 'px');
+    }
+    resizer.setAttribute('aria-valuemin', String(DETAIL_MIN));
+    resizer.setAttribute('aria-valuemax', String(Math.round(detailMax())));
+    resizer.setAttribute('aria-valuenow', String(Math.round(detail.getBoundingClientRect().width)));
+    if (save) { try { if (window.sessionStorage) { if (w === null) sessionStorage.removeItem(RESIZE_KEY); else sessionStorage.setItem(RESIZE_KEY, String(w)); } } catch (e) { /* storage unavailable */ } }
+    drawEdges();
+  }
+  resizer.addEventListener('pointerdown', function (ev) {
+    if (ev.button !== 0) return;
+    ev.preventDefault();
+    resizer.setPointerCapture(ev.pointerId);
+    resizer.classList.add('dragging'); main.classList.add('resizing');
+    const startX = ev.clientX, startW = detail.getBoundingClientRect().width;
+    let frame = 0, lastX = startX;
+    function move(e) {
+      lastX = e.clientX;
+      if (!frame) frame = requestAnimationFrame(function () { frame = 0; setDetailWidth(startW + (startX - lastX), false); });
+    }
+    function up() {
+      resizer.removeEventListener('pointermove', move);
+      resizer.removeEventListener('pointerup', up);
+      resizer.removeEventListener('pointercancel', up);
+      if (frame) cancelAnimationFrame(frame);
+      resizer.classList.remove('dragging'); main.classList.remove('resizing');
+      setDetailWidth(startW + (startX - lastX), true);
+    }
+    resizer.addEventListener('pointermove', move);
+    resizer.addEventListener('pointerup', up);
+    resizer.addEventListener('pointercancel', up);
+  });
+  resizer.addEventListener('dblclick', function () { setDetailWidth(null, true); });
+  resizer.addEventListener('keydown', function (ev) {
+    const w = detail.getBoundingClientRect().width, step = ev.shiftKey ? 80 : 20;
+    if (ev.key === 'ArrowLeft') setDetailWidth(w + step, true);        // the panel is on the right: left widens it
+    else if (ev.key === 'ArrowRight') setDetailWidth(w - step, true);
+    else if (ev.key === 'Home') setDetailWidth(detailMax(), true);
+    else if (ev.key === 'End') setDetailWidth(DETAIL_MIN, true);
+    else if (ev.key === 'Enter') setDetailWidth(null, true);
+    else return;
+    ev.preventDefault();
+  });
+  try { const w = window.sessionStorage && Number(sessionStorage.getItem(RESIZE_KEY)); if (w > 0) setDetailWidth(w, false); } catch (e) { /* storage unavailable */ }
+  // A stored width larger than a smaller window allows is clamped again on resize.
+  window.addEventListener('resize', function () { if (main.style.getPropertyValue('--detail-w')) setDetailWidth(parseFloat(main.style.getPropertyValue('--detail-w')), false); });
   if (window.ResizeObserver) new ResizeObserver(function (entries) {
     document.documentElement.style.setProperty('--header-height', entries[0].target.offsetHeight + 'px');
   }).observe(document.querySelector('header'));
