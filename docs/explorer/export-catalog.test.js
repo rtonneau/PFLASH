@@ -2,7 +2,7 @@
 // Tests for diffCatalog in export-catalog.js (CatalogExportScriptTest ctest).
 'use strict';
 const assert = require('assert');
-const { diffCatalog } = require('./export-catalog.js');
+const { diffCatalog, exportOne } = require('./export-catalog.js');
 
 let passed = 0;
 function test(name, fn) {
@@ -34,6 +34,10 @@ test('array length difference is reported', () => {
 test('string difference is reported', () => {
   const b = mk(1); b.chemistries.PureWater.molecules[0].name = 'H';
   assert.strictEqual(diffCatalog(mk(1), b).length, 1);
+});
+test('a sim that cannot start reports the spawn error, not "exit null"', () => {
+  assert.throws(() => exportOne('/nonexistent/path/to/sim', 'PureWater'),
+    e => /could not run/.test(e.message) && /ENOENT/.test(e.message) && !/exit null/.test(e.message));
 });
 
 if (!process.exitCode) console.log('export-catalog tests passed: ' + passed);

@@ -11,6 +11,7 @@ const cp = require('child_process');
 
 const CATALOG_PATH = path.join(__dirname, 'catalog.json');
 const REL_TOL = 1e-9;
+const SIM_TIMEOUT_MS = 300000;
 
 // Structural diff: same keys, array lengths and strings; numbers within relative REL_TOL.
 function diffCatalog(a, b) {
@@ -47,11 +48,16 @@ function exportOne(sim, name) {
   try {
     const macro = path.join(tmp, 'export.in');
     fs.writeFileSync(macro, '/chem/select ' + name + '\n/chem/reaction/exportJson cat.json\n/run/initialize\n');
-    const r = cp.spawnSync(sim, [macro, '--dir', tmp], { encoding: 'utf8', maxBuffer: 1 << 28 });
+    const r = cp.spawnSync(sim, [macro, '--dir', tmp], { encoding: 'utf8', maxBuffer: 1 << 28, timeout: SIM_TIMEOUT_MS });
     const out = (r.stdout || '') + (r.stderr || '');
     const file = path.join(tmp, 'cat.json');
-    if (r.status !== 0 || !fs.existsSync(file)) {
-      throw new Error('sim failed for ' + name + ' (exit ' + r.status + '); last 20 lines:\n' +
+    if (r.error || r.signal || r.status !== 0 || !fs.existsSync(file)) {
+      let why;
+      if (r.error && r.error.code === 'ETIMEDOUT') why = 'timed out after ' + SIM_TIMEOUT_MS / 1000 + ' s';
+      else if (r.error) why = 'could not run: ' + r.error.message;
+      else if (r.signal) why = 'killed by signal ' + r.signal;
+      else why = 'exit ' + r.status;
+      throw new Error('sim failed for ' + name + ' (' + why + '); last 20 lines:\n' +
         out.split(/\r?\n/).slice(-20).join('\n'));
     }
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -101,5 +107,5 @@ function main(argv) {
   return 0;
 }
 
-module.exports = { diffCatalog, buildCatalog };
+module.exports = { diffCatalog, buildCatalog, exportOne };
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
