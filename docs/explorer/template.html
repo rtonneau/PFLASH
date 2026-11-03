@@ -322,6 +322,7 @@
   .b-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .b-input input[type=text] { min-height:40px; padding:7px 10px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); color:var(--fg); }
   .b-input input.b-wide { flex:1 1 260px; }
+  .b-input input.b-mid { width:26ch; max-width:100%; }
   .b-input input.b-num { width:12ch; }
   .b-input select { min-height:40px; padding:6px 8px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); color:var(--fg); }
   .b-input input:disabled, .b-input select:disabled { background:var(--sunk); color:var(--muted); }
@@ -341,6 +342,11 @@
   .b-why { display:block; margin-top:4px; padding:4px 8px; border-left:3px solid var(--line-strong); background:var(--surface); color:var(--fg); font-size:12.5px; }
   .b-why .k { font-weight:700; }
   .b-why .b-btn { margin-top:4px; }
+  .b-group { margin:0 0 18px; padding:12px 14px 4px; border:1px solid var(--line); border-radius:9px; }
+  .b-group > h4 { margin:0 0 2px; font-size:15px; }
+  .b-group > .intro { margin:0 0 10px; }
+  .b-group.unavailable { border-style:dashed; }
+  .b-opt .b-link { display:inline-block; margin-top:3px; font-size:12.5px; }
   .b-unavail { margin:0 0 8px; padding:6px 10px; border-left:3px solid var(--line-strong); background:var(--surface); font-size:13px; }
   .b-issues { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
   .b-issue { padding:7px 10px; border-radius:6px; font-size:13.5px; border:1px solid; }
@@ -1292,6 +1298,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   function stepIssues(stepId) { return bissues.filter(function (i) { return i.step === stepId; }); }
 
   function renderBuilder() {
+    stage.textContent = '';
     stage.classList.remove('connections-mode');
     stage.appendChild(el('h2', { class: 'view-heading', text: 'Macro builder' }));
     stage.appendChild(el('p', { class: 'intro', text: 'Create a simulation macro (.in file) for dnachem-min, step by step. The macro preview updates as you change settings. ' +
@@ -1456,7 +1463,11 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     panel.append(el('h3', { id: 'b-step-heading', tabindex: '-1', text: 'Step ' + (s.index + 1) + ' of ' + MB.STEPS.length + ': ' + s.title }),
       el('p', { class: 'intro', text: s.intro }));
     if (s.id === 'review') renderReview(panel);
-    else MB.FIELDS.filter(function (f) { return f.step === s.id; }).forEach(function (f) { const n = renderField(f); if (n) panel.appendChild(n); });
+    else {
+      const fields = MB.FIELDS.filter(function (f) { return f.step === s.id; });
+      fields.filter(function (f) { return !s.groups || !f.group; }).forEach(function (f) { const n = renderField(f); if (n) panel.appendChild(n); });
+      (s.groups || []).forEach(function (g) { panel.appendChild(renderGroup(g, fields.filter(function (f) { return f.group === g.id; }))); });
+    }
     if (key) {
       let target = document.querySelector('[data-bkey="' + key + '"]') || document.querySelector('[data-bfield="' + key + '"] input:not(:disabled), [data-bfield="' + key + '"] select:not(:disabled), [data-bfield="' + key + '"] button');
       if (!target && key.indexOf('.') > 0) target = document.querySelector('[data-bfield="' + key.split('.')[0] + '"] input');
@@ -1469,6 +1480,16 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   // Typing keeps the caret where it is; jumps to a setting (issue links, resolutions) scroll to it.
   function scrollOnFocus(key) { return !/^(f:|run:|opt:|tool:|export:)/.test(key); }
 
+  // A titled section of a step. A group rule that applies is explained once here,
+  // and its fields under the same rule do not repeat it.
+  function renderGroup(g, fields) {
+    const ga = MB.groupAvailability(bcfg, g);
+    const sec = el('section', { class: 'b-group' + (ga ? ' unavailable' : ''), 'aria-labelledby': 'b-group-' + g.id },
+      [el('h4', { id: 'b-group-' + g.id, text: g.title }), el('p', { class: 'intro', text: g.intro })]);
+    if (ga) sec.appendChild(el('p', { class: 'b-unavail' }, [whyBlock(ga, fields.length ? fields[0].id : null)]));
+    fields.forEach(function (f) { const n = renderField(f, !!ga && f.rule === g.rule); if (n) sec.appendChild(n); });
+    return sec;
+  }
   function tagFor(f) { return el('span', { class: 'b-req' + (f.required ? ' required' : ''), text: f.required ? 'Required' : 'Optional' }); }
   function techDetails(f) {
     if (!f.tech && !(f.refs && f.refs.length)) return null;
@@ -1485,9 +1506,11 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       f.tech ? el('p', { text: f.tech }) : null, f.refs && f.refs.length ? list : null]);
   }
   function whyBlock(a, fieldId) {
-    const box = el('span', { class: 'b-why' }, [el('span', { class: 'k', text: (a.kind === 'unsupported' ? '⊘ Not supported by dnachem-min: ' : '⊘ Unavailable: ') }), a.why]);
+    const auto = a.kind === 'automatic';
+    const box = el('span', { class: 'b-why' }, [el('span', { class: 'k',
+      text: auto ? 'Set automatically: ' : a.kind === 'unsupported' ? '⊘ Not supported by dnachem-min: ' : '⊘ Unavailable: ' }), a.why]);
     if (a.fix) {
-      const b = el('button', { type: 'button', class: 'b-btn small', text: 'To make it available: ' + a.fix.label });
+      const b = el('button', { type: 'button', class: 'b-btn small', text: (auto ? 'To choose: ' : 'To make it available: ') + a.fix.label });
       b.addEventListener('click', function (ev) { ev.preventDefault(); applyResolution(a.fix, fieldId); });
       box.append(el('br'), b);
     }
@@ -1533,7 +1556,8 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     return s;
   }
 
-  function renderField(f) {
+  // groupExplained: the enclosing group already shows why this field is unavailable.
+  function renderField(f, groupExplained) {
     if (!MB.visible(bcfg, f)) return null;
     if (f.type === 'runs') return renderRuns(f);
     const avail = MB.fieldAvailability(bcfg, f);
@@ -1547,9 +1571,9 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     const title = [f.label, tagFor(f)];
     wrap.appendChild(isGroup ? el('legend', {}, title) : el('label', { class: 'b-label', for: inputId }, title));
     wrap.appendChild(el('p', { class: 'b-help', id: helpId, text: f.help || '' }));
-    if (avail) wrap.appendChild(el('p', { class: 'b-unavail' }, [whyBlock(avail, f.id)]));
+    if (avail && !groupExplained) wrap.appendChild(el('p', { class: 'b-unavail' }, [whyBlock(avail, f.id)]));
     const disabled = !!avail;
-    const value = MB.get(bcfg, f.path);
+    const value = MB.displayValue(bcfg, f);
     if (isGroup) {
       const opts = el('div', { class: 'b-opts' });
       f.options.forEach(function (o) {
@@ -1560,6 +1584,17 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
         input.checked = checked;
         input.addEventListener('change', function () { if (input.checked) { const p = {}; p[f.path] = o.value; patch(p, 'opt:' + f.id + ':' + String(o.value)); } });
         const text = el('span', {}, [el('b', { text: o.label }), o.help ? el('small', { text: o.help }) : null]);
+        if (o.link) {
+          // A plain click opens the Module map entry here; a middle or modified click
+          // keeps the browser default (new tab), since href is the real deep link.
+          const a = el('a', { class: 'b-link', href: '#map/' + encodeURIComponent(o.link.node), text: o.link.label + ' →' });
+          a.addEventListener('click', function (ev) {
+            if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+            ev.preventDefault();
+            go('map', o.link.node, true);
+          });
+          text.appendChild(a);
+        }
         if (oa) text.appendChild(whyBlock(oa, f.id));
         opts.appendChild(el('label', { class: 'b-opt' + (oa ? ' off' : '') }, [input, text]));
       });
@@ -1600,10 +1635,10 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       const desc = function (sub) { return own.filter(function (x) { return x.field === p + sub; }).map(function (x) { return 'b-issue-' + x.field.replace(/\W/g, '-') + '-' + x.kind; }).join(' ') || null; };
       const bad = function (sub) { return own.some(function (x) { return x.field === p + sub && x.severity === 'error'; }) ? 'true' : null; };
       const events = textInput('run:' + i + ':events', r.events, { class: 'b-num', inputmode: 'numeric', 'aria-describedby': desc('events'), 'aria-invalid': bad('events') }, function (v) { const q = {}; q[p + 'events'] = v; patch(q); });
-      const seeds = textInput('run:' + i + ':seeds', r.seeds, { class: 'b-wide', placeholder: 'e.g. 12345 67890 (blank: keep the generator state)', 'aria-describedby': desc('seeds'), 'aria-invalid': bad('seeds') }, function (v) { const q = {}; q[p + 'seeds'] = v; patch(q); });
+      const seeds = textInput('run:' + i + ':seeds', r.seeds, { class: 'b-mid', placeholder: 'e.g. 12345 67890', 'aria-describedby': desc('seeds'), 'aria-invalid': bad('seeds') }, function (v) { const q = {}; q[p + 'seeds'] = v; patch(q); });
       fs.appendChild(el('div', { class: 'row b-input' }, [
         el('label', { class: 'lbl' }, ['Events (required)', events]),
-        el('label', { class: 'lbl', style: 'flex:1 1 260px' }, ['Random seeds (optional, two or more whole numbers)', seeds])]));
+        el('label', { class: 'lbl' }, ['Random seeds (optional, two or more whole numbers; blank keeps the generator state)', seeds])]));
       const opts = el('div', { class: 'b-opts', role: 'radiogroup', 'aria-label': 'Sub-run ' + (i + 1) + ': after this sub-run' });
       [['reset', 'Dump (files with an optional prefix)', '/run/dumpDataAndReset [prefix]'],
        ['dir', 'Dump into a subfolder', '/run/dumpDataAndResetToDir <subfolder>'],
@@ -1621,9 +1656,9 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
       fs.appendChild(el('div', { class: 'lbl', style: 'font-size:13px;font-weight:600;margin-top:8px' }, ['After this sub-run']));
       fs.appendChild(opts);
       if (r.dump !== 'none') {
-        const name = textInput('run:' + i + ':name', r.name, { class: 'b-wide', placeholder: r.dump === 'dir' ? 'e.g. sub_01 or scan/run01' : 'blank: plain file names', 'aria-describedby': desc('name'), 'aria-invalid': bad('name') },
+        const name = textInput('run:' + i + ':name', r.name, { class: 'b-mid', placeholder: r.dump === 'dir' ? 'e.g. sub_01 or scan/run01' : 'blank: plain file names', 'aria-describedby': desc('name'), 'aria-invalid': bad('name') },
           function (v) { const q = {}; q[p + 'name'] = v; patch(q); });
-        fs.appendChild(el('div', { class: 'row b-input' }, [el('label', { class: 'lbl', style: 'flex:1 1 260px' },
+        fs.appendChild(el('div', { class: 'row b-input' }, [el('label', { class: 'lbl' },
           [r.dump === 'dir' ? 'Subfolder (required; relative, created if missing, unique)' : 'File-name prefix (optional, unique; letters, digits . _ -)', name])]));
       }
       const list = issueList(own, false);

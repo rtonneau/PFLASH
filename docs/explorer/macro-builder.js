@@ -24,19 +24,29 @@
   const O2_UNITS = ['%', 'M', 'mM', 'uM'];   // ScavengerSpec::Parse
   const O2_SATURATION_M = 0.0013;            // ScavengerSpec kO2SaturationMolarity (kH)
   const MAX_PIXELS = 65536;                  // MesoSettings kMaxPixels
+  // G4EmDNAPhysics_option2.cc: emaxDNA = 1 MeV, the upper limit of the Geant4-DNA electron models.
+  const E_DNA_MAX_EV = 1e6;
+  // "Off" for the primary-killer energy cuts (no switch in the C++ yet): a primary
+  // electron of at most 1 MeV can never lose 10 MeV, so neither cut can fire.
+  const KILLER_OFF = { value: '10', unit: 'MeV' };
 
   const CHEMISTRIES = [
-    { value: 'PureWater', label: 'PureWater', note: 'Default. Base pure-water reactions plus the full O2-derived network and an acid-base buffer (pH has an effect).', buffer: true },
-    { value: 'BoscoloChem', label: 'BoscoloChem', note: 'Table 1 of Boscolo et al. 2020 (26 reactions). No acid-base buffer: pH has no chemical effect.', buffer: false },
-    { value: 'Tonneau2025', label: 'Tonneau2025', note: 'Table 2 of Tonneau et al. 2025 (73 reactions, adds the HO3 molecule). Has buffer ions: pH has an effect.', buffer: true },
-    { value: 'Farokhi2023', label: 'Farokhi2023', note: 'The 9 base-water reactions of Farokhi et al. 2023. No acid-base buffer: pH has no chemical effect.', buffer: false }
+    // node: the Chemistry's box in the explorer Module map (architecture.json), its full description.
+    { value: 'PureWater', label: 'PureWater', node: 'pure-water', note: 'Default. Base pure-water reactions plus the full O2-derived network and an acid-base buffer (pH has an effect).', buffer: true },
+    { value: 'BoscoloChem', label: 'BoscoloChem', node: 'boscolo', note: 'Table 1 of Boscolo et al. 2020 (26 reactions). No acid-base buffer: pH has no chemical effect.', buffer: false },
+    { value: 'Tonneau2025', label: 'Tonneau2025', node: 'tonneau', note: 'Table 2 of Tonneau et al. 2025 (73 reactions, adds the HO3 molecule). Has buffer ions: pH has an effect.', buffer: true },
+    { value: 'Farokhi2023', label: 'Farokhi2023', node: 'farokhi', note: 'The 9 base-water reactions of Farokhi et al. 2023. No acid-base buffer: pH has no chemical effect.', buffer: false }
   ];
   function chemistryInfo(name) { return CHEMISTRIES.filter(function (c) { return c.value === name; })[0] || null; }
 
   const STEPS = [
     { id: 'basics', short: 'Basics', title: 'Basics and logging', intro: 'Name the macro and choose how much the simulation prints while it runs.' },
     { id: 'chemistry', short: 'Chemistry', title: 'Chemistry model', intro: 'Choose the reaction network and how chemistry time advances. These are fixed before the simulation is initialised.' },
-    { id: 'timing', short: 'Timing', title: 'Timing and mesoscopic details', intro: 'How long chemistry runs and, with the mesoscopic stage, when and on what mesh it takes over.' },
+    { id: 'timing', short: 'Timing', title: 'Timing and mesoscopic stage', intro: 'How long chemistry runs and, with the mesoscopic stage, when and on what mesh it takes over.',
+      groups: [
+        { id: 'time', title: 'Timing', intro: 'When the chemistry of each event stops, and how reaction counts are grouped in time.' },
+        { id: 'meso', title: 'Mesoscopic stage', intro: 'Used only with IRT_syn and the mesoscopic stage on (step 2).', rule: 'mesoParams' }
+      ] },
     { id: 'environment', short: 'Environment', title: 'Water environment', intro: 'The water box and what is dissolved in it.' },
     { id: 'beam', short: 'Beam', title: 'Beam', intro: 'The particle shot into the water and when its track is cut short.' },
     { id: 'runs', short: 'Runs', title: 'Runs and output', intro: 'How many events to simulate, the random seeds, and when results are written.' },
@@ -58,6 +68,8 @@
     halfBox: ['src/geometry/DnaChemistryWorld.cc (SetHalfBox)'],
     outputDir: ['src/core/OutputDirMessenger.cc', 'src/core/OutputDir.cc'],
     gun: ['src/actions/PrimaryGeneratorAction.cc', 'G4: source/event/src/G4ParticleGunMessenger.cc'],
+    dnaLimit: ['src/physics/PhysicsList.cc (G4EmDNAPhysics_option2)', 'G4: source/physics_lists/constructors/electromagnetic/src/G4EmDNAPhysics_option2.cc (emaxDNA = 1 MeV)'],
+    position: ['src/actions/PrimaryGeneratorAction.cc (position set once in the constructor, kept between events)', 'src/geometry/DetectorConstruction.cc (water box centred on the origin)', 'G4: source/event/src/G4ParticleGunMessenger.cc (/gun/position)'],
     killer: ['src/scoring/PrimaryKiller.cc', 'src/geometry/DetectorConstruction.cc (defaults 500 keV / 1 MeV)'],
     runs: ['G4: source/run/src/G4RunMessenger.cc (/run/beamOn, /random/setSeeds)', 'src/scoring/RunAccumulatorMessenger.cc', 'src/core/OutputDir.cc (ConfigureSubdir)']
   };
@@ -91,6 +103,7 @@
       outputDir: '',
       particle: 'e-',
       energy: { value: '10', unit: 'keV' },
+      beamZ: { value: '0', unit: 'um' },
       killerMode: 'default',
       eLossMin: { value: '500', unit: 'keV' },
       eLossMax: { value: '1', unit: 'MeV' },
@@ -160,16 +173,11 @@
     modeIRT: function () {
       return { kind: 'unsupported', why: 'Classic IRT is accepted by Geant4 but dnachem-min stops at /run/initialize (UnsupportedTimeStepModel): only IRT_syn and SBS are supported.' };
     },
-    modeSBS: function (cfg) {
-      if (cfg.model !== 'SBS' && cfg.meso) {
-        return { kind: 'incompatible', why: 'The mesoscopic stage is on, and SBS has no mesoscopic stage (the combination is fatal at /run/initialize: MesoWithSbs).',
-          fix: { label: 'Turn the mesoscopic stage off', patch: { meso: false } } };
-      }
-      return null;
-    },
-    mesoTrue: function (cfg) {
+    // The time-step model decides; the mesoscopic choice follows it. Under SBS the
+    // stage is off automatically and the IRT_syn choice is kept for a switch back.
+    mesoField: function (cfg) {
       if (cfg.model === 'SBS') {
-        return { kind: 'incompatible', why: 'The SBS time-step model has no mesoscopic stage (fatal at /run/initialize: MesoWithSbs).',
+        return { kind: 'automatic', why: 'SBS has no mesoscopic stage, so it is off. To choose, switch the time-step model to IRT_syn.',
           fix: { label: 'Switch the time-step model to IRT_syn', patch: { model: 'IRT_syn' } } };
       }
       return null;
@@ -214,24 +222,29 @@
       tech: '/tracking/verbose >= -1, default 0 (written only when changed).', refs: SRC.trackingVerbose }),
 
     q('chemistry', { step: 'chemistry', type: 'choice', label: 'Chemistry (reaction network)', required: true,
-      options: CHEMISTRIES.map(function (c) { return { value: c.value, label: c.label + (c.value === 'PureWater' ? ' (default)' : ''), help: c.note }; }),
+      options: CHEMISTRIES.map(function (c) {
+        return { value: c.value, label: c.label + (c.value === 'PureWater' ? ' (default)' : ''), help: c.note,
+          link: { label: 'Full description of ' + c.label, node: c.node } };
+      }),
       help: 'The set of chemical reactions. Molecules and water dissociation are shared; the reactions and their rates come from the selected Chemistry.',
       tech: '/chem/select <name>, PreInit (before /run/initialize). Only one Chemistry per process.', refs: SRC.chemistry }),
     q('model', { step: 'chemistry', type: 'choice', label: 'Chemistry time-step model', required: true,
       options: [
         { value: 'IRT_syn', label: 'IRT_syn (default)', help: 'Independent reaction times, synchronised. Fast; can hand over to the mesoscopic stage.' },
-        { value: 'SBS', label: 'SBS', help: 'Step-by-step diffusion of every molecule. Slower; every reaction fully diffusion-controlled; no mesoscopic stage.', rule: 'modeSBS' },
+        { value: 'SBS', label: 'SBS', help: 'Step-by-step diffusion of every molecule. Slower; every reaction fully diffusion-controlled; no mesoscopic stage (turned off automatically).' },
         { value: 'IRT', label: 'IRT (classic)', help: 'Geant4 offers it, dnachem-min does not.', rule: 'modeIRT' }
       ],
-      help: 'How the simulation advances chemistry in time.',
+      help: 'How the simulation advances chemistry in time. Choosing SBS turns the mesoscopic stage off.',
       tech: '/process/chem/TimeStepModel IRT_syn|SBS, PreInit. Always written so the mode is explicit.', refs: SRC.model }),
-    q('meso', { step: 'chemistry', type: 'bool', label: 'Mesoscopic stage', required: true,
+    q('meso', { step: 'chemistry', type: 'bool', label: 'Mesoscopic stage', required: true, rule: 'mesoField',
+      // Shown value: under SBS the stage is off whatever the kept IRT_syn choice is.
+      effective: function (c) { return c.model === 'SBS' ? false : c.meso; },
       options: [
-        { value: true, label: 'On (default with IRT_syn)', help: 'At the hand-over time the remaining molecules move to counts on a cell mesh, which is much faster for long times (up to 1 s by default).', rule: 'mesoTrue' },
+        { value: true, label: 'On (default with IRT_syn)', help: 'At the hand-over time the remaining molecules move to counts on a cell mesh, which is much faster for long times (up to 1 s by default).' },
         { value: false, label: 'Off', help: 'The particle-based stage runs to the end time (1 us by default). No SpeciesMeso output.' }
       ],
-      help: 'Whether the particle-based chemistry hands over to a faster mesh-based model at the hand-over time.',
-      tech: '/chem/meso/enable true|false, PreInit. SBS with an explicit true is fatal (MesoWithSbs).', refs: SRC.meso }),
+      help: 'Whether the IRT_syn particle-based chemistry hands over to a faster mesh-based model at the hand-over time. Only IRT_syn has it.',
+      tech: '/chem/meso/enable true|false, PreInit, written with IRT_syn only. Under SBS nothing is written: the code turns the stage off itself, and an explicit true would be fatal (MesoWithSbs).', refs: SRC.meso }),
     q('solvation', { step: 'chemistry', type: 'choice', label: 'Electron solvation model', required: false,
       options: [
         { value: 'default', label: 'Not set (Geant4 uses Meesungnoen2002)', help: 'No command is written.' },
@@ -242,14 +255,14 @@
       help: 'How far a slowed-down electron travels before it becomes a solvated electron (e_aq). It shifts the initial e_aq distribution.',
       tech: '/process/dna/e-SolvationSubType, PreInit. Geant4 also accepts Kreipl2009 and Meesungnoen2002_amorphous; they are not offered because no dnachem-min macro or test exercises them.', refs: SRC.solvation }),
 
-    q('endTimeMode', { step: 'timing', type: 'choice', label: 'Chemistry end time', required: true,
+    q('endTimeMode', { step: 'timing', group: 'time', type: 'choice', label: 'Chemistry end time', required: true,
       options: [
         { value: 'default', label: 'Default', help: '1 s with the mesoscopic stage, 1 us without. A full 1 s run is slow.' },
         { value: 'custom', label: 'Custom', help: 'For example 1 ms for a quick smoke test.' }
       ],
       help: 'When the chemistry of each event stops.',
       tech: '/scheduler/endTime <value> <unit>, written after /run/initialize: initialization resets the end time to the mode default.', refs: SRC.endTime }),
-    q('endTime', { step: 'timing', type: 'quantity', category: 'time', label: 'End time', required: true, showIf: function (c) { return c.endTimeMode === 'custom'; },
+    q('endTime', { step: 'timing', group: 'time', type: 'quantity', category: 'time', label: 'End time', required: true, showIf: function (c) { return c.endTimeMode === 'custom'; },
       help: 'Must be greater than 0.', refs: SRC.endTime }),
     q('handOver', { step: 'timing', type: 'quantity', category: 'time', label: 'Hand-over time', required: false, rule: 'mesoParams', group: 'meso',
       help: 'When the particle-based stage hands over to the mesoscopic stage. Default 5 ns.',
@@ -260,11 +273,11 @@
     q('timesPerDecade', { step: 'timing', type: 'number', integer: true, label: 'Record times per decade', required: false, rule: 'mesoParams', group: 'meso',
       help: 'How many output times per factor of 10 in time, from the hand-over time to the end time. Default 10.',
       tech: '/chem/meso/timesPerDecade <n>, PreInit, >= 1. Written only when changed.', refs: SRC.meso }),
-    q('spatialOutput', { step: 'timing', type: 'bool', label: 'Spatial snapshots (HDF5)', required: false, rule: 'mesoParams', group: 'meso',
+    q('spatialOutput', { step: 'timing', type: 'bool', label: 'Spatial snapshots (HDF5)', required: false, rule: 'mesoParams', group: 'meso', group: 'meso',
       options: [{ value: false, label: 'Off (default)' }, { value: true, label: 'On: write SpeciesMesoSpatial.h5' }],
       help: 'Saves where the species are on the mesh at every record time. The file can be very large.',
       tech: '/chem/meso/spatialOutput true, PreInit. Written only when on.', refs: SRC.meso }),
-    q('binsMode', { step: 'timing', type: 'choice', label: 'Reaction-count time bins', required: false,
+    q('binsMode', { step: 'timing', group: 'time', type: 'choice', label: 'Reaction-count time bins', required: false,
       options: [
         { value: 'default', label: 'Built-in table (default)', help: 'A fixed 7-edge table.' },
         { value: 'fixed', label: 'Fixed width' },
@@ -272,9 +285,9 @@
       ],
       help: 'How reaction counts are grouped in time in Reactions.Txt (particle-based stage only). The two custom forms cannot be combined.',
       tech: '/chem/reaction/timeBinsFixed or /chem/reaction/timeBinsList, PreInit; issuing both is fatal (ConflictingTimeBins).', refs: SRC.bins }),
-    q('binWidth', { step: 'timing', type: 'quantity', category: 'time', label: 'Bin width', required: true, showIf: function (c) { return c.binsMode === 'fixed'; },
+    q('binWidth', { step: 'timing', group: 'time', type: 'quantity', category: 'time', label: 'Bin width', required: true, showIf: function (c) { return c.binsMode === 'fixed'; },
       help: 'Bins of this width up to the end time.', refs: SRC.bins }),
-    q('binList', { step: 'timing', type: 'list', category: 'time', label: 'Bin edges', required: true, showIf: function (c) { return c.binsMode === 'list'; },
+    q('binList', { step: 'timing', group: 'time', type: 'list', category: 'time', label: 'Bin edges', required: true, showIf: function (c) { return c.binsMode === 'list'; },
       help: 'Upper bin edges separated by spaces, all in one unit.', refs: SRC.bins }),
 
     q('halfBox', { step: 'environment', type: 'quantity', category: 'length', label: 'Water box half side', required: false,
@@ -295,17 +308,23 @@
         { value: 'e-', label: 'Electron, e- (default)', help: 'The project\'s main use case.' },
         { value: 'proton', label: 'Proton', help: 'Used by the Farokhi2023 comparison macros.' }
       ],
-      help: 'The primary particle. It starts at the box centre (0, 0, 0) moving along +z; position and direction are fixed in the code.',
+      help: 'The primary particle. It moves along +z from a start point on the central axis of the box (below).',
       tech: '/gun/particle, after /run/initialize. Defaults in PrimaryGeneratorAction: e-, 2 MeV, (0,0,0), +z.', refs: SRC.gun }),
     q('energy', { step: 'beam', type: 'quantity', category: 'energy', label: 'Kinetic energy', required: true,
-      help: 'Must be greater than 0. Project tests use 10 keV electrons.', tech: '/gun/energy <value> <unit>.', refs: SRC.gun }),
+      help: 'Must be greater than 0, and at most 1 MeV for electrons (Geant4-DNA limit). Project tests use 10 keV electrons.',
+      tech: '/gun/energy <value> <unit>. The Geant4-DNA electron models of G4EmDNAPhysics_option2 stop at 1 MeV (emaxDNA); above it standard EM physics would take over, so higher electron energies are not offered.',
+      refs: SRC.gun.concat(SRC.dnaLimit) }),
+    q('beamZ', { step: 'beam', type: 'quantity', category: 'length', label: 'Start position on the beam axis (z)', required: true,
+      help: 'The beam starts at (0, 0, z) and moves along +z. 0 (default) is the box centre; a negative value starts it upstream, and a value close to minus the half side makes it cross the whole box. Must be strictly inside the box.',
+      tech: '/gun/position 0 0 <z> <unit>, after /run/initialize, written only when z is not 0. x, y and the +z direction stay fixed.', refs: SRC.position }),
     q('killerMode', { step: 'beam', type: 'choice', label: 'Primary-electron energy cuts', required: false, rule: 'killer',
       options: [
         { value: 'default', label: 'Code defaults (500 keV / 1 MeV)', help: 'Already active in every run, no command written.' },
-        { value: 'custom', label: 'Custom' }
+        { value: 'custom', label: 'Custom' },
+        { value: 'off', label: 'Off: no energy cuts', help: 'The primary electron is followed until it stops or leaves the box.' }
       ],
       help: 'The primary electron is stopped once it has lost "stop after" energy, and the whole event is discarded once it has lost "abort after".',
-      tech: '/primaryKiller/eLossMin and /primaryKiller/eLossMax; these commands exist only after /run/initialize. /primaryKiller/minKineticE is not offered: it has no effect (no handler).', refs: SRC.killer }),
+      tech: '/primaryKiller/eLossMin and /primaryKiller/eLossMax; these commands exist only after /run/initialize. dnachem-min has no off switch yet: "Off" sets both to 10 MeV, which a primary electron of at most 1 MeV can never lose. /primaryKiller/minKineticE is not offered: it has no effect (no handler).', refs: SRC.killer }),
     q('eLossMin', { step: 'beam', type: 'quantity', category: 'energy', label: 'Stop the primary after losing', required: true, rule: 'killer', showIf: function (c) { return c.killerMode === 'custom'; }, refs: SRC.killer }),
     q('eLossMax', { step: 'beam', type: 'quantity', category: 'energy', label: 'Abort the event after losing', required: true, rule: 'killer', showIf: function (c) { return c.killerMode === 'custom'; }, refs: SRC.killer }),
 
@@ -326,6 +345,9 @@
   FIELDS.forEach(function (f) { FIELD[f.id] = f; });
 
   function fieldAvailability(cfg, f) { return f.rule ? RULES[f.rule](cfg) : null; }
+  function groupAvailability(cfg, g) { return g && g.rule ? RULES[g.rule](cfg) : null; }
+  // The value a control shows (a field may follow another one, e.g. meso under SBS).
+  function displayValue(cfg, f) { return f.effective ? f.effective(cfg) : get(cfg, f.path); }
   function optionAvailability(cfg, o) { return o.rule ? RULES[o.rule](cfg) : null; }
   function visible(cfg, f) { return !f.showIf || f.showIf(cfg); }
 
@@ -372,12 +394,8 @@
 
     // Chemistry
     if (!chemistryInfo(cfg.chemistry)) add('chemistry', 'invalid', 'Unknown Chemistry "' + cfg.chemistry + '".');
-    if (cfg.model === 'IRT') add('model', 'unsupported', RULES.modeIRT().why, [{ label: 'Use IRT_syn', patch: { model: 'IRT_syn' } }, { label: 'Use SBS', patch: { model: 'SBS', meso: false } }]);
+    if (cfg.model === 'IRT') add('model', 'unsupported', RULES.modeIRT().why, [{ label: 'Use IRT_syn', patch: { model: 'IRT_syn' } }, { label: 'Use SBS', patch: { model: 'SBS' } }]);
     else if (cfg.model !== 'IRT_syn' && cfg.model !== 'SBS') add('model', 'invalid', 'Unknown time-step model "' + cfg.model + '".');
-    if (cfg.model === 'SBS' && cfg.meso) {
-      add('meso', 'incompatible', 'SBS has no mesoscopic stage, but the mesoscopic stage is on: /run/initialize would stop with MesoWithSbs.',
-        [{ label: 'Turn the mesoscopic stage off', patch: { meso: false } }, { label: 'Switch back to IRT_syn', patch: { model: 'IRT_syn' } }]);
-    }
 
     // Timing
     if (cfg.endTimeMode === 'custom') {
@@ -405,9 +423,12 @@
         }
       }
     } else if (mesoCustomized(cfg)) {
+      // Not blocking: the stage being off is a valid choice (SBS turns it off by
+      // itself). The kept values are reported, not dropped, and not written.
       const resolutions = [{ label: 'Discard the mesoscopic settings (restore defaults)', patch: clone(MESO_DEFAULTS) }];
       resolutions.push(cfg.model === 'SBS' ? { label: 'Use IRT_syn with the mesoscopic stage', patch: { model: 'IRT_syn', meso: true } } : { label: 'Turn the mesoscopic stage back on', patch: { meso: true } });
-      add('handOver', 'incompatible', 'Mesoscopic settings were changed, but the mesoscopic stage is off, so they would have no effect. They are not written to the macro.', resolutions);
+      add('handOver', 'warning', 'Mesoscopic settings were changed, but the mesoscopic stage is off' + (cfg.model === 'SBS' ? ' (SBS has none)' : '') +
+        ', so they have no effect. They are kept here but not written to the macro.', resolutions);
     }
     if (cfg.binsMode === 'fixed') {
       unitOk('binWidth', cfg.binWidth, Object.keys(UNITS.time));
@@ -445,8 +466,20 @@
 
     // Beam
     if (['e-', 'proton'].indexOf(cfg.particle) < 0) add('particle', 'invalid', 'Unknown particle "' + cfg.particle + '".');
-    unitOk('energy', cfg.energy, Object.keys(UNITS.energy));
-    positive('energy', cfg.energy, 'Kinetic energy');
+    if (unitOk('energy', cfg.energy, Object.keys(UNITS.energy)) && positive('energy', cfg.energy, 'Kinetic energy') &&
+        cfg.particle === 'e-' && inBase(cfg.energy, 'energy') > E_DNA_MAX_EV) {
+      add('energy', 'unsupported', 'Electrons above 1 MeV are outside the Geant4-DNA electron models (G4EmDNAPhysics_option2, emaxDNA = 1 MeV).',
+        [{ label: 'Set 1 MeV', patch: { energy: { value: '1', unit: 'MeV' } } }]);
+    }
+    if (unitOk('beamZ', cfg.beamZ, Object.keys(UNITS.length))) {
+      const z = num(cfg.beamZ.value), half = inBase(cfg.halfBox, 'length');
+      if (z.empty) add('beamZ', 'incomplete', 'Start position is required (0 is the box centre).');
+      else if (z.bad) add('beamZ', 'invalid', 'Start position: "' + cfg.beamZ.value + '" is not a number.');
+      else if (half > 0 && UNITS.length[cfg.halfBox.unit] && Math.abs(inBase(cfg.beamZ, 'length')) >= half) {
+        add('beamZ', 'invalid', 'The start position must be strictly inside the water box: |z| < half side (' + qty(cfg.halfBox) + ').',
+          [{ label: 'Start at the box centre', patch: { beamZ: { value: '0', unit: cfg.beamZ.unit } } }]);
+      }
+    }
     if (cfg.killerMode === 'custom') {
       if (!killerApplies(cfg)) {
         add('killerMode', 'incompatible', RULES.killer(cfg).why + ' The custom cuts are not written.',
@@ -548,9 +581,10 @@
     cmd('/chem/select ' + cfg.chemistry, 'chemistry');
     c('Chemistry time-step model and mesoscopic stage');
     cmd('/process/chem/TimeStepModel ' + cfg.model, 'model');
-    // The user's own value, even when it conflicts (SBS + on): the preview must not
-    // substitute behaviour; validation flags the line and blocks export instead.
-    cmd('/chem/meso/enable ' + (cfg.meso ? 'true' : 'false'), 'meso');
+    // SBS has no mesoscopic stage and the code turns it off itself; an explicit
+    // "true" would be fatal, so nothing is written for it under SBS.
+    if (cfg.model === 'SBS') c('SBS: no mesoscopic stage (off automatically)');
+    else cmd('/chem/meso/enable ' + (cfg.meso ? 'true' : 'false'), 'meso');
     if (meso) {
       if (!sameQ(cfg.handOver, MESO_DEFAULTS.handOver)) cmd('/chem/meso/handOverTime ' + qty(cfg.handOver), 'handOver');
       if (!sameQ(cfg.voxel, MESO_DEFAULTS.voxel)) cmd('/chem/meso/voxelSize ' + qty(cfg.voxel), 'voxel');
@@ -582,13 +616,20 @@
       c('Chemistry end time (overrides the ' + (meso ? '1 s' : '1 us') + ' mode default)');
       cmd('/scheduler/endTime ' + qty(cfg.endTime), 'endTime');
     }
-    c('Beam: starts at (0, 0, 0) along +z (fixed in PrimaryGeneratorAction)');
+    const zMoved = num(cfg.beamZ.value).value !== undefined && num(cfg.beamZ.value).value !== 0;
+    c('Beam: starts at (0, 0, ' + (zMoved ? qty(cfg.beamZ) : '0') + ') along +z');
     cmd('/gun/particle ' + cfg.particle, 'particle');
     cmd('/gun/energy ' + qty(cfg.energy), 'energy');
+    if (zMoved) cmd('/gun/position 0 0 ' + qty(cfg.beamZ), 'beamZ');
     if (cfg.killerMode === 'custom' && killerApplies(cfg)) {
       c('Primary-electron energy cuts (code defaults 500 keV / 1 MeV)');
       cmd('/primaryKiller/eLossMin ' + qty(cfg.eLossMin), 'eLossMin');
       cmd('/primaryKiller/eLossMax ' + qty(cfg.eLossMax), 'eLossMax');
+    } else if (cfg.killerMode === 'off' && killerApplies(cfg)) {
+      c('Primary-electron energy cuts off: no off switch exists yet, so both thresholds are');
+      c('set to ' + qty(KILLER_OFF) + ', which a primary electron of at most 1 MeV can never lose.');
+      cmd('/primaryKiller/eLossMin ' + qty(KILLER_OFF), 'killerMode');
+      cmd('/primaryKiller/eLossMax ' + qty(KILLER_OFF), 'killerMode');
     }
 
     cfg.runs.forEach(function (r, i) {
@@ -618,7 +659,8 @@
       ['Time-step model', cfg.model + (meso ? ' + mesoscopic stage' : ', no mesoscopic stage')],
       ['End time', describeSeconds(endTimeSeconds(cfg)) + (cfg.endTimeMode === 'custom' ? '' : ' (default)')],
       ['Water box', 'half side ' + qty(cfg.halfBox) + (cfg.o2 ? ', O2 ' + cfg.o2Value.value + ' ' + cfg.o2Value.unit : ', no O2')],
-      ['Beam', cfg.particle + ', ' + cfg.energy.value + ' ' + cfg.energy.unit],
+      ['Beam', cfg.particle + ', ' + cfg.energy.value + ' ' + cfg.energy.unit + ', from z = ' + cfg.beamZ.value + ' ' + cfg.beamZ.unit +
+        (cfg.particle === 'e-' ? ', energy cuts ' + ({ default: 'default', custom: 'custom', off: 'off' })[cfg.killerMode] : '')],
       ['Runs', cfg.runs.length + ' sub-run' + (cfg.runs.length === 1 ? '' : 's') + ', ' + events + ' event' + (events === 1 ? '' : 's') + ', ' + dumps + ' dump' + (dumps === 1 ? '' : 's')]
     ];
   }
@@ -634,7 +676,8 @@
   }
 
   return {
-    STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES,
+    STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES, KILLER_OFF: KILLER_OFF,
+    groupAvailability: groupAvailability, displayValue: displayValue,
     defaults: defaults, normalize: normalize, applyPatch: applyPatch, get: get, validate: validate, errors: errors,
     generate: generate, summary: summary, sanitizeFilename: sanitizeFilename, fieldAvailability: fieldAvailability,
     optionAvailability: optionAvailability, visible: visible, mesoOn: mesoOn, endTimeSeconds: endTimeSeconds,

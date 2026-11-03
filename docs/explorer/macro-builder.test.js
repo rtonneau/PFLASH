@@ -47,39 +47,61 @@ test('ordering: PreInit commands before /run/initialize, the rest after', () => 
   assert.strictEqual(L.filter(l => l === '/run/initialize').length, 1);
 });
 
-test('SBS with the mesoscopic stage on is incompatible and offers explicit resolutions', () => {
+test('SBS turns the mesoscopic stage off automatically: no error, no meso line, IRT_syn choice kept', () => {
   const cfg = P({ model: 'SBS' });
-  const issue = M.validate(cfg).filter(i => i.field === 'meso')[0];
-  assert.strictEqual(issue.kind, 'incompatible');
-  assert.strictEqual(issue.severity, 'error');
-  assert.deepStrictEqual(issue.resolutions.map(r => r.patch), [{ meso: false }, { model: 'IRT_syn' }]);
-  // Nothing is changed silently: the configuration still has meso on.
+  assert.deepStrictEqual(errs(cfg), []);
+  assert.ok(!M.validate(cfg).some(i => i.field === 'meso'));
+  // The kept IRT_syn choice is not changed, only overridden for display and output.
   assert.strictEqual(cfg.meso, true);
-  // ...and the preview shows the user's value (flagged), not a substituted one.
-  assert.ok(cmds(cfg).indexOf('/chem/meso/enable true') >= 0);
-  assert.ok(M.generate(cfg).lines.some(l => l.field === 'meso' && l.text === '/chem/meso/enable true'));
-  const fixed = M.applyPatch(cfg, issue.resolutions[0].patch);
-  assert.deepStrictEqual(errs(fixed), []);
-  assert.ok(cmds(fixed).indexOf('/process/chem/TimeStepModel SBS') >= 0);
-  assert.ok(cmds(fixed).indexOf('/chem/meso/enable false') >= 0);
+  assert.strictEqual(M.displayValue(cfg, M.FIELD.meso), false);
+  assert.strictEqual(M.displayValue(D(), M.FIELD.meso), true);
+  assert.ok(cmds(cfg).indexOf('/process/chem/TimeStepModel SBS') >= 0);
+  assert.ok(!cmds(cfg).some(l => /^\/chem\/meso\//.test(l)), 'no /chem/meso command under SBS');
+  assert.strictEqual(M.endTimeSeconds(cfg), 1e-6);
+  // Switching back restores the meso choice.
+  assert.ok(cmds(P({ model: 'IRT_syn' }, cfg)).indexOf('/chem/meso/enable true') >= 0);
 });
 
-test('availability: SBS unselectable while meso is on; meso on unselectable under SBS; IRT unsupported', () => {
-  const model = M.FIELD.model.options, meso = M.FIELD.meso.options;
-  const sbs = model.filter(o => o.value === 'SBS')[0], irt = model.filter(o => o.value === 'IRT')[0], on = meso.filter(o => o.value === true)[0];
-  const a = M.optionAvailability(D(), sbs);
-  assert.strictEqual(a.kind, 'incompatible');
-  assert.deepStrictEqual(a.fix.patch, { meso: false });
-  assert.strictEqual(M.optionAvailability(P({ meso: false }), sbs), null);
-  assert.strictEqual(M.optionAvailability(P({ model: 'SBS', meso: false }), on).kind, 'incompatible');
+test('availability: the meso control is automatic under SBS; SBS always selectable; IRT unsupported', () => {
+  const model = M.FIELD.model.options;
+  const sbs = model.filter(o => o.value === 'SBS')[0], irt = model.filter(o => o.value === 'IRT')[0];
+  assert.strictEqual(M.optionAvailability(D(), sbs), null);
+  const a = M.fieldAvailability(P({ model: 'SBS' }), M.FIELD.meso);
+  assert.strictEqual(a.kind, 'automatic');
+  assert.deepStrictEqual(a.fix.patch, { model: 'IRT_syn' });
+  assert.strictEqual(M.fieldAvailability(D(), M.FIELD.meso), null);
   assert.strictEqual(M.optionAvailability(D(), irt).kind, 'unsupported');
-  assert.strictEqual(M.validate(P({ model: 'IRT' })).filter(i => i.field === 'model')[0].kind, 'unsupported');
+  const irtIssue = M.validate(P({ model: 'IRT' })).filter(i => i.field === 'model')[0];
+  assert.strictEqual(irtIssue.kind, 'unsupported');
+  assert.deepStrictEqual(irtIssue.resolutions.map(r => r.patch), [{ model: 'IRT_syn' }, { model: 'SBS' }]);
+});
+
+test('step 3 groups: timing and mesoscopic fields are separated', () => {
+  const step = M.STEPS.filter(s => s.id === 'timing')[0];
+  assert.deepStrictEqual(step.groups.map(g => g.id), ['time', 'meso']);
+  const ids = g => M.FIELDS.filter(f => f.step === 'timing' && f.group === g).map(f => f.id);
+  assert.deepStrictEqual(ids('time'), ['endTimeMode', 'endTime', 'binsMode', 'binWidth', 'binList']);
+  assert.deepStrictEqual(ids('meso'), ['handOver', 'voxel', 'timesPerDecade', 'spatialOutput']);
+  assert.ok(M.FIELDS.filter(f => f.step === 'timing').every(f => f.group), 'every timing field is in a group');
+  assert.strictEqual(M.groupAvailability(D(), step.groups[1]), null);
+  assert.strictEqual(M.groupAvailability(P({ model: 'SBS' }), step.groups[1]).kind, 'incompatible');
+});
+
+test('every Chemistry option links to its Module map entry', () => {
+  const text = fs.readFileSync(path.join(__dirname, 'architecture.json'), 'utf8');
+  const ids = new Set((text.match(/"id":\s*"[^"]+"/g) || []).map(x => /"([^"]+)"$/.exec(x)[1]));
+  M.FIELD.chemistry.options.forEach(o => {
+    assert.ok(o.link && o.link.node, o.value + ' has a link');
+    assert.ok(ids.has(o.link.node), o.value + ': unknown Module map node ' + o.link.node);
+  });
 });
 
 test('mesoscopic settings: inert when the stage is off, reported, never emitted; resolution restores defaults only', () => {
   const cfg = P({ meso: false, handOver: { value: '20', unit: 'ns' }, spatialOutput: true, pH: '6' });
-  const issue = M.validate(cfg).filter(i => i.kind === 'incompatible')[0];
+  const issue = M.validate(cfg).filter(i => i.field === 'handOver')[0];
   assert.ok(issue && /mesoscopic stage is off/.test(issue.message));
+  assert.strictEqual(issue.severity, 'warning', 'not blocking');
+  assert.deepStrictEqual(errs(cfg), []);
   assert.ok(!cmds(cfg).some(l => /handOverTime|spatialOutput/.test(l)));
   assert.strictEqual(M.fieldAvailability(cfg, M.FIELD.handOver).kind, 'incompatible');
   const fixed = M.applyPatch(cfg, issue.resolutions[0].patch);
@@ -159,6 +181,48 @@ test('beam: energy required; primary-killer cuts incompatible with protons', () 
   assert.ok(cmds(fixed).indexOf('/gun/energy 90 MeV') >= 0);
   const warn = P({ killerMode: 'custom', eLossMin: { value: '2', unit: 'keV' }, eLossMax: { value: '1', unit: 'keV' } });
   assert.ok(M.validate(warn).some(i => i.field === 'eLossMax' && i.severity === 'warning'));
+});
+
+test('beam: electrons above 1 MeV are unsupported (Geant4-DNA limit); protons are not limited', () => {
+  assert.deepStrictEqual(errs(P({ energy: { value: '1', unit: 'MeV' } })), []);
+  const over = P({ energy: { value: '1001', unit: 'keV' } });
+  const issue = M.validate(over).filter(i => i.field === 'energy')[0];
+  assert.strictEqual(issue.kind, 'unsupported');
+  assert.strictEqual(issue.severity, 'error');
+  const fixed = M.applyPatch(over, issue.resolutions[0].patch);
+  assert.deepStrictEqual(errs(fixed), []);
+  assert.ok(cmds(fixed).indexOf('/gun/energy 1 MeV') >= 0);
+  assert.deepStrictEqual(errs(P({ particle: 'proton', energy: { value: '90', unit: 'MeV' } })), []);
+});
+
+test('beam: start position on the z axis, strictly inside the box', () => {
+  assert.ok(!cmds(D()).some(l => /\/gun\/position/.test(l)), 'centre: no position command');
+  const up = P({ beamZ: { value: '-400', unit: 'um' } });
+  assert.deepStrictEqual(errs(up), []);
+  const L = cmds(up);
+  assert.ok(L.indexOf('/gun/position 0 0 -400 um') > idx(L, '/run/initialize'));
+  assert.ok(L.indexOf('/gun/position 0 0 -400 um') < idx(L, '/run/beamOn'));
+  assert.ok(/starts at \(0, 0, -400 um\) along \+z/.test(M.generate(up).text));
+  assert.ok(kinds(P({ beamZ: { value: '500', unit: 'um' } })).indexOf('beamZ:invalid') >= 0, 'on the face is outside');
+  assert.ok(kinds(P({ beamZ: { value: '-1', unit: 'mm' } })).indexOf('beamZ:invalid') >= 0);
+  assert.ok(kinds(P({ beamZ: { value: '6', unit: 'um' }, halfBox: { value: '5', unit: 'um' } })).indexOf('beamZ:invalid') >= 0, 'follows the box size');
+  assert.ok(kinds(P({ beamZ: { value: '', unit: 'um' } })).indexOf('beamZ:incomplete') >= 0);
+  assert.ok(kinds(P({ beamZ: { value: 'x', unit: 'um' } })).indexOf('beamZ:invalid') >= 0);
+  const bad = P({ beamZ: { value: '600', unit: 'um' } });
+  assert.deepStrictEqual(errs(M.applyPatch(bad, M.validate(bad).filter(i => i.field === 'beamZ')[0].resolutions[0].patch)), []);
+});
+
+test('beam: primary-electron energy cuts can be turned off (10 MeV emulation)', () => {
+  const off = P({ killerMode: 'off' });
+  assert.deepStrictEqual(errs(off), []);
+  const L = cmds(off);
+  assert.ok(L.indexOf('/primaryKiller/eLossMin 10 MeV') > idx(L, '/run/initialize'));
+  assert.ok(L.indexOf('/primaryKiller/eLossMax 10 MeV') < idx(L, '/run/beamOn'));
+  // Unreachable: a primary electron is at most 1 MeV.
+  assert.ok(M.validate(P({ killerMode: 'off', energy: { value: '2', unit: 'MeV' } })).some(i => i.field === 'energy' && i.kind === 'unsupported'));
+  const proton = P({ killerMode: 'off', particle: 'proton', energy: { value: '90', unit: 'MeV' } });
+  assert.deepStrictEqual(errs(proton), []);
+  assert.ok(!cmds(proton).some(l => /primaryKiller/.test(l)));
 });
 
 test('runs: events, seeds, dump names and uniqueness', () => {
@@ -251,11 +315,11 @@ test('generated commands exist in the project or are standard Geant4 commands', 
     'src/geometry/ScavengerMessenger.cc', 'src/core/OutputDirMessenger.cc', 'src/scoring/PrimaryKiller.cc',
     'src/scoring/RunAccumulatorMessenger.cc', 'src/geometry/DnaChemistryWorld.cc', 'src/chemistry/DnaChemistryList.cc']
     .map(f => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
-  const geant4 = ['/run/initialize', '/run/beamOn', '/run/verbose', '/tracking/verbose', '/random/setSeeds', '/gun/particle', '/gun/energy',
+  const geant4 = ['/run/initialize', '/run/beamOn', '/run/verbose', '/tracking/verbose', '/random/setSeeds', '/gun/particle', '/gun/energy', '/gun/position',
     '/process/dna/e-SolvationSubType', '/process/chem/TimeStepModel', '/scheduler/endTime'];
   const cfg = P({ logLevel: 'Info', runVerbose: '1', trackingVerbose: '1', solvation: 'Ritchie1994', endTimeMode: 'custom', handOver: { value: '10', unit: 'ns' },
     voxel: { value: '10', unit: 'nm' }, timesPerDecade: '5', spatialOutput: true, binsMode: 'list', o2: true, pH: '8', halfBox: { value: '10', unit: 'um' },
-    outputDirMode: 'custom', outputDir: 'out', killerMode: 'custom', runs: [{ events: '1', seeds: '1 2', dump: 'dir', name: 'a' }, { events: '1', seeds: '', dump: 'reset', name: '' }] });
+    outputDirMode: 'custom', outputDir: 'out', killerMode: 'custom', beamZ: { value: '-1', unit: 'um' }, runs: [{ events: '1', seeds: '1 2', dump: 'dir', name: 'a' }, { events: '1', seeds: '', dump: 'reset', name: '' }] });
   const generated = new Set(cmds(cfg).map(l => l.split(' ')[0]));
   generated.forEach(c => {
     if (geant4.indexOf(c) >= 0) return;
