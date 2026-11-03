@@ -163,4 +163,7 @@ find_program(NODE_EXECUTABLE node)
 if(NODE_EXECUTABLE)
   add_test(NAME ExplorerCheck
            COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/check.js)
+  # Macro builder model: command generation, ordering, compatibility, validation.
+  add_test(NAME MacroBuilderTest
+           COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/docs/explorer/macro-builder.test.js)
 endif()

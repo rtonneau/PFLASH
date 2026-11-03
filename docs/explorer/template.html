@@ -281,8 +281,113 @@
   .chip-out, code { overflow-wrap:anywhere; }
   #detail h2:focus { outline-offset:4px; }
 
+  /* ---- macro builder: guide in #stage, live preview in #detail ---- */
+  :root { --bad:#a3271f; --bad-soft:#fdeeec; --ok:#1d6b3a; --ok-soft:#eaf6ee; }
+  main.building { grid-template-columns:minmax(0,1fr) minmax(370px,42%); }
+  .b-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 14px; }
+  .b-btn { min-height:40px; padding:7px 14px; border:1px solid var(--line-strong); border-radius:7px; background:var(--surface); cursor:pointer; font-size:13.5px; font-weight:600; }
+  .b-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .b-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .b-btn.primary:hover:not(:disabled) { background:#174ca8; color:#fff; }
+  .b-btn.danger { border-color:var(--bad); color:var(--bad); }
+  .b-btn:disabled { cursor:not-allowed; color:var(--muted); background:var(--sunk); border-color:var(--line); }
+  .b-btn.small { min-height:34px; padding:4px 10px; font-size:13px; }
+  .b-confirm { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; margin:0 0 14px; border:1px solid var(--bad); border-left-width:4px; border-radius:var(--radius); background:var(--bad-soft); }
+  .b-confirm p { margin:0; flex:1 1 260px; font-size:14px; }
+  .b-steps { list-style:none; margin:0 0 18px; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:6px; }
+  .b-steps button { width:100%; height:100%; display:block; text-align:left; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--surface); cursor:pointer; font-size:13px; line-height:1.3; }
+  .b-steps button:hover { border-color:var(--accent); }
+  .b-steps button[aria-current=step] { border:2px solid var(--accent); padding:6px 9px; background:var(--accent-soft); }
+  .b-steps .n { flex:none; display:grid; place-items:center; width:22px; height:22px; border-radius:50%; border:2px solid var(--line-strong); font-weight:700; font-size:12px; color:var(--muted); }
+  .b-steps button[aria-current=step] .n { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .b-steps .top { display:flex; gap:6px; align-items:center; }
+  .b-steps b { font-weight:600; }
+  .b-steps .st { display:block; margin-top:3px; font-size:12px; color:var(--muted); }
+  .b-steps .st.bad { color:var(--bad); font-weight:600; }
+  .b-steps .st.ok { color:var(--ok); }
+  .b-panel { max-width:760px; }
+  .b-panel > h3 { margin:0 0 4px; font-size:19px; }
+  .b-panel > h3:focus { outline-offset:4px; }
+  .b-panel > .intro { margin-bottom:12px; }
+  .b-field { margin:0 0 14px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); min-width:0; }
+  .b-field.has-error { border-color:var(--bad); border-left:4px solid var(--bad); }
+  .b-field.unavailable { background:var(--sunk); }
+  fieldset.b-field > legend, .b-field > .b-label { padding:0; font-weight:600; font-size:14.5px; display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  fieldset.b-field > legend { float:left; width:100%; margin-bottom:2px; }
+  fieldset.b-field > legend + * { clear:both; }
+  .b-req { font-size:11.5px; font-weight:600; padding:0 7px; border-radius:999px; border:1px solid var(--line-strong); color:var(--muted); background:var(--surface); }
+  .b-req.required { border-color:var(--accent); color:var(--accent); }
+  .b-help { margin:2px 0 8px; color:var(--muted); font-size:13.5px; }
+  .b-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .b-input input[type=text] { min-height:40px; padding:7px 10px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); color:var(--fg); }
+  .b-input input.b-wide { flex:1 1 260px; }
+  .b-input input.b-num { width:12ch; }
+  .b-input select { min-height:40px; padding:6px 8px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); color:var(--fg); }
+  .b-input input:disabled, .b-input select:disabled { background:var(--sunk); color:var(--muted); }
+  .b-input input[aria-invalid=true] { border-color:var(--bad); box-shadow:inset 0 0 0 1px var(--bad); }
+  .b-opts { display:grid; gap:6px; margin:4px 0 0; }
+  .b-opt { display:flex; gap:9px; align-items:flex-start; padding:7px 10px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-size:14px; }
+  .b-opt input { margin:3px 0 0; accent-color:var(--accent); flex:none; width:16px; height:16px; }
+  .b-opt input:focus-visible { outline:none; }
+  .b-opt:has(input:focus-visible) { outline:3px solid var(--accent); outline-offset:2px; }
+  .b-opt:has(input:checked) { border-color:var(--accent); background:var(--accent-soft); }
+  .b-opt:has(input:checked) > span > b { color:var(--accent); }
+  .b-opt b { font-weight:600; }
+  .b-opt small { display:block; color:var(--muted); font-size:12.5px; }
+  .b-opt.off { cursor:not-allowed; border-style:dashed; background:var(--sunk); }
+  .b-opt.off b { color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+  .b-opt.off:has(input:checked) b { text-decoration:none; }
+  .b-why { display:block; margin-top:4px; padding:4px 8px; border-left:3px solid var(--line-strong); background:var(--surface); color:var(--fg); font-size:12.5px; }
+  .b-why .k { font-weight:700; }
+  .b-why .b-btn { margin-top:4px; }
+  .b-unavail { margin:0 0 8px; padding:6px 10px; border-left:3px solid var(--line-strong); background:var(--surface); font-size:13px; }
+  .b-issues { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
+  .b-issue { padding:7px 10px; border-radius:6px; font-size:13.5px; border:1px solid; }
+  .b-issue .k { font-weight:700; margin-right:4px; }
+  .b-issue.error { border-color:var(--bad); background:var(--bad-soft); color:#5c140f; }
+  .b-issue.warning { border-color:var(--review-line); background:var(--review-soft); color:#5a3500; }
+  .b-issue.info { border-color:var(--accent-line); background:var(--accent-soft); color:#163c80; }
+  .b-issue .acts { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .b-tech { margin-top:8px; font-size:13px; }
+  .b-tech > summary { cursor:pointer; color:var(--accent); font-weight:600; min-height:28px; }
+  .b-tech p { margin:6px 0; }
+  .b-tech ul { margin:4px 0 0; padding-left:18px; }
+  .b-run { margin:0 0 10px; padding:10px 12px; border:1px solid var(--line); border-radius:7px; }
+  .b-run > legend { font-weight:600; padding:0 4px; }
+  .b-run .row { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; margin:4px 0; }
+  .b-run label.lbl { display:flex; flex-direction:column; gap:3px; font-size:13px; font-weight:600; }
+  .b-run .b-opts { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+  .b-pager { display:flex; justify-content:space-between; gap:8px; max-width:760px; margin-top:18px; }
+  .b-switch { display:none; }
+  .b-sum { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:3px 12px; margin:8px 0 12px; font-size:13px; }
+  .b-sum dt { color:var(--muted); }
+  .b-sum dd { margin:0; overflow-wrap:anywhere; }
+  .b-status { display:flex; gap:8px; align-items:flex-start; padding:8px 10px; border-radius:7px; border:1px solid; font-size:13.5px; }
+  .b-status.bad { border-color:var(--bad); background:var(--bad-soft); color:#5c140f; }
+  .b-status.ok { border-color:var(--ok); background:var(--ok-soft); color:#123f22; }
+  .b-status .ic { font-weight:700; }
+  .b-pre { margin:8px 0 0; padding:10px 0; background:#f7f8fa; border:1px solid var(--line); border-radius:7px; font:12.5px/1.5 var(--mono); overflow:auto; max-height:60vh; white-space:pre-wrap; overflow-wrap:anywhere; counter-reset:bline; }
+  .b-pre span { display:block; padding:0 10px 0 40px; position:relative; min-height:1.5em; }
+  .b-pre span::before { counter-increment:bline; content:counter(bline); position:absolute; left:0; width:30px; text-align:right; color:#666e7c; user-select:none; }
+  .b-pre span.c { color:#4f5866; }
+  .b-pre span.bad { background:var(--bad-soft); box-shadow:inset 3px 0 0 var(--bad); }
+  .b-pre span.bad::after { content:'  \2190 fix'; color:var(--bad); font-weight:700; user-select:none; }
+  .b-file { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .b-export { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .b-note { font-size:13px; color:var(--muted); }
+  .b-review h4 { margin:16px 0 6px; font-size:14px; }
+
   /* ---- narrow screens ---- */
   @media (max-width: 900px) {
+    main.building.show-preview #detail { display:block; border-top:0; }
+    main.building.show-preview #stage { display:none; }
+    main.building:not(.show-preview) #detail { display:none; }
+    .b-switch { display:flex; gap:6px; position:sticky; top:var(--header-height, 96px); z-index:4; padding:8px 0; background:var(--bg); }
+    main.building.show-preview .b-switch { padding:8px 12px; }
+    .b-switch button { flex:1; min-height:44px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); cursor:pointer; font-weight:600; font-size:13.5px; }
+    .b-switch button[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+    .b-switch small { display:block; font-weight:400; font-size:12px; }
+    .b-pre { max-height:none; }
     main { display:block; }
     #detail { position:static; overflow:visible; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
     [role=tablist] { margin-left:0; }
@@ -344,6 +449,10 @@
   <aside id="detail" aria-live="polite" aria-label="Details"></aside>
 </main>
 <div id="copy-status" class="sr-only" role="status" aria-atomic="true"></div>
+<div id="builder-status" class="sr-only" role="status" aria-atomic="true"></div>
+<script>
+/*__MACRO_BUILDER_JS__*/
+</script>
 <script>
 const DATA = /*__ARCHITECTURE_JSON__*/null;
 
@@ -1055,7 +1164,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
         card.appendChild(note);
         onActivate(card, function () { go('flow', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
         flowCards[s.id] = card;
-        const li = el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? modePicker() : null]);
+        const li = el('li', {}, [el('span', { class: 'b-num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? modePicker() : null]);
         flowParts[s.id] = { card: card, tag: tag, note: note, li: li };
         ol.appendChild(li);
       });
@@ -1139,21 +1248,494 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     ));
   }
 
+  // ---- macro builder ----
+  // The guide, the validation and the preview all read one configuration through
+  // the model in macro-builder.js (window.MacroBuilder): nothing here decides what
+  // a command means, which values are valid or which choices are compatible.
+  const MB = window.MacroBuilder;
+  const BUILDER_KEY = 'dnachem-min-explorer-macro-builder';
+  const builderStepById = {};
+  MB.STEPS.forEach(function (s, i) { s.index = i; builderStepById[s.id] = s; });
+  const KIND_LABEL = { incomplete: 'Incomplete', invalid: 'Invalid', incompatible: 'Incompatible', unsupported: 'Unsupported', warning: 'Note', info: 'Info' };
+  const SEVERITY_LABEL = { error: 'Must fix', warning: 'Warning', info: 'Info' };
+  let bcfg = loadBuilder();
+  let bstep = 'basics';
+  let bissues = [];
+  let bconfirm = null;        // pending confirmation: { kind: 'reset' | 'smoke' }
+  let bpendingFocus = null;   // data-bkey (or field id) to focus after the next render
+  let bui = null;             // elements of the rendered builder
+  let bExportNote = '';
+  function loadBuilder() {
+    try { const s = window.sessionStorage && sessionStorage.getItem(BUILDER_KEY); if (s) return MB.normalize(JSON.parse(s)); } catch (e) { /* storage unavailable */ }
+    return MB.defaults();
+  }
+  function saveBuilder() { try { if (window.sessionStorage) sessionStorage.setItem(BUILDER_KEY, JSON.stringify(bcfg)); } catch (e) { /* storage unavailable */ } }
+  function announce(text) {
+    const s = document.getElementById('builder-status');
+    s.textContent = '';
+    setTimeout(function () { s.textContent = text; }, 30);
+  }
+  function setCfg(next, focusKey) {
+    bcfg = MB.normalize(next);
+    saveBuilder();
+    if (focusKey) bpendingFocus = focusKey;
+    refreshBuilder();
+  }
+  function patch(p, focusKey) { setCfg(MB.applyPatch(bcfg, p), focusKey); }
+  function issuesFor(fieldId) {
+    return bissues.filter(function (i) { return i.field === fieldId || i.field.indexOf(fieldId + '.') === 0; });
+  }
+  function hasError(fieldId) { return issuesFor(fieldId).some(function (i) { return i.severity === 'error'; }); }
+  function stepIssues(stepId) { return bissues.filter(function (i) { return i.step === stepId; }); }
+
+  function renderBuilder() {
+    stage.classList.remove('connections-mode');
+    stage.appendChild(el('h2', { class: 'view-heading', text: 'Macro builder' }));
+    stage.appendChild(el('p', { class: 'intro', text: 'Create a simulation macro (.in file) for dnachem-min, step by step. The macro preview updates as you change settings. ' +
+      'The checks compare your choices with the current dnachem-min code; they do not run the simulation.' }));
+    bui = { switches: [] };
+    stage.appendChild(switchBar());
+    bui.tools = el('div', { class: 'b-tools' });
+    stage.appendChild(bui.tools);
+    bui.confirm = el('div', { class: 'b-confirm', role: 'alertdialog', 'aria-labelledby': 'b-confirm-text', hidden: '' });
+    stage.appendChild(bui.confirm);
+    bui.steps = el('ol', { class: 'b-steps', 'aria-label': 'Builder steps' });
+    stage.appendChild(el('nav', { 'aria-label': 'Macro builder progress' }, [bui.steps]));
+    bui.panel = el('section', { class: 'b-panel', 'aria-labelledby': 'b-step-heading' });
+    stage.appendChild(bui.panel);
+    bui.back = el('button', { type: 'button', class: 'b-btn' });
+    bui.next = el('button', { type: 'button', class: 'b-btn primary' });
+    bui.back.addEventListener('click', function () { const s = builderStepById[bstep]; if (s.index > 0) go('builder', MB.STEPS[s.index - 1].id, true); });
+    bui.next.addEventListener('click', function () { const s = builderStepById[bstep]; if (s.index < MB.STEPS.length - 1) go('builder', MB.STEPS[s.index + 1].id, true); });
+    stage.appendChild(el('div', { class: 'b-pager' }, [bui.back, bui.next]));
+
+    // The preview lives in the side panel; it is rebuilt in place on every change.
+    detail.textContent = '';
+    detail.appendChild(switchBar());
+    bui.previewHeading = el('h2', { tabindex: '-1', text: 'Macro preview' });
+    bui.status = el('div', { class: 'b-status' });
+    bui.summary = el('dl', { class: 'b-sum', 'aria-label': 'Configuration summary' });
+    bui.copy = el('button', { type: 'button', class: 'b-btn small' , text: 'Copy macro' });
+    bui.copy.addEventListener('click', function () {
+      copyText(MB.generate(bcfg).text).then(function () { announce('Macro copied to the clipboard.'); bui.copy.textContent = 'Copied'; },
+        function () { announce('Could not copy the macro.'); bui.copy.textContent = 'Copy failed'; });
+      setTimeout(function () { bui.copy.textContent = 'Copy macro'; }, 1400);
+    });
+    bui.pre = el('pre', { class: 'b-pre', tabindex: '0', 'aria-label': 'Generated macro' });
+    detail.append(bui.previewHeading, bui.status, bui.summary, el('div', { class: 'b-export' }, [bui.copy]), bui.pre,
+      el('p', { class: 'b-note', text: 'Lines marked "fix" belong to a setting with a problem. Comments (#) are ignored by Geant4.' }));
+    detail.scrollTop = 0;
+  }
+  function switchBar() {
+    const guide = el('button', { type: 'button', 'aria-pressed': 'true' }, ['Guide']);
+    const prev = el('button', { type: 'button', 'aria-pressed': 'false' }, ['Preview', el('small')]);
+    guide.addEventListener('click', function () { showPane(false); });
+    prev.addEventListener('click', function () { showPane(true); });
+    bui.switches.push({ guide: guide, prev: prev });
+    return el('div', { class: 'b-switch', role: 'group', 'aria-label': 'Show guide or preview' }, [guide, prev]);
+  }
+  function showPane(preview) {
+    main.classList.toggle('show-preview', preview);
+    bui.switches.forEach(function (s) {
+      s.guide.setAttribute('aria-pressed', preview ? 'false' : 'true');
+      s.prev.setAttribute('aria-pressed', preview ? 'true' : 'false');
+    });
+    window.scrollTo(0, 0);
+    const target = preview ? bui.switches[1].prev : bui.switches[0].guide;
+    target.focus({ preventScroll: true });
+  }
+
+  function selectBuilder(id) {
+    bstep = id && builderStepById[id] ? id : 'basics';
+    bconfirm = null;
+    main.classList.remove('show-preview');
+    if (bui) bui.switches.forEach(function (s) { s.guide.setAttribute('aria-pressed', 'true'); s.prev.setAttribute('aria-pressed', 'false'); });
+    refreshBuilder();
+  }
+
+  function refreshBuilder() {
+    if (!bui) return;
+    bissues = MB.validate(bcfg);
+    const gen = MB.generate(bcfg);
+    const errorCount = MB.errors(bissues).length;
+    const warnCount = bissues.filter(function (i) { return i.severity === 'warning'; }).length;
+
+    // Tools and reset confirmation.
+    bui.tools.textContent = '';
+    const smoke = el('button', { type: 'button', class: 'b-btn small', text: 'Use the quick smoke-test preset' });
+    smoke.addEventListener('click', function () {
+      if (MB.changedCount(bcfg) > 0) { bconfirm = { kind: 'smoke' }; refreshBuilder(); bui.confirm.querySelector('button').focus(); }
+      else applySmoke();
+    });
+    const reset = el('button', { type: 'button', class: 'b-btn small', text: 'Reset all settings…', 'data-bkey': 'tool:reset' });
+    reset.addEventListener('click', function () { bconfirm = { kind: 'reset' }; refreshBuilder(); bui.confirm.querySelector('button').focus(); });
+    bui.tools.append(smoke, reset, el('span', { class: 'b-note', text: MB.changedCount(bcfg) + ' setting(s) changed from the defaults.' }));
+    bui.confirm.textContent = '';
+    bui.confirm.hidden = !bconfirm;
+    if (bconfirm) {
+      const n = MB.changedCount(bcfg);
+      const text = bconfirm.kind === 'reset' ?
+        'Reset every setting to its default? The ' + n + ' setting(s) you changed, the sub-runs and the file name will be lost.' :
+        'Apply the smoke-test preset? It sets a 1 ms end time, 10 keV electrons and replaces your sub-runs with one run of 2 events. Your other settings stay.';
+      const yes = el('button', { type: 'button', class: 'b-btn danger small', text: bconfirm.kind === 'reset' ? 'Reset everything' : 'Apply the preset' });
+      const no = el('button', { type: 'button', class: 'b-btn small', text: 'Cancel' });
+      yes.addEventListener('click', function () {
+        const kind = bconfirm.kind; bconfirm = null;
+        if (kind === 'reset') { bcfg = MB.defaults(); saveBuilder(); announce('All settings reset to the defaults.'); go('builder', 'basics', true); refreshBuilder(); bui.panel.querySelector('h3').focus(); }
+        else applySmoke();
+      });
+      no.addEventListener('click', function () { bconfirm = null; bpendingFocus = 'tool:reset'; refreshBuilder(); });
+      bui.confirm.append(el('p', { id: 'b-confirm-text', text: text }), yes, no);
+    }
+
+    // Progress.
+    bui.steps.textContent = '';
+    MB.STEPS.forEach(function (s, i) {
+      const own = stepIssues(s.id);
+      const errs = own.filter(function (x) { return x.severity === 'error'; }).length;
+      let st, cls = '';
+      if (s.id === 'review') { st = errorCount ? errorCount + ' to fix overall' : 'Ready to export'; cls = errorCount ? 'bad' : 'ok'; }
+      else if (errs) { st = '✕ ' + errs + ' to fix'; cls = 'bad'; }
+      else { st = '✓ OK' + (own.length ? ', ' + own.length + ' note' + (own.length > 1 ? 's' : '') : ''); cls = 'ok'; }
+      const b = el('button', { type: 'button', 'aria-current': s.id === bstep ? 'step' : null, 'data-bkey': 'step:' + s.id },
+        [el('span', { class: 'top' }, [el('span', { class: 'n', 'aria-hidden': 'true', text: String(i + 1) }), el('b', { text: s.short })]), el('span', { class: 'st ' + cls, text: st })]);
+      b.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + MB.STEPS.length + ': ' + s.title + ', ' + st);
+      b.addEventListener('click', function () { go('builder', s.id, true); });
+      bui.steps.appendChild(el('li', {}, [b]));
+    });
+    const cur = builderStepById[bstep];
+    bui.back.disabled = cur.index === 0;
+    bui.back.textContent = cur.index === 0 ? '← Back' : '← Back: ' + MB.STEPS[cur.index - 1].title;
+    bui.next.hidden = cur.index === MB.STEPS.length - 1;
+    if (!bui.next.hidden) bui.next.textContent = 'Next: ' + MB.STEPS[cur.index + 1].title + ' →';
+
+    renderStepPanel();
+
+    // Preview.
+    bui.status.className = 'b-status ' + (errorCount ? 'bad' : 'ok');
+    bui.status.textContent = '';
+    bui.status.append(el('span', { class: 'ic', 'aria-hidden': 'true', text: errorCount ? '✕' : '✓' }),
+      el('span', { text: errorCount ? errorCount + ' problem' + (errorCount > 1 ? 's' : '') + ' must be fixed before export.' :
+        'Configuration valid for the current code' + (warnCount ? ' (' + warnCount + ' warning' + (warnCount > 1 ? 's' : '') + ')' : '') + '. Not a simulation run: the macro has not been executed.' }));
+    bui.summary.textContent = '';
+    MB.summary(bcfg).forEach(function (row) { bui.summary.append(el('dt', { text: row[0] }), el('dd', { text: row[1] })); });
+    bui.pre.textContent = '';
+    gen.lines.forEach(function (l) {
+      const bad = l.field && hasError(l.field);
+      bui.pre.appendChild(el('span', { class: (l.text.charAt(0) === '#' ? 'c' : '') + (bad ? ' bad' : '') }, [l.text + '\n']));
+    });
+    bui.copy.disabled = errorCount > 0;
+    bui.copy.title = errorCount ? 'Fix the problems first' : '';
+    bui.switches.forEach(function (s) { s.prev.querySelector('small').textContent = errorCount ? errorCount + ' to fix' : 'valid'; });
+    const statusText = errorCount ? errorCount + ' problems to fix' : 'Configuration valid';
+    if (bui.lastStatus !== statusText) { bui.lastStatus = statusText; announce(statusText); }
+  }
+  function applySmoke() {
+    bcfg = MB.smokePreset(bcfg); saveBuilder();
+    announce('Smoke-test preset applied: 1 ms end time, 10 keV electrons, one sub-run of 2 events.');
+    refreshBuilder();
+  }
+
+  // Re-render the current step, keeping keyboard focus and the text caret.
+  function renderStepPanel() {
+    const active = document.activeElement;
+    let key = bpendingFocus, caret = null;
+    if (!key && active && bui.panel.contains(active) && active.dataset.bkey) {
+      key = active.dataset.bkey;
+      if (typeof active.selectionStart === 'number') caret = [active.selectionStart, active.selectionEnd];
+    }
+    if (!key && active && bui.steps.contains(active) && active.dataset.bkey) key = active.dataset.bkey;
+    if (!key && active && bui.tools.contains(active) && active.dataset.bkey) key = active.dataset.bkey;
+    bpendingFocus = null;
+    const s = builderStepById[bstep];
+    const panel = bui.panel;
+    panel.textContent = '';
+    panel.append(el('h3', { id: 'b-step-heading', tabindex: '-1', text: 'Step ' + (s.index + 1) + ' of ' + MB.STEPS.length + ': ' + s.title }),
+      el('p', { class: 'intro', text: s.intro }));
+    if (s.id === 'review') renderReview(panel);
+    else MB.FIELDS.filter(function (f) { return f.step === s.id; }).forEach(function (f) { const n = renderField(f); if (n) panel.appendChild(n); });
+    if (key) {
+      let target = document.querySelector('[data-bkey="' + key + '"]') || document.querySelector('[data-bfield="' + key + '"] input:not(:disabled), [data-bfield="' + key + '"] select:not(:disabled), [data-bfield="' + key + '"] button');
+      if (!target && key.indexOf('.') > 0) target = document.querySelector('[data-bfield="' + key.split('.')[0] + '"] input');
+      if (target) {
+        target.focus({ preventScroll: !scrollOnFocus(key) });
+        if (caret && typeof target.setSelectionRange === 'function') { try { target.setSelectionRange(caret[0], caret[1]); } catch (e) { /* not a text input */ } }
+      }
+    }
+  }
+  // Typing keeps the caret where it is; jumps to a setting (issue links, resolutions) scroll to it.
+  function scrollOnFocus(key) { return !/^(f:|run:|opt:|tool:|export:)/.test(key); }
+
+  function tagFor(f) { return el('span', { class: 'b-req' + (f.required ? ' required' : ''), text: f.required ? 'Required' : 'Optional' }); }
+  function techDetails(f) {
+    if (!f.tech && !(f.refs && f.refs.length)) return null;
+    const list = el('ul');
+    (f.refs || []).forEach(function (r) {
+      const isG4 = r.indexOf('G4: ') === 0;
+      const m = /^([^\s(]+)(.*)$/.exec(isG4 ? r.slice(4) : r);
+      const li = el('li');
+      if (isG4) li.append('Geant4 ', el('code', { text: m[1] }), m[2]);
+      else li.append(el('a', { href: REPO + m[1], target: '_blank', rel: 'noopener' }, [el('code', { text: m[1] })]), m[2]);
+      list.appendChild(li);
+    });
+    return el('details', { class: 'b-tech' }, [el('summary', { text: 'Technical details and sources' }),
+      f.tech ? el('p', { text: f.tech }) : null, f.refs && f.refs.length ? list : null]);
+  }
+  function whyBlock(a, fieldId) {
+    const box = el('span', { class: 'b-why' }, [el('span', { class: 'k', text: (a.kind === 'unsupported' ? '⊘ Not supported by dnachem-min: ' : '⊘ Unavailable: ') }), a.why]);
+    if (a.fix) {
+      const b = el('button', { type: 'button', class: 'b-btn small', text: 'To make it available: ' + a.fix.label });
+      b.addEventListener('click', function (ev) { ev.preventDefault(); applyResolution(a.fix, fieldId); });
+      box.append(el('br'), b);
+    }
+    return box;
+  }
+  function applyResolution(r, focusField) {
+    setCfg(MB.applyPatch(bcfg, r.patch), focusField || null);
+    announce('Applied: ' + r.label + '.');
+  }
+  function issueList(list, withStepLink) {
+    if (!list.length) return null;
+    return el('ul', { class: 'b-issues' }, list.map(function (i) {
+      const li = el('li', { class: 'b-issue ' + i.severity, id: 'b-issue-' + i.field.replace(/\W/g, '-') + '-' + i.kind },
+        [el('span', { class: 'k', text: SEVERITY_LABEL[i.severity] + ' · ' + KIND_LABEL[i.kind] + ':' }), i.message]);
+      const acts = [];
+      i.resolutions.forEach(function (r) {
+        const b = el('button', { type: 'button', class: 'b-btn small', text: r.label });
+        b.addEventListener('click', function () { applyResolution(r, i.field); });
+        acts.push(b);
+      });
+      if (withStepLink) {
+        const s = builderStepById[i.step];
+        const b = el('button', { type: 'button', class: 'b-btn small', text: 'Go to step ' + (s.index + 1) + ': ' + s.title });
+        b.addEventListener('click', function () { bpendingFocus = i.field; go('builder', i.step, true); });
+        acts.push(b);
+      }
+      if (acts.length) li.appendChild(el('div', { class: 'acts' }, acts));
+      return li;
+    }));
+  }
+  function textInput(key, value, opts, onChange) {
+    const input = el('input', Object.assign({ type: 'text', 'data-bkey': key, autocomplete: 'off', spellcheck: 'false' }, opts));
+    input.value = value === undefined || value === null ? '' : String(value);
+    input.addEventListener('input', function () { onChange(input.value); });
+    return input;
+  }
+  function unitSelect(key, f, value, disabled, label, onChange) {
+    const units = f.category === 'o2' ? MB.O2_UNITS : Object.keys(MB.UNITS[f.category]);
+    const s = el('select', { 'data-bkey': key, 'aria-label': label, disabled: disabled ? '' : null },
+      units.map(function (u) { return el('option', { value: u, text: u }); }));
+    s.value = value;
+    s.addEventListener('change', function () { onChange(s.value); });
+    return s;
+  }
+
+  function renderField(f) {
+    if (!MB.visible(bcfg, f)) return null;
+    if (f.type === 'runs') return renderRuns(f);
+    const avail = MB.fieldAvailability(bcfg, f);
+    const own = issuesFor(f.id);
+    const err = own.some(function (i) { return i.severity === 'error'; });
+    const helpId = 'b-help-' + f.id;
+    const describedBy = [helpId].concat(own.map(function (i) { return 'b-issue-' + i.field.replace(/\W/g, '-') + '-' + i.kind; })).join(' ');
+    const isGroup = f.type === 'choice' || f.type === 'bool';
+    const wrap = el(isGroup ? 'fieldset' : 'div', { class: 'b-field' + (err ? ' has-error' : '') + (avail ? ' unavailable' : ''), 'data-bfield': f.id });
+    const inputId = 'b-in-' + f.id;
+    const title = [f.label, tagFor(f)];
+    wrap.appendChild(isGroup ? el('legend', {}, title) : el('label', { class: 'b-label', for: inputId }, title));
+    wrap.appendChild(el('p', { class: 'b-help', id: helpId, text: f.help || '' }));
+    if (avail) wrap.appendChild(el('p', { class: 'b-unavail' }, [whyBlock(avail, f.id)]));
+    const disabled = !!avail;
+    const value = MB.get(bcfg, f.path);
+    if (isGroup) {
+      const opts = el('div', { class: 'b-opts' });
+      f.options.forEach(function (o) {
+        const oa = MB.optionAvailability(bcfg, o);
+        const checked = value === o.value;
+        const input = el('input', { type: 'radio', name: 'b-' + f.id, 'data-bkey': 'opt:' + f.id + ':' + String(o.value),
+          disabled: disabled || (oa && !checked) ? '' : null, 'aria-describedby': describedBy });
+        input.checked = checked;
+        input.addEventListener('change', function () { if (input.checked) { const p = {}; p[f.path] = o.value; patch(p, 'opt:' + f.id + ':' + String(o.value)); } });
+        const text = el('span', {}, [el('b', { text: o.label }), o.help ? el('small', { text: o.help }) : null]);
+        if (oa) text.appendChild(whyBlock(oa, f.id));
+        opts.appendChild(el('label', { class: 'b-opt' + (oa ? ' off' : '') }, [input, text]));
+      });
+      wrap.appendChild(opts);
+    } else {
+      const row = el('div', { class: 'b-input' });
+      const common = { id: inputId, 'aria-describedby': describedBy, 'aria-invalid': err ? 'true' : null, disabled: disabled ? '' : null };
+      if (f.type === 'text') {
+        row.appendChild(textInput('f:' + f.id, value, Object.assign({ class: 'b-wide', placeholder: f.placeholder || '' }, common), function (v) { const p = {}; p[f.path] = v; patch(p); }));
+      } else if (f.type === 'number') {
+        row.appendChild(textInput('f:' + f.id, value, Object.assign({ class: 'b-num', inputmode: f.integer ? 'numeric' : 'decimal' }, common), function (v) { const p = {}; p[f.path] = v; patch(p); }));
+      } else if (f.type === 'quantity') {
+        row.appendChild(textInput('f:' + f.id + ':value', value.value, Object.assign({ class: 'b-num', inputmode: 'decimal' }, common), function (v) { const p = {}; p[f.path + '.value'] = v; patch(p); }));
+        row.appendChild(unitSelect('f:' + f.id + ':unit', f, value.unit, disabled, 'Unit for ' + f.label, function (u) { const p = {}; p[f.path + '.unit'] = u; patch(p, 'f:' + f.id + ':unit'); }));
+      } else if (f.type === 'list') {
+        row.appendChild(textInput('f:' + f.id + ':values', value.values, Object.assign({ class: 'b-wide', inputmode: 'decimal' }, common), function (v) { const p = {}; p[f.path + '.values'] = v; patch(p); }));
+        row.appendChild(unitSelect('f:' + f.id + ':unit', f, value.unit, disabled, 'Unit for ' + f.label, function (u) { const p = {}; p[f.path + '.unit'] = u; patch(p, 'f:' + f.id + ':unit'); }));
+      }
+      wrap.appendChild(row);
+    }
+    const list = issueList(own, false);
+    if (list) wrap.appendChild(list);
+    const tech = techDetails(f);
+    if (tech) wrap.appendChild(tech);
+    return wrap;
+  }
+
+  function renderRuns(f) {
+    const wrap = el('div', { class: 'b-field' + (hasError('runs') ? ' has-error' : ''), 'data-bfield': 'runs' },
+      [el('div', { class: 'b-label' }, [f.label, tagFor(f)]), el('p', { class: 'b-help', text: f.help })]);
+    const general = bissues.filter(function (i) { return i.field === 'runs'; });
+    if (general.length) wrap.appendChild(issueList(general, false));
+    bcfg.runs.forEach(function (r, i) {
+      const p = 'runs.' + i + '.';
+      const fs = el('fieldset', { class: 'b-run', 'data-bfield': 'runs.' + i });
+      fs.appendChild(el('legend', { text: 'Sub-run ' + (i + 1) }));
+      const own = issuesFor('runs.' + i);
+      const desc = function (sub) { return own.filter(function (x) { return x.field === p + sub; }).map(function (x) { return 'b-issue-' + x.field.replace(/\W/g, '-') + '-' + x.kind; }).join(' ') || null; };
+      const bad = function (sub) { return own.some(function (x) { return x.field === p + sub && x.severity === 'error'; }) ? 'true' : null; };
+      const events = textInput('run:' + i + ':events', r.events, { class: 'b-num', inputmode: 'numeric', 'aria-describedby': desc('events'), 'aria-invalid': bad('events') }, function (v) { const q = {}; q[p + 'events'] = v; patch(q); });
+      const seeds = textInput('run:' + i + ':seeds', r.seeds, { class: 'b-wide', placeholder: 'e.g. 12345 67890 (blank: keep the generator state)', 'aria-describedby': desc('seeds'), 'aria-invalid': bad('seeds') }, function (v) { const q = {}; q[p + 'seeds'] = v; patch(q); });
+      fs.appendChild(el('div', { class: 'row b-input' }, [
+        el('label', { class: 'lbl' }, ['Events (required)', events]),
+        el('label', { class: 'lbl', style: 'flex:1 1 260px' }, ['Random seeds (optional, two or more whole numbers)', seeds])]));
+      const opts = el('div', { class: 'b-opts', role: 'radiogroup', 'aria-label': 'Sub-run ' + (i + 1) + ': after this sub-run' });
+      [['reset', 'Dump (files with an optional prefix)', '/run/dumpDataAndReset [prefix]'],
+       ['dir', 'Dump into a subfolder', '/run/dumpDataAndResetToDir <subfolder>'],
+       ['none', 'No dump: keep accumulating', 'Results carry over to the next dump']].forEach(function (o) {
+        const input = el('input', { type: 'radio', name: 'b-run-dump-' + i, 'data-bkey': 'run:' + i + ':dump:' + o[0], 'aria-describedby': desc('dump') });
+        input.checked = r.dump === o[0];
+        input.addEventListener('change', function () {
+          if (!input.checked) return;
+          const q = {}; q[p + 'dump'] = o[0];
+          if (o[0] === 'dir' && !String(r.name || '').trim()) q[p + 'name'] = 'sub_' + String(i + 1).padStart(2, '0');
+          patch(q, 'run:' + i + ':dump:' + o[0]);
+        });
+        opts.appendChild(el('label', { class: 'b-opt' }, [input, el('span', {}, [el('b', { text: o[1] }), el('small', {}, [el('code', { text: o[2] })])])]));
+      });
+      fs.appendChild(el('div', { class: 'lbl', style: 'font-size:13px;font-weight:600;margin-top:8px' }, ['After this sub-run']));
+      fs.appendChild(opts);
+      if (r.dump !== 'none') {
+        const name = textInput('run:' + i + ':name', r.name, { class: 'b-wide', placeholder: r.dump === 'dir' ? 'e.g. sub_01 or scan/run01' : 'blank: plain file names', 'aria-describedby': desc('name'), 'aria-invalid': bad('name') },
+          function (v) { const q = {}; q[p + 'name'] = v; patch(q); });
+        fs.appendChild(el('div', { class: 'row b-input' }, [el('label', { class: 'lbl', style: 'flex:1 1 260px' },
+          [r.dump === 'dir' ? 'Subfolder (required; relative, created if missing, unique)' : 'File-name prefix (optional, unique; letters, digits . _ -)', name])]));
+      }
+      const list = issueList(own, false);
+      if (list) fs.appendChild(list);
+      if (bcfg.runs.length > 1) {
+        const rm = el('button', { type: 'button', class: 'b-btn small', text: 'Remove sub-run ' + (i + 1), 'data-bkey': 'run:' + i + ':remove' });
+        rm.addEventListener('click', function () {
+          const runs = bcfg.runs.slice(); runs.splice(i, 1);
+          patch({ runs: runs }, 'run:add');
+          announce('Sub-run ' + (i + 1) + ' removed.');
+        });
+        fs.appendChild(el('div', { class: 'row' }, [rm]));
+      }
+      wrap.appendChild(fs);
+    });
+    const add = el('button', { type: 'button', class: 'b-btn small', text: '+ Add a sub-run', 'data-bkey': 'run:add' });
+    add.addEventListener('click', function () {
+      const n = bcfg.runs.length + 1;
+      let name = 'sub_' + String(n).padStart(2, '0');
+      while (bcfg.runs.some(function (r) { return r.dump === 'dir' && r.name === name; })) name += '_b';
+      patch({ runs: bcfg.runs.concat([{ events: '2', seeds: '', dump: 'dir', name: name }]) }, 'run:' + (n - 1) + ':events');
+      announce('Sub-run ' + n + ' added.');
+    });
+    wrap.appendChild(add);
+    const tech = techDetails(f);
+    if (tech) wrap.appendChild(tech);
+    return wrap;
+  }
+
+  function renderReview(panel) {
+    const errs = MB.errors(bissues);
+    const box = el('div', { class: 'b-review' });
+    box.appendChild(el('h4', { text: 'Configuration summary' }));
+    const dl = el('dl', { class: 'b-sum' });
+    MB.summary(bcfg).forEach(function (row) { dl.append(el('dt', { text: row[0] }), el('dd', { text: row[1] })); });
+    box.appendChild(dl);
+    box.appendChild(el('h4', { text: errs.length ? 'Problems that block export (' + errs.length + ')' : 'No blocking problems' }));
+    if (errs.length) box.appendChild(issueList(errs, true));
+    else box.appendChild(el('p', { class: 'b-note', text: 'The configuration is valid for the current dnachem-min code. This is a configuration check, not a simulation run.' }));
+    const notes = bissues.filter(function (i) { return i.severity !== 'error'; });
+    if (notes.length) { box.appendChild(el('h4', { text: 'Warnings and notes (' + notes.length + ')' })); box.appendChild(issueList(notes, true)); }
+
+    box.appendChild(el('h4', { text: 'Save the macro' }));
+    const nameInput = textInput('f:filename', bcfg.filename, { id: 'b-in-filename', class: 'b-wide', 'aria-describedby': 'b-file-final' }, function (v) { patch({ filename: v }); });
+    const finalName = MB.sanitizeFilename(bcfg.filename);
+    box.appendChild(el('div', { class: 'b-field' }, [
+      el('label', { class: 'b-label', for: 'b-in-filename' }, ['File name', el('span', { class: 'b-req required', text: 'Required' })]),
+      el('p', { class: 'b-help', text: 'Letters, digits, ".", "_" and "-"; other characters are removed and ".in" is added.' }),
+      el('div', { class: 'b-input' }, [nameInput]),
+      el('p', { class: 'b-note', id: 'b-file-final' }, ['Will be saved as ', el('code', { text: finalName })])]));
+
+    const dl1 = el('button', { type: 'button', class: 'b-btn primary', text: 'Download ' + finalName, 'data-bkey': 'export:download', disabled: errs.length ? '' : null, 'aria-describedby': 'b-export-note' });
+    dl1.addEventListener('click', downloadMacro);
+    const actions = [dl1];
+    const canPick = typeof window.showSaveFilePicker === 'function';
+    if (canPick) {
+      const save = el('button', { type: 'button', class: 'b-btn', text: 'Save to a folder…', 'data-bkey': 'export:save', disabled: errs.length ? '' : null, 'aria-describedby': 'b-export-note' });
+      save.addEventListener('click', saveMacroToFolder);
+      actions.push(save);
+    }
+    box.appendChild(el('div', { class: 'b-export' }, actions));
+    box.appendChild(el('p', { class: 'b-note', id: 'b-export-note', role: 'status' }, [errs.length ?
+      'Export is disabled until the ' + errs.length + ' problem' + (errs.length > 1 ? 's' : '') + ' above are fixed.' : (bExportNote || 'The file contains exactly the macro shown in the preview.')]));
+    box.appendChild(el('div', { class: 'b-help' }, [
+      el('p', {}, ['Recommended destination: the project\'s ', el('code', { text: 'macro/' }), ' folder, where every dnachem-min macro lives. ',
+        'The build copies ', el('code', { text: 'macro/' }), ' next to the executable, so after saving there, rebuild (or copy the file into ', el('code', { text: 'build/<config>/macro/' }),
+        ') and run it from the build directory: ', el('code', { text: './sim ' + finalName }), '.']),
+      el('p', {}, [canPick ?
+        '"Save to a folder…" opens your browser\'s save dialog, where you choose the folder (for example macro/ in your copy of the repository). Nothing is written without your choice in that dialog.' :
+        'This browser has no save-to-folder dialog here, so use Download.',
+        ' Download saves to the browser\'s download location (usually your Downloads folder); move the file into macro/ yourself. ',
+        'A web page cannot write into the repository or create folders there on its own.'])]));
+    panel.appendChild(box);
+  }
+  function downloadMacro() {
+    if (MB.errors(MB.validate(bcfg)).length) return;
+    const name = MB.sanitizeFilename(bcfg.filename);
+    const text = MB.generate(bcfg).text;
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    const a = el('a', { href: url, download: name, hidden: '' });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    bExportNote = 'Download of ' + name + ' started; your browser decides where it is saved.';
+    bpendingFocus = 'export:download'; refreshBuilder(); announce(bExportNote);
+  }
+  function saveMacroToFolder() {
+    if (MB.errors(MB.validate(bcfg)).length) return;
+    const name = MB.sanitizeFilename(bcfg.filename);
+    const text = MB.generate(bcfg).text;
+    window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Geant4 macro', accept: { 'text/plain': ['.in'] } }] })
+      .then(function (handle) {
+        return handle.createWritable().then(function (w) { return w.write(text).then(function () { return w.close(); }); })
+          .then(function () { bExportNote = 'Saved ' + handle.name + ' in the folder you chose.' + (handle.name !== name ? ' The comment inside still says "./sim ' + name + '".' : ''); });
+      })
+      .catch(function (e) { bExportNote = e && e.name === 'AbortError' ? 'Save cancelled; nothing was written.' : 'Could not save (' + (e && e.message || e) + '). Use Download instead.'; })
+      .then(function () { bpendingFocus = 'export:save'; refreshBuilder(); announce(bExportNote); });
+  }
+
   // ---- views, tabs and routing (#view or #view/id; the back button works) ----
   const VIEWS = [
     { id: 'map', label: 'Module map', render: renderMap, select: selectMap },
     { id: 'flow', label: 'Run flow', render: renderFlow, select: selectFlow },
-    { id: 'tasks', label: 'Tasks', render: renderTasks, select: selectTask }
+    { id: 'tasks', label: 'Tasks', render: renderTasks, select: selectTask },
+    { id: 'builder', label: 'Macro builder', render: renderBuilder, select: selectBuilder }
   ];
   const lastSel = {};
   let current = null;
   let userAction = false;
   let serial = Date.now(), currentKey = null, activeHash = null;
   const visits = new Map();
-  function viewLabel(view) { return ({ map: 'Module map', flow: 'Run flow', tasks: 'Tasks' })[view] || 'view'; }
+  function viewLabel(view) { return ({ map: 'Module map', flow: 'Run flow', tasks: 'Tasks', builder: 'Macro builder' })[view] || 'view'; }
   function selectionLabel() {
     const id = lastSel[current];
-    const item = current === 'map' ? (nodeById[id] || laneById[(id || '').slice(5)]) : current === 'flow' ? stepById[id] : taskById[id];
+    const item = current === 'map' ? (nodeById[id] || laneById[(id || '').slice(5)]) : current === 'flow' ? stepById[id] :
+      current === 'builder' ? builderStepById[id] : taskById[id];
     return item ? item.title.replace(/^\d+\.\s*/, '') : viewLabel(current);
   }
   function rememberVisit() {
@@ -1176,7 +1758,8 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     let view = m && VIEWS.some(function (v) { return v.id === m[1]; }) ? m[1] : 'map';
     let id = null;
     try { id = m && m[2] ? decodeURIComponent(m[2]) : null; } catch (e) { /* Invalid deep link: show overview. */ }
-    if (id && !(view === 'map' ? nodeById[id] || (id.indexOf('lane:') === 0 && laneById[id.slice(5)]) : view === 'flow' ? stepById[id] : taskById[id])) id = null;
+    if (id && !(view === 'map' ? nodeById[id] || (id.indexOf('lane:') === 0 && laneById[id.slice(5)]) : view === 'flow' ? stepById[id] :
+      view === 'builder' ? builderStepById[id] : taskById[id])) id = null;
     if (!history.state || !history.state.explorer) history.replaceState({ explorer: true, key: ++serial }, '');
     const saved = restoring && visits.get(history.state.key);
     const fromDetail = detail.contains(document.activeElement);
@@ -1192,6 +1775,13 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
         x.btn.tabIndex = on ? 0 : -1;
       });
       stage.setAttribute('aria-labelledby', 'tab-' + view);
+      // The builder shows its guide and its live preview together; the preview
+      // changes on every keystroke, so it announces only a debounced status.
+      main.classList.toggle('building', view === 'builder');
+      main.classList.remove('show-preview');
+      detail.setAttribute('aria-live', view === 'builder' ? 'off' : 'polite');
+      detail.setAttribute('aria-label', view === 'builder' ? 'Macro preview' : 'Details');
+      if (view !== 'builder') bui = null;
       if (mapState && mapState.observer) mapState.observer.disconnect();
       mapState = null;
       v.render();
@@ -1200,11 +1790,19 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     const externalSelection = !userAction && id !== lastSel[view];
     lastSel[view] = id;
     if (!main.classList.contains('inspecting')) overviewY = window.scrollY;
-    main.classList.toggle('inspecting', saved ? saved.inspecting : !!id && (userAction || restoring || currentKey === null));
+    main.classList.toggle('inspecting', view !== 'builder' && (saved ? saved.inspecting : !!id && (userAction || restoring || currentKey === null)));
     v.select(id, !saved && !narrow.matches && (switched || fromDetail || externalSelection), !!saved || retainingSelection);
     currentKey = history.state.key;
     activeHash = location.hash;
-    if (saved) {
+    if (view === 'builder' && !saved) {
+      // Moving between steps puts focus on the new step's heading (or on the
+      // setting a review link pointed at, handled by renderStepPanel).
+      if (!switched && userAction && !bui.panel.contains(document.activeElement)) {
+        const h = bui.panel.querySelector('h3');
+        h.focus({ preventScroll: true });
+        bui.panel.scrollIntoView({ block: 'start' });
+      } else if (switched) window.scrollTo(0, 0);
+    } else if (saved) {
       overviewY = saved.overviewY;
       window.scrollTo(0, saved.y);
       detail.scrollTop = saved.detailY;
@@ -1240,6 +1838,10 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   });
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+    if (current === 'builder') {
+      if (bconfirm) { bconfirm = null; bpendingFocus = 'tool:reset'; refreshBuilder(); }
+      return;
+    }
     if (ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'radio') return;
     if (narrow.matches && main.classList.contains('inspecting')) { returnToView(); return; }
     if (current === 'map' && connectionsOnly && lastSel.map && detail.contains(document.activeElement) && getComputedStyle(detail).position === 'static') { returnToView(); return; }

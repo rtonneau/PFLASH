@@ -281,8 +281,113 @@
   .chip-out, code { overflow-wrap:anywhere; }
   #detail h2:focus { outline-offset:4px; }
 
+  /* ---- macro builder: guide in #stage, live preview in #detail ---- */
+  :root { --bad:#a3271f; --bad-soft:#fdeeec; --ok:#1d6b3a; --ok-soft:#eaf6ee; }
+  main.building { grid-template-columns:minmax(0,1fr) minmax(370px,42%); }
+  .b-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 14px; }
+  .b-btn { min-height:40px; padding:7px 14px; border:1px solid var(--line-strong); border-radius:7px; background:var(--surface); cursor:pointer; font-size:13.5px; font-weight:600; }
+  .b-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .b-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .b-btn.primary:hover:not(:disabled) { background:#174ca8; color:#fff; }
+  .b-btn.danger { border-color:var(--bad); color:var(--bad); }
+  .b-btn:disabled { cursor:not-allowed; color:var(--muted); background:var(--sunk); border-color:var(--line); }
+  .b-btn.small { min-height:34px; padding:4px 10px; font-size:13px; }
+  .b-confirm { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 12px; margin:0 0 14px; border:1px solid var(--bad); border-left-width:4px; border-radius:var(--radius); background:var(--bad-soft); }
+  .b-confirm p { margin:0; flex:1 1 260px; font-size:14px; }
+  .b-steps { list-style:none; margin:0 0 18px; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:6px; }
+  .b-steps button { width:100%; height:100%; display:block; text-align:left; padding:7px 9px; border:1px solid var(--line); border-radius:8px; background:var(--surface); cursor:pointer; font-size:13px; line-height:1.3; }
+  .b-steps button:hover { border-color:var(--accent); }
+  .b-steps button[aria-current=step] { border:2px solid var(--accent); padding:6px 9px; background:var(--accent-soft); }
+  .b-steps .n { flex:none; display:grid; place-items:center; width:22px; height:22px; border-radius:50%; border:2px solid var(--line-strong); font-weight:700; font-size:12px; color:var(--muted); }
+  .b-steps button[aria-current=step] .n { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .b-steps .top { display:flex; gap:6px; align-items:center; }
+  .b-steps b { font-weight:600; }
+  .b-steps .st { display:block; margin-top:3px; font-size:12px; color:var(--muted); }
+  .b-steps .st.bad { color:var(--bad); font-weight:600; }
+  .b-steps .st.ok { color:var(--ok); }
+  .b-panel { max-width:760px; }
+  .b-panel > h3 { margin:0 0 4px; font-size:19px; }
+  .b-panel > h3:focus { outline-offset:4px; }
+  .b-panel > .intro { margin-bottom:12px; }
+  .b-field { margin:0 0 14px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); min-width:0; }
+  .b-field.has-error { border-color:var(--bad); border-left:4px solid var(--bad); }
+  .b-field.unavailable { background:var(--sunk); }
+  fieldset.b-field > legend, .b-field > .b-label { padding:0; font-weight:600; font-size:14.5px; display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  fieldset.b-field > legend { float:left; width:100%; margin-bottom:2px; }
+  fieldset.b-field > legend + * { clear:both; }
+  .b-req { font-size:11.5px; font-weight:600; padding:0 7px; border-radius:999px; border:1px solid var(--line-strong); color:var(--muted); background:var(--surface); }
+  .b-req.required { border-color:var(--accent); color:var(--accent); }
+  .b-help { margin:2px 0 8px; color:var(--muted); font-size:13.5px; }
+  .b-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .b-input input[type=text] { min-height:40px; padding:7px 10px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); color:var(--fg); }
+  .b-input input.b-wide { flex:1 1 260px; }
+  .b-input input.b-num { width:12ch; }
+  .b-input select { min-height:40px; padding:6px 8px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); color:var(--fg); }
+  .b-input input:disabled, .b-input select:disabled { background:var(--sunk); color:var(--muted); }
+  .b-input input[aria-invalid=true] { border-color:var(--bad); box-shadow:inset 0 0 0 1px var(--bad); }
+  .b-opts { display:grid; gap:6px; margin:4px 0 0; }
+  .b-opt { display:flex; gap:9px; align-items:flex-start; padding:7px 10px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-size:14px; }
+  .b-opt input { margin:3px 0 0; accent-color:var(--accent); flex:none; width:16px; height:16px; }
+  .b-opt input:focus-visible { outline:none; }
+  .b-opt:has(input:focus-visible) { outline:3px solid var(--accent); outline-offset:2px; }
+  .b-opt:has(input:checked) { border-color:var(--accent); background:var(--accent-soft); }
+  .b-opt:has(input:checked) > span > b { color:var(--accent); }
+  .b-opt b { font-weight:600; }
+  .b-opt small { display:block; color:var(--muted); font-size:12.5px; }
+  .b-opt.off { cursor:not-allowed; border-style:dashed; background:var(--sunk); }
+  .b-opt.off b { color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+  .b-opt.off:has(input:checked) b { text-decoration:none; }
+  .b-why { display:block; margin-top:4px; padding:4px 8px; border-left:3px solid var(--line-strong); background:var(--surface); color:var(--fg); font-size:12.5px; }
+  .b-why .k { font-weight:700; }
+  .b-why .b-btn { margin-top:4px; }
+  .b-unavail { margin:0 0 8px; padding:6px 10px; border-left:3px solid var(--line-strong); background:var(--surface); font-size:13px; }
+  .b-issues { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
+  .b-issue { padding:7px 10px; border-radius:6px; font-size:13.5px; border:1px solid; }
+  .b-issue .k { font-weight:700; margin-right:4px; }
+  .b-issue.error { border-color:var(--bad); background:var(--bad-soft); color:#5c140f; }
+  .b-issue.warning { border-color:var(--review-line); background:var(--review-soft); color:#5a3500; }
+  .b-issue.info { border-color:var(--accent-line); background:var(--accent-soft); color:#163c80; }
+  .b-issue .acts { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .b-tech { margin-top:8px; font-size:13px; }
+  .b-tech > summary { cursor:pointer; color:var(--accent); font-weight:600; min-height:28px; }
+  .b-tech p { margin:6px 0; }
+  .b-tech ul { margin:4px 0 0; padding-left:18px; }
+  .b-run { margin:0 0 10px; padding:10px 12px; border:1px solid var(--line); border-radius:7px; }
+  .b-run > legend { font-weight:600; padding:0 4px; }
+  .b-run .row { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; margin:4px 0; }
+  .b-run label.lbl { display:flex; flex-direction:column; gap:3px; font-size:13px; font-weight:600; }
+  .b-run .b-opts { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+  .b-pager { display:flex; justify-content:space-between; gap:8px; max-width:760px; margin-top:18px; }
+  .b-switch { display:none; }
+  .b-sum { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:3px 12px; margin:8px 0 12px; font-size:13px; }
+  .b-sum dt { color:var(--muted); }
+  .b-sum dd { margin:0; overflow-wrap:anywhere; }
+  .b-status { display:flex; gap:8px; align-items:flex-start; padding:8px 10px; border-radius:7px; border:1px solid; font-size:13.5px; }
+  .b-status.bad { border-color:var(--bad); background:var(--bad-soft); color:#5c140f; }
+  .b-status.ok { border-color:var(--ok); background:var(--ok-soft); color:#123f22; }
+  .b-status .ic { font-weight:700; }
+  .b-pre { margin:8px 0 0; padding:10px 0; background:#f7f8fa; border:1px solid var(--line); border-radius:7px; font:12.5px/1.5 var(--mono); overflow:auto; max-height:60vh; white-space:pre-wrap; overflow-wrap:anywhere; counter-reset:bline; }
+  .b-pre span { display:block; padding:0 10px 0 40px; position:relative; min-height:1.5em; }
+  .b-pre span::before { counter-increment:bline; content:counter(bline); position:absolute; left:0; width:30px; text-align:right; color:#666e7c; user-select:none; }
+  .b-pre span.c { color:#4f5866; }
+  .b-pre span.bad { background:var(--bad-soft); box-shadow:inset 3px 0 0 var(--bad); }
+  .b-pre span.bad::after { content:'  \2190 fix'; color:var(--bad); font-weight:700; user-select:none; }
+  .b-file { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .b-export { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .b-note { font-size:13px; color:var(--muted); }
+  .b-review h4 { margin:16px 0 6px; font-size:14px; }
+
   /* ---- narrow screens ---- */
   @media (max-width: 900px) {
+    main.building.show-preview #detail { display:block; border-top:0; }
+    main.building.show-preview #stage { display:none; }
+    main.building:not(.show-preview) #detail { display:none; }
+    .b-switch { display:flex; gap:6px; position:sticky; top:var(--header-height, 96px); z-index:4; padding:8px 0; background:var(--bg); }
+    main.building.show-preview .b-switch { padding:8px 12px; }
+    .b-switch button { flex:1; min-height:44px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface); cursor:pointer; font-weight:600; font-size:13.5px; }
+    .b-switch button[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+    .b-switch small { display:block; font-weight:400; font-size:12px; }
+    .b-pre { max-height:none; }
     main { display:block; }
     #detail { position:static; overflow:visible; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
     [role=tablist] { margin-left:0; }
@@ -344,6 +449,653 @@
   <aside id="detail" aria-live="polite" aria-label="Details"></aside>
 </main>
 <div id="copy-status" class="sr-only" role="status" aria-atomic="true"></div>
+<div id="builder-status" class="sr-only" role="status" aria-atomic="true"></div>
+<script>
+// Macro builder model for the dnachem-min explorer (docs/explorer/index.html#builder).
+//
+// One configuration model drives the guide, the validation and the macro preview,
+// so they cannot drift apart. Pure JavaScript, no DOM, no network: build.js inlines
+// this file into index.html (window.MacroBuilder); macro-builder.test.js requires it.
+//
+// Every command, default, unit and rule below was read from the dnachem-min source
+// or the configured Geant4 source (refs in each field's `refs`). When a messenger
+// changes, update this file and its tests; see docs/explorer/README.md.
+(function (root, factory) {
+  'use strict';
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.MacroBuilder = api;
+}(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // ---- units (symbols from G4UnitsTable.cc; values in a common base per category) ----
+  const UNITS = {
+    time: { ps: 1e-12, ns: 1e-9, us: 1e-6, ms: 1e-3, s: 1 },
+    length: { nm: 1e-9, um: 1e-6, mm: 1e-3 },
+    energy: { eV: 1, keV: 1e3, MeV: 1e6 }
+  };
+  const O2_UNITS = ['%', 'M', 'mM', 'uM'];   // ScavengerSpec::Parse
+  const O2_SATURATION_M = 0.0013;            // ScavengerSpec kO2SaturationMolarity (kH)
+  const MAX_PIXELS = 65536;                  // MesoSettings kMaxPixels
+
+  const CHEMISTRIES = [
+    { value: 'PureWater', label: 'PureWater', note: 'Default. Base pure-water reactions plus the full O2-derived network and an acid-base buffer (pH has an effect).', buffer: true },
+    { value: 'BoscoloChem', label: 'BoscoloChem', note: 'Table 1 of Boscolo et al. 2020 (26 reactions). No acid-base buffer: pH has no chemical effect.', buffer: false },
+    { value: 'Tonneau2025', label: 'Tonneau2025', note: 'Table 2 of Tonneau et al. 2025 (73 reactions, adds the HO3 molecule). Has buffer ions: pH has an effect.', buffer: true },
+    { value: 'Farokhi2023', label: 'Farokhi2023', note: 'The 9 base-water reactions of Farokhi et al. 2023. No acid-base buffer: pH has no chemical effect.', buffer: false }
+  ];
+  function chemistryInfo(name) { return CHEMISTRIES.filter(function (c) { return c.value === name; })[0] || null; }
+
+  const STEPS = [
+    { id: 'basics', short: 'Basics', title: 'Basics and logging', intro: 'Name the macro and choose how much the simulation prints while it runs.' },
+    { id: 'chemistry', short: 'Chemistry', title: 'Chemistry model', intro: 'Choose the reaction network and how chemistry time advances. These are fixed before the simulation is initialised.' },
+    { id: 'timing', short: 'Timing', title: 'Timing and mesoscopic details', intro: 'How long chemistry runs and, with the mesoscopic stage, when and on what mesh it takes over.' },
+    { id: 'environment', short: 'Environment', title: 'Water environment', intro: 'The water box and what is dissolved in it.' },
+    { id: 'beam', short: 'Beam', title: 'Beam', intro: 'The particle shot into the water and when its track is cut short.' },
+    { id: 'runs', short: 'Runs', title: 'Runs and output', intro: 'How many events to simulate, the random seeds, and when results are written.' },
+    { id: 'review', short: 'Review', title: 'Review and export', intro: 'Check the configuration and save the macro.' }
+  ];
+
+  const SRC = {
+    logger: ['src/core/DnaLoggerMessenger.cc', 'src/core/DnaLogger.cc'],
+    runVerbose: ['G4: source/run/src/G4RunMessenger.cc (/run/verbose, range 0..4)'],
+    trackingVerbose: ['G4: source/tracking/src/G4TrackingMessenger.cc (/tracking/verbose, range >= -1)'],
+    solvation: ['G4: source/processes/electromagnetic/utils/src/G4EmLowEParametersMessenger.cc', 'G4: source/processes/electromagnetic/dna/models/src/G4DNAOneStepThermalizationModel.cc (unset = Meesungnoen2002)'],
+    chemistry: ['src/chemistry/ChemistrySelectMessenger.cc', 'src/chemistry/BuiltInChemistries.cc', 'docs/adr/0002-named-chemistries.md'],
+    model: ['src/chemistry/DnaChemistryList.cc (CheckTimeStepModel)', 'G4: source/processes/electromagnetic/utils/src/G4EmLowEParametersMessenger.cc', 'docs/adr/0008-selectable-chemistry-modes.md'],
+    meso: ['src/chemistry/MesoMessenger.cc', 'src/chemistry/MesoSettings.cc', 'docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md'],
+    endTime: ['src/chemistry/DnaChemistryList.cc (CheckTimeStepModel sets 1 s / 1 us at /run/initialize)', 'G4: source/processes/electromagnetic/dna/management/src/G4SchedulerMessenger.cc'],
+    bins: ['src/chemistry/DnaChemistryList.cc (ApplyReactionTimeBinning)', 'src/scoring/ReactionCounter.cc (ParseBinEdgesList)'],
+    o2: ['src/geometry/ScavengerMessenger.cc', 'src/geometry/ScavengerSpec.cc', 'docs/adr/0004-scavenger-reactions-per-chemistry.md'],
+    pH: ['src/geometry/DnaChemistryWorld.cc', 'src/chemistry/catalog/PureWaterReactions.cc', 'docs/adr/0001-baseline-acid-base-buffer.md'],
+    halfBox: ['src/geometry/DnaChemistryWorld.cc (SetHalfBox)'],
+    outputDir: ['src/core/OutputDirMessenger.cc', 'src/core/OutputDir.cc'],
+    gun: ['src/actions/PrimaryGeneratorAction.cc', 'G4: source/event/src/G4ParticleGunMessenger.cc'],
+    killer: ['src/scoring/PrimaryKiller.cc', 'src/geometry/DetectorConstruction.cc (defaults 500 keV / 1 MeV)'],
+    runs: ['G4: source/run/src/G4RunMessenger.cc (/run/beamOn, /random/setSeeds)', 'src/scoring/RunAccumulatorMessenger.cc', 'src/core/OutputDir.cc (ConfigureSubdir)']
+  };
+
+  // ---- configuration ----
+  function defaults() {
+    return {
+      title: '',
+      filename: 'my_macro.in',
+      logLevel: 'Quiet',
+      runVerbose: '0',
+      trackingVerbose: '0',
+      solvation: 'default',
+      chemistry: 'PureWater',
+      model: 'IRT_syn',
+      meso: true,
+      endTimeMode: 'default',
+      endTime: { value: '1', unit: 'ms' },
+      handOver: { value: '5', unit: 'ns' },
+      voxel: { value: '6.25', unit: 'nm' },
+      timesPerDecade: '10',
+      spatialOutput: false,
+      binsMode: 'default',
+      binWidth: { value: '1', unit: 'ns' },
+      binList: { values: '1 10 100 1000', unit: 'ps' },
+      o2: false,
+      o2Value: { value: '21', unit: '%' },
+      pH: '7',
+      halfBox: { value: '500', unit: 'um' },
+      outputDirMode: 'default',
+      outputDir: '',
+      particle: 'e-',
+      energy: { value: '10', unit: 'keV' },
+      killerMode: 'default',
+      eLossMin: { value: '500', unit: 'keV' },
+      eLossMax: { value: '1', unit: 'MeV' },
+      runs: [{ events: '2', seeds: '', dump: 'reset', name: '' }]
+    };
+  }
+  const MESO_DEFAULTS = { handOver: { value: '5', unit: 'ns' }, voxel: { value: '6.25', unit: 'nm' }, timesPerDecade: '10', spatialOutput: false };
+
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  function get(cfg, path) {
+    return String(path).split('.').reduce(function (o, k) { return o === undefined || o === null ? undefined : o[k]; }, cfg);
+  }
+  // Returns a new configuration; only the listed paths change.
+  function applyPatch(cfg, patch) {
+    const out = clone(cfg);
+    Object.keys(patch).forEach(function (path) {
+      const keys = path.split('.');
+      let o = out;
+      for (let i = 0; i < keys.length - 1; i++) o = o[keys[i]];
+      o[keys[keys.length - 1]] = clone(patch[path]);
+    });
+    return out;
+  }
+  // Fills fields missing from an older saved configuration with defaults.
+  function normalize(cfg) {
+    const d = defaults();
+    const out = Object.assign(d, cfg || {});
+    if (!Array.isArray(out.runs) || !out.runs.length) out.runs = defaults().runs;
+    return out;
+  }
+
+  // ---- parsing helpers ----
+  const NUMBER_RE = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+  function num(text) {
+    const s = String(text === undefined || text === null ? '' : text).trim();
+    if (!s) return { empty: true };
+    if (!NUMBER_RE.test(s)) return { bad: true };
+    const v = Number(s);
+    return isFinite(v) ? { value: v } : { bad: true };
+  }
+  function fmt(v) { return String(Number(v)); }
+  function inBase(q, category) { const n = num(q.value); return n.value === undefined ? null : n.value * UNITS[category][q.unit]; }
+  function sameQ(a, b) { const x = num(a.value), y = num(b.value); return a.unit === b.unit && x.value !== undefined && x.value === y.value; }
+
+  function mesoOn(cfg) { return cfg.model !== 'SBS' && !!cfg.meso; }
+  function mesoCustomized(cfg) {
+    return !sameQ(cfg.handOver, MESO_DEFAULTS.handOver) || !sameQ(cfg.voxel, MESO_DEFAULTS.voxel) ||
+      String(cfg.timesPerDecade).trim() !== MESO_DEFAULTS.timesPerDecade || !!cfg.spatialOutput;
+  }
+  function phCustomized(cfg) { const n = num(cfg.pH); return !(n.value === 7); }
+  function killerApplies(cfg) { return cfg.particle === 'e-'; }
+  // Effective chemistry end time in seconds (null when the custom value is invalid).
+  function endTimeSeconds(cfg) {
+    if (cfg.endTimeMode === 'custom') return inBase(cfg.endTime, 'time');
+    return mesoOn(cfg) ? 1 : 1e-6;
+  }
+  function describeSeconds(s) {
+    if (s === null) return 'invalid';
+    const units = [['s', 1], ['ms', 1e-3], ['us', 1e-6], ['ns', 1e-9], ['ps', 1e-12]];
+    for (const u of units) if (s >= u[1]) return fmt(+(s / u[1]).toPrecision(6)) + ' ' + u[0];
+    return fmt(s / 1e-12) + ' ps';
+  }
+
+  // ---- availability rules (option or field level) ----
+  // null = available; otherwise { kind: 'incompatible' | 'unsupported', why, fix? }.
+  const RULES = {
+    modeIRT: function () {
+      return { kind: 'unsupported', why: 'Classic IRT is accepted by Geant4 but dnachem-min stops at /run/initialize (UnsupportedTimeStepModel): only IRT_syn and SBS are supported.' };
+    },
+    modeSBS: function (cfg) {
+      if (cfg.model !== 'SBS' && cfg.meso) {
+        return { kind: 'incompatible', why: 'The mesoscopic stage is on, and SBS has no mesoscopic stage (the combination is fatal at /run/initialize: MesoWithSbs).',
+          fix: { label: 'Turn the mesoscopic stage off', patch: { meso: false } } };
+      }
+      return null;
+    },
+    mesoTrue: function (cfg) {
+      if (cfg.model === 'SBS') {
+        return { kind: 'incompatible', why: 'The SBS time-step model has no mesoscopic stage (fatal at /run/initialize: MesoWithSbs).',
+          fix: { label: 'Switch the time-step model to IRT_syn', patch: { model: 'IRT_syn' } } };
+      }
+      return null;
+    },
+    mesoParams: function (cfg) {
+      if (mesoOn(cfg)) return null;
+      return { kind: 'incompatible', why: 'These settings only apply to the mesoscopic stage, which is off.',
+        fix: { label: cfg.model === 'SBS' ? 'Use IRT_syn with the mesoscopic stage' : 'Turn the mesoscopic stage on',
+          patch: cfg.model === 'SBS' ? { model: 'IRT_syn', meso: true } : { meso: true } } };
+    },
+    pH: function (cfg) {
+      const c = chemistryInfo(cfg.chemistry);
+      if (c && !c.buffer) {
+        return { kind: 'incompatible', why: cfg.chemistry + ' has no acid-base buffer, so /chem/env/pH has no chemical effect.',
+          fix: { label: 'Switch the Chemistry to PureWater', patch: { chemistry: 'PureWater' } } };
+      }
+      return null;
+    },
+    killer: function (cfg) {
+      if (killerApplies(cfg)) return null;
+      return { kind: 'incompatible', why: 'The primary-killer energy cuts act only on a primary electron (track 1, e-); with ' + cfg.particle + ' they do nothing.',
+        fix: { label: 'Switch the particle to e-', patch: { particle: 'e-' } } };
+    }
+  };
+
+  // ---- fields (the guide renders these; validation and generation read the same config) ----
+  function q(id, opts) { return Object.assign({ id: id, path: id }, opts); }
+  const FIELDS = [
+    q('title', { step: 'basics', type: 'text', label: 'Description', required: false,
+      help: 'One line describing what this macro is for. It is written as the first comment of the file.',
+      tech: 'Written as a "#" comment line; the macro reader ignores it.', placeholder: 'e.g. 10 keV electrons in air-saturated water' }),
+    q('logLevel', { step: 'basics', type: 'choice', label: 'Project log level', required: false,
+      options: ['Quiet', 'Error', 'Warning', 'Info', 'Debug', 'Trace'].map(function (v) {
+        return { value: v, label: v + (v === 'Quiet' ? ' (default)' : '') };
+      }),
+      help: 'How much dnachem-min itself reports. Info gives one line per chemistry stage and dump; Debug and Trace are for diagnosing problems.',
+      tech: '/dnaLogger/verbose <level>, any application state. Default Quiet (written only when changed).', refs: SRC.logger }),
+    q('runVerbose', { step: 'basics', type: 'number', label: 'Geant4 run verbosity', required: false, integer: true,
+      help: 'Geant4 run-manager messages. 0 is silent.', tech: '/run/verbose 0..4, default 0 (written only when changed).', refs: SRC.runVerbose }),
+    q('trackingVerbose', { step: 'basics', type: 'number', label: 'Geant4 tracking verbosity', required: false, integer: true,
+      help: 'Prints every step of every track. Leave at 0 except for debugging a single event: output is huge.',
+      tech: '/tracking/verbose >= -1, default 0 (written only when changed).', refs: SRC.trackingVerbose }),
+
+    q('chemistry', { step: 'chemistry', type: 'choice', label: 'Chemistry (reaction network)', required: true,
+      options: CHEMISTRIES.map(function (c) { return { value: c.value, label: c.label + (c.value === 'PureWater' ? ' (default)' : ''), help: c.note }; }),
+      help: 'The set of chemical reactions. Molecules and water dissociation are shared; the reactions and their rates come from the selected Chemistry.',
+      tech: '/chem/select <name>, PreInit (before /run/initialize). Only one Chemistry per process.', refs: SRC.chemistry }),
+    q('model', { step: 'chemistry', type: 'choice', label: 'Chemistry time-step model', required: true,
+      options: [
+        { value: 'IRT_syn', label: 'IRT_syn (default)', help: 'Independent reaction times, synchronised. Fast; can hand over to the mesoscopic stage.' },
+        { value: 'SBS', label: 'SBS', help: 'Step-by-step diffusion of every molecule. Slower; every reaction fully diffusion-controlled; no mesoscopic stage.', rule: 'modeSBS' },
+        { value: 'IRT', label: 'IRT (classic)', help: 'Geant4 offers it, dnachem-min does not.', rule: 'modeIRT' }
+      ],
+      help: 'How the simulation advances chemistry in time.',
+      tech: '/process/chem/TimeStepModel IRT_syn|SBS, PreInit. Always written so the mode is explicit.', refs: SRC.model }),
+    q('meso', { step: 'chemistry', type: 'bool', label: 'Mesoscopic stage', required: true,
+      options: [
+        { value: true, label: 'On (default with IRT_syn)', help: 'At the hand-over time the remaining molecules move to counts on a cell mesh, which is much faster for long times (up to 1 s by default).', rule: 'mesoTrue' },
+        { value: false, label: 'Off', help: 'The particle-based stage runs to the end time (1 us by default). No SpeciesMeso output.' }
+      ],
+      help: 'Whether the particle-based chemistry hands over to a faster mesh-based model at the hand-over time.',
+      tech: '/chem/meso/enable true|false, PreInit. SBS with an explicit true is fatal (MesoWithSbs).', refs: SRC.meso }),
+    q('solvation', { step: 'chemistry', type: 'choice', label: 'Electron solvation model', required: false,
+      options: [
+        { value: 'default', label: 'Not set (Geant4 uses Meesungnoen2002)', help: 'No command is written.' },
+        { value: 'Ritchie1994', label: 'Ritchie1994', help: 'Used by most project macros.' },
+        { value: 'Meesungnoen2002', label: 'Meesungnoen2002', help: 'Same model as "not set", written explicitly.' },
+        { value: 'Terrisol1990', label: 'Terrisol1990' }
+      ],
+      help: 'How far a slowed-down electron travels before it becomes a solvated electron (e_aq). It shifts the initial e_aq distribution.',
+      tech: '/process/dna/e-SolvationSubType, PreInit. Geant4 also accepts Kreipl2009 and Meesungnoen2002_amorphous; they are not offered because no dnachem-min macro or test exercises them.', refs: SRC.solvation }),
+
+    q('endTimeMode', { step: 'timing', type: 'choice', label: 'Chemistry end time', required: true,
+      options: [
+        { value: 'default', label: 'Default', help: '1 s with the mesoscopic stage, 1 us without. A full 1 s run is slow.' },
+        { value: 'custom', label: 'Custom', help: 'For example 1 ms for a quick smoke test.' }
+      ],
+      help: 'When the chemistry of each event stops.',
+      tech: '/scheduler/endTime <value> <unit>, written after /run/initialize: initialization resets the end time to the mode default.', refs: SRC.endTime }),
+    q('endTime', { step: 'timing', type: 'quantity', category: 'time', label: 'End time', required: true, showIf: function (c) { return c.endTimeMode === 'custom'; },
+      help: 'Must be greater than 0.', refs: SRC.endTime }),
+    q('handOver', { step: 'timing', type: 'quantity', category: 'time', label: 'Hand-over time', required: false, rule: 'mesoParams', group: 'meso',
+      help: 'When the particle-based stage hands over to the mesoscopic stage. Default 5 ns.',
+      tech: '/chem/meso/handOverTime <value> <unit>, PreInit, > 0. Written only when changed.', refs: SRC.meso }),
+    q('voxel', { step: 'timing', type: 'quantity', category: 'length', label: 'Requested mesh cell size', required: false, rule: 'mesoParams', group: 'meso',
+      help: 'Target side of one mesh cell. The mesh uses the power-of-2 cell count closest to it, at most 65536 cells per side. Default 6.25 nm.',
+      tech: '/chem/meso/voxelSize <value> <unit>, PreInit, > 0. Written only when changed.', refs: SRC.meso }),
+    q('timesPerDecade', { step: 'timing', type: 'number', integer: true, label: 'Record times per decade', required: false, rule: 'mesoParams', group: 'meso',
+      help: 'How many output times per factor of 10 in time, from the hand-over time to the end time. Default 10.',
+      tech: '/chem/meso/timesPerDecade <n>, PreInit, >= 1. Written only when changed.', refs: SRC.meso }),
+    q('spatialOutput', { step: 'timing', type: 'bool', label: 'Spatial snapshots (HDF5)', required: false, rule: 'mesoParams', group: 'meso',
+      options: [{ value: false, label: 'Off (default)' }, { value: true, label: 'On: write SpeciesMesoSpatial.h5' }],
+      help: 'Saves where the species are on the mesh at every record time. The file can be very large.',
+      tech: '/chem/meso/spatialOutput true, PreInit. Written only when on.', refs: SRC.meso }),
+    q('binsMode', { step: 'timing', type: 'choice', label: 'Reaction-count time bins', required: false,
+      options: [
+        { value: 'default', label: 'Built-in table (default)', help: 'A fixed 7-edge table.' },
+        { value: 'fixed', label: 'Fixed width' },
+        { value: 'list', label: 'Explicit edges' }
+      ],
+      help: 'How reaction counts are grouped in time in Reactions.Txt (particle-based stage only). The two custom forms cannot be combined.',
+      tech: '/chem/reaction/timeBinsFixed or /chem/reaction/timeBinsList, PreInit; issuing both is fatal (ConflictingTimeBins).', refs: SRC.bins }),
+    q('binWidth', { step: 'timing', type: 'quantity', category: 'time', label: 'Bin width', required: true, showIf: function (c) { return c.binsMode === 'fixed'; },
+      help: 'Bins of this width up to the end time.', refs: SRC.bins }),
+    q('binList', { step: 'timing', type: 'list', category: 'time', label: 'Bin edges', required: true, showIf: function (c) { return c.binsMode === 'list'; },
+      help: 'Upper bin edges separated by spaces, all in one unit.', refs: SRC.bins }),
+
+    q('halfBox', { step: 'environment', type: 'quantity', category: 'length', label: 'Water box half side', required: false,
+      help: 'The water box is the whole geometry: it bounds the tracks, chemistry diffusion and the number of dissolved scavenger molecules. Default 500 um (a 1 mm cube).',
+      tech: '/chem/env/halfBox <value> <unit>, PreInit, > 0. Written only when changed.', refs: SRC.halfBox }),
+    q('o2', { step: 'environment', type: 'bool', label: 'Dissolved oxygen (O2)', required: false,
+      options: [{ value: false, label: 'None (default, anoxic)' }, { value: true, label: 'Add dissolved O2' }],
+      help: 'O2 reacts with e_aq, H and O- through the selected Chemistry\'s bulk reactions. Every Chemistry here has them.',
+      tech: '/chem/env/scavenger O2 <value> <unit>, PreInit. Other scavenger species are not offered: no Chemistry here has bulk reactions for them, so they would be inert.', refs: SRC.o2 }),
+    q('o2Value', { step: 'environment', type: 'quantity', category: 'o2', label: 'O2 concentration', required: true, showIf: function (c) { return c.o2; },
+      help: '% means percent of a pure-O2 atmosphere (Henry\'s law, kH = 0.0013 M): 21 % is air-saturated water (2.73e-4 M). 0 means absent.', refs: SRC.o2 }),
+    q('pH', { step: 'environment', type: 'number', label: 'pH', required: false, rule: 'pH',
+      help: 'Sets the bulk H3O+ / OH- buffer concentrations used by the acid-base reactions. Default 7.',
+      tech: '/chem/env/pH <value>, PreInit. The code does not range-check it. Written only when changed.', refs: SRC.pH }),
+
+    q('particle', { step: 'beam', type: 'choice', label: 'Particle', required: true,
+      options: [
+        { value: 'e-', label: 'Electron, e- (default)', help: 'The project\'s main use case.' },
+        { value: 'proton', label: 'Proton', help: 'Used by the Farokhi2023 comparison macros.' }
+      ],
+      help: 'The primary particle. It starts at the box centre (0, 0, 0) moving along +z; position and direction are fixed in the code.',
+      tech: '/gun/particle, after /run/initialize. Defaults in PrimaryGeneratorAction: e-, 2 MeV, (0,0,0), +z.', refs: SRC.gun }),
+    q('energy', { step: 'beam', type: 'quantity', category: 'energy', label: 'Kinetic energy', required: true,
+      help: 'Must be greater than 0. Project tests use 10 keV electrons.', tech: '/gun/energy <value> <unit>.', refs: SRC.gun }),
+    q('killerMode', { step: 'beam', type: 'choice', label: 'Primary-electron energy cuts', required: false, rule: 'killer',
+      options: [
+        { value: 'default', label: 'Code defaults (500 keV / 1 MeV)', help: 'Already active in every run, no command written.' },
+        { value: 'custom', label: 'Custom' }
+      ],
+      help: 'The primary electron is stopped once it has lost "stop after" energy, and the whole event is discarded once it has lost "abort after".',
+      tech: '/primaryKiller/eLossMin and /primaryKiller/eLossMax; these commands exist only after /run/initialize. /primaryKiller/minKineticE is not offered: it has no effect (no handler).', refs: SRC.killer }),
+    q('eLossMin', { step: 'beam', type: 'quantity', category: 'energy', label: 'Stop the primary after losing', required: true, rule: 'killer', showIf: function (c) { return c.killerMode === 'custom'; }, refs: SRC.killer }),
+    q('eLossMax', { step: 'beam', type: 'quantity', category: 'energy', label: 'Abort the event after losing', required: true, rule: 'killer', showIf: function (c) { return c.killerMode === 'custom'; }, refs: SRC.killer }),
+
+    q('runs', { step: 'runs', type: 'runs', label: 'Sub-runs', required: true,
+      help: 'Each sub-run simulates some events. Results accumulate across sub-runs until a dump writes and resets them.',
+      tech: '/random/setSeeds, /run/beamOn <events>, then /run/dumpDataAndReset [prefix] or /run/dumpDataAndResetToDir <subfolder>.', refs: SRC.runs }),
+    q('outputDirMode', { step: 'runs', type: 'choice', label: 'Output folder', required: false,
+      options: [
+        { value: 'default', label: 'Default (<build>/results, or --dir)', help: 'Recommended: choose the folder at launch with --dir.' },
+        { value: 'custom', label: 'Fixed in the macro' }
+      ],
+      help: 'Where all output files go.',
+      tech: '/run/outputDir <path>, PreInit. Launching with a different --dir is then fatal (ConflictingOutputDir).', refs: SRC.outputDir }),
+    q('outputDir', { step: 'runs', type: 'text', label: 'Output folder path', required: true, showIf: function (c) { return c.outputDirMode === 'custom'; },
+      help: 'Its parent folder must already exist. No spaces or "#".', placeholder: 'results_o2' })
+  ];
+  const FIELD = {};
+  FIELDS.forEach(function (f) { FIELD[f.id] = f; });
+
+  function fieldAvailability(cfg, f) { return f.rule ? RULES[f.rule](cfg) : null; }
+  function optionAvailability(cfg, o) { return o.rule ? RULES[o.rule](cfg) : null; }
+  function visible(cfg, f) { return !f.showIf || f.showIf(cfg); }
+
+  // ---- validation ----
+  const BLOCKING = { incomplete: true, invalid: true, incompatible: true, unsupported: true };
+  function validate(cfg) {
+    const issues = [];
+    function add(field, kind, message, resolutions, severity) {
+      const step = (FIELD[String(field).split('.')[0]] || {}).step || 'review';
+      issues.push({ field: field, step: step, kind: kind, severity: severity || (BLOCKING[kind] ? 'error' : kind),
+        message: message, resolutions: resolutions || [] });
+    }
+    function positive(field, qty, what) {
+      const n = num(qty.value);
+      if (n.empty) add(field, 'incomplete', what + ' is required.');
+      else if (n.bad) add(field, 'invalid', what + ': "' + qty.value + '" is not a number.');
+      else if (!(n.value > 0)) add(field, 'invalid', what + ' must be greater than 0.');
+      return n.value > 0;
+    }
+    function integer(field, text, min, what, maxv) {
+      const s = String(text).trim();
+      if (!s) { add(field, 'incomplete', what + ' is required.'); return false; }
+      if (!/^[+-]?\d+$/.test(s)) { add(field, 'invalid', what + ' must be a whole number.'); return false; }
+      const v = Number(s);
+      if (v < min || (maxv !== undefined && v > maxv)) {
+        add(field, 'invalid', what + ' must be ' + (maxv !== undefined ? 'between ' + min + ' and ' + maxv : 'at least ' + min) + '.');
+        return false;
+      }
+      return true;
+    }
+    function unitOk(field, qty, units) {
+      if (units.indexOf(qty.unit) < 0) { add(field, 'invalid', 'Unit "' + qty.unit + '" is not supported here (use ' + units.join(', ') + ').'); return false; }
+      return true;
+    }
+    function safeText(field, text, what) {
+      if (/[\s#"]/.test(text)) { add(field, 'invalid', what + ' must not contain spaces, quotes or "#" (Geant4 splits macro parameters at spaces and treats "#" as a comment).'); return false; }
+      return true;
+    }
+
+    // Basics
+    integer('runVerbose', cfg.runVerbose, 0, 'Run verbosity', 4);
+    integer('trackingVerbose', cfg.trackingVerbose, -1, 'Tracking verbosity');
+    if (/[\r\n]/.test(cfg.title)) add('title', 'invalid', 'The description must be a single line.');
+
+    // Chemistry
+    if (!chemistryInfo(cfg.chemistry)) add('chemistry', 'invalid', 'Unknown Chemistry "' + cfg.chemistry + '".');
+    if (cfg.model === 'IRT') add('model', 'unsupported', RULES.modeIRT().why, [{ label: 'Use IRT_syn', patch: { model: 'IRT_syn' } }, { label: 'Use SBS', patch: { model: 'SBS', meso: false } }]);
+    else if (cfg.model !== 'IRT_syn' && cfg.model !== 'SBS') add('model', 'invalid', 'Unknown time-step model "' + cfg.model + '".');
+    if (cfg.model === 'SBS' && cfg.meso) {
+      add('meso', 'incompatible', 'SBS has no mesoscopic stage, but the mesoscopic stage is on: /run/initialize would stop with MesoWithSbs.',
+        [{ label: 'Turn the mesoscopic stage off', patch: { meso: false } }, { label: 'Switch back to IRT_syn', patch: { model: 'IRT_syn' } }]);
+    }
+
+    // Timing
+    if (cfg.endTimeMode === 'custom') {
+      unitOk('endTime', cfg.endTime, Object.keys(UNITS.time));
+      positive('endTime', cfg.endTime, 'End time');
+    }
+    const endS = endTimeSeconds(cfg);
+    if (mesoOn(cfg)) {
+      unitOk('handOver', cfg.handOver, Object.keys(UNITS.time));
+      unitOk('voxel', cfg.voxel, Object.keys(UNITS.length));
+      const hoOk = positive('handOver', cfg.handOver, 'Hand-over time');
+      positive('voxel', cfg.voxel, 'Mesh cell size');
+      integer('timesPerDecade', cfg.timesPerDecade, 1, 'Record times per decade');
+      const ho = inBase(cfg.handOver, 'time');
+      if (hoOk && endS !== null && ho >= endS) {
+        add('handOver', 'warning', 'The hand-over time (' + describeSeconds(ho) + ') is not before the end time (' + describeSeconds(endS) +
+          '): chemistry stops before the hand-over, so the mesoscopic stage never runs.');
+      }
+      const side = inBase(cfg.halfBox, 'length'), vox = inBase(cfg.voxel, 'length');
+      if (side > 0 && vox > 0 && UNITS.length[cfg.halfBox.unit] && UNITS.length[cfg.voxel.unit]) {
+        const p = pixelCount(2 * side, vox);
+        if (p.capped) {
+          add('voxel', 'info', 'The mesh is capped at ' + MAX_PIXELS + ' cells per side, so cells will be ' +
+            fmt(+(2 * side / MAX_PIXELS / 1e-9).toPrecision(4)) + ' nm instead of the requested ' + fmt(vox / 1e-9) + ' nm (expected for the default 1 mm box; see ADR 0006).');
+        }
+      }
+    } else if (mesoCustomized(cfg)) {
+      const resolutions = [{ label: 'Discard the mesoscopic settings (restore defaults)', patch: clone(MESO_DEFAULTS) }];
+      resolutions.push(cfg.model === 'SBS' ? { label: 'Use IRT_syn with the mesoscopic stage', patch: { model: 'IRT_syn', meso: true } } : { label: 'Turn the mesoscopic stage back on', patch: { meso: true } });
+      add('handOver', 'incompatible', 'Mesoscopic settings were changed, but the mesoscopic stage is off, so they would have no effect. They are not written to the macro.', resolutions);
+    }
+    if (cfg.binsMode === 'fixed') {
+      unitOk('binWidth', cfg.binWidth, Object.keys(UNITS.time));
+      if (positive('binWidth', cfg.binWidth, 'Bin width') && endS !== null) {
+        const n = Math.ceil(endS / inBase(cfg.binWidth, 'time'));
+        if (n > 100000) add('binWidth', 'warning', 'This gives about ' + n.toExponential(2) + ' bins up to the ' + describeSeconds(endS) + ' end time; the bin table is built in memory before the run. Use a wider bin or explicit edges.');
+      }
+    } else if (cfg.binsMode === 'list') {
+      unitOk('binList', cfg.binList, Object.keys(UNITS.time));
+      const tokens = String(cfg.binList.values).trim().split(/\s+/).filter(Boolean);
+      if (!tokens.length) add('binList', 'incomplete', 'Enter at least one bin edge.');
+      const bad = tokens.filter(function (t) { return num(t).value === undefined; });
+      if (bad.length) add('binList', 'invalid', '"' + bad[0] + '" is not a valid edge value.');
+      else if (tokens.some(function (t) { return num(t).value <= 0; })) add('binList', 'warning', 'Edges at or below 0 never receive a reaction.');
+    }
+
+    // Environment
+    unitOk('halfBox', cfg.halfBox, Object.keys(UNITS.length));
+    positive('halfBox', cfg.halfBox, 'Half side');
+    if (cfg.o2) {
+      unitOk('o2Value', cfg.o2Value, O2_UNITS);
+      const n = num(cfg.o2Value.value);
+      if (n.empty) add('o2Value', 'incomplete', 'O2 concentration is required.');
+      else if (n.bad) add('o2Value', 'invalid', 'O2 concentration: "' + cfg.o2Value.value + '" is not a number.');
+      else if (n.value < 0) add('o2Value', 'invalid', 'The O2 concentration cannot be negative.');
+      else if (n.value === 0) add('o2Value', 'info', '0 means no dissolved O2 (same as not adding it).');
+    }
+    const ph = num(cfg.pH);
+    if (ph.empty) add('pH', 'incomplete', 'pH is required (default 7).');
+    else if (ph.bad) add('pH', 'invalid', 'pH: "' + cfg.pH + '" is not a number.');
+    else if (RULES.pH(cfg) && phCustomized(cfg)) {
+      add('pH', 'incompatible', RULES.pH(cfg).why + ' The changed pH would be inert, so it is not written.',
+        [{ label: 'Reset pH to 7', patch: { pH: '7' } }, { label: 'Switch the Chemistry to PureWater', patch: { chemistry: 'PureWater' } }]);
+    }
+
+    // Beam
+    if (['e-', 'proton'].indexOf(cfg.particle) < 0) add('particle', 'invalid', 'Unknown particle "' + cfg.particle + '".');
+    unitOk('energy', cfg.energy, Object.keys(UNITS.energy));
+    positive('energy', cfg.energy, 'Kinetic energy');
+    if (cfg.killerMode === 'custom') {
+      if (!killerApplies(cfg)) {
+        add('killerMode', 'incompatible', RULES.killer(cfg).why + ' The custom cuts are not written.',
+          [{ label: 'Use the code defaults (remove custom cuts)', patch: { killerMode: 'default' } }, { label: 'Switch the particle to e-', patch: { particle: 'e-' } }]);
+      } else {
+        unitOk('eLossMin', cfg.eLossMin, Object.keys(UNITS.energy));
+        unitOk('eLossMax', cfg.eLossMax, Object.keys(UNITS.energy));
+        const a = positive('eLossMin', cfg.eLossMin, 'Stop threshold'), b = positive('eLossMax', cfg.eLossMax, 'Abort threshold');
+        if (a && b && inBase(cfg.eLossMax, 'energy') < inBase(cfg.eLossMin, 'energy')) {
+          add('eLossMax', 'warning', 'The abort threshold is below the stop threshold, so events are discarded before the primary would be stopped.');
+        }
+      }
+    }
+
+    // Runs and output
+    if (!cfg.runs.length) add('runs', 'incomplete', 'Add at least one sub-run.');
+    const prefixes = {}, subdirs = {};
+    cfg.runs.forEach(function (r, i) {
+      const p = 'runs.' + i + '.', label = 'Sub-run ' + (i + 1);
+      integer(p + 'events', r.events, 1, label + ': number of events');
+      const seeds = String(r.seeds || '').trim();
+      if (seeds) {
+        const t = seeds.split(/\s+/);
+        if (t.length < 2) add(p + 'seeds', 'invalid', label + ': give at least two seeds (Geant4 ignores a single value).');
+        else if (t.some(function (s) { return !/^\d+$/.test(s); })) add(p + 'seeds', 'invalid', label + ': seeds must be whole numbers separated by spaces.');
+      }
+      const name = String(r.name || '').trim();
+      if (r.dump === 'reset') {
+        if (name && !/^[A-Za-z0-9._-]+$/.test(name)) add(p + 'name', 'invalid', label + ': the prefix may only use letters, digits, ".", "_" and "-".');
+        if (prefixes[name] !== undefined) {
+          add(p + 'name', 'invalid', label + ': ' + (name ? 'prefix "' + name + '"' : 'a dump without prefix') + ' was already used by sub-run ' + (prefixes[name] + 1) + '; reusing it is fatal (DuplicateDumpPrefix).');
+        } else prefixes[name] = i;
+        if (name === 'EndOfRun_') add(p + 'name', 'warning', label + ': "EndOfRun_" is the prefix of the automatic exit dump; choose another to avoid overwriting.');
+      } else if (r.dump === 'dir') {
+        if (!name) add(p + 'name', 'incomplete', label + ': enter a subfolder name.');
+        else if (!/^[A-Za-z0-9._/-]+$/.test(name)) add(p + 'name', 'invalid', label + ': the subfolder may only use letters, digits, ".", "_", "-" and "/".');
+        else if (name.charAt(0) === '/' || name.split('/').indexOf('..') >= 0) add(p + 'name', 'invalid', label + ': the subfolder must be relative and must not contain "..".');
+        else if (subdirs[name] !== undefined) add(p + 'name', 'invalid', label + ': subfolder "' + name + '" was already used by sub-run ' + (subdirs[name] + 1) + '; reusing it is fatal (DuplicateDumpSubdir).');
+        else subdirs[name] = i;
+      } else if (r.dump !== 'none') add(p + 'dump', 'invalid', label + ': unknown dump choice.');
+    });
+    if (cfg.runs.length && cfg.runs[cfg.runs.length - 1].dump === 'none') {
+      add('runs.' + (cfg.runs.length - 1) + '.dump', 'info', 'The last sub-run is not dumped: its data are written at exit with the prefix EndOfRun_ (safety net).');
+    }
+    if (cfg.outputDirMode === 'custom') {
+      const d = String(cfg.outputDir || '').trim();
+      if (!d) add('outputDir', 'incomplete', 'Enter the output folder path.');
+      else safeText('outputDir', d, 'The output folder path');
+    }
+    return issues;
+  }
+  function errors(issues) { return issues.filter(function (i) { return i.severity === 'error'; }); }
+
+  function pixelCount(boxSide, target) {   // MesoSettings::PixelCount / PixelCountCapped
+    let best = 1, bestDiff = Math.abs(boxSide - target);
+    for (let k = 1; k <= 30; k++) {
+      const n = Math.pow(2, k), d = Math.abs(boxSide / n - target);
+      if (d <= bestDiff) { best = n; bestDiff = d; }
+    }
+    return { pixels: Math.min(best, MAX_PIXELS), capped: best > MAX_PIXELS };
+  }
+
+  // ---- filename ----
+  function sanitizeFilename(name) {
+    let s = String(name || '').trim().replace(/\s+/g, '_').replace(/[^A-Za-z0-9._-]/g, '');
+    s = s.replace(/^[.-]+/, '');
+    s = s.replace(/(\.in)+$/i, '').replace(/\.+$/, '');
+    if (!s) s = 'macro';
+    return s.slice(0, 120) + '.in';
+  }
+
+  // ---- generation ----
+  function qty(x) { return fmt(x.value) + ' ' + x.unit; }
+  function generate(cfg) {
+    const lines = [];
+    function c(text) { lines.push({ text: text ? '# ' + text : '#', field: null }); }
+    function blank() { if (lines.length && lines[lines.length - 1].text !== '') lines.push({ text: '', field: null }); }
+    function cmd(text, field) { lines.push({ text: text, field: field }); }
+    const meso = mesoOn(cfg), file = sanitizeFilename(cfg.filename);
+    const title = String(cfg.title || '').replace(/[\r\n]+/g, ' ').trim();
+
+    c(title || 'dnachem-min simulation macro');
+    c('Created with the dnachem-min explorer Macro builder (docs/explorer/index.html#builder).');
+    c('Configuration checked against the dnachem-min source; this file has not been run.');
+    c('Run from the build directory:  ./sim ' + file);
+    c('Mode: ' + cfg.chemistry + ', ' + cfg.model + (meso ? ' + mesoscopic stage' : (cfg.model === 'SBS' ? '' : ', particle-based stage only')) +
+      ', end time ' + describeSeconds(endTimeSeconds(cfg)) + (cfg.endTimeMode === 'custom' ? '' : ' (default)') + '.');
+
+    const verb = [];
+    if (cfg.logLevel !== 'Quiet') verb.push(['/dnaLogger/verbose ' + cfg.logLevel, 'logLevel']);
+    if (String(cfg.runVerbose).trim() !== '0') verb.push(['/run/verbose ' + String(cfg.runVerbose).trim(), 'runVerbose']);
+    if (String(cfg.trackingVerbose).trim() !== '0') verb.push(['/tracking/verbose ' + String(cfg.trackingVerbose).trim(), 'trackingVerbose']);
+    if (verb.length) { blank(); c('Logging'); verb.forEach(function (v) { cmd(v[0], v[1]); }); }
+
+    blank();
+    c('---- Before /run/initialize (PreInit settings) ----');
+    if (cfg.solvation !== 'default') { c('Electron solvation (thermalization) model'); cmd('/process/dna/e-SolvationSubType ' + cfg.solvation, 'solvation'); }
+    c('Chemistry: reaction network');
+    cmd('/chem/select ' + cfg.chemistry, 'chemistry');
+    c('Chemistry time-step model and mesoscopic stage');
+    cmd('/process/chem/TimeStepModel ' + cfg.model, 'model');
+    // The user's own value, even when it conflicts (SBS + on): the preview must not
+    // substitute behaviour; validation flags the line and blocks export instead.
+    cmd('/chem/meso/enable ' + (cfg.meso ? 'true' : 'false'), 'meso');
+    if (meso) {
+      if (!sameQ(cfg.handOver, MESO_DEFAULTS.handOver)) cmd('/chem/meso/handOverTime ' + qty(cfg.handOver), 'handOver');
+      if (!sameQ(cfg.voxel, MESO_DEFAULTS.voxel)) cmd('/chem/meso/voxelSize ' + qty(cfg.voxel), 'voxel');
+      if (String(cfg.timesPerDecade).trim() !== MESO_DEFAULTS.timesPerDecade) cmd('/chem/meso/timesPerDecade ' + String(cfg.timesPerDecade).trim(), 'timesPerDecade');
+      if (cfg.spatialOutput) { c('Per-event mesh snapshots in SpeciesMesoSpatial.h5 (large file)'); cmd('/chem/meso/spatialOutput true', 'spatialOutput'); }
+    }
+    if (cfg.binsMode === 'fixed') { c('Reaction-count time bins of fixed width'); cmd('/chem/reaction/timeBinsFixed ' + qty(cfg.binWidth), 'binWidth'); }
+    if (cfg.binsMode === 'list') {
+      c('Reaction-count time bin edges');
+      cmd('/chem/reaction/timeBinsList ' + String(cfg.binList.values).trim().split(/\s+/).map(function (t) { return num(t).value === undefined ? t : fmt(t); }).join(' ') + ' ' + cfg.binList.unit, 'binList');
+    }
+    const env = [];
+    if (!sameQ(cfg.halfBox, { value: '500', unit: 'um' })) env.push(['Water box half side (the whole geometry)', '/chem/env/halfBox ' + qty(cfg.halfBox), 'halfBox']);
+    if (cfg.o2) {
+      const o2 = num(cfg.o2Value.value).value;
+      const note = cfg.o2Value.unit === '%' && o2 !== undefined ? ' (' + (o2 / 100 * O2_SATURATION_M).toExponential(3) + ' M)' : '';
+      env.push(['Dissolved O2 bulk scavenger' + note, '/chem/env/scavenger O2 ' + fmt(cfg.o2Value.value) + ' ' + cfg.o2Value.unit, 'o2Value']);
+    }
+    if (phCustomized(cfg) && !RULES.pH(cfg) && num(cfg.pH).value !== undefined) env.push(['Bulk water pH', '/chem/env/pH ' + fmt(cfg.pH), 'pH']);
+    env.forEach(function (e) { c(e[0]); cmd(e[1], e[2]); });
+    if (cfg.outputDirMode === 'custom') { c('Output folder (launching with a different --dir is fatal)'); cmd('/run/outputDir ' + String(cfg.outputDir).trim(), 'outputDir'); }
+
+    blank();
+    cmd('/run/initialize', null);
+
+    blank();
+    c('---- After /run/initialize ----');
+    if (cfg.endTimeMode === 'custom') {
+      c('Chemistry end time (overrides the ' + (meso ? '1 s' : '1 us') + ' mode default)');
+      cmd('/scheduler/endTime ' + qty(cfg.endTime), 'endTime');
+    }
+    c('Beam: starts at (0, 0, 0) along +z (fixed in PrimaryGeneratorAction)');
+    cmd('/gun/particle ' + cfg.particle, 'particle');
+    cmd('/gun/energy ' + qty(cfg.energy), 'energy');
+    if (cfg.killerMode === 'custom' && killerApplies(cfg)) {
+      c('Primary-electron energy cuts (code defaults 500 keV / 1 MeV)');
+      cmd('/primaryKiller/eLossMin ' + qty(cfg.eLossMin), 'eLossMin');
+      cmd('/primaryKiller/eLossMax ' + qty(cfg.eLossMax), 'eLossMax');
+    }
+
+    cfg.runs.forEach(function (r, i) {
+      const p = 'runs.' + i + '.';
+      blank();
+      c('---- Sub-run ' + (i + 1) + ' ----');
+      const seeds = String(r.seeds || '').trim().split(/\s+/).filter(Boolean).join(' ');
+      if (seeds) cmd('/random/setSeeds ' + seeds, p + 'seeds');
+      cmd('/run/beamOn ' + String(r.events).trim(), p + 'events');
+      const name = String(r.name || '').trim();
+      if (r.dump === 'reset') cmd('/run/dumpDataAndReset' + (name ? ' ' + name : ''), p + 'name');
+      else if (r.dump === 'dir') cmd('/run/dumpDataAndResetToDir ' + name, p + 'name');
+      else c('No dump here: results keep accumulating into the next dump.');
+    });
+
+    const text = lines.map(function (l) { return l.text; }).join('\n') + '\n';
+    return { text: text, lines: lines };
+  }
+
+  // ---- summary (shared by the preview and the review step) ----
+  function summary(cfg) {
+    const meso = mesoOn(cfg);
+    const events = cfg.runs.reduce(function (a, r) { const n = Number(String(r.events).trim()); return a + (isFinite(n) ? n : 0); }, 0);
+    const dumps = cfg.runs.filter(function (r) { return r.dump !== 'none'; }).length;
+    return [
+      ['Chemistry', cfg.chemistry],
+      ['Time-step model', cfg.model + (meso ? ' + mesoscopic stage' : ', no mesoscopic stage')],
+      ['End time', describeSeconds(endTimeSeconds(cfg)) + (cfg.endTimeMode === 'custom' ? '' : ' (default)')],
+      ['Water box', 'half side ' + qty(cfg.halfBox) + (cfg.o2 ? ', O2 ' + cfg.o2Value.value + ' ' + cfg.o2Value.unit : ', no O2')],
+      ['Beam', cfg.particle + ', ' + cfg.energy.value + ' ' + cfg.energy.unit],
+      ['Runs', cfg.runs.length + ' sub-run' + (cfg.runs.length === 1 ? '' : 's') + ', ' + events + ' event' + (events === 1 ? '' : 's') + ', ' + dumps + ' dump' + (dumps === 1 ? '' : 's')]
+    ];
+  }
+
+  // A quick smoke-test preset (CLAUDE.md Testing: 10 keV e-, beamOn 2, 1 ms end time).
+  function smokePreset(cfg) {
+    return applyPatch(cfg, { endTimeMode: 'custom', endTime: { value: '1', unit: 'ms' }, particle: 'e-', energy: { value: '10', unit: 'keV' },
+      runs: [{ events: '2', seeds: '', dump: 'reset', name: '' }] });
+  }
+  function changedCount(cfg) {
+    const d = defaults();
+    return Object.keys(d).filter(function (k) { return k !== 'filename' && JSON.stringify(d[k]) !== JSON.stringify(cfg[k]); }).length;
+  }
+
+  return {
+    STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES,
+    defaults: defaults, normalize: normalize, applyPatch: applyPatch, get: get, validate: validate, errors: errors,
+    generate: generate, summary: summary, sanitizeFilename: sanitizeFilename, fieldAvailability: fieldAvailability,
+    optionAvailability: optionAvailability, visible: visible, mesoOn: mesoOn, endTimeSeconds: endTimeSeconds,
+    describeSeconds: describeSeconds, smokePreset: smokePreset, changedCount: changedCount, pixelCount: pixelCount
+  };
+}));
+
+</script>
 <script>
 const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few plain words, at most 40 characters),summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title (\"N. Title\", numbered in order),summary,overview,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{id,label,summary,default?},modes?{branchId: note; a step without a branch id is skipped in that mode},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Only one flow step has branches (the chemistry mode, in the first phase). Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.","version":1,"lanes":[{"id":"app","title":"Application entry","summary":"Program start-up: wires the run manager, physics, actions and macro, then runs.","nodes":[{"id":"sim","title":"sim.cc","role":"Starts the program","summary":"The program's main(): parses the command line, picks Serial or multi-threaded running, builds the geometry, physics and actions, finds and executes the macro file, and flushes any pending output before exit.","files":["sim.cc"],"symbols":["main","kUseGui"]}],"otherFiles":[]},{"id":"actions","title":"Actions","summary":"Per-run, per-event and per-track hooks that Geant4 calls while the simulation runs.","nodes":[{"id":"action-init","title":"ActionInitialization","role":"Creates the per-thread actions","summary":"Creates all the user actions for each thread and sets the default chemistry end time (1 s with the mesoscopic stage, 1 us without).","files":["src/actions/ActionInitialization.cc","header/actions/ActionInitialization.hh"],"symbols":["ActionInitialization::Build"],"review":true},{"id":"primary-gen","title":"PrimaryGeneratorAction","role":"Fires the beam particle","summary":"Shoots the primary beam particle (set by /gun macro commands) and records the sampled beam into the run.","files":["src/actions/PrimaryGeneratorAction.cc","header/actions/PrimaryGeneratorAction.hh"],"symbols":["PrimaryGeneratorAction"]},{"id":"run-action","title":"Run and RunAction","role":"Begins and ends each run","summary":"Run keeps per-run data and merges worker threads; RunAction starts and ends a run, applies the reaction time binning and records the run in the manifest.","files":["src/actions/RunAction.cc","header/actions/RunAction.hh","src/actions/Run.cc","header/actions/Run.hh"],"symbols":["RunAction::BeginOfRunAction","RunAction::EndOfRunAction","Run::Merge"]},{"id":"event-action","title":"EventAction","role":"Bookkeeping for each event","summary":"Per-event bookkeeping: stages pre-chemical files and commits the track-length row for events that were not aborted.","files":["src/actions/EventAction.cc","header/actions/EventAction.hh"],"symbols":["EventAction"]},{"id":"tracking-action","title":"TrackingAction","role":"Measures track lengths","summary":"After each track, fills the event's track-length row: primary track length and how it ended (stopped, escaped or killed), plus secondary-electron lengths.","files":["src/actions/TrackingAction.cc","header/actions/TrackingAction.hh"],"symbols":["TrackingAction::PostUserTrackingAction"]},{"id":"stepping-action","title":"SteppingAction","role":"Counts physical interactions","summary":"Counts each discrete Geant4-DNA physical interaction (excluding transport) by process name.","files":["src/actions/SteppingAction.cc","header/actions/SteppingAction.hh"],"symbols":["SteppingAction"]},{"id":"stacking-action","title":"StackingAction","role":"Starts chemistry after physics","summary":"When the physical stage has no tracks left, starts the chemistry for the event (the hand-off from physics to chemistry) and logs the stage change.","files":["src/actions/StackingAction.cc","header/actions/StackingAction.hh"],"symbols":["StackingAction::NewStage"]}],"otherFiles":[]},{"id":"physics","title":"Physics","summary":"The physical stage: how electrons slow down and ionise water.","nodes":[{"id":"physics-list","title":"PhysicsList","role":"Combines DNA physics and chemistry","summary":"A simplified modular list that combines the Geant4-DNA electromagnetic physics (option 2) with the project's chemistry. IRT_syn is the default chemistry time-step model.","files":["src/physics/PhysicsList.cc","header/physics/PhysicsList.hh"],"symbols":["PhysicsList"],"review":true}],"otherFiles":[]},{"id":"geometry","title":"Geometry and environment","summary":"The single homogeneous water box and the dissolved substances in it.","nodes":[{"id":"detector","title":"DetectorConstruction","role":"Builds the water box","summary":"Builds the one water box (the whole geometry) and registers the PrimaryKiller scorer. Half-side set by /chem/env/halfBox (default 500 um).","files":["src/geometry/DetectorConstruction.cc","header/geometry/DetectorConstruction.hh"],"symbols":["DetectorConstruction::Construct","ConstructSDandField"]},{"id":"chem-world","title":"DnaChemistryWorld","role":"Describes the water: pH, scavengers","summary":"Describes the chemical environment: box size, pH and exogenous scavengers (such as dissolved O2) that react through the selected Chemistry's bulk reactions.","files":["src/geometry/DnaChemistryWorld.cc","header/geometry/DnaChemistryWorld.hh"],"symbols":["DnaChemistryWorld"],"review":true},{"id":"scavenger-msg","title":"Scavenger spec and messenger","role":"Reads scavenger settings","summary":"Parses /chem/env/scavenger values (M, mM, uM, or % for O2) into a validated specification.","files":["src/geometry/ScavengerSpec.cc","header/geometry/ScavengerSpec.hh","src/geometry/ScavengerMessenger.cc","header/geometry/ScavengerMessenger.hh"],"symbols":["ScavengerSpec"]}],"otherFiles":[]},{"id":"chemistry","title":"Chemistry","summary":"The chemical stages: what species exist, which reactions occur, and how time advances.","nodes":[{"id":"chem-list","title":"DnaChemistryList","role":"Sets up molecules and reactions","summary":"The driver of the chemical stage: defines the molecules, water dissociation channels, reaction table and time-step model (IRT_syn default, or SBS). Registers bulk reactions as scavenger processes.","files":["src/chemistry/DnaChemistryList.cc","header/chemistry/DnaChemistryList.hh"],"symbols":["DnaChemistryList","CheckTimeStepModel"],"review":true},{"id":"time-step","title":"TimeStepAction","role":"Runs the chemistry over time","summary":"Runs the particle-based stage and, in IRT_syn with the mesoscopic stage on, hands the remaining molecules over at the Hand-over time to the mesoscopic stage (Gillespie on a cell mesh).","files":["src/chemistry/TimeStepAction.cc","header/chemistry/TimeStepAction.hh"],"symbols":["TimeStepAction"],"review":true},{"id":"meso-settings","title":"MesoSettings","role":"Mesoscopic stage settings","summary":"Portable settings for the mesoscopic stage: hand-over time, requested cell size, pixel count (capped) and the logarithmic recording time grid.","files":["src/chemistry/MesoSettings.cc","header/chemistry/MesoSettings.hh"],"symbols":["MesoSettings::Values","PixelCount","LogTimeGrid"],"review":true},{"id":"meso-msg","title":"MesoMessenger","role":"Mesoscopic stage commands","summary":"Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade, spatialOutput).","files":["src/chemistry/MesoMessenger.cc","header/chemistry/MesoMessenger.hh"],"symbols":["MesoMessenger"]},{"id":"registry","title":"ChemistryRegistry","role":"Picks the named Chemistry","summary":"Name-to-Chemistry registry and the once-per-process, case-insensitive selection.","files":["src/chemistry/ChemistryRegistry.cc","header/chemistry/ChemistryRegistry.hh","src/chemistry/BuiltInChemistries.cc","header/chemistry/BuiltInChemistries.hh","header/chemistry/ChemistryTypes.hh"],"symbols":["ChemistryRegistry::Register","Select"]},{"id":"select-msg","title":"ChemistrySelectMessenger","role":"Chemistry selection commands","summary":"Macro commands /chem/select <name> and /chem/list.","files":["src/chemistry/ChemistrySelectMessenger.cc","header/chemistry/ChemistrySelectMessenger.hh"],"symbols":["ChemistrySelectMessenger"]},{"id":"reaction-dump","title":"ReactionTableDump","role":"Writes the reaction table","summary":"Writes the reaction table to a file (/chem/reaction/dump).","files":["src/chemistry/ReactionTableDump.cc","header/chemistry/ReactionTableDump.hh"],"symbols":["ReactionTableDump::FormatReactionLabel"]},{"id":"pure-water","title":"PureWater Chemistry","role":"Default reaction network","summary":"The default Chemistry: base pure-water reactions, the O2-derived network and the pH-driven acid-base buffer.","files":["src/chemistry/catalog/PureWaterReactions.cc","header/chemistry/catalog/PureWaterReactions.hh"],"symbols":["BuildPureWaterReactions","BuildPureWaterBulkReactions"],"review":true},{"id":"boscolo","title":"BoscoloChem","role":"Boscolo 2020 reaction set","summary":"Chemistry reproducing Table 1 of Boscolo et al. 2020 (26 reactions).","files":["src/chemistry/catalog/BoscoloChemReactions.cc","header/chemistry/catalog/BoscoloChemReactions.hh"],"symbols":["BoscoloChemReactions"],"review":true},{"id":"tonneau","title":"Tonneau2025","role":"Tonneau 2025 reaction set","summary":"Chemistry with the 73-reaction network of Tonneau et al. 2025, including the extra molecule HO3.","files":["src/chemistry/catalog/Tonneau2025Reactions.cc","header/chemistry/catalog/Tonneau2025Reactions.hh","src/chemistry/catalog/Tonneau2025Table.cc","header/chemistry/catalog/Tonneau2025Table.hh"],"symbols":["Tonneau2025Reactions"],"review":true},{"id":"farokhi","title":"Farokhi2023","role":"Farokhi 2023 reaction set","summary":"Chemistry with the 9 base-water reactions of Farokhi et al. 2023.","files":["src/chemistry/catalog/Farokhi2023Reactions.cc","header/chemistry/catalog/Farokhi2023Reactions.hh"],"symbols":["Farokhi2023Reactions"],"review":true}],"otherFiles":["header/chemistry/ChemUtils.hh","header/chemistry/ScavengerReactionAccess.hh","src/chemistry/ChemUtils.cc"]},{"id":"scoring","title":"Scoring and output","summary":"Everything that counts, accumulates and writes results.","nodes":[{"id":"score-species","title":"ScoreSpecies","role":"Counts molecules over time","summary":"A Geant4 primitive scorer that follows the tracked molecules over time; it is the source of the Species files.","files":["src/scoring/ScoreSpecies.cc","header/scoring/ScoreSpecies.hh"],"symbols":["ScoreSpecies"]},{"id":"reaction-counter","title":"ReactionCounter","role":"Counts reactions per time bin","summary":"Counts how many times each reaction fires in each time bin (particle-based stage only).","files":["src/scoring/ReactionCounter.cc","header/scoring/ReactionCounter.hh"],"symbols":["ReactionCounter","ConfigureBinEdges"]},{"id":"phys-counter","title":"PhysicsInteractionCounter","role":"Stores interaction tallies","summary":"Generic string-frequency counter used for physical-interaction counts.","files":["src/scoring/PhysicsInteractionCounter.cc","header/scoring/PhysicsInteractionCounter.hh"],"symbols":["PhysicsInteractionCounter::Record"]},{"id":"meso-counter","title":"MesoSpeciesCounter","role":"Counts molecules after hand-over","summary":"Mean species count per event versus time in the mesoscopic stage.","files":["src/scoring/MesoSpeciesCounter.cc","header/scoring/MesoSpeciesCounter.hh"],"symbols":["MesoSpeciesCounter"]},{"id":"meso-spatial","title":"MesoSpatialFile","role":"Saves mesh snapshots (HDF5)","summary":"HDF5 writer for per-event spatial snapshots of the mesoscopic mesh.","files":["src/scoring/MesoSpatialFile.cc","header/scoring/MesoSpatialFile.hh"],"symbols":["MesoSpatialFile::AppendEvent"]},{"id":"track-length","title":"TrackLengthTable","role":"Table of track lengths","summary":"One row per event with the primary track length, end reason and secondary-electron lengths.","files":["src/scoring/TrackLengthTable.cc","header/scoring/TrackLengthTable.hh"],"symbols":["TrackLengthTable"]},{"id":"primary-killer","title":"PrimaryKiller","role":"Ends tracks at set limits","summary":"Scorer that kills the primary electron after a configured energy loss and kills tracks leaving a bounding box.","files":["src/scoring/PrimaryKiller.cc","header/scoring/PrimaryKiller.hh"],"symbols":["PrimaryKiller"]},{"id":"accumulator","title":"RunAccumulator","role":"Keeps results between dumps","summary":"Process-wide accumulator that keeps energy deposit, counters and run entries across /run/beamOn calls until a dump.","files":["src/scoring/RunAccumulator.cc","header/scoring/RunAccumulator.hh"],"symbols":["RunAccumulator"]},{"id":"dump-msg","title":"RunAccumulatorMessenger","role":"Writes results on request","summary":"Provides /run/dumpDataAndReset and the exit-time safety-net flush.","files":["src/scoring/RunAccumulatorMessenger.cc","header/scoring/RunAccumulatorMessenger.hh"],"symbols":["RunAccumulatorMessenger","FlushIfPending"]},{"id":"manifest","title":"RunManifest","role":"Describes each dump (Manifest.json)","summary":"Builds Manifest.json for each dump (beam, seed, chemistry, environment, files).","files":["src/scoring/RunManifest.cc","header/scoring/RunManifest.hh","src/scoring/ResultsIndex.cc","header/scoring/ResultsIndex.hh"],"symbols":["RunManifest::RecordRun","RunManifest::Write"]},{"id":"json","title":"DataNode and JsonWriter","role":"Formats output as JSON","summary":"Portable output tree and the JSON serialiser that writes it.","files":["src/scoring/DataNode.cc","header/scoring/DataNode.hh","src/scoring/JsonWriter.cc","header/scoring/JsonWriter.hh"],"symbols":["DataNode","JsonWriter::Write"]},{"id":"prechem","title":"PreChemicalFiles","role":"Collects pre-chemical files","summary":"Moves the staged per-event pre-chemical files into a dump.","files":["src/scoring/PreChemicalFiles.cc","header/scoring/PreChemicalFiles.hh"],"symbols":["PreChemicalFiles::MoveStaged"]}],"otherFiles":[]},{"id":"core","title":"Core utilities","summary":"Cross-cutting services: command line, output folder, logging, macro lookup.","nodes":[{"id":"argparser","title":"ArgParser","role":"Reads command-line flags","summary":"Parses the --threads and --dir command-line flags.","files":["src/core/ArgParser.cc","header/core/ArgParser.hh"],"symbols":["ArgParser"]},{"id":"outputdir","title":"OutputDir","role":"Decides where files go","summary":"The process-wide output directory (default results next to the executable) and filename prefix used by every output site.","files":["src/core/OutputDir.cc","header/core/OutputDir.hh","src/core/OutputDirMessenger.cc","header/core/OutputDirMessenger.hh"],"symbols":["OutputDir::Resolve","/run/outputDir"]},{"id":"logger","title":"DnaLogger","role":"Project log messages","summary":"The project's logger; level set by /dnaLogger/verbose.","files":["src/core/DnaLogger.cc","header/core/DnaLogger.hh","src/core/DnaLoggerMessenger.cc","header/core/DnaLoggerMessenger.hh"],"symbols":["DnaLogger"]},{"id":"macro-resolver","title":"MacroResolver","role":"Finds the macro file","summary":"Finds the macro: as given, then next to the executable, then in its macro/ folder.","files":["src/core/MacroResolver.cc","header/core/MacroResolver.hh"],"symbols":["MacroResolver"]}],"otherFiles":[]},{"id":"macro","title":"Macros","summary":"Runtime configuration: beam, chemistry and dumps.","nodes":[{"id":"m-example","title":"Mode examples","role":"One macro per chemistry mode","summary":"example_sbs.in, example_irt.in and example_meso.in: one macro per chemistry mode, 10 keV electrons, two sub-runs.","files":["macro/example_sbs.in","macro/example_irt.in","macro/example_meso.in"],"symbols":[]},{"id":"m-beam","title":"Beam examples","role":"Pure water, O2 and spatial runs","summary":"beam.in (pure water), beam_o2.in (dissolved O2), beam_meso_spatial.in (spatial output).","files":["macro/beam.in","macro/beam_o2.in","macro/beam_meso_spatial.in"],"symbols":[]},{"id":"m-chem","title":"Chemistry examples","role":"Runs with other Chemistries","summary":"beam_boscolo.in and beam_tonneau2025.in select other Chemistries.","files":["macro/beam_boscolo.in","macro/beam_tonneau2025.in"],"symbols":[]}],"otherFiles":[]},{"id":"test","title":"Unit tests","summary":"Plain-assert tests built by CMake and run with ctest from build-ninja.","nodes":[{"id":"t-core","title":"Core and output tests","role":"Checks core and output code","summary":"Tests for argument parsing, output folder, macro lookup, JSON writing, results index and run accumulation.","files":["test/ArgParserTest.cc","test/OutputDirTest.cc","test/MacroResolverTest.cc","test/JsonWriterTest.cc","test/ResultsIndexTest.cc","test/RunAccumulatorTest.cc"],"symbols":[]},{"id":"t-chem","title":"Chemistry tests","role":"Checks chemistry helpers","summary":"Tests for the registry, mesoscopic settings, reaction table dump, scavenger spec and the Tonneau2025 table.","files":["test/ChemistryRegistryTest.cc","test/MesoSettingsTest.cc","test/ReactionTableDumpTest.cc","test/Tonneau2025TableTest.cc","test/ScavengerSpecTest.cc"],"symbols":[]},{"id":"t-score","title":"Scoring tests","role":"Checks counters and files","summary":"Tests for counters, track lengths, spatial HDF5 file and pre-chemical files.","files":["test/ReactionCounterTest.cc","test/PhysicsInteractionCounterTest.cc","test/MesoSpeciesCounterTest.cc","test/MesoSpatialFileTest.cc","test/TrackLengthTableTest.cc","test/PreChemicalFilesTest.cc"],"symbols":[]}],"otherFiles":[]}],"edges":[{"from":"sim","to":"physics-list"},{"from":"sim","to":"detector"},{"from":"sim","to":"action-init"},{"from":"sim","to":"macro-resolver"},{"from":"sim","to":"argparser"},{"from":"action-init","to":"run-action"},{"from":"action-init","to":"event-action"},{"from":"action-init","to":"tracking-action"},{"from":"action-init","to":"stepping-action"},{"from":"action-init","to":"primary-gen"},{"from":"physics-list","to":"chem-list"},{"from":"chem-list","to":"registry"},{"from":"registry","to":"pure-water"},{"from":"registry","to":"boscolo"},{"from":"registry","to":"tonneau"},{"from":"registry","to":"farokhi"},{"from":"time-step","to":"meso-settings"},{"from":"meso-msg","to":"meso-settings"},{"from":"select-msg","to":"registry"},{"from":"chem-list","to":"chem-world"},{"from":"detector","to":"primary-killer"},{"from":"scavenger-msg","to":"chem-world"},{"from":"time-step","to":"reaction-counter"},{"from":"time-step","to":"meso-counter"},{"from":"time-step","to":"meso-spatial"},{"from":"stepping-action","to":"phys-counter"},{"from":"tracking-action","to":"track-length"},{"from":"run-action","to":"accumulator"},{"from":"dump-msg","to":"accumulator"},{"from":"dump-msg","to":"manifest"},{"from":"manifest","to":"json"},{"from":"dump-msg","to":"outputdir"},{"from":"event-action","to":"prechem"},{"from":"dump-msg","to":"prechem"},{"from":"action-init","to":"stacking-action"},{"from":"action-init","to":"time-step"},{"from":"detector","to":"score-species"}],"phases":[{"id":"setup","title":"Once, at start-up","summary":"The program is configured before any particle is shot."},{"id":"event","title":"For every event","summary":"Repeated for each primary particle shot by /run/beamOn: the physical stage first, then the chemistry."},{"id":"output","title":"When results are written","summary":"Data from all events accumulates until the macro asks for a dump, or the program exits."}],"flow":[{"id":"start","title":"1. Start-up","summary":"The program reads its command line (--threads, --dir), builds the geometry, physics and actions, and finds and runs the macro file that configures the beam and the chemistry.","phase":"setup","files":["sim.cc","src/core/ArgParser.cc","src/core/MacroResolver.cc","src/actions/ActionInitialization.cc"],"outputs":[],"docs":["macro/example_meso.in"],"overview":"Read the command line and run the macro that configures the simulation."},{"id":"mode","title":"2. Chemistry mode","summary":"Chosen once, in the macro before /run/initialize: /process/chem/TimeStepModel (SBS or IRT_syn) and /chem/meso/enable. The choice then applies to every event. The selected Chemistry (reaction network) is independent of this choice.","phase":"setup","files":["src/chemistry/DnaChemistryList.cc","src/chemistry/ChemistryRegistry.cc"],"outputs":[],"docs":["docs/adr/0008-selectable-chemistry-modes.md","docs/adr/0002-named-chemistries.md"],"branches":[{"id":"sbs","label":"SBS","summary":"Step-by-step chemistry on tracked molecules up to the end time; no mesoscopic stage (/process/chem/TimeStepModel SBS)."},{"id":"irt","label":"IRT_syn only","summary":"IRT_syn particle-based stage up to the end time; no mesoscopic stage (/chem/meso/enable false)."},{"id":"meso","label":"IRT_syn + mesoscopic","default":true,"summary":"IRT_syn particle-based stage, then a hand-over to the mesoscopic stage."}],"overview":"Chosen once in the macro: SBS, IRT_syn only, or IRT_syn + mesoscopic."},{"id":"physics","title":"3. Physical stage","summary":"Beam electrons slow down in the water box and ionise or excite water molecules (Geant4-DNA physics). Every discrete physical interaction is counted, and the pre-chemical species are staged to a per-event file.","phase":"event","files":["src/physics/PhysicsList.cc","src/actions/PrimaryGeneratorAction.cc","src/actions/SteppingAction.cc","src/actions/EventAction.cc"],"outputs":["PhysicsInteractions.Txt / .csv","PreChemical_run<R>_event<E>.txt"],"docs":["docs/output/README.md"],"overview":"Beam electrons interact with water; physical interactions are counted."},{"id":"handoff","title":"4. Physics to chemistry","summary":"When the physical stage has no tracks left, the event's chemistry is started.","phase":"event","files":["src/actions/StackingAction.cc"],"outputs":[],"docs":[],"overview":"When no physical tracks remain, start the event’s chemistry."},{"id":"particle","title":"5. Particle-based stage","summary":"Molecules are tracked individually; they diffuse and react. Species counts over time and reaction firings are recorded. In the default mode this stage stops at the Hand-over time (default 5 ns).","phase":"event","files":["src/chemistry/TimeStepAction.cc","src/scoring/ScoreSpecies.cc","src/scoring/ReactionCounter.cc"],"outputs":["Species.Txt / Species_nt_species.csv","Reactions.Txt / .csv"],"docs":["docs/output/README.md"],"overview":"Track individual molecules as they diffuse and react.","modes":{"sbs":"Step-by-step model up to the end time (default 1 us).","irt":"IRT_syn up to the end time (default 1 us).","meso":"IRT_syn until the Hand-over time (default 5 ns); step 6 continues."}},{"id":"meso","title":"6. Hand-over and mesoscopic stage","summary":"Only with IRT_syn and the mesoscopic stage enabled: the remaining molecules are passed to counts per cell on a mesh and advanced to the end time (default 1 s). Mean counts are recorded on a logarithmic time grid; optional per-event spatial snapshots.","phase":"event","condition":"Only in IRT_syn + mesoscopic mode (the default)","files":["src/chemistry/TimeStepAction.cc","src/chemistry/MesoSettings.cc","src/scoring/MesoSpeciesCounter.cc","src/scoring/MesoSpatialFile.cc"],"outputs":["SpeciesMeso.Txt / .csv","SpeciesMesoSpatial.h5 (optional)"],"docs":["docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md","docs/output/SpeciesMesoSpatial-h5.md"],"review":true,"overview":"Pass remaining molecules to counts per cell and advance to the end time.","modes":{"meso":"From the Hand-over time to the end time (default 1 s)."}},{"id":"event-end","title":"7. End of event","summary":"The primary track's length and how it ended are stored in one row per event.","phase":"event","files":["src/actions/TrackingAction.cc","src/scoring/TrackLengthTable.cc"],"outputs":["TrackLengths.Txt / .csv"],"docs":["docs/output/README.md"],"overview":"Store the primary track’s length and how it ended."},{"id":"dump","title":"8. Dump and manifest","summary":"Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) writes all files together with Manifest.json, which records what produced them.","phase":"output","files":["src/scoring/RunAccumulatorMessenger.cc","src/scoring/RunManifest.cc","src/core/OutputDir.cc"],"outputs":["Manifest.json","results index (Manifest.json in the output folder)"],"docs":["docs/output/README.md","docs/adr/0005-manifest-per-dump.md"],"overview":"Write accumulated results and the manifest, then reset for the next dump.","modes":{"sbs":"No SpeciesMeso files: the mesoscopic stage is off.","irt":"No SpeciesMeso files: the mesoscopic stage is off.","meso":"Also writes SpeciesMeso.Txt / .csv, and SpeciesMesoSpatial.h5 when /chem/meso/spatialOutput is true."}}],"tasks":[{"id":"run","title":"Run a simulation","audience":"everyone","summary":"Run sim with one of the example macros (one per chemistry mode); each runs 10 keV electrons and dumps results into sub-folders.","docs":["macro/example_sbs.in","macro/example_irt.in","macro/example_meso.in","README.md"],"files":["sim.cc"]},{"id":"read","title":"Read the output files","audience":"everyone","summary":"What every output file contains, and how the results folder is organised.","docs":["docs/output/README.md",".claude/skills/sim-output/SKILL.md","docs/output/SpeciesMesoSpatial-h5.md"],"files":[]},{"id":"commands","title":"Look up a macro command","audience":"everyone","summary":"Reference list of every custom /command with the states in which it is allowed.","docs":["docs/recipes/dnachem-min-macro-command-reference.md"],"files":[]},{"id":"chemistry","title":"Add a new Chemistry","audience":"developer","summary":"Define a new named reaction network that /chem/select can choose.","docs":["docs/recipes/add-a-new-chemistry.md","docs/adr/0002-named-chemistries.md"],"files":["src/chemistry/catalog/PureWaterReactions.cc","src/chemistry/BuiltInChemistries.cc","header/chemistry/ChemistryTypes.hh"]},{"id":"reaction","title":"Add a reaction or molecule","audience":"developer","summary":"Extend an existing Chemistry with one more reaction or molecule.","docs":["docs/recipes/add-a-reaction-or-molecule.md","docs/adr/0007-extra-molecules-per-chemistry.md"],"files":["src/chemistry/catalog/PureWaterReactions.cc","src/chemistry/BuiltInChemistries.cc"]},{"id":"macro-cmd","title":"Create a macro command","audience":"developer","summary":"Add a new /command backed by a messenger class.","docs":["docs/recipes/create-a-macro-command.md"],"files":["src/chemistry/MesoMessenger.cc","src/chemistry/ChemistrySelectMessenger.cc"]},{"id":"scorer","title":"Create a scorer","audience":"developer","summary":"Add a Geant4 primitive scorer and register it.","docs":["docs/recipes/create-a-scorer.md"],"files":["src/geometry/DetectorConstruction.cc","src/actions/RunAction.cc"]},{"id":"species-counter","title":"Create a species counter","audience":"developer","summary":"Count molecular species over time during the chemistry stage.","docs":["docs/recipes/create-a-species-counter.md"],"files":["src/scoring/ScoreSpecies.cc","src/chemistry/TimeStepAction.cc"]},{"id":"counter","title":"Add a per-run counter","audience":"developer","summary":"Add a plain accumulator that tallies something across an event or a run.","docs":["docs/recipes/add-a-per-run-counter.md"],"files":["src/scoring/ReactionCounter.cc","src/scoring/TrackLengthTable.cc","src/actions/RunAction.cc"]},{"id":"meso-count","title":"Mesoscopic species counting","audience":"developer","summary":"How species are counted after the hand-over to the mesoscopic stage.","docs":["docs/recipes/mesoscopic-3d-species-counting.md"],"files":["src/chemistry/TimeStepAction.cc","src/scoring/MesoSpeciesCounter.cc"]},{"id":"hdf5","title":"Export data as HDF5","audience":"developer","summary":"Write per-event structured binary output.","docs":["docs/recipes/export-data-as-hdf5.md"],"files":["src/scoring/MesoSpatialFile.cc"]},{"id":"decisions","title":"Read the design decisions","audience":"everyone","summary":"The eight architecture decision records and the project glossary.","docs":["CONTEXT.md","docs/adr/0001-baseline-acid-base-buffer.md","docs/adr/0002-named-chemistries.md","docs/adr/0003-clustered-source-layout.md","docs/adr/0004-scavenger-reactions-per-chemistry.md","docs/adr/0005-manifest-per-dump.md","docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md","docs/adr/0007-extra-molecules-per-chemistry.md","docs/adr/0008-selectable-chemistry-modes.md"],"files":[]}],"startHere":{"map":[{"id":"sim","why":"Where the program starts"},{"id":"chem-list","why":"The driver of the chemical stage"},{"id":"dump-msg","why":"How results reach the disk"}],"flow":[{"id":"start","why":"Begin at the beginning"},{"id":"mode","why":"The three chemistry modes"}],"tasks":[{"id":"run","why":"First time here"},{"id":"read","why":"You already have results"}]}};
 
@@ -1055,7 +1807,7 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
         card.appendChild(note);
         onActivate(card, function () { go('flow', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
         flowCards[s.id] = card;
-        const li = el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? modePicker() : null]);
+        const li = el('li', {}, [el('span', { class: 'b-num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? modePicker() : null]);
         flowParts[s.id] = { card: card, tag: tag, note: note, li: li };
         ol.appendChild(li);
       });
@@ -1139,21 +1891,494 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     ));
   }
 
+  // ---- macro builder ----
+  // The guide, the validation and the preview all read one configuration through
+  // the model in macro-builder.js (window.MacroBuilder): nothing here decides what
+  // a command means, which values are valid or which choices are compatible.
+  const MB = window.MacroBuilder;
+  const BUILDER_KEY = 'dnachem-min-explorer-macro-builder';
+  const builderStepById = {};
+  MB.STEPS.forEach(function (s, i) { s.index = i; builderStepById[s.id] = s; });
+  const KIND_LABEL = { incomplete: 'Incomplete', invalid: 'Invalid', incompatible: 'Incompatible', unsupported: 'Unsupported', warning: 'Note', info: 'Info' };
+  const SEVERITY_LABEL = { error: 'Must fix', warning: 'Warning', info: 'Info' };
+  let bcfg = loadBuilder();
+  let bstep = 'basics';
+  let bissues = [];
+  let bconfirm = null;        // pending confirmation: { kind: 'reset' | 'smoke' }
+  let bpendingFocus = null;   // data-bkey (or field id) to focus after the next render
+  let bui = null;             // elements of the rendered builder
+  let bExportNote = '';
+  function loadBuilder() {
+    try { const s = window.sessionStorage && sessionStorage.getItem(BUILDER_KEY); if (s) return MB.normalize(JSON.parse(s)); } catch (e) { /* storage unavailable */ }
+    return MB.defaults();
+  }
+  function saveBuilder() { try { if (window.sessionStorage) sessionStorage.setItem(BUILDER_KEY, JSON.stringify(bcfg)); } catch (e) { /* storage unavailable */ } }
+  function announce(text) {
+    const s = document.getElementById('builder-status');
+    s.textContent = '';
+    setTimeout(function () { s.textContent = text; }, 30);
+  }
+  function setCfg(next, focusKey) {
+    bcfg = MB.normalize(next);
+    saveBuilder();
+    if (focusKey) bpendingFocus = focusKey;
+    refreshBuilder();
+  }
+  function patch(p, focusKey) { setCfg(MB.applyPatch(bcfg, p), focusKey); }
+  function issuesFor(fieldId) {
+    return bissues.filter(function (i) { return i.field === fieldId || i.field.indexOf(fieldId + '.') === 0; });
+  }
+  function hasError(fieldId) { return issuesFor(fieldId).some(function (i) { return i.severity === 'error'; }); }
+  function stepIssues(stepId) { return bissues.filter(function (i) { return i.step === stepId; }); }
+
+  function renderBuilder() {
+    stage.classList.remove('connections-mode');
+    stage.appendChild(el('h2', { class: 'view-heading', text: 'Macro builder' }));
+    stage.appendChild(el('p', { class: 'intro', text: 'Create a simulation macro (.in file) for dnachem-min, step by step. The macro preview updates as you change settings. ' +
+      'The checks compare your choices with the current dnachem-min code; they do not run the simulation.' }));
+    bui = { switches: [] };
+    stage.appendChild(switchBar());
+    bui.tools = el('div', { class: 'b-tools' });
+    stage.appendChild(bui.tools);
+    bui.confirm = el('div', { class: 'b-confirm', role: 'alertdialog', 'aria-labelledby': 'b-confirm-text', hidden: '' });
+    stage.appendChild(bui.confirm);
+    bui.steps = el('ol', { class: 'b-steps', 'aria-label': 'Builder steps' });
+    stage.appendChild(el('nav', { 'aria-label': 'Macro builder progress' }, [bui.steps]));
+    bui.panel = el('section', { class: 'b-panel', 'aria-labelledby': 'b-step-heading' });
+    stage.appendChild(bui.panel);
+    bui.back = el('button', { type: 'button', class: 'b-btn' });
+    bui.next = el('button', { type: 'button', class: 'b-btn primary' });
+    bui.back.addEventListener('click', function () { const s = builderStepById[bstep]; if (s.index > 0) go('builder', MB.STEPS[s.index - 1].id, true); });
+    bui.next.addEventListener('click', function () { const s = builderStepById[bstep]; if (s.index < MB.STEPS.length - 1) go('builder', MB.STEPS[s.index + 1].id, true); });
+    stage.appendChild(el('div', { class: 'b-pager' }, [bui.back, bui.next]));
+
+    // The preview lives in the side panel; it is rebuilt in place on every change.
+    detail.textContent = '';
+    detail.appendChild(switchBar());
+    bui.previewHeading = el('h2', { tabindex: '-1', text: 'Macro preview' });
+    bui.status = el('div', { class: 'b-status' });
+    bui.summary = el('dl', { class: 'b-sum', 'aria-label': 'Configuration summary' });
+    bui.copy = el('button', { type: 'button', class: 'b-btn small' , text: 'Copy macro' });
+    bui.copy.addEventListener('click', function () {
+      copyText(MB.generate(bcfg).text).then(function () { announce('Macro copied to the clipboard.'); bui.copy.textContent = 'Copied'; },
+        function () { announce('Could not copy the macro.'); bui.copy.textContent = 'Copy failed'; });
+      setTimeout(function () { bui.copy.textContent = 'Copy macro'; }, 1400);
+    });
+    bui.pre = el('pre', { class: 'b-pre', tabindex: '0', 'aria-label': 'Generated macro' });
+    detail.append(bui.previewHeading, bui.status, bui.summary, el('div', { class: 'b-export' }, [bui.copy]), bui.pre,
+      el('p', { class: 'b-note', text: 'Lines marked "fix" belong to a setting with a problem. Comments (#) are ignored by Geant4.' }));
+    detail.scrollTop = 0;
+  }
+  function switchBar() {
+    const guide = el('button', { type: 'button', 'aria-pressed': 'true' }, ['Guide']);
+    const prev = el('button', { type: 'button', 'aria-pressed': 'false' }, ['Preview', el('small')]);
+    guide.addEventListener('click', function () { showPane(false); });
+    prev.addEventListener('click', function () { showPane(true); });
+    bui.switches.push({ guide: guide, prev: prev });
+    return el('div', { class: 'b-switch', role: 'group', 'aria-label': 'Show guide or preview' }, [guide, prev]);
+  }
+  function showPane(preview) {
+    main.classList.toggle('show-preview', preview);
+    bui.switches.forEach(function (s) {
+      s.guide.setAttribute('aria-pressed', preview ? 'false' : 'true');
+      s.prev.setAttribute('aria-pressed', preview ? 'true' : 'false');
+    });
+    window.scrollTo(0, 0);
+    const target = preview ? bui.switches[1].prev : bui.switches[0].guide;
+    target.focus({ preventScroll: true });
+  }
+
+  function selectBuilder(id) {
+    bstep = id && builderStepById[id] ? id : 'basics';
+    bconfirm = null;
+    main.classList.remove('show-preview');
+    if (bui) bui.switches.forEach(function (s) { s.guide.setAttribute('aria-pressed', 'true'); s.prev.setAttribute('aria-pressed', 'false'); });
+    refreshBuilder();
+  }
+
+  function refreshBuilder() {
+    if (!bui) return;
+    bissues = MB.validate(bcfg);
+    const gen = MB.generate(bcfg);
+    const errorCount = MB.errors(bissues).length;
+    const warnCount = bissues.filter(function (i) { return i.severity === 'warning'; }).length;
+
+    // Tools and reset confirmation.
+    bui.tools.textContent = '';
+    const smoke = el('button', { type: 'button', class: 'b-btn small', text: 'Use the quick smoke-test preset' });
+    smoke.addEventListener('click', function () {
+      if (MB.changedCount(bcfg) > 0) { bconfirm = { kind: 'smoke' }; refreshBuilder(); bui.confirm.querySelector('button').focus(); }
+      else applySmoke();
+    });
+    const reset = el('button', { type: 'button', class: 'b-btn small', text: 'Reset all settings…', 'data-bkey': 'tool:reset' });
+    reset.addEventListener('click', function () { bconfirm = { kind: 'reset' }; refreshBuilder(); bui.confirm.querySelector('button').focus(); });
+    bui.tools.append(smoke, reset, el('span', { class: 'b-note', text: MB.changedCount(bcfg) + ' setting(s) changed from the defaults.' }));
+    bui.confirm.textContent = '';
+    bui.confirm.hidden = !bconfirm;
+    if (bconfirm) {
+      const n = MB.changedCount(bcfg);
+      const text = bconfirm.kind === 'reset' ?
+        'Reset every setting to its default? The ' + n + ' setting(s) you changed, the sub-runs and the file name will be lost.' :
+        'Apply the smoke-test preset? It sets a 1 ms end time, 10 keV electrons and replaces your sub-runs with one run of 2 events. Your other settings stay.';
+      const yes = el('button', { type: 'button', class: 'b-btn danger small', text: bconfirm.kind === 'reset' ? 'Reset everything' : 'Apply the preset' });
+      const no = el('button', { type: 'button', class: 'b-btn small', text: 'Cancel' });
+      yes.addEventListener('click', function () {
+        const kind = bconfirm.kind; bconfirm = null;
+        if (kind === 'reset') { bcfg = MB.defaults(); saveBuilder(); announce('All settings reset to the defaults.'); go('builder', 'basics', true); refreshBuilder(); bui.panel.querySelector('h3').focus(); }
+        else applySmoke();
+      });
+      no.addEventListener('click', function () { bconfirm = null; bpendingFocus = 'tool:reset'; refreshBuilder(); });
+      bui.confirm.append(el('p', { id: 'b-confirm-text', text: text }), yes, no);
+    }
+
+    // Progress.
+    bui.steps.textContent = '';
+    MB.STEPS.forEach(function (s, i) {
+      const own = stepIssues(s.id);
+      const errs = own.filter(function (x) { return x.severity === 'error'; }).length;
+      let st, cls = '';
+      if (s.id === 'review') { st = errorCount ? errorCount + ' to fix overall' : 'Ready to export'; cls = errorCount ? 'bad' : 'ok'; }
+      else if (errs) { st = '✕ ' + errs + ' to fix'; cls = 'bad'; }
+      else { st = '✓ OK' + (own.length ? ', ' + own.length + ' note' + (own.length > 1 ? 's' : '') : ''); cls = 'ok'; }
+      const b = el('button', { type: 'button', 'aria-current': s.id === bstep ? 'step' : null, 'data-bkey': 'step:' + s.id },
+        [el('span', { class: 'top' }, [el('span', { class: 'n', 'aria-hidden': 'true', text: String(i + 1) }), el('b', { text: s.short })]), el('span', { class: 'st ' + cls, text: st })]);
+      b.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + MB.STEPS.length + ': ' + s.title + ', ' + st);
+      b.addEventListener('click', function () { go('builder', s.id, true); });
+      bui.steps.appendChild(el('li', {}, [b]));
+    });
+    const cur = builderStepById[bstep];
+    bui.back.disabled = cur.index === 0;
+    bui.back.textContent = cur.index === 0 ? '← Back' : '← Back: ' + MB.STEPS[cur.index - 1].title;
+    bui.next.hidden = cur.index === MB.STEPS.length - 1;
+    if (!bui.next.hidden) bui.next.textContent = 'Next: ' + MB.STEPS[cur.index + 1].title + ' →';
+
+    renderStepPanel();
+
+    // Preview.
+    bui.status.className = 'b-status ' + (errorCount ? 'bad' : 'ok');
+    bui.status.textContent = '';
+    bui.status.append(el('span', { class: 'ic', 'aria-hidden': 'true', text: errorCount ? '✕' : '✓' }),
+      el('span', { text: errorCount ? errorCount + ' problem' + (errorCount > 1 ? 's' : '') + ' must be fixed before export.' :
+        'Configuration valid for the current code' + (warnCount ? ' (' + warnCount + ' warning' + (warnCount > 1 ? 's' : '') + ')' : '') + '. Not a simulation run: the macro has not been executed.' }));
+    bui.summary.textContent = '';
+    MB.summary(bcfg).forEach(function (row) { bui.summary.append(el('dt', { text: row[0] }), el('dd', { text: row[1] })); });
+    bui.pre.textContent = '';
+    gen.lines.forEach(function (l) {
+      const bad = l.field && hasError(l.field);
+      bui.pre.appendChild(el('span', { class: (l.text.charAt(0) === '#' ? 'c' : '') + (bad ? ' bad' : '') }, [l.text + '\n']));
+    });
+    bui.copy.disabled = errorCount > 0;
+    bui.copy.title = errorCount ? 'Fix the problems first' : '';
+    bui.switches.forEach(function (s) { s.prev.querySelector('small').textContent = errorCount ? errorCount + ' to fix' : 'valid'; });
+    const statusText = errorCount ? errorCount + ' problems to fix' : 'Configuration valid';
+    if (bui.lastStatus !== statusText) { bui.lastStatus = statusText; announce(statusText); }
+  }
+  function applySmoke() {
+    bcfg = MB.smokePreset(bcfg); saveBuilder();
+    announce('Smoke-test preset applied: 1 ms end time, 10 keV electrons, one sub-run of 2 events.');
+    refreshBuilder();
+  }
+
+  // Re-render the current step, keeping keyboard focus and the text caret.
+  function renderStepPanel() {
+    const active = document.activeElement;
+    let key = bpendingFocus, caret = null;
+    if (!key && active && bui.panel.contains(active) && active.dataset.bkey) {
+      key = active.dataset.bkey;
+      if (typeof active.selectionStart === 'number') caret = [active.selectionStart, active.selectionEnd];
+    }
+    if (!key && active && bui.steps.contains(active) && active.dataset.bkey) key = active.dataset.bkey;
+    if (!key && active && bui.tools.contains(active) && active.dataset.bkey) key = active.dataset.bkey;
+    bpendingFocus = null;
+    const s = builderStepById[bstep];
+    const panel = bui.panel;
+    panel.textContent = '';
+    panel.append(el('h3', { id: 'b-step-heading', tabindex: '-1', text: 'Step ' + (s.index + 1) + ' of ' + MB.STEPS.length + ': ' + s.title }),
+      el('p', { class: 'intro', text: s.intro }));
+    if (s.id === 'review') renderReview(panel);
+    else MB.FIELDS.filter(function (f) { return f.step === s.id; }).forEach(function (f) { const n = renderField(f); if (n) panel.appendChild(n); });
+    if (key) {
+      let target = document.querySelector('[data-bkey="' + key + '"]') || document.querySelector('[data-bfield="' + key + '"] input:not(:disabled), [data-bfield="' + key + '"] select:not(:disabled), [data-bfield="' + key + '"] button');
+      if (!target && key.indexOf('.') > 0) target = document.querySelector('[data-bfield="' + key.split('.')[0] + '"] input');
+      if (target) {
+        target.focus({ preventScroll: !scrollOnFocus(key) });
+        if (caret && typeof target.setSelectionRange === 'function') { try { target.setSelectionRange(caret[0], caret[1]); } catch (e) { /* not a text input */ } }
+      }
+    }
+  }
+  // Typing keeps the caret where it is; jumps to a setting (issue links, resolutions) scroll to it.
+  function scrollOnFocus(key) { return !/^(f:|run:|opt:|tool:|export:)/.test(key); }
+
+  function tagFor(f) { return el('span', { class: 'b-req' + (f.required ? ' required' : ''), text: f.required ? 'Required' : 'Optional' }); }
+  function techDetails(f) {
+    if (!f.tech && !(f.refs && f.refs.length)) return null;
+    const list = el('ul');
+    (f.refs || []).forEach(function (r) {
+      const isG4 = r.indexOf('G4: ') === 0;
+      const m = /^([^\s(]+)(.*)$/.exec(isG4 ? r.slice(4) : r);
+      const li = el('li');
+      if (isG4) li.append('Geant4 ', el('code', { text: m[1] }), m[2]);
+      else li.append(el('a', { href: REPO + m[1], target: '_blank', rel: 'noopener' }, [el('code', { text: m[1] })]), m[2]);
+      list.appendChild(li);
+    });
+    return el('details', { class: 'b-tech' }, [el('summary', { text: 'Technical details and sources' }),
+      f.tech ? el('p', { text: f.tech }) : null, f.refs && f.refs.length ? list : null]);
+  }
+  function whyBlock(a, fieldId) {
+    const box = el('span', { class: 'b-why' }, [el('span', { class: 'k', text: (a.kind === 'unsupported' ? '⊘ Not supported by dnachem-min: ' : '⊘ Unavailable: ') }), a.why]);
+    if (a.fix) {
+      const b = el('button', { type: 'button', class: 'b-btn small', text: 'To make it available: ' + a.fix.label });
+      b.addEventListener('click', function (ev) { ev.preventDefault(); applyResolution(a.fix, fieldId); });
+      box.append(el('br'), b);
+    }
+    return box;
+  }
+  function applyResolution(r, focusField) {
+    setCfg(MB.applyPatch(bcfg, r.patch), focusField || null);
+    announce('Applied: ' + r.label + '.');
+  }
+  function issueList(list, withStepLink) {
+    if (!list.length) return null;
+    return el('ul', { class: 'b-issues' }, list.map(function (i) {
+      const li = el('li', { class: 'b-issue ' + i.severity, id: 'b-issue-' + i.field.replace(/\W/g, '-') + '-' + i.kind },
+        [el('span', { class: 'k', text: SEVERITY_LABEL[i.severity] + ' · ' + KIND_LABEL[i.kind] + ':' }), i.message]);
+      const acts = [];
+      i.resolutions.forEach(function (r) {
+        const b = el('button', { type: 'button', class: 'b-btn small', text: r.label });
+        b.addEventListener('click', function () { applyResolution(r, i.field); });
+        acts.push(b);
+      });
+      if (withStepLink) {
+        const s = builderStepById[i.step];
+        const b = el('button', { type: 'button', class: 'b-btn small', text: 'Go to step ' + (s.index + 1) + ': ' + s.title });
+        b.addEventListener('click', function () { bpendingFocus = i.field; go('builder', i.step, true); });
+        acts.push(b);
+      }
+      if (acts.length) li.appendChild(el('div', { class: 'acts' }, acts));
+      return li;
+    }));
+  }
+  function textInput(key, value, opts, onChange) {
+    const input = el('input', Object.assign({ type: 'text', 'data-bkey': key, autocomplete: 'off', spellcheck: 'false' }, opts));
+    input.value = value === undefined || value === null ? '' : String(value);
+    input.addEventListener('input', function () { onChange(input.value); });
+    return input;
+  }
+  function unitSelect(key, f, value, disabled, label, onChange) {
+    const units = f.category === 'o2' ? MB.O2_UNITS : Object.keys(MB.UNITS[f.category]);
+    const s = el('select', { 'data-bkey': key, 'aria-label': label, disabled: disabled ? '' : null },
+      units.map(function (u) { return el('option', { value: u, text: u }); }));
+    s.value = value;
+    s.addEventListener('change', function () { onChange(s.value); });
+    return s;
+  }
+
+  function renderField(f) {
+    if (!MB.visible(bcfg, f)) return null;
+    if (f.type === 'runs') return renderRuns(f);
+    const avail = MB.fieldAvailability(bcfg, f);
+    const own = issuesFor(f.id);
+    const err = own.some(function (i) { return i.severity === 'error'; });
+    const helpId = 'b-help-' + f.id;
+    const describedBy = [helpId].concat(own.map(function (i) { return 'b-issue-' + i.field.replace(/\W/g, '-') + '-' + i.kind; })).join(' ');
+    const isGroup = f.type === 'choice' || f.type === 'bool';
+    const wrap = el(isGroup ? 'fieldset' : 'div', { class: 'b-field' + (err ? ' has-error' : '') + (avail ? ' unavailable' : ''), 'data-bfield': f.id });
+    const inputId = 'b-in-' + f.id;
+    const title = [f.label, tagFor(f)];
+    wrap.appendChild(isGroup ? el('legend', {}, title) : el('label', { class: 'b-label', for: inputId }, title));
+    wrap.appendChild(el('p', { class: 'b-help', id: helpId, text: f.help || '' }));
+    if (avail) wrap.appendChild(el('p', { class: 'b-unavail' }, [whyBlock(avail, f.id)]));
+    const disabled = !!avail;
+    const value = MB.get(bcfg, f.path);
+    if (isGroup) {
+      const opts = el('div', { class: 'b-opts' });
+      f.options.forEach(function (o) {
+        const oa = MB.optionAvailability(bcfg, o);
+        const checked = value === o.value;
+        const input = el('input', { type: 'radio', name: 'b-' + f.id, 'data-bkey': 'opt:' + f.id + ':' + String(o.value),
+          disabled: disabled || (oa && !checked) ? '' : null, 'aria-describedby': describedBy });
+        input.checked = checked;
+        input.addEventListener('change', function () { if (input.checked) { const p = {}; p[f.path] = o.value; patch(p, 'opt:' + f.id + ':' + String(o.value)); } });
+        const text = el('span', {}, [el('b', { text: o.label }), o.help ? el('small', { text: o.help }) : null]);
+        if (oa) text.appendChild(whyBlock(oa, f.id));
+        opts.appendChild(el('label', { class: 'b-opt' + (oa ? ' off' : '') }, [input, text]));
+      });
+      wrap.appendChild(opts);
+    } else {
+      const row = el('div', { class: 'b-input' });
+      const common = { id: inputId, 'aria-describedby': describedBy, 'aria-invalid': err ? 'true' : null, disabled: disabled ? '' : null };
+      if (f.type === 'text') {
+        row.appendChild(textInput('f:' + f.id, value, Object.assign({ class: 'b-wide', placeholder: f.placeholder || '' }, common), function (v) { const p = {}; p[f.path] = v; patch(p); }));
+      } else if (f.type === 'number') {
+        row.appendChild(textInput('f:' + f.id, value, Object.assign({ class: 'b-num', inputmode: f.integer ? 'numeric' : 'decimal' }, common), function (v) { const p = {}; p[f.path] = v; patch(p); }));
+      } else if (f.type === 'quantity') {
+        row.appendChild(textInput('f:' + f.id + ':value', value.value, Object.assign({ class: 'b-num', inputmode: 'decimal' }, common), function (v) { const p = {}; p[f.path + '.value'] = v; patch(p); }));
+        row.appendChild(unitSelect('f:' + f.id + ':unit', f, value.unit, disabled, 'Unit for ' + f.label, function (u) { const p = {}; p[f.path + '.unit'] = u; patch(p, 'f:' + f.id + ':unit'); }));
+      } else if (f.type === 'list') {
+        row.appendChild(textInput('f:' + f.id + ':values', value.values, Object.assign({ class: 'b-wide', inputmode: 'decimal' }, common), function (v) { const p = {}; p[f.path + '.values'] = v; patch(p); }));
+        row.appendChild(unitSelect('f:' + f.id + ':unit', f, value.unit, disabled, 'Unit for ' + f.label, function (u) { const p = {}; p[f.path + '.unit'] = u; patch(p, 'f:' + f.id + ':unit'); }));
+      }
+      wrap.appendChild(row);
+    }
+    const list = issueList(own, false);
+    if (list) wrap.appendChild(list);
+    const tech = techDetails(f);
+    if (tech) wrap.appendChild(tech);
+    return wrap;
+  }
+
+  function renderRuns(f) {
+    const wrap = el('div', { class: 'b-field' + (hasError('runs') ? ' has-error' : ''), 'data-bfield': 'runs' },
+      [el('div', { class: 'b-label' }, [f.label, tagFor(f)]), el('p', { class: 'b-help', text: f.help })]);
+    const general = bissues.filter(function (i) { return i.field === 'runs'; });
+    if (general.length) wrap.appendChild(issueList(general, false));
+    bcfg.runs.forEach(function (r, i) {
+      const p = 'runs.' + i + '.';
+      const fs = el('fieldset', { class: 'b-run', 'data-bfield': 'runs.' + i });
+      fs.appendChild(el('legend', { text: 'Sub-run ' + (i + 1) }));
+      const own = issuesFor('runs.' + i);
+      const desc = function (sub) { return own.filter(function (x) { return x.field === p + sub; }).map(function (x) { return 'b-issue-' + x.field.replace(/\W/g, '-') + '-' + x.kind; }).join(' ') || null; };
+      const bad = function (sub) { return own.some(function (x) { return x.field === p + sub && x.severity === 'error'; }) ? 'true' : null; };
+      const events = textInput('run:' + i + ':events', r.events, { class: 'b-num', inputmode: 'numeric', 'aria-describedby': desc('events'), 'aria-invalid': bad('events') }, function (v) { const q = {}; q[p + 'events'] = v; patch(q); });
+      const seeds = textInput('run:' + i + ':seeds', r.seeds, { class: 'b-wide', placeholder: 'e.g. 12345 67890 (blank: keep the generator state)', 'aria-describedby': desc('seeds'), 'aria-invalid': bad('seeds') }, function (v) { const q = {}; q[p + 'seeds'] = v; patch(q); });
+      fs.appendChild(el('div', { class: 'row b-input' }, [
+        el('label', { class: 'lbl' }, ['Events (required)', events]),
+        el('label', { class: 'lbl', style: 'flex:1 1 260px' }, ['Random seeds (optional, two or more whole numbers)', seeds])]));
+      const opts = el('div', { class: 'b-opts', role: 'radiogroup', 'aria-label': 'Sub-run ' + (i + 1) + ': after this sub-run' });
+      [['reset', 'Dump (files with an optional prefix)', '/run/dumpDataAndReset [prefix]'],
+       ['dir', 'Dump into a subfolder', '/run/dumpDataAndResetToDir <subfolder>'],
+       ['none', 'No dump: keep accumulating', 'Results carry over to the next dump']].forEach(function (o) {
+        const input = el('input', { type: 'radio', name: 'b-run-dump-' + i, 'data-bkey': 'run:' + i + ':dump:' + o[0], 'aria-describedby': desc('dump') });
+        input.checked = r.dump === o[0];
+        input.addEventListener('change', function () {
+          if (!input.checked) return;
+          const q = {}; q[p + 'dump'] = o[0];
+          if (o[0] === 'dir' && !String(r.name || '').trim()) q[p + 'name'] = 'sub_' + String(i + 1).padStart(2, '0');
+          patch(q, 'run:' + i + ':dump:' + o[0]);
+        });
+        opts.appendChild(el('label', { class: 'b-opt' }, [input, el('span', {}, [el('b', { text: o[1] }), el('small', {}, [el('code', { text: o[2] })])])]));
+      });
+      fs.appendChild(el('div', { class: 'lbl', style: 'font-size:13px;font-weight:600;margin-top:8px' }, ['After this sub-run']));
+      fs.appendChild(opts);
+      if (r.dump !== 'none') {
+        const name = textInput('run:' + i + ':name', r.name, { class: 'b-wide', placeholder: r.dump === 'dir' ? 'e.g. sub_01 or scan/run01' : 'blank: plain file names', 'aria-describedby': desc('name'), 'aria-invalid': bad('name') },
+          function (v) { const q = {}; q[p + 'name'] = v; patch(q); });
+        fs.appendChild(el('div', { class: 'row b-input' }, [el('label', { class: 'lbl', style: 'flex:1 1 260px' },
+          [r.dump === 'dir' ? 'Subfolder (required; relative, created if missing, unique)' : 'File-name prefix (optional, unique; letters, digits . _ -)', name])]));
+      }
+      const list = issueList(own, false);
+      if (list) fs.appendChild(list);
+      if (bcfg.runs.length > 1) {
+        const rm = el('button', { type: 'button', class: 'b-btn small', text: 'Remove sub-run ' + (i + 1), 'data-bkey': 'run:' + i + ':remove' });
+        rm.addEventListener('click', function () {
+          const runs = bcfg.runs.slice(); runs.splice(i, 1);
+          patch({ runs: runs }, 'run:add');
+          announce('Sub-run ' + (i + 1) + ' removed.');
+        });
+        fs.appendChild(el('div', { class: 'row' }, [rm]));
+      }
+      wrap.appendChild(fs);
+    });
+    const add = el('button', { type: 'button', class: 'b-btn small', text: '+ Add a sub-run', 'data-bkey': 'run:add' });
+    add.addEventListener('click', function () {
+      const n = bcfg.runs.length + 1;
+      let name = 'sub_' + String(n).padStart(2, '0');
+      while (bcfg.runs.some(function (r) { return r.dump === 'dir' && r.name === name; })) name += '_b';
+      patch({ runs: bcfg.runs.concat([{ events: '2', seeds: '', dump: 'dir', name: name }]) }, 'run:' + (n - 1) + ':events');
+      announce('Sub-run ' + n + ' added.');
+    });
+    wrap.appendChild(add);
+    const tech = techDetails(f);
+    if (tech) wrap.appendChild(tech);
+    return wrap;
+  }
+
+  function renderReview(panel) {
+    const errs = MB.errors(bissues);
+    const box = el('div', { class: 'b-review' });
+    box.appendChild(el('h4', { text: 'Configuration summary' }));
+    const dl = el('dl', { class: 'b-sum' });
+    MB.summary(bcfg).forEach(function (row) { dl.append(el('dt', { text: row[0] }), el('dd', { text: row[1] })); });
+    box.appendChild(dl);
+    box.appendChild(el('h4', { text: errs.length ? 'Problems that block export (' + errs.length + ')' : 'No blocking problems' }));
+    if (errs.length) box.appendChild(issueList(errs, true));
+    else box.appendChild(el('p', { class: 'b-note', text: 'The configuration is valid for the current dnachem-min code. This is a configuration check, not a simulation run.' }));
+    const notes = bissues.filter(function (i) { return i.severity !== 'error'; });
+    if (notes.length) { box.appendChild(el('h4', { text: 'Warnings and notes (' + notes.length + ')' })); box.appendChild(issueList(notes, true)); }
+
+    box.appendChild(el('h4', { text: 'Save the macro' }));
+    const nameInput = textInput('f:filename', bcfg.filename, { id: 'b-in-filename', class: 'b-wide', 'aria-describedby': 'b-file-final' }, function (v) { patch({ filename: v }); });
+    const finalName = MB.sanitizeFilename(bcfg.filename);
+    box.appendChild(el('div', { class: 'b-field' }, [
+      el('label', { class: 'b-label', for: 'b-in-filename' }, ['File name', el('span', { class: 'b-req required', text: 'Required' })]),
+      el('p', { class: 'b-help', text: 'Letters, digits, ".", "_" and "-"; other characters are removed and ".in" is added.' }),
+      el('div', { class: 'b-input' }, [nameInput]),
+      el('p', { class: 'b-note', id: 'b-file-final' }, ['Will be saved as ', el('code', { text: finalName })])]));
+
+    const dl1 = el('button', { type: 'button', class: 'b-btn primary', text: 'Download ' + finalName, 'data-bkey': 'export:download', disabled: errs.length ? '' : null, 'aria-describedby': 'b-export-note' });
+    dl1.addEventListener('click', downloadMacro);
+    const actions = [dl1];
+    const canPick = typeof window.showSaveFilePicker === 'function';
+    if (canPick) {
+      const save = el('button', { type: 'button', class: 'b-btn', text: 'Save to a folder…', 'data-bkey': 'export:save', disabled: errs.length ? '' : null, 'aria-describedby': 'b-export-note' });
+      save.addEventListener('click', saveMacroToFolder);
+      actions.push(save);
+    }
+    box.appendChild(el('div', { class: 'b-export' }, actions));
+    box.appendChild(el('p', { class: 'b-note', id: 'b-export-note', role: 'status' }, [errs.length ?
+      'Export is disabled until the ' + errs.length + ' problem' + (errs.length > 1 ? 's' : '') + ' above are fixed.' : (bExportNote || 'The file contains exactly the macro shown in the preview.')]));
+    box.appendChild(el('div', { class: 'b-help' }, [
+      el('p', {}, ['Recommended destination: the project\'s ', el('code', { text: 'macro/' }), ' folder, where every dnachem-min macro lives. ',
+        'The build copies ', el('code', { text: 'macro/' }), ' next to the executable, so after saving there, rebuild (or copy the file into ', el('code', { text: 'build/<config>/macro/' }),
+        ') and run it from the build directory: ', el('code', { text: './sim ' + finalName }), '.']),
+      el('p', {}, [canPick ?
+        '"Save to a folder…" opens your browser\'s save dialog, where you choose the folder (for example macro/ in your copy of the repository). Nothing is written without your choice in that dialog.' :
+        'This browser has no save-to-folder dialog here, so use Download.',
+        ' Download saves to the browser\'s download location (usually your Downloads folder); move the file into macro/ yourself. ',
+        'A web page cannot write into the repository or create folders there on its own.'])]));
+    panel.appendChild(box);
+  }
+  function downloadMacro() {
+    if (MB.errors(MB.validate(bcfg)).length) return;
+    const name = MB.sanitizeFilename(bcfg.filename);
+    const text = MB.generate(bcfg).text;
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    const a = el('a', { href: url, download: name, hidden: '' });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    bExportNote = 'Download of ' + name + ' started; your browser decides where it is saved.';
+    bpendingFocus = 'export:download'; refreshBuilder(); announce(bExportNote);
+  }
+  function saveMacroToFolder() {
+    if (MB.errors(MB.validate(bcfg)).length) return;
+    const name = MB.sanitizeFilename(bcfg.filename);
+    const text = MB.generate(bcfg).text;
+    window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Geant4 macro', accept: { 'text/plain': ['.in'] } }] })
+      .then(function (handle) {
+        return handle.createWritable().then(function (w) { return w.write(text).then(function () { return w.close(); }); })
+          .then(function () { bExportNote = 'Saved ' + handle.name + ' in the folder you chose.' + (handle.name !== name ? ' The comment inside still says "./sim ' + name + '".' : ''); });
+      })
+      .catch(function (e) { bExportNote = e && e.name === 'AbortError' ? 'Save cancelled; nothing was written.' : 'Could not save (' + (e && e.message || e) + '). Use Download instead.'; })
+      .then(function () { bpendingFocus = 'export:save'; refreshBuilder(); announce(bExportNote); });
+  }
+
   // ---- views, tabs and routing (#view or #view/id; the back button works) ----
   const VIEWS = [
     { id: 'map', label: 'Module map', render: renderMap, select: selectMap },
     { id: 'flow', label: 'Run flow', render: renderFlow, select: selectFlow },
-    { id: 'tasks', label: 'Tasks', render: renderTasks, select: selectTask }
+    { id: 'tasks', label: 'Tasks', render: renderTasks, select: selectTask },
+    { id: 'builder', label: 'Macro builder', render: renderBuilder, select: selectBuilder }
   ];
   const lastSel = {};
   let current = null;
   let userAction = false;
   let serial = Date.now(), currentKey = null, activeHash = null;
   const visits = new Map();
-  function viewLabel(view) { return ({ map: 'Module map', flow: 'Run flow', tasks: 'Tasks' })[view] || 'view'; }
+  function viewLabel(view) { return ({ map: 'Module map', flow: 'Run flow', tasks: 'Tasks', builder: 'Macro builder' })[view] || 'view'; }
   function selectionLabel() {
     const id = lastSel[current];
-    const item = current === 'map' ? (nodeById[id] || laneById[(id || '').slice(5)]) : current === 'flow' ? stepById[id] : taskById[id];
+    const item = current === 'map' ? (nodeById[id] || laneById[(id || '').slice(5)]) : current === 'flow' ? stepById[id] :
+      current === 'builder' ? builderStepById[id] : taskById[id];
     return item ? item.title.replace(/^\d+\.\s*/, '') : viewLabel(current);
   }
   function rememberVisit() {
@@ -1176,7 +2401,8 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     let view = m && VIEWS.some(function (v) { return v.id === m[1]; }) ? m[1] : 'map';
     let id = null;
     try { id = m && m[2] ? decodeURIComponent(m[2]) : null; } catch (e) { /* Invalid deep link: show overview. */ }
-    if (id && !(view === 'map' ? nodeById[id] || (id.indexOf('lane:') === 0 && laneById[id.slice(5)]) : view === 'flow' ? stepById[id] : taskById[id])) id = null;
+    if (id && !(view === 'map' ? nodeById[id] || (id.indexOf('lane:') === 0 && laneById[id.slice(5)]) : view === 'flow' ? stepById[id] :
+      view === 'builder' ? builderStepById[id] : taskById[id])) id = null;
     if (!history.state || !history.state.explorer) history.replaceState({ explorer: true, key: ++serial }, '');
     const saved = restoring && visits.get(history.state.key);
     const fromDetail = detail.contains(document.activeElement);
@@ -1192,6 +2418,13 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
         x.btn.tabIndex = on ? 0 : -1;
       });
       stage.setAttribute('aria-labelledby', 'tab-' + view);
+      // The builder shows its guide and its live preview together; the preview
+      // changes on every keystroke, so it announces only a debounced status.
+      main.classList.toggle('building', view === 'builder');
+      main.classList.remove('show-preview');
+      detail.setAttribute('aria-live', view === 'builder' ? 'off' : 'polite');
+      detail.setAttribute('aria-label', view === 'builder' ? 'Macro preview' : 'Details');
+      if (view !== 'builder') bui = null;
       if (mapState && mapState.observer) mapState.observer.disconnect();
       mapState = null;
       v.render();
@@ -1200,11 +2433,19 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
     const externalSelection = !userAction && id !== lastSel[view];
     lastSel[view] = id;
     if (!main.classList.contains('inspecting')) overviewY = window.scrollY;
-    main.classList.toggle('inspecting', saved ? saved.inspecting : !!id && (userAction || restoring || currentKey === null));
+    main.classList.toggle('inspecting', view !== 'builder' && (saved ? saved.inspecting : !!id && (userAction || restoring || currentKey === null)));
     v.select(id, !saved && !narrow.matches && (switched || fromDetail || externalSelection), !!saved || retainingSelection);
     currentKey = history.state.key;
     activeHash = location.hash;
-    if (saved) {
+    if (view === 'builder' && !saved) {
+      // Moving between steps puts focus on the new step's heading (or on the
+      // setting a review link pointed at, handled by renderStepPanel).
+      if (!switched && userAction && !bui.panel.contains(document.activeElement)) {
+        const h = bui.panel.querySelector('h3');
+        h.focus({ preventScroll: true });
+        bui.panel.scrollIntoView({ block: 'start' });
+      } else if (switched) window.scrollTo(0, 0);
+    } else if (saved) {
       overviewY = saved.overviewY;
       window.scrollTo(0, saved.y);
       detail.scrollTop = saved.detailY;
@@ -1240,6 +2481,10 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
   });
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape' || ev.defaultPrevented) return;
+    if (current === 'builder') {
+      if (bconfirm) { bconfirm = null; bpendingFocus = 'tool:reset'; refreshBuilder(); }
+      return;
+    }
     if (ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'radio') return;
     if (narrow.matches && main.classList.contains('inspecting')) { returnToView(); return; }
     if (current === 'map' && connectionsOnly && lastSel.map && detail.contains(document.activeElement) && getComputedStyle(detail).position === 'static') { returnToView(); return; }

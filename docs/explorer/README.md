@@ -1,6 +1,6 @@
 # Architecture explorer
 
-A clickable guide to the code for newcomers and non-coders: module map, run flow and task guides.
+A clickable guide to the code for newcomers and non-coders: module map, run flow, task guides and a macro builder.
 
 ## Open it
 
@@ -29,11 +29,27 @@ The map's Find box searches titles, roles, summaries, file names and symbols. Ma
 
 The detail panel's **Back to …** action follows browser history. During the current page session it restores the search, scroll position and keyboard focus. Tabs remember selections and retain the map search. Each view has a visible introduction and suggested starting points on desktop and narrow screens. On narrow screens, selection opens a dedicated detail view; **Back to Module map / Run flow / Tasks** (or Escape) returns to the selected item. Arrow keys switch tabs; Enter opens the first search match. The keyboard skip link goes straight to the explorer. Copy-path buttons announce success or failure to screen readers. The chosen chemistry mode is kept while the page is open. Full run explanations, per-mode comparisons and output names live in details.
 
+## Macro builder
+
+The **Macro builder** tab (`index.html#builder`, or `#builder/<step>`) guides the reader through writing a simulation macro (`.in` file) for the current code: basics and logging, Chemistry model, timing and mesoscopic details, water environment, beam, runs and output, then review and export. The guide sits beside a live preview of the macro; on narrow screens a Guide / Preview switch shows one at a time.
+
+Everything the builder knows lives in `macro-builder.js`: the steps, every setting (label, plain help, technical note, source references, default, units), the availability rules, the validation and the macro generation. The page renders the guide, the error markers and the preview from that one model, and `build.js` inlines it into `index.html`, so the page stays self-contained. When a messenger, default or rule changes in the C++ code, update `macro-builder.js` and its tests (`macro-builder.test.js`, run by the `MacroBuilderTest` ctest), then rebuild.
+
+Rules it encodes, all verified against the source (each setting's **Technical details and sources** lists the files):
+
+- PreInit commands come before `/run/initialize`; `/scheduler/endTime`, the gun and `/primaryKiller/*` (created at initialization) come after it; each sub-run is optional seeds, `/run/beamOn`, then an optional dump.
+- SBS has no mesoscopic stage: SBS can't be selected while the stage is on, and the stage can't be turned on under SBS. Classic IRT is visible but marked unsupported. Mesoscopic settings, pH under a Chemistry without an acid-base buffer (BoscoloChem, Farokhi2023) and primary-electron energy cuts with protons are inert: the controls are disabled with the reason, and a value changed before the conflict arose is reported with explicit fixes instead of being dropped or changed silently.
+- Problems are labelled Incomplete, Invalid, Incompatible or Unsupported and block export; warnings and notes do not. A valid configuration is only a configuration check. It does not mean the simulation was run.
+- Not offered, deliberately: scavengers other than O2 (no Chemistry has bulk reactions for them), `/primaryKiller/minKineticE` (no handler), the Kreipl2009 and Meesungnoen2002_amorphous solvation models (accepted by Geant4 but not exercised by this project), thread count (`--threads` on the command line), gun position and direction (fixed in `PrimaryGeneratorAction`).
+
+Export: the review step sanitises the file name (letters, digits, `.`, `_`, `-`, always ending in `.in`). **Download** saves exactly the previewed text to the browser's download folder. Where the browser offers a save dialog (`showSaveFilePicker`), **Save to a folder…** lets the reader pick the folder, normally `macro/`. A web page cannot write into the repository on its own. Saved macros belong in `macro/`; the build copies that folder next to the executable, so after rebuilding run `./sim <name>.in` from the build directory. The configuration is kept for the browser tab session (`sessionStorage`); **Reset all settings…** asks before clearing it.
+
 After editing:
 
 ```bash
-node docs/explorer/build.js   # regenerate index.html
-node docs/explorer/check.js   # validate
+node docs/explorer/build.js            # regenerate index.html
+node docs/explorer/check.js            # validate
+node docs/explorer/macro-builder.test.js   # builder model tests
 ```
 
 ## What the check enforces
