@@ -1113,8 +1113,10 @@ const DATA = {"_schema":"lanes[]{id,title,summary,nodes[]{id,title,role (a few p
   });
   let mapQuery = '';
   let overviewY = 0;
-  // Links are relative to docs/explorer/index.html; repo files sit two levels up.
-  const REPO = '../../';
+  // Opened from disk: links are relative to docs/explorer/index.html (repo files two levels up).
+  // Served over http(s), e.g. GitHub Pages publishing only docs/: links open the file on GitHub (main).
+  const REPO_WEB = 'https://github.com/rtonneau/dnachem-min/blob/main/';
+  const REPO = location.protocol === 'file:' ? '../../' : REPO_WEB;
   const narrow = window.matchMedia('(max-width: 900px)');
 
   function el(tag, attrs, children) {

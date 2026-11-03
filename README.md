@@ -9,6 +9,8 @@ planned unless the project scope changes.
 
 The geometry is a single homogeneous water box (no voxelization).
 
+Architecture explorer (module map, run flow, macro builder): https://rtonneau.github.io/dnachem-min/explorer/ (or open `docs/explorer/index.html` locally).
+
 ## Requirements
 
 - Geant4 11.0+ with DNA models

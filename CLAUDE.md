@@ -30,7 +30,7 @@ Output data (species, mesoscopic species, reactions, physics-interaction counts,
 
 Project includes are rooted at `header/`, which is the only project include directory: `#include "chemistry/DnaChemistryList.hh"`. A new file goes in the directory of the concern it belongs to; a new Chemistry goes in `chemistry/catalog/`. Rationale: `docs/adr/0003-clustered-source-layout.md`.
 
-Architecture explorer: `docs/explorer/index.html` (data in `docs/explorer/architecture.json`). When you add, move or remove a file under `src/` or `header/`, list it in the JSON and run `node docs/explorer/build.js`; the `ExplorerCheck` ctest enforces it. See `docs/explorer/README.md`.
+Architecture explorer: `docs/explorer/index.html`, online at https://rtonneau.github.io/dnachem-min/explorer/ (data in `docs/explorer/architecture.json`). When you add, move or remove a file under `src/` or `header/`, list it in the JSON and run `node docs/explorer/build.js`; the `ExplorerCheck` ctest enforces it. See `docs/explorer/README.md`.
 
 ## Key Files
 

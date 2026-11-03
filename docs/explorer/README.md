@@ -6,6 +6,8 @@ A clickable guide to the code for newcomers and non-coders: module map, run flow
 
 Double-click `docs/explorer/index.html` (or open it in any browser). It works offline and needs no server.
 
+Online: https://rtonneau.github.io/dnachem-min/explorer/ (GitHub Pages, branch `main`, folder `/docs`; `docs/.nojekyll` turns off Jekyll). Opened from disk, file links go to your working copy (`../../<path>`); served over http(s), including a local test server, they open the file on GitHub at `main`.
+
 ## Edit it
 
 `architecture.json` is the only source of content; `index.html` is generated from it and `template.html`.
