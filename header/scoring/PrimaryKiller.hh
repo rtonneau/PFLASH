@@ -13,6 +13,7 @@
 class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWith3VectorAndUnit;
 class G4UIcmdWithAnInteger;
+class G4UIcmdWithABool;
 
 /** \file PrimaryKiller.hh*/
 
@@ -33,18 +34,20 @@ private:
     double fKineticE_Min;   // kill at or below this internal-energy threshold
     G4ThreeVector fPhantomSize;
     G4int fVerbose; // verbosity level, G4cout messages are printed only if > 0
+    G4bool fEnergyCuts = true; // false: skip all primary-electron energy cuts
 
     G4UIcmdWithADoubleAndUnit *fpELossUI;
     G4UIcmdWithADoubleAndUnit *fpAbortEventIfELossUpperThan;
     G4UIcmdWithADoubleAndUnit *fpMinKineticE;
     G4UIcmdWith3VectorAndUnit *fpSizeUI;
     G4UIcmdWithAnInteger *fpVerboseUI;
+    G4UIcmdWithABool *fpEnergyCutsUI;
 
 public:
     /// Construct scorer name at copy-number depth and register its UI commands.
     PrimaryKiller(G4String name, G4int depth = 0);
 
-    /// Delete the handled UI commands; the existing minKineticE command is not deleted.
+    /// Delete the UI commands.
     virtual ~PrimaryKiller();
 
     /// Set the primary-electron kinetic-energy threshold, in Geant4 internal units.
@@ -57,17 +60,22 @@ public:
     /// energy uses Geant4 internal units.
     inline void SetMaxLossEnergyLimit(double energy) { fELossRange_Max = energy; }
 
+    /// Enable or disable all primary-electron energy cuts (loss kill, loss abort,
+    /// kinetic-energy kill); the box cut is unaffected.
+    inline void SetEnergyCutsEnabled(G4bool enabled) { fEnergyCuts = enabled; }
+
     /// Print the existing cut diagnostics when level > 0; no range validation.
     inline void SetVerboseLevel(G4int level) { fVerbose = level; }
 
     /** True if a PrimaryKiller killed track 1 in the current event on this
-     thread (eLossMin / minKineticE cut, or track 1 leaving the bounding
+     thread (eLossMin / minKineticE cut while energy cuts are enabled, or
+     track 1 leaving the bounding
      box). Per-thread; reset at the start of each event by Initialize().
      Read by TrackingAction to tell a killed primary from a stopped one. */
     static G4bool PrimaryKilledThisEvent();
 
-    /// Dispatch loss/size/verbosity commands from newValue. The registered
-    /// minKineticE command and unknown commands currently have no handler.
+    /// Dispatch loss/kinetic-energy/energy-cuts/size/verbosity commands from
+    /// newValue; unknown commands are ignored.
     virtual void SetNewValue(G4UIcommand *command, G4String newValue);
 
 protected:

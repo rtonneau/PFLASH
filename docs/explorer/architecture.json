@@ -462,7 +462,7 @@
           "id": "primary-killer",
           "title": "PrimaryKiller",
           "role": "Ends tracks at set limits",
-          "summary": "Scorer that kills the primary electron after a configured energy loss and kills tracks leaving a bounding box.",
+          "summary": "Scorer that kills the primary electron after a configured energy loss (switchable with /primaryKiller/energyCuts) and kills tracks leaving a bounding box.",
           "files": [
             "src/scoring/PrimaryKiller.cc",
             "header/scoring/PrimaryKiller.hh"
@@ -1018,6 +1018,10 @@
         },
         {
           "cmd": "/primaryKiller/eLossMax",
+          "builder": "beam"
+        },
+        {
+          "cmd": "/primaryKiller/energyCuts",
           "builder": "beam"
         }
       ],

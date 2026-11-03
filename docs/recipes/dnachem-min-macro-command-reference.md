@@ -121,17 +121,19 @@ command in this project, it is explicitly allowed in `GeomClosed` and
 | `/primaryKiller/eLossMin <value> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
 | `/primaryKiller/eLossMax <value> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
 | `/primaryKiller/minKineticE <value> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
+| `/primaryKiller/energyCuts <bool>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
 | `/primaryKiller/setSize <x> <y> <z> <unit>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
 | `/primaryKiller/verbose <n>` | Geant4 defaults (see below) | `src/scoring/PrimaryKiller.cc (PrimaryKiller constructor)` |
 
-None of `PrimaryKiller`'s five commands calls `AvailableForStates`, so each
+None of `PrimaryKiller`'s six commands calls `AvailableForStates`, so each
 keeps the default state list initialized in Geant4 11.4.1
 `source/intercoms/src/G4UIcommand.cc`: PreInit, Init, Idle, GeomClosed,
 EventProc and Abort. `eLossMin`
 (`/primaryKiller/eLossMin`) and `eLossMax` set the primary-kill and event-abort
-thresholds in `PrimaryKiller::SetNewValue`. The registered `minKineticE` command
-currently has no dispatcher branch, so it does not change the threshold; the
-C++ `SetEnergyThreshold` setter does. `setSize` sets the bounding box any track is
+thresholds in `PrimaryKiller::SetNewValue`. `minKineticE` sets the kinetic energy at or below
+which the primary is killed (default 0; C++ `SetEnergyThreshold`).
+`energyCuts false` disables all three energy cuts (default true; C++
+`SetEnergyCutsEnabled`) and keeps only the box cut. `setSize` sets the bounding box any track is
 killed for leaving, default `1 km` per side; `verbose 1` logs each
 `kill track at` line. `CLAUDE.md` additionally documents that
 `DetectorConstruction::ConstructSDandField()` registers this scorer

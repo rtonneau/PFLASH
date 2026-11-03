@@ -9,6 +9,7 @@
 #include <G4RunManager.hh>
 #include <G4SystemOfUnits.hh>
 #include <G4UIcmdWith3VectorAndUnit.hh>
+#include <G4UIcmdWithABool.hh>
 #include <G4UIcmdWithADoubleAndUnit.hh>
 #include <G4UIcmdWithAnInteger.hh>
 
@@ -46,6 +47,11 @@ PrimaryKiller::PrimaryKiller(G4String name, G4int depth)
   fpSizeUI = new G4UIcmdWith3VectorAndUnit("/primaryKiller/setSize", this);
   fpSizeUI->SetDefaultUnit("um");
   fpVerboseUI = new G4UIcmdWithAnInteger("/primaryKiller/verbose", this);
+  fpEnergyCutsUI = new G4UIcmdWithABool("/primaryKiller/energyCuts", this);
+  fpEnergyCutsUI->SetGuidance("Apply the primary-electron energy-loss and kinetic-energy cuts;");
+  fpEnergyCutsUI->SetGuidance("false keeps only the box cut (/primaryKiller/setSize).");
+  fpEnergyCutsUI->SetParameterName("energyCuts", true);
+  fpEnergyCutsUI->SetDefaultValue(true);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo.....
@@ -54,8 +60,10 @@ PrimaryKiller::~PrimaryKiller()
 {
   delete fpELossUI;
   delete fpAbortEventIfELossUpperThan;
+  delete fpMinKineticE;
   delete fpSizeUI;
   delete fpVerboseUI;
+  delete fpEnergyCutsUI;
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo.....
@@ -69,6 +77,14 @@ void PrimaryKiller::SetNewValue(G4UIcommand *command, G4String newValue)
   else if (command == this->fpAbortEventIfELossUpperThan)
   {
     this->fELossRange_Max = this->fpAbortEventIfELossUpperThan->GetNewDoubleValue(newValue);
+  }
+  else if (command == this->fpMinKineticE)
+  {
+    this->fKineticE_Min = this->fpMinKineticE->GetNewDoubleValue(newValue);
+  }
+  else if (command == this->fpEnergyCutsUI)
+  {
+    this->fEnergyCuts = this->fpEnergyCutsUI->GetNewBoolValue(newValue);
   }
   else if (command == this->fpSizeUI)
   {
@@ -95,8 +111,9 @@ G4bool PrimaryKiller::ProcessHits(G4Step *aStep, G4TouchableHistory *)
     return FALSE;
   }
 
-  // Energy cuts apply only to the primary electron; the box cut above applies to all tracks.
-  if (track->GetTrackID() != 1 || track->GetParticleDefinition()->GetPDGEncoding() != 11)
+  // Energy cuts apply only to the primary electron, and only while enabled
+  // (/primaryKiller/energyCuts); the box cut above applies to all tracks.
+  if (!this->fEnergyCuts || track->GetTrackID() != 1 || track->GetParticleDefinition()->GetPDGEncoding() != 11)
     return FALSE;
 
   //-------------------

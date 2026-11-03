@@ -212,13 +212,13 @@ test('beam: start position on the z axis, strictly inside the box', () => {
   assert.deepStrictEqual(errs(M.applyPatch(bad, M.validate(bad).filter(i => i.field === 'beamZ')[0].resolutions[0].patch)), []);
 });
 
-test('beam: primary-electron energy cuts can be turned off (10 MeV emulation)', () => {
+test('beam: primary-electron energy cuts can be turned off', () => {
   const off = P({ killerMode: 'off' });
   assert.deepStrictEqual(errs(off), []);
   const L = cmds(off);
-  assert.ok(L.indexOf('/primaryKiller/eLossMin 10 MeV') > idx(L, '/run/initialize'));
-  assert.ok(L.indexOf('/primaryKiller/eLossMax 10 MeV') < idx(L, '/run/beamOn'));
-  // Unreachable: a primary electron is at most 1 MeV.
+  assert.ok(L.indexOf('/primaryKiller/energyCuts false') > idx(L, '/run/initialize'));
+  assert.ok(L.indexOf('/primaryKiller/energyCuts false') < idx(L, '/run/beamOn'));
+  assert.ok(!L.some(l => /eLossM/.test(l)));
   assert.ok(M.validate(P({ killerMode: 'off', energy: { value: '2', unit: 'MeV' } })).some(i => i.field === 'energy' && i.kind === 'unsupported'));
   const proton = P({ killerMode: 'off', particle: 'proton', energy: { value: '90', unit: 'MeV' } });
   assert.deepStrictEqual(errs(proton), []);
