@@ -367,8 +367,10 @@
         }
       ],
       "otherFiles": [
+        "header/chemistry/CatalogExport.hh",
         "header/chemistry/ChemUtils.hh",
         "header/chemistry/ScavengerReactionAccess.hh",
+        "src/chemistry/CatalogExport.cc",
         "src/chemistry/ChemUtils.cc"
       ]
     },
@@ -678,6 +680,7 @@
           "role": "Checks chemistry helpers",
           "summary": "Tests for the registry, mesoscopic settings, reaction table dump, scavenger spec and the Tonneau2025 table.",
           "files": [
+            "test/CatalogExportTest.cc",
             "test/ChemistryRegistryTest.cc",
             "test/MesoSettingsTest.cc",
             "test/ReactionTableDumpTest.cc",

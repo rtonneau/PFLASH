@@ -29,6 +29,7 @@
 #include "chemistry/DnaChemistryList.hh"
 
 #include "chemistry/BuiltInChemistries.hh"
+#include "chemistry/CatalogExport.hh"
 #include "chemistry/ChemUtils.hh"
 #include "chemistry/ChemistryRegistry.hh"
 #include "chemistry/ChemistrySelectMessenger.hh"
@@ -160,6 +161,12 @@ DnaChemistryList::DnaChemistryList()
     "dump", fReactionDumpFile,
     "Write the full reaction table (bimolecular + bulk networks) to <filename>.");
   dumpCmd.SetStates(G4State_PreInit);
+
+  auto& exportJsonCmd = fMessenger->DeclareProperty(
+    "exportJson", fCatalogExportFile,
+    "Write the live Chemistry catalogue (molecules, dissociation, reactions, bulk) as JSON to "
+    "<filename>.");
+  exportJsonCmd.SetStates(G4State_PreInit);
 
   auto& timeBinsFixedCmd = fMessenger->DeclareMethodWithUnit(
     "timeBinsFixed", "picosecond", &DnaChemistryList::SetReactionTimeBinsFixed,
@@ -475,6 +482,12 @@ void DnaChemistryList::ConstructProcess()
   // Dump is written once, from the master (MT) or the only thread (Serial).
   if (!fReactionDumpFile.empty() && !G4Threading::IsWorkerThread()) {
     ReactionTableDump::DumpReactionTable(OutputDir::Resolve(fReactionDumpFile));
+  }
+  // Same moment and thread rule for the JSON catalogue (/chem/reaction/exportJson).
+  if (!fCatalogExportFile.empty() && !G4Threading::IsWorkerThread()) {
+    const auto* selected = ChemistryRegistry::Selected();
+    CatalogExport::WriteCatalog(OutputDir::Resolve(fCatalogExportFile),
+                                selected != nullptr ? selected->name : std::string());
   }
 }
 

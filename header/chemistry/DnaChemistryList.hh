@@ -147,6 +147,10 @@ private:
   /// empty (default) disables the dump.
   G4String fReactionDumpFile;
 
+  /// Target file for the JSON catalogue export (/chem/reaction/exportJson);
+  /// empty (default) disables it.
+  G4String fCatalogExportFile;
+
   /// True once /chem/reaction/timeBinsFixed has been issued.
   G4bool fReactionBinWidthSet = false;
 
