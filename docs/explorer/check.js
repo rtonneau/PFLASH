@@ -120,6 +120,76 @@ if (modeStep) {
     if (typeof s.modes[k] !== 'string' || !s.modes[k].trim()) problems.push('flow ' + s.id + ': empty note for mode "' + k + '"');
   }
 });
+// Phases, catalogue references, commands and parts of the run flow.
+const PHASE_IDS = ['setup', 'physical', 'prechem', 'hetero', 'meso', 'output'];
+if (JSON.stringify((data.phases || []).map(p => p.id)) !== JSON.stringify(PHASE_IDS)) {
+  problems.push('phases must be exactly, in order: ' + PHASE_IDS.join(', '));
+}
+for (const p of data.phases || []) {
+  if (typeof p.window !== 'string' || !p.window.trim()) problems.push('phase ' + p.id + ': missing time window text');
+}
+const CATALOG_KINDS = ['physics', 'prechem', 'reactions'];
+const builder = require('./macro-builder.js');
+const builderStepIds = new Set(builder.STEPS.map(s => s.id));
+for (const s of data.flow || []) {
+  if (s.catalog !== undefined && CATALOG_KINDS.indexOf(s.catalog) < 0) {
+    problems.push('flow ' + s.id + ': unknown catalog "' + s.catalog + '"');
+  }
+  for (const c of s.commands || []) {
+    if (typeof c.cmd !== 'string' || c.cmd.charAt(0) !== '/') {
+      problems.push('flow ' + s.id + ': command must be a string starting with "/"');
+    }
+    // "builder" is optional (some commands have no Macro builder step); validated only when present.
+    if (c.builder !== undefined && !builderStepIds.has(c.builder)) {
+      problems.push('flow ' + s.id + ': command ' + c.cmd + ' names unknown Macro builder step "' + c.builder + '"');
+    }
+  }
+  for (const part of s.parts || []) {
+    if (!nodeIds.has(part)) problems.push('flow ' + s.id + ': unknown part "' + part + '"');
+  }
+}
+
+// catalog.json must hold exactly the Chemistries of the Macro builder, with numeric rate constants and
+// integer reaction types (guards against adding a Chemistry without regenerating the catalogue).
+// CATALOG_PATH overrides the file; it exists to test this check.
+const catalogPath = process.env.CATALOG_PATH || path.join(__dirname, 'catalog.json');
+const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+const builderChems = builder.CHEMISTRIES.map(c => c.value);
+const catalogChems = Object.keys(catalog.chemistries || {});
+for (const n of builderChems) {
+  if (catalogChems.indexOf(n) < 0) problems.push('catalog.json is missing Chemistry "' + n + '"; regenerate it (node docs/explorer/export-catalog.js)');
+}
+for (const n of catalogChems) {
+  if (builderChems.indexOf(n) < 0) problems.push('catalog.json has extra Chemistry "' + n + '" that is not in macro-builder.js CHEMISTRIES');
+}
+for (const n of catalogChems) {
+  (catalog.chemistries[n].reactions || []).forEach(function (r, i) {
+    if (typeof r['k_M-1s-1'] !== 'number' || !isFinite(r['k_M-1s-1'])) problems.push('catalog.json ' + n + ' reaction ' + i + ': k is not a number');
+    if (!Number.isInteger(r.type)) problems.push('catalog.json ' + n + ' reaction ' + i + ': type is not an integer');
+  });
+}
+
+// Every row of physics-catalog.json cites its source.
+const physics = JSON.parse(fs.readFileSync(path.join(__dirname, 'physics-catalog.json'), 'utf8'));
+const physicsRows = [
+  ['particles.e-', physics.particles && physics.particles['e-']],
+  ['particles.proton', physics.particles && physics.particles.proton],
+  ['protonSecondaries', physics.protonSecondaries],
+  ['solvation.default', physics.solvation && [physics.solvation.default]],
+  ['solvation.alternatives', physics.solvation && physics.solvation.alternatives],
+  ['displacement.rows', physics.displacement && physics.displacement.rows]
+];
+for (const [name, rows] of physicsRows) {
+  if (!Array.isArray(rows)) { problems.push('physics-catalog.json: ' + name + ' is not a list of rows'); continue; }
+  rows.forEach(function (r, i) {
+    if (!r || typeof r.ref !== 'string' || !r.ref.trim()) problems.push('physics-catalog.json: ' + name + '[' + i + '] has no ref');
+  });
+}
+for (const k of ['physical', 'prechem', 'hetero', 'meso']) {
+  const w = physics.timeWindows && physics.timeWindows[k];
+  if (!w || typeof w.text !== 'string' || !w.text.trim()) problems.push('physics-catalog.json: timeWindows.' + k + ' has no text');
+}
+
 const startSets = { map: nodeIds, flow: stepIds, tasks: taskIds };
 for (const view of Object.keys(data.startHere || {})) {
   const ids = startSets[view];

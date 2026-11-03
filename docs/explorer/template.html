@@ -461,7 +461,12 @@
 /*__MACRO_BUILDER_JS__*/
 </script>
 <script>
+/*__CATALOG_VIEW_JS__*/
+</script>
+<script>
 const DATA = /*__ARCHITECTURE_JSON__*/null;
+const CATALOG = /*__CATALOG_JSON__*/null;
+const PHYSICS = /*__PHYSICS_JSON__*/null;
 
 (function () {
   'use strict';
@@ -1161,7 +1166,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     });
     groups.forEach(function (gr) {
       const ph = phaseById[gr.phase];
-      const box = el('section', { class: 'phase' + (gr.phase === 'event' ? ' loop' : ''), 'aria-label': ph ? ph.title : 'Steps' });
+      const box = el('section', { class: 'phase' + (['physical', 'prechem', 'hetero', 'meso'].indexOf(gr.phase) >= 0 ? ' loop' : ''), 'aria-label': ph ? ph.title : 'Steps' });
       if (ph) box.appendChild(el('div', { class: 'phase-head' }, [el('h3', { text: ph.title }), el('p', { text: ph.summary })]));
       const ol = el('ol', { class: 'steps' });
       gr.steps.forEach(function (s) {

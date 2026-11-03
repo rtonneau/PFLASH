@@ -1,5 +1,5 @@
 {
-  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,role (a few plain words, at most 40 characters),summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary}; flow[]{id,title (\"N. Title\", numbered in order),summary,overview,phase,condition?,files[],outputs[] (file names, not checked),docs[],branches[]{id,label,summary,default?},modes?{branchId: note; a step without a branch id is skipped in that mode},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Only one flow step has branches (the chemistry mode, in the first phase). Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
+  "_schema": "lanes[]{id,title,summary,nodes[]{id,title,role (a few plain words, at most 40 characters),summary,files[],symbols[],review?},otherFiles[]}; edges[]{from,to} (from uses, creates or fills to); phases[]{id,title,summary,window (time window text)}; flow[]{id,title (\"N. Title\", numbered in order),summary,overview,phase,condition?,files[],outputs[] (file names, not checked),docs[],catalog? (\"physics\"|\"prechem\"|\"reactions\"),commands?[]{cmd,builder? (Macro builder STEPS id)},parts?[] (node ids),branches[]{id,label,summary,default?},modes?{branchId: note; a step without a branch id is skipped in that mode},review?}; tasks[]{id,title,summary,audience,docs[],files[]}; startHere{map|flow|tasks: [{id,why}]}. Only one flow step has branches (the chemistry mode, in the first phase). Paths are repo-relative; a #fragment is allowed. Every file under src/ and header/ must appear in some node.files or lane.otherFiles.",
   "version": 1,
   "lanes": [
     {
@@ -862,17 +862,38 @@
     {
       "id": "setup",
       "title": "Once, at start-up",
-      "summary": "The program is configured before any particle is shot."
+      "summary": "The program is configured before any particle is shot.",
+      "window": "Before the first event (at start-up and /run/initialize)"
     },
     {
-      "id": "event",
-      "title": "For every event",
-      "summary": "Repeated for each primary particle shot by /run/beamOn: the physical stage first, then the chemistry."
+      "id": "physical",
+      "title": "Physical stage",
+      "summary": "For every event: the beam particle slows down in the water box and ionises or excites water.",
+      "window": "Physical stage: the electron or proton track is followed with the physics processes above. The simulation time attributed to it is not stated in the sources checked; the chemistry stage starts at 1 ps."
+    },
+    {
+      "id": "prechem",
+      "title": "Physico-chemical stage",
+      "summary": "For every event: the physical stage ends and the excited and ionised water molecules become the first chemical species.",
+      "window": "Pre-chemical stage: each ionised, excited or attached water molecule is created as a molecule track at global time 1 ps (plus the pulse delay, 0 here); the solvated electron is also created at 1 ps. The water molecule's decay time is 0, so its dissociation channel fires at that same time and the products take the track's global time. The end of the stage is not a fixed number in the sources."
+    },
+    {
+      "id": "hetero",
+      "title": "Particle-based stage",
+      "summary": "For every event: individual molecules diffuse and react.",
+      "window": "Particle-based stage (IRT_syn or SBS): from the 1 ps start to the hand-over time when the mesoscopic stage is on (default 5 ns), otherwise to the end time (default 1 us without the mesoscopic stage)."
+    },
+    {
+      "id": "meso",
+      "title": "Mesoscopic stage",
+      "summary": "For every event, in IRT_syn + mesoscopic mode only: counts per cell on a mesh.",
+      "window": "Mesoscopic stage (IRT_syn only): from the hand-over time (default 5 ns) to the end time (default 1 s with the mesoscopic stage)."
     },
     {
       "id": "output",
       "title": "When results are written",
-      "summary": "Data from all events accumulates until the macro asks for a dump, or the program exits."
+      "summary": "Data from all events accumulates until the macro asks for a dump, or the program exits.",
+      "window": "At each /run/dumpDataAndReset* and, if data is pending, at exit (EndOfRun_ safety net)"
     }
   ],
   "flow": [
@@ -891,6 +912,21 @@
       "docs": [
         "macro/example_meso.in"
       ],
+      "commands": [
+        {
+          "cmd": "/run/outputDir",
+          "builder": "runs"
+        },
+        {
+          "cmd": "/run/initialize"
+        }
+      ],
+      "parts": [
+        "sim",
+        "argparser",
+        "macro-resolver",
+        "action-init"
+      ],
       "overview": "Read the command line and run the macro that configures the simulation."
     },
     {
@@ -906,6 +942,29 @@
       "docs": [
         "docs/adr/0008-selectable-chemistry-modes.md",
         "docs/adr/0002-named-chemistries.md"
+      ],
+      "commands": [
+        {
+          "cmd": "/process/chem/TimeStepModel",
+          "builder": "chemistry"
+        },
+        {
+          "cmd": "/chem/meso/enable",
+          "builder": "chemistry"
+        },
+        {
+          "cmd": "/chem/select",
+          "builder": "chemistry"
+        },
+        {
+          "cmd": "/chem/list"
+        }
+      ],
+      "parts": [
+        "chem-list",
+        "registry",
+        "select-msg",
+        "meso-msg"
       ],
       "branches": [
         {
@@ -930,51 +989,123 @@
     {
       "id": "physics",
       "title": "3. Physical stage",
-      "summary": "Beam electrons slow down in the water box and ionise or excite water molecules (Geant4-DNA physics). Every discrete physical interaction is counted, and the pre-chemical species are staged to a per-event file.",
-      "phase": "event",
+      "summary": "Beam electrons slow down in the water box and ionise or excite water molecules (Geant4-DNA physics). Every discrete physical interaction is counted.",
+      "phase": "physical",
+      "catalog": "physics",
       "files": [
         "src/physics/PhysicsList.cc",
         "src/actions/PrimaryGeneratorAction.cc",
-        "src/actions/SteppingAction.cc",
-        "src/actions/EventAction.cc"
+        "src/actions/SteppingAction.cc"
       ],
       "outputs": [
-        "PhysicsInteractions.Txt / .csv",
-        "PreChemical_run<R>_event<E>.txt"
+        "PhysicsInteractions.Txt/.csv (recorded)"
       ],
       "docs": [
         "docs/output/README.md"
       ],
+      "commands": [],
+      "parts": [
+        "physics-list",
+        "primary-gen",
+        "stepping-action",
+        "phys-counter",
+        "primary-killer"
+      ],
       "overview": "Beam electrons interact with water; physical interactions are counted."
     },
     {
-      "id": "handoff",
-      "title": "4. Physics to chemistry",
-      "summary": "When the physical stage has no tracks left, the event's chemistry is started.",
-      "phase": "event",
+      "id": "event-end",
+      "title": "4. Track lengths recorded",
+      "summary": "The primary track's length and how it ended are stored in one row per event. These come from the physical tracks; the row is committed at the end of the event, for non-aborted events only.",
+      "phase": "physical",
       "files": [
-        "src/actions/StackingAction.cc"
+        "src/actions/TrackingAction.cc",
+        "src/actions/EventAction.cc",
+        "src/scoring/TrackLengthTable.cc"
       ],
-      "outputs": [],
-      "docs": [],
-      "overview": "When no physical tracks remain, start the event’s chemistry."
+      "outputs": [
+        "TrackLengths.Txt/.csv (recorded)"
+      ],
+      "docs": [
+        "docs/output/README.md"
+      ],
+      "parts": [
+        "tracking-action",
+        "event-action",
+        "track-length"
+      ],
+      "overview": "Store the primary track’s length and how it ended."
+    },
+    {
+      "id": "prechem",
+      "title": "5. Physico-chemical stage",
+      "summary": "When the physical stage has no tracks left, the event's chemistry is started: the ionised, excited and attached water molecules are created as molecules and dissociate. The pre-chemical species are staged to a per-event file.",
+      "phase": "prechem",
+      "catalog": "prechem",
+      "files": [
+        "src/actions/StackingAction.cc",
+        "src/actions/EventAction.cc",
+        "src/chemistry/DnaChemistryList.cc"
+      ],
+      "outputs": [
+        "PreChemical_run<R>_event<E>.txt (staged)"
+      ],
+      "docs": [
+        "docs/output/README.md"
+      ],
+      "commands": [],
+      "parts": [
+        "stacking-action",
+        "event-action",
+        "prechem",
+        "chem-list"
+      ],
+      "overview": "Start the event’s chemistry from the physical stage’s water molecules."
     },
     {
       "id": "particle",
-      "title": "5. Particle-based stage",
+      "title": "6. Particle-based stage",
       "summary": "Molecules are tracked individually; they diffuse and react. Species counts over time and reaction firings are recorded. In the default mode this stage stops at the Hand-over time (default 5 ns).",
-      "phase": "event",
+      "phase": "hetero",
+      "catalog": "reactions",
       "files": [
         "src/chemistry/TimeStepAction.cc",
         "src/scoring/ScoreSpecies.cc",
         "src/scoring/ReactionCounter.cc"
       ],
       "outputs": [
-        "Species.Txt / Species_nt_species.csv",
-        "Reactions.Txt / .csv"
+        "Species.* (recorded)",
+        "Reactions.* (recorded)"
       ],
       "docs": [
         "docs/output/README.md"
+      ],
+      "commands": [
+        {
+          "cmd": "/chem/reaction/timeBinsFixed",
+          "builder": "timing"
+        },
+        {
+          "cmd": "/chem/reaction/timeBinsList",
+          "builder": "timing"
+        },
+        {
+          "cmd": "/chem/reaction/dump"
+        },
+        {
+          "cmd": "/chem/env/scavenger",
+          "builder": "environment"
+        },
+        {
+          "cmd": "/chem/env/halfBox",
+          "builder": "environment"
+        }
+      ],
+      "parts": [
+        "time-step",
+        "score-species",
+        "reaction-counter",
+        "chem-list"
       ],
       "overview": "Track individual molecules as they diffuse and react.",
       "modes": {
@@ -985,10 +1116,11 @@
     },
     {
       "id": "meso",
-      "title": "6. Hand-over and mesoscopic stage",
+      "title": "7. Hand-over and mesoscopic stage",
       "summary": "Only with IRT_syn and the mesoscopic stage enabled: the remaining molecules are passed to counts per cell on a mesh and advanced to the end time (default 1 s). Mean counts are recorded on a logarithmic time grid; optional per-event spatial snapshots.",
-      "phase": "event",
+      "phase": "meso",
       "condition": "Only in IRT_syn + mesoscopic mode (the default)",
+      "catalog": "reactions",
       "files": [
         "src/chemistry/TimeStepAction.cc",
         "src/chemistry/MesoSettings.cc",
@@ -996,12 +1128,37 @@
         "src/scoring/MesoSpatialFile.cc"
       ],
       "outputs": [
-        "SpeciesMeso.Txt / .csv",
-        "SpeciesMesoSpatial.h5 (optional)"
+        "SpeciesMeso.Txt/.csv (recorded)",
+        "SpeciesMesoSpatial.h5 (staged, with /chem/meso/spatialOutput true)"
       ],
       "docs": [
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
         "docs/output/SpeciesMesoSpatial-h5.md"
+      ],
+      "commands": [
+        {
+          "cmd": "/chem/meso/handOverTime",
+          "builder": "timing"
+        },
+        {
+          "cmd": "/chem/meso/voxelSize",
+          "builder": "timing"
+        },
+        {
+          "cmd": "/chem/meso/timesPerDecade",
+          "builder": "timing"
+        },
+        {
+          "cmd": "/chem/meso/spatialOutput",
+          "builder": "timing"
+        }
+      ],
+      "parts": [
+        "time-step",
+        "meso-settings",
+        "meso-msg",
+        "meso-counter",
+        "meso-spatial"
       ],
       "review": true,
       "overview": "Pass remaining molecules to counts per cell and advance to the end time.",
@@ -1010,26 +1167,9 @@
       }
     },
     {
-      "id": "event-end",
-      "title": "7. End of event",
-      "summary": "The primary track's length and how it ended are stored in one row per event.",
-      "phase": "event",
-      "files": [
-        "src/actions/TrackingAction.cc",
-        "src/scoring/TrackLengthTable.cc"
-      ],
-      "outputs": [
-        "TrackLengths.Txt / .csv"
-      ],
-      "docs": [
-        "docs/output/README.md"
-      ],
-      "overview": "Store the primary track’s length and how it ended."
-    },
-    {
       "id": "dump",
       "title": "8. Dump and manifest",
-      "summary": "Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) writes all files together with Manifest.json, which records what produced them.",
+      "summary": "Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) publishes what the earlier phases recorded or staged, together with Manifest.json, which records what produced them.",
       "phase": "output",
       "files": [
         "src/scoring/RunAccumulatorMessenger.cc",
@@ -1037,12 +1177,30 @@
         "src/core/OutputDir.cc"
       ],
       "outputs": [
-        "Manifest.json",
+        "Manifest.json (written at dump)",
+        "recorded and staged files published into the dump folder",
         "results index (Manifest.json in the output folder)"
       ],
       "docs": [
         "docs/output/README.md",
         "docs/adr/0005-manifest-per-dump.md"
+      ],
+      "commands": [
+        {
+          "cmd": "/run/dumpDataAndReset",
+          "builder": "runs"
+        },
+        {
+          "cmd": "/run/dumpDataAndResetToDir",
+          "builder": "runs"
+        }
+      ],
+      "parts": [
+        "dump-msg",
+        "accumulator",
+        "manifest",
+        "json",
+        "outputdir"
       ],
       "overview": "Write accumulated results and the manifest, then reset for the next dump.",
       "modes": {
