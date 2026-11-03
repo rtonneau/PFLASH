@@ -1,0 +1,343 @@
+{
+  "geant4Version": "11.4.1",
+  "physicsConstructor": "G4EmDNAPhysics_option2",
+  "refConvention": "G4:<path under geant4-v11.4.1/source>; other refs are repo-relative",
+  "particles": {
+    "e-": [
+      {
+        "process": "e-_G4DNAElectronSolvation",
+        "model": "G4DNAOneStepThermalizationModel (default Meesungnoen2002; see solvation)",
+        "eMin": "0 eV",
+        "eMax": "7.4 eV",
+        "note": "Below eMax the electron is stopped, its kinetic energy is deposited locally, and a solvated electron e_aq is created at a displaced position. Upper limit emaxT is 7.4 eV for option 2.",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+      },
+      {
+        "process": "e-_G4DNAElastic",
+        "model": "G4DNAChampionElasticModel",
+        "eMin": "7.4 eV",
+        "eMax": "1 MeV",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+      },
+      {
+        "process": "e-_G4DNAExcitation",
+        "model": "G4DNABornExcitationModel (alias of G4DNABornExcitationModel1)",
+        "eMin": "9 eV",
+        "eMax": "1 MeV",
+        "note": "The builder passes 0 as lower limit; the model's Initialise resets the electron range to 9 eV - 1 MeV. The Emfietzoglou model is added only for option 4.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNABornExcitationModel1.cc"
+      },
+      {
+        "process": "e-_G4DNAIonisation",
+        "model": "G4DNABornIonisationModel1",
+        "eMin": "11 eV",
+        "eMax": "1 MeV",
+        "note": "The builder passes 0 as lower limit; the model's Initialise resets the electron range to 11 eV - 1 MeV.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNABornIonisationModel1.cc"
+      },
+      {
+        "process": "e-_G4DNAVibExcitation",
+        "model": "G4DNASancheExcitationModel",
+        "eMin": "2 eV",
+        "eMax": "100 eV",
+        "note": "Added for options other than 4 and 6; the model's own default range.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNASancheExcitationModel.cc"
+      },
+      {
+        "process": "e-_G4DNAAttachment",
+        "model": "G4DNAMeltonAttachmentModel",
+        "eMin": "4 eV",
+        "eMax": "13 eV",
+        "note": "Added for options other than 4 and 6; the model's own default range.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAMeltonAttachmentModel.cc"
+      },
+      {
+        "process": "msc (G4eMultipleScattering)",
+        "model": "G4GoudsmitSaundersonMscModel",
+        "eMin": "1 MeV",
+        "eMax": "",
+        "note": "Standard (non-DNA) physics above the DNA range. Option 2 passes dnaGS, so the Goudsmit-Saunderson model is chosen; activation limit 1 MeV (lowEnergyMSC).",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc",
+        "review": true
+      },
+      {
+        "process": "eIoni (G4eIonisation)",
+        "model": "G4MollerBhabhaModel",
+        "eMin": "1 MeV",
+        "eMax": "",
+        "note": "Standard physics above the DNA range; activation limit emin_elec = emaxDNA = 1 MeV.",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc",
+        "review": true
+      },
+      {
+        "process": "eBrem (G4eBremsstrahlung)",
+        "model": "G4SeltzerBergerModel",
+        "eMin": "1 MeV",
+        "eMax": "100 TeV",
+        "note": "Standard physics above the DNA range; high limit is G4EmParameters MaxKinEnergy (default 100 TeV).",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+      }
+    ],
+    "proton": [
+      {
+        "process": "proton_G4DNAElastic",
+        "model": "G4DNAIonElasticModel",
+        "eMin": "0 eV",
+        "eMax": "1 MeV",
+        "note": "The model kills the particle below 100 eV (killBelowEnergy).",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAIonElasticModel.cc"
+      },
+      {
+        "process": "proton_G4DNAExcitation",
+        "model": "G4DNAMillerGreenExcitationModel",
+        "eMin": "10 eV",
+        "eMax": "500 keV",
+        "note": "Upper limit e2DNA = eminBorn = 500 keV for option 2.",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+      },
+      {
+        "process": "proton_G4DNAExcitation",
+        "model": "G4DNABornExcitationModel (alias of G4DNABornExcitationModel1)",
+        "eMin": "500 keV",
+        "eMax": "100 MeV",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNABornExcitationModel1.cc"
+      },
+      {
+        "process": "proton_G4DNAExcitation",
+        "model": "G4DNARPWBAExcitationModel",
+        "eMin": "100 MeV",
+        "eMax": "300 MeV",
+        "note": "Added because lowEnergyRPWBA (100 MeV) is below emaxIonDNA (300 MeV).",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+      },
+      {
+        "process": "proton_G4DNAIonisation",
+        "model": "G4DNARuddIonisationExtendedModel",
+        "eMin": "100 eV",
+        "eMax": "500 keV",
+        "note": "Lower value is the model's fLowestEnergy for protons; upper limit e2DNA = 500 keV for option 2.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNARuddIonisationExtendedModel.cc"
+      },
+      {
+        "process": "proton_G4DNAIonisation",
+        "model": "G4DNABornIonisationModel1",
+        "eMin": "500 keV",
+        "eMax": "100 MeV",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNABornIonisationModel1.cc"
+      },
+      {
+        "process": "proton_G4DNAIonisation",
+        "model": "G4DNARPWBAIonisationModel",
+        "eMin": "100 MeV",
+        "eMax": "300 MeV",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNARPWBAIonisationModel.cc"
+      },
+      {
+        "process": "proton_G4DNAChargeDecrease",
+        "model": "G4DNADingfelderChargeDecreaseModel",
+        "eMin": "100 eV",
+        "eMax": "100 MeV",
+        "note": "Proton becomes a hydrogen atom (OutgoingParticleDefinition).",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNADingfelderChargeDecreaseModel.cc"
+      },
+      {
+        "process": "G4LowECapture",
+        "model": "tracking cut (not a physics model)",
+        "eMin": "0 eV",
+        "eMax": "1 keV",
+        "note": "Tracks below 1 keV are stopped and their energy deposited locally (cut is 1 keV for option 2).",
+        "ref": "G4:processes/electromagnetic/lowenergy/src/G4LowECapture.cc"
+      },
+      {
+        "process": "msc (G4hMultipleScattering)",
+        "model": "G4UrbanMscModel",
+        "eMin": "1 MeV",
+        "eMax": "100 TeV",
+        "note": "Standard physics path; option 2 passes dnaGS, which StandardHadronPhysics treats as not WentzelVI, so Urban is used.",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+      },
+      {
+        "process": "hIoni (G4hIonisation)",
+        "model": "G4BetheBlochModel",
+        "eMin": "300 MeV",
+        "eMax": "",
+        "note": "Standard physics path. The DNA builder passes emaxIonDNA = 300 MeV as the proton activation limit, so the Bragg model (high limit 2 MeV) is never active below it.",
+        "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc",
+        "review": true
+      }
+    ]
+  },
+  "protonSecondaries": [
+    {
+      "particle": "e-",
+      "process": "all e- processes above",
+      "model": "see particles.e-",
+      "eMin": "",
+      "eMax": "",
+      "note": "Ionisation by the proton creates secondary electrons, tracked with the e- rows.",
+      "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+    },
+    {
+      "particle": "hydrogen",
+      "process": "hydrogen_G4DNAElastic",
+      "model": "G4DNAIonElasticModel",
+      "eMin": "0 eV",
+      "eMax": "1 MeV",
+      "note": "Hydrogen is created by proton charge decrease.",
+      "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+    },
+    {
+      "particle": "hydrogen",
+      "process": "hydrogen_G4DNAExcitation",
+      "model": "G4DNAMillerGreenExcitationModel",
+      "eMin": "10 eV",
+      "eMax": "500 keV",
+      "note": "Upper limit highEnergyMillerGrean = 500 keV for hydrogen.",
+      "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAMillerGreenExcitationModel.cc"
+    },
+    {
+      "particle": "hydrogen",
+      "process": "hydrogen_G4DNAIonisation",
+      "model": "G4DNARuddIonisationExtendedModel",
+      "eMin": "100 eV",
+      "eMax": "100 MeV",
+      "note": "Upper limit highEnergyChargeExchange = 100 MeV for hydrogen.",
+      "ref": "G4:physics_lists/constructors/electromagnetic/src/G4EmDNABuilder.cc"
+    },
+    {
+      "particle": "hydrogen",
+      "process": "hydrogen_G4DNAChargeIncrease",
+      "model": "G4DNADingfelderChargeIncreaseModel",
+      "eMin": "100 eV",
+      "eMax": "100 MeV",
+      "note": "Hydrogen can become a proton again.",
+      "ref": "G4:processes/electromagnetic/dna/models/src/G4DNADingfelderChargeIncreaseModel.cc"
+    },
+    {
+      "particle": "hydrogen",
+      "process": "G4LowECapture",
+      "model": "tracking cut (not a physics model)",
+      "eMin": "0 eV",
+      "eMax": "1 keV",
+      "ref": "G4:processes/electromagnetic/lowenergy/src/G4LowECapture.cc"
+    }
+  ],
+  "solvation": {
+    "default": {
+      "model": "Meesungnoen2002",
+      "what": "Penetration (distance travelled before solvation) of a sub-excitation electron: a 3D Gaussian whose mean radius is a 12th-degree polynomial fit in the electron energy. Used when /process/dna/e-SolvationSubType is not given (G4EmLowEParameters default fMeesungnoen2002eSolvation).",
+      "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAOneStepThermalizationModel.cc"
+    },
+    "alternatives": [
+      {
+        "model": "Ritchie1994",
+        "macroValue": "Ritchie1994",
+        "what": "Mean radius r_mean = 1.8 nm per eV of electron energy, then a 3D Gaussian with the same conversion as Meesungnoen2002.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAOneStepThermalizationModel.cc"
+      },
+      {
+        "model": "Meesungnoen2002",
+        "macroValue": "Meesungnoen2002",
+        "what": "Same model as the default, written explicitly.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAOneStepThermalizationModel.cc"
+      },
+      {
+        "model": "Terrisol1990",
+        "macroValue": "Terrisol1990",
+        "what": "3D standard deviation interpolated from a table of energies 0.2 to 9 eV (Terrisol and Beaudre 1990); an energy above 9 eV is a fatal error in this model.",
+        "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAOneStepThermalizationModel.cc"
+      }
+    ]
+  },
+  "displacement": {
+    "class": "G4DNAWaterDissociationDisplacer",
+    "what": "Gives each pre-chemical product its starting offset from the ionised or excited water molecule. Each offset is a 3D Gaussian: the number below is the RMS radius Rrms, the per-axis sigma being Rrms/sqrt(3). The solvated electron of an auto-ionisation channel uses the solvation model instead. The displacement type of each channel is set in G4ChemDissociationChannels_option1, which the project uses.",
+    "rows": [
+      {
+        "case": "Ionisation_DissociationDecay: H3O+ / OH",
+        "what": "One of the two products, chosen with probability 1/2, stays at the origin; the other is displaced.",
+        "rms_nm": 0.8,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "Ionisation_DissociationDecay: parent H2O+ molecule",
+        "what": "Displacement of the mother molecule (GetMotherMoleculeDisplacement).",
+        "rms_nm": 2.0,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "AutoIonisation: H3O+ / OH",
+        "what": "Same choice as ionisation: one product at the origin, the other displaced; the solvated electron e_aq is placed by the solvation model.",
+        "rms_nm": 0.8,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "A1B1_DissociationDecay: OH + H",
+        "what": "One displacement vector shared by the pair: OH gets -1/18 of it, H gets +17/18.",
+        "rms_nm": 2.4,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "B1A1_DissociationDecay and DissociativeAttachment: H2 + 2 OH (shared vector)",
+        "what": "H2 gets -16/18 of the shared vector, each OH gets +2/18 of it plus its own offset (below).",
+        "rms_nm": 0.8,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "B1A1_DissociationDecay and DissociativeAttachment: OH own offset",
+        "what": "Added to the shared-vector part; the two OH take +0.5 and -0.5 of one sampled offset.",
+        "rms_nm": 1.1,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "B1A1_DissociationDecay2: O(3P) + 2 H",
+        "what": "O stays at the origin; the two H take +0.5 and -0.5 of one sampled offset.",
+        "rms_nm": 1.6,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "Double, triple and quadruple ionisation channels: H3O+ (and the other products not listed below)",
+        "what": "Radius used for every H3O+ except the extra ones noted next; O(3P) stays at the origin (radius 0).",
+        "rms_nm": 1.2,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "Double, triple and quadruple ionisation channels: OH and the extra H3O+",
+        "what": "The OH uses this radius; the extra H3O+ (second in DoubleIonisation_DissociationDecay1, second in Decay2, third and fourth in the triple and quadruple cases) uses it too and, where an OH is present, is also shifted by that OH's offset.",
+        "rms_nm": 0.3,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      },
+      {
+        "case": "DoubleIonisation_DissociationDecay2: H",
+        "what": "Radius of the H atom.",
+        "rms_nm": 0.8,
+        "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+      }
+    ],
+    "ref": "G4:processes/electromagnetic/dna/processes/src/G4DNAWaterDissociationDisplacer.cc"
+  },
+  "meso": {
+    "partialPairs": "Reaction type 1 (partially diffusion-controlled) does not change the Gillespie propensity: G4DNAGillespieDirectMethod::PropensityFunction uses GetObservedReactionRateConstant() divided by Avogadro times the voxel volume, and G4DNAMolecularReactionData::SetReactionType(1) leaves that observed rate unchanged (it sets the reaction radius, effective radius, diffusion and activation rates and probability). The one place type 1 can matter in the mesoscopic stage is the mesh-resolution check, which reads GetEffectiveReactionRadius.",
+    "reactionsRecorded": false,
+    "ref": "G4:processes/electromagnetic/dna/models/src/G4DNAGillespieDirectMethod.cc"
+  },
+  "timeWindows": {
+    "physical": {
+      "text": "Physical stage: the electron or proton track is followed with the physics processes above. The simulation time attributed to it is not stated in the sources checked; the chemistry stage starts at 1 ps.",
+      "ref": "G4:processes/electromagnetic/dna/utils/src/G4DNAChemistryManager.cc",
+      "review": true
+    },
+    "prechem": {
+      "text": "Pre-chemical stage: each ionised, excited or attached water molecule is created as a molecule track at global time 1 ps (plus the pulse delay, 0 here); the solvated electron is also created at 1 ps. The water molecule's decay time is 0, so its dissociation channel fires at that same time and the products take the track's global time. The end of the stage is not a fixed number in the sources.",
+      "ref": "G4:processes/electromagnetic/dna/utils/src/G4DNAChemistryManager.cc"
+    },
+    "hetero": {
+      "text": "Particle-based stage (IRT_syn or SBS): from the 1 ps start to the hand-over time when the mesoscopic stage is on (default 5 ns), otherwise to the end time (default 1 us without the mesoscopic stage).",
+      "ref": "src/chemistry/MesoSettings.cc"
+    },
+    "meso": {
+      "text": "Mesoscopic stage (IRT_syn only): from the hand-over time (default 5 ns) to the end time (default 1 s with the mesoscopic stage).",
+      "ref": "src/chemistry/DnaChemistryList.cc"
+    }
+  }
+}
