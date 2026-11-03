@@ -169,6 +169,23 @@ for (const n of catalogChems) {
   });
 }
 
+// The registered Chemistries (src/chemistry/BuiltInChemistries.cc) must match macro-builder.js CHEMISTRIES.
+// BUILTIN_PATH overrides the file; it exists to test this check.
+const builtInPath = process.env.BUILTIN_PATH || path.join(root, 'src', 'chemistry', 'BuiltInChemistries.cc');
+const builtInSrc = fs.readFileSync(builtInPath, 'utf8');
+const registered = [];
+if (/ChemistryRegistry::kDefaultName/.test(builtInSrc)) registered.push('PureWater');   // the default entry uses the constant
+for (const m of builtInSrc.matchAll(/\badd\(\{\s*"([^"]+)"/g)) registered.push(m[1]);
+if (registered.length === 0) {
+  problems.push('BuiltInChemistries.cc: no registered Chemistry names found; the add({"<Name>", ...}) pattern probably changed, update check.js');
+}
+for (const n of registered) {
+  if (builderChems.indexOf(n) < 0) problems.push('BuiltInChemistries.cc registers Chemistry "' + n + '" which is not in macro-builder.js CHEMISTRIES');
+}
+if (registered.length) for (const n of builderChems) {
+  if (registered.indexOf(n) < 0) problems.push('macro-builder.js lists Chemistry "' + n + '" which BuiltInChemistries.cc does not register');
+}
+
 // Every row of physics-catalog.json cites its source.
 const physics = JSON.parse(fs.readFileSync(path.join(__dirname, 'physics-catalog.json'), 'utf8'));
 const physicsRows = [

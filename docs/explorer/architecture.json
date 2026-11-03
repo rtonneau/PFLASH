@@ -1003,7 +1003,24 @@
       "docs": [
         "docs/output/README.md"
       ],
-      "commands": [],
+      "commands": [
+        {
+          "cmd": "/gun/particle",
+          "builder": "beam"
+        },
+        {
+          "cmd": "/gun/energy",
+          "builder": "beam"
+        },
+        {
+          "cmd": "/primaryKiller/eLossMin",
+          "builder": "beam"
+        },
+        {
+          "cmd": "/primaryKiller/eLossMax",
+          "builder": "beam"
+        }
+      ],
       "parts": [
         "physics-list",
         "primary-gen",
@@ -1053,7 +1070,12 @@
       "docs": [
         "docs/output/README.md"
       ],
-      "commands": [],
+      "commands": [
+        {
+          "cmd": "/process/dna/e-SolvationSubType",
+          "builder": "chemistry"
+        }
+      ],
       "parts": [
         "stacking-action",
         "event-action",
@@ -1099,6 +1121,14 @@
         {
           "cmd": "/chem/env/halfBox",
           "builder": "environment"
+        },
+        {
+          "cmd": "/chem/env/pH",
+          "builder": "environment"
+        },
+        {
+          "cmd": "/scheduler/endTime",
+          "builder": "timing"
         }
       ],
       "parts": [
@@ -1111,7 +1141,7 @@
       "modes": {
         "sbs": "Step-by-step model up to the end time (default 1 us).",
         "irt": "IRT_syn up to the end time (default 1 us).",
-        "meso": "IRT_syn until the Hand-over time (default 5 ns); step 6 continues."
+        "meso": "IRT_syn until the Hand-over time (default 5 ns); step 7 continues."
       }
     },
     {
@@ -1150,6 +1180,10 @@
         },
         {
           "cmd": "/chem/meso/spatialOutput",
+          "builder": "timing"
+        },
+        {
+          "cmd": "/scheduler/endTime",
           "builder": "timing"
         }
       ],
