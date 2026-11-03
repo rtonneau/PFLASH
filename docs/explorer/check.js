@@ -162,10 +162,32 @@ for (const n of builderChems) {
 for (const n of catalogChems) {
   if (builderChems.indexOf(n) < 0) problems.push('catalog.json has extra Chemistry "' + n + '" that is not in macro-builder.js CHEMISTRIES');
 }
+// Each Chemistry is exported under IRT_syn (the type column is the IRT_syn type), every rate is a
+// finite number under the key of its order (1: k_s-1, H2O partner; 2: k_M-1s-1), and every species
+// named by a reaction or bulk reaction is one of that Chemistry's molecules.
+const RATE_KEYS = { 1: 'k_s-1', 2: 'k_M-1s-1' };
+function checkRate(where, r) {
+  const key = RATE_KEYS[r.order];
+  if (!key) { problems.push(where + ': order must be 1 or 2'); return; }
+  if (typeof r[key] !== 'number' || !isFinite(r[key])) problems.push(where + ': ' + key + ' is not a finite number');
+}
 for (const n of catalogChems) {
-  (catalog.chemistries[n].reactions || []).forEach(function (r, i) {
-    if (typeof r['k_M-1s-1'] !== 'number' || !isFinite(r['k_M-1s-1'])) problems.push('catalog.json ' + n + ' reaction ' + i + ': k is not a number');
-    if (!Number.isInteger(r.type)) problems.push('catalog.json ' + n + ' reaction ' + i + ': type is not an integer');
+  const c = catalog.chemistries[n];
+  if (c.timeStepModel !== 'IRT_syn') problems.push('catalog.json ' + n + ': timeStepModel is ' + c.timeStepModel + ', expected IRT_syn; regenerate it');
+  const molecules = new Set((c.molecules || []).map(m => m.name));
+  const checkSpecies = function (where, names) {
+    for (const s of names) if (!molecules.has(s)) problems.push(where + ': unknown species "' + s + '"');
+  };
+  (c.reactions || []).forEach(function (r, i) {
+    const where = 'catalog.json ' + n + ' reaction ' + i;
+    checkRate(where, r);
+    if (!Number.isInteger(r.type)) problems.push(where + ': type is not an integer');
+    checkSpecies(where, (r.reactants || []).concat(r.products || []));
+  });
+  (c.bulk || []).forEach(function (b, i) {
+    const where = 'catalog.json ' + n + ' bulk ' + i;
+    checkRate(where, b);
+    checkSpecies(where, [b.reactant, b.partner].concat(b.products || []));
   });
 }
 

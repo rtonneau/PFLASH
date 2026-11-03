@@ -29,7 +29,28 @@
 
 namespace
 {
-const G4double kRateUnit = 1e-3 * m3 / (mole * s);  // M^-1 s^-1
+const G4double kSecondOrderUnit = 1e-3 * m3 / (mole * s);  // M^-1 s^-1
+const G4double kFirstOrderUnit = 1. / s;                     // s^-1
+
+// Geant4 uses an H2O-partner rate as a first-order rate (G4DNAScavengerProcess:
+// propensity = rate; G4DNAGillespieDirectMethod::FindScavenging: Avogadro * V
+// water molecules per node, so propensity = rate * n). Every other pair is second order.
+G4int ReactionOrder(const G4MolecularConfiguration* a, const G4MolecularConfiguration* b)
+{
+  const auto* water = G4MoleculeTable::Instance()->GetConfiguration("H2O", false);
+  return (water != nullptr && (a == water || b == water)) ? 1 : 2;
+}
+
+G4double RateInExportUnit(G4double rate, G4int order)
+{
+  return rate / (order == 1 ? kFirstOrderUnit : kSecondOrderUnit);
+}
+
+void AddRate(DataNode& node, double k, int order)
+{
+  node.Add("order", order);
+  node.Add(CatalogExport::RateKey(order), k);
+}
 
 DataNode StringArray(const std::vector<std::string>& values)
 {
@@ -58,14 +79,19 @@ std::string VersionString()
 
 namespace CatalogExport
 {
+std::string RateKey(int order)
+{
+  return order == 1 ? "k_s-1" : "k_M-1s-1";
+}
+
 DataNode MakeReactionNode(const std::string& reactant1, const std::string& reactant2,
-                          const std::vector<std::string>& products, double k_M_inv_s_inv,
+                          const std::vector<std::string>& products, double k, int order,
                           int type, bool mesoOnly)
 {
   DataNode node = DataNode::MakeObject();
   node.Add("reactants", StringArray({reactant1, reactant2}));
   node.Add("products", StringArray(products));
-  node.Add("k_M-1s-1", k_M_inv_s_inv);
+  AddRate(node, k, order);
   node.Add("type", type);
   node.Add("mesoOnly", mesoOnly);
   return node;
@@ -78,13 +104,13 @@ std::string SpeciesId(const G4MolecularConfiguration* configuration)
 }
 
 DataNode MakeBulkNode(const std::string& reactant, const std::string& partner,
-                      const std::vector<std::string>& products, double k_M_inv_s_inv)
+                      const std::vector<std::string>& products, double k, int order)
 {
   DataNode node = DataNode::MakeObject();
   node.Add("reactant", reactant);
   node.Add("partner", partner);
   node.Add("products", StringArray(products));
-  node.Add("k_M-1s-1", k_M_inv_s_inv);
+  AddRate(node, k, order);
   return node;
 }
 
@@ -157,16 +183,17 @@ DataNode BuildCatalog(const std::string& chemistryName,
   DataNode reactions = DataNode::MakeArray();
   for (const auto* data :
        G4DNAMolecularReactionTable::GetReactionTable()->GetVectorOfReactionData()) {
+    const G4int order = ReactionOrder(data->GetReactant1(), data->GetReactant2());
     reactions.Push(MakeReactionNode(
       SpeciesId(data->GetReactant1()), SpeciesId(data->GetReactant2()), ProductNames(data),
-      data->GetObservedReactionRateConstant() / kRateUnit, data->GetReactionType(),
-      mesoOnlyReactions.count(data) > 0));
+      RateInExportUnit(data->GetObservedReactionRateConstant(), order), order,
+      data->GetReactionType(), mesoOnlyReactions.count(data) > 0));
   }
   root.Add("reactions", reactions);
 
   // Bulk reactions, sorted by (reactant, partner, products).
   using BulkKey = std::tuple<std::string, std::string, std::vector<std::string>>;
-  std::vector<std::pair<BulkKey, double>> bulkEntries;
+  std::vector<std::pair<BulkKey, std::pair<double, int>>> bulkEntries;
   auto* processTable = G4ProcessTable::GetProcessTable();
   auto iterator = moleculeTable->GetDefintionIterator();
   iterator.reset();
@@ -178,8 +205,10 @@ DataNode BuildCatalog(const std::string& chemistryName,
     }
     for (const auto& [mol, materialMap] : access->GetReactionMap()) {
       for (const auto& [material, data] : materialMap) {
-        bulkEntries.push_back({BulkKey{SpeciesId(mol), SpeciesId(material), ProductNames(data)},
-                               data->GetObservedReactionRateConstant() / kRateUnit});
+        const G4int order = ReactionOrder(mol, material);
+        bulkEntries.push_back(
+          {BulkKey{SpeciesId(mol), SpeciesId(material), ProductNames(data)},
+           {RateInExportUnit(data->GetObservedReactionRateConstant(), order), order}});
       }
     }
   }
@@ -187,7 +216,8 @@ DataNode BuildCatalog(const std::string& chemistryName,
             [](const auto& a, const auto& b) { return a.first < b.first; });
   DataNode bulk = DataNode::MakeArray();
   for (const auto& [key, rate] : bulkEntries) {
-    bulk.Push(MakeBulkNode(std::get<0>(key), std::get<1>(key), std::get<2>(key), rate));
+    bulk.Push(
+      MakeBulkNode(std::get<0>(key), std::get<1>(key), std::get<2>(key), rate.first, rate.second));
   }
   root.Add("bulk", bulk);
   return root;

@@ -556,6 +556,7 @@
      "products": [
       "H2"
      ],
+     "order": 2,
      "k_M-1s-1": 12000000000,
      "type": 0,
      "mesoOnly": false
@@ -569,6 +570,7 @@
       "H2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 26500000000,
      "type": 0,
      "mesoOnly": false
@@ -583,6 +585,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 5000000000,
      "type": 0,
      "mesoOnly": false
@@ -593,6 +596,7 @@
       "OHm"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 143000000000,
      "type": 0,
      "mesoOnly": false
@@ -605,6 +609,7 @@
      "products": [
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 29500000000,
      "type": 1,
      "mesoOnly": false
@@ -617,6 +622,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 4400000000,
      "type": 1,
      "mesoOnly": false
@@ -630,6 +636,7 @@
       "OHm",
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 14100000000,
      "type": 1,
      "mesoOnly": false
@@ -642,6 +649,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 21100000000,
      "type": 1,
      "mesoOnly": false
@@ -652,6 +660,7 @@
       "H"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 14400000000,
      "type": 1,
      "mesoOnly": false
@@ -664,6 +673,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 17400000000,
      "type": 1,
      "mesoOnly": false
@@ -676,6 +686,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 21000000000,
      "type": 1,
      "mesoOnly": false
@@ -688,6 +699,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 3700000000,
      "type": 1,
      "mesoOnly": false
@@ -700,6 +712,7 @@
      "products": [
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 0,
      "mesoOnly": false
@@ -713,6 +726,7 @@
       "°OH",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000000,
      "type": 0,
      "mesoOnly": false
@@ -725,6 +739,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 0,
      "mesoOnly": false
@@ -740,6 +755,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 100,
      "type": 0,
      "mesoOnly": false
@@ -752,6 +768,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 1,
      "mesoOnly": false
@@ -764,6 +781,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 1,
      "mesoOnly": false
@@ -777,6 +795,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 10700000000,
      "type": 1,
      "mesoOnly": false
@@ -791,6 +810,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 13000000000,
      "type": 1,
      "mesoOnly": false
@@ -804,6 +824,7 @@
       "Om",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 3510000000,
      "type": 1,
      "mesoOnly": false
@@ -817,6 +838,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 23100000000,
      "type": 1,
      "mesoOnly": false
@@ -829,6 +851,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000,
      "type": 1,
      "mesoOnly": false
@@ -841,6 +864,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000,
      "type": 1,
      "mesoOnly": false
@@ -853,6 +877,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000,
      "type": 1,
      "mesoOnly": false
@@ -865,6 +890,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 12900000000,
      "type": 1,
      "mesoOnly": false
@@ -877,6 +903,7 @@
      "products": [
       "Om"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000,
      "type": 1,
      "mesoOnly": false
@@ -889,6 +916,7 @@
      "products": [
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 7900000000,
      "type": 1,
      "mesoOnly": false
@@ -902,6 +930,7 @@
       "HO2°",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 8320000000,
      "type": 1,
      "mesoOnly": false
@@ -914,6 +943,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 1000000000,
      "type": 1,
      "mesoOnly": false
@@ -927,6 +957,7 @@
       "O2m",
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 8500000000,
      "type": 1,
      "mesoOnly": false
@@ -939,6 +970,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000,
      "type": 1,
      "mesoOnly": false
@@ -951,6 +983,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13000000000,
      "type": 1,
      "mesoOnly": false
@@ -964,6 +997,7 @@
       "HO2°",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 555000000,
      "type": 1,
      "mesoOnly": false
@@ -977,6 +1011,7 @@
       "H",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 121000000,
      "type": 1,
      "mesoOnly": false
@@ -991,6 +1026,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 600000000,
      "type": 1,
      "mesoOnly": false
@@ -1004,6 +1040,7 @@
       "O2m",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 350000000,
      "type": 1,
      "mesoOnly": false
@@ -1018,6 +1055,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 100000000,
      "type": 1,
      "mesoOnly": false
@@ -1031,6 +1069,7 @@
       "O2m",
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 700000000,
      "type": 1,
      "mesoOnly": false
@@ -1043,6 +1082,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 25100000,
      "type": 1,
      "mesoOnly": false
@@ -1055,6 +1095,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 35000000,
      "type": 1,
      "mesoOnly": false
@@ -1067,6 +1108,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 28800000,
      "type": 1,
      "mesoOnly": false
@@ -1079,6 +1121,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 32800000,
      "type": 1,
      "mesoOnly": false
@@ -1092,6 +1135,7 @@
       "H2O2",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 980000,
      "type": 1,
      "mesoOnly": false
@@ -1105,6 +1149,7 @@
       "HO2m",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 97000000,
      "type": 1,
      "mesoOnly": false
@@ -1118,7 +1163,8 @@
       "e_aq",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 0.00000632,
+     "order": 1,
+     "k_s-1": 6.32,
      "type": 0,
      "mesoOnly": true
     },
@@ -1130,6 +1176,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 24900000,
      "type": 0,
      "mesoOnly": true
@@ -1142,6 +1189,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 21100000000,
      "type": 0,
      "mesoOnly": true
@@ -1155,7 +1203,8 @@
       "H",
       "OHm(B)"
      ],
-     "k_M-1s-1": 0.00086821,
+     "order": 1,
+     "k_s-1": 868.21,
      "type": 0,
      "mesoOnly": true
     },
@@ -1167,6 +1216,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000,
      "type": 6,
      "mesoOnly": true
@@ -1180,7 +1230,8 @@
       "HO2°",
       "OHm(B)"
      ],
-     "k_M-1s-1": 0.000008295,
+     "order": 1,
+     "k_s-1": 8.295,
      "type": 0,
      "mesoOnly": true
     },
@@ -1192,6 +1243,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000,
      "type": 0,
      "mesoOnly": true
@@ -1205,7 +1257,8 @@
       "H3Op(B)",
       "O2m"
      ],
-     "k_M-1s-1": 0.758,
+     "order": 1,
+     "k_s-1": 758000,
      "type": 6,
      "mesoOnly": true
     },
@@ -1217,6 +1270,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000,
      "type": 0,
      "mesoOnly": true
@@ -1230,7 +1284,8 @@
       "H2O2",
       "OHm(B)"
      ],
-     "k_M-1s-1": 75.208,
+     "order": 1,
+     "k_s-1": 75208000,
      "type": 7,
      "mesoOnly": true
     },
@@ -1242,6 +1297,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 95600000000,
      "type": 0,
      "mesoOnly": true
@@ -1255,7 +1311,8 @@
       "°OH",
       "OHm(B)"
      ],
-     "k_M-1s-1": 99.54,
+     "order": 1,
+     "k_s-1": 99540000,
      "type": 8,
      "mesoOnly": true
     },
@@ -1268,6 +1325,7 @@
       "°OH",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000000,
      "type": 0,
      "mesoOnly": true
@@ -1281,7 +1339,8 @@
       "Om",
       "O2"
      ],
-     "k_M-1s-1": 0.00266,
+     "order": 1,
+     "k_s-1": 2660,
      "type": 0,
      "mesoOnly": true
     },
@@ -1294,7 +1353,8 @@
       "HO2m",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 7.86e-8,
+     "order": 1,
+     "k_s-1": 0.0786,
      "type": 0,
      "mesoOnly": true
     },
@@ -1306,6 +1366,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000,
      "type": 7,
      "mesoOnly": true
@@ -1318,6 +1379,7 @@
      "products": [
       "Om"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000,
      "type": 8,
      "mesoOnly": true
@@ -1331,7 +1393,8 @@
       "Om",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 6.0176635e-8,
+     "order": 1,
+     "k_s-1": 0.060176635,
      "type": 0,
      "mesoOnly": true
     },
@@ -1341,6 +1404,7 @@
       "H3Op(B)"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 113000000000,
      "type": 0,
      "mesoOnly": true
@@ -1351,6 +1415,7 @@
       "OHm(B)"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 113000000000,
      "type": 0,
      "mesoOnly": true
@@ -1364,7 +1429,8 @@
       "e_aq",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 0.00000632
+     "order": 1,
+     "k_s-1": 6.32
     },
     {
      "reactant": "H",
@@ -1372,6 +1438,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 21000000000
     },
     {
@@ -1380,6 +1447,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 24900000
     },
     {
@@ -1389,7 +1457,8 @@
       "HO2m",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 7.86e-8
+     "order": 1,
+     "k_s-1": 0.0786
     },
     {
      "reactant": "H2O2",
@@ -1397,12 +1466,14 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000
     },
     {
      "reactant": "H3Op",
      "partner": "OHm(B)",
      "products": [],
+     "order": 2,
      "k_M-1s-1": 113000000000
     },
     {
@@ -1412,7 +1483,8 @@
       "H2O2",
       "OHm(B)"
      ],
-     "k_M-1s-1": 75.208
+     "order": 1,
+     "k_s-1": 75208000
     },
     {
      "reactant": "HO2m",
@@ -1420,6 +1492,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000
     },
     {
@@ -1429,7 +1502,8 @@
       "H3Op(B)",
       "O2m"
      ],
-     "k_M-1s-1": 0.758
+     "order": 1,
+     "k_s-1": 758000
     },
     {
      "reactant": "HO2°",
@@ -1437,6 +1511,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000
     },
     {
@@ -1446,7 +1521,8 @@
       "HO2°",
       "OHm(B)"
      ],
-     "k_M-1s-1": 0.000008295
+     "order": 1,
+     "k_s-1": 8.295
     },
     {
      "reactant": "O2m",
@@ -1454,6 +1530,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 47800000000
     },
     {
@@ -1463,7 +1540,8 @@
       "Om",
       "O2"
      ],
-     "k_M-1s-1": 0.00266
+     "order": 1,
+     "k_s-1": 2660
     },
     {
      "reactant": "O3m",
@@ -1472,12 +1550,14 @@
       "°OH",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000000
     },
     {
      "reactant": "OHm",
      "partner": "H3Op(B)",
      "products": [],
+     "order": 2,
      "k_M-1s-1": 113000000000
     },
     {
@@ -1487,7 +1567,8 @@
       "°OH",
       "OHm(B)"
      ],
-     "k_M-1s-1": 99.54
+     "order": 1,
+     "k_s-1": 99540000
     },
     {
      "reactant": "Om",
@@ -1495,6 +1576,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 95600000000
     },
     {
@@ -1503,6 +1585,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 3700000000
     },
     {
@@ -1512,7 +1595,8 @@
       "H",
       "OHm(B)"
      ],
-     "k_M-1s-1": 0.00086821
+     "order": 1,
+     "k_s-1": 868.21
     },
     {
      "reactant": "e_aq",
@@ -1520,6 +1604,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 21100000000
     },
     {
@@ -1528,6 +1613,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 17400000000
     },
     {
@@ -1537,7 +1623,8 @@
       "Om",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 6.0176635e-8
+     "order": 1,
+     "k_s-1": 0.060176635
     },
     {
      "reactant": "°OH",
@@ -1545,6 +1632,7 @@
      "products": [
       "Om"
      ],
+     "order": 2,
      "k_M-1s-1": 12700000000
     }
    ]
@@ -2103,6 +2191,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 6000000000,
      "type": 1,
      "mesoOnly": false
@@ -2115,6 +2204,7 @@
      "products": [
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 22000000000,
      "type": 1,
      "mesoOnly": false
@@ -2125,6 +2215,7 @@
       "H"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 1,
      "mesoOnly": false
@@ -2137,6 +2228,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 45000000,
      "type": 1,
      "mesoOnly": false
@@ -2149,6 +2241,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 23000000,
      "type": 1,
      "mesoOnly": false
@@ -2163,6 +2256,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 5500000000,
      "type": 0,
      "mesoOnly": false
@@ -2176,6 +2270,7 @@
       "H2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 25000000000,
      "type": 0,
      "mesoOnly": false
@@ -2188,6 +2283,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 17000000000,
      "type": 1,
      "mesoOnly": false
@@ -2201,6 +2297,7 @@
       "°OH",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 1,
      "mesoOnly": false
@@ -2213,6 +2310,7 @@
      "products": [
       "H2"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 0,
      "mesoOnly": false
@@ -2225,6 +2323,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 100000000,
      "type": 1,
      "mesoOnly": false
@@ -2237,6 +2336,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000,
      "type": 1,
      "mesoOnly": false
@@ -2247,6 +2347,7 @@
       "OHm"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 100000000000,
      "type": 0,
      "mesoOnly": false
@@ -2259,6 +2360,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 19000000000,
      "type": 1,
      "mesoOnly": false
@@ -2271,6 +2373,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 1,
      "mesoOnly": false
@@ -2283,6 +2386,7 @@
      "products": [
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 1,
      "mesoOnly": false
@@ -2296,6 +2400,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 9000000000,
      "type": 1,
      "mesoOnly": false
@@ -2309,6 +2414,7 @@
       "HO2°",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 5000000000,
      "type": 1,
      "mesoOnly": false
@@ -2321,6 +2427,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 1,
      "mesoOnly": false
@@ -2334,6 +2441,7 @@
       "OHm",
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13000000000,
      "type": 1,
      "mesoOnly": false
@@ -2346,6 +2454,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 1,
      "mesoOnly": false
@@ -2358,6 +2467,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 1,
      "mesoOnly": false
@@ -2370,6 +2480,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 30000000000,
      "type": 1,
      "mesoOnly": false
@@ -2382,6 +2493,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000,
      "type": 1,
      "mesoOnly": false
@@ -2395,6 +2507,7 @@
       "H2O2",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 760000,
      "type": 1,
      "mesoOnly": false
@@ -2408,6 +2521,7 @@
       "O2",
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 85000000,
      "type": 1,
      "mesoOnly": false
@@ -2420,6 +2534,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 20000000000
     },
     {
@@ -2428,6 +2543,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 19000000000
     }
    ]
@@ -2995,6 +3111,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 5500000000,
      "type": 0,
      "mesoOnly": false
@@ -3008,6 +3125,7 @@
       "H2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 27600000000,
      "type": 0,
      "mesoOnly": false
@@ -3020,6 +3138,7 @@
      "products": [
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 30000000000,
      "type": 1,
      "mesoOnly": false
@@ -3033,6 +3152,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 22000000000,
      "type": 1,
      "mesoOnly": false
@@ -3046,6 +3166,7 @@
       "°OH",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 11000000000,
      "type": 1,
      "mesoOnly": false
@@ -3059,6 +3180,7 @@
       "Om",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 3500000000,
      "type": 1,
      "mesoOnly": false
@@ -3071,6 +3193,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 19000000000,
      "type": 1,
      "mesoOnly": false
@@ -3084,6 +3207,7 @@
       "HO2m",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 13000000000,
      "type": 1,
      "mesoOnly": false
@@ -3096,6 +3220,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13000000000,
      "type": 1,
      "mesoOnly": false
@@ -3110,6 +3235,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 16000000000,
      "type": 1,
      "mesoOnly": false
@@ -3122,6 +3248,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 36000000000,
      "type": 1,
      "mesoOnly": false
@@ -3134,6 +3261,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 22000000,
      "type": 1,
      "mesoOnly": false
@@ -3146,6 +3274,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 25000000000,
      "type": 0,
      "mesoOnly": false
@@ -3159,6 +3288,7 @@
       "HO2°",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 7500000000,
      "type": 1,
      "mesoOnly": false
@@ -3172,6 +3302,7 @@
       "O3",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 2600000000,
      "type": 1,
      "mesoOnly": false
@@ -3186,6 +3317,7 @@
       "O2m",
       "H3Op"
      ],
+     "order": 2,
      "k_M-1s-1": 6000000000,
      "type": 1,
      "mesoOnly": false
@@ -3199,6 +3331,7 @@
       "HO2°",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 110000000,
      "type": 1,
      "mesoOnly": false
@@ -3209,6 +3342,7 @@
       "H"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 10900000000,
      "type": 1,
      "mesoOnly": false
@@ -3221,6 +3355,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 5500000000,
      "type": 1,
      "mesoOnly": false
@@ -3233,6 +3368,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 39500000,
      "type": 1,
      "mesoOnly": false
@@ -3245,6 +3381,7 @@
      "products": [
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 8840000000,
      "type": 1,
      "mesoOnly": false
@@ -3258,6 +3395,7 @@
       "OHm",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 8000000000,
      "type": 1,
      "mesoOnly": false
@@ -3271,7 +3409,8 @@
       "H2",
       "°OH"
      ],
-     "k_M-1s-1": 0.000011,
+     "order": 1,
+     "k_s-1": 11,
      "type": 0,
      "mesoOnly": false
     },
@@ -3283,6 +3422,7 @@
      "products": [
       "H2"
      ],
+     "order": 2,
      "k_M-1s-1": 7520000000,
      "type": 0,
      "mesoOnly": false
@@ -3295,6 +3435,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000,
      "type": 1,
      "mesoOnly": false
@@ -3307,6 +3448,7 @@
      "products": [
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 0,
      "mesoOnly": false
@@ -3320,6 +3462,7 @@
       "°OH",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000,
      "type": 1,
      "mesoOnly": false
@@ -3333,6 +3476,7 @@
       "OHm",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 10000000000,
      "type": 1,
      "mesoOnly": false
@@ -3345,6 +3489,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 11400000000,
      "type": 1,
      "mesoOnly": false
@@ -3357,6 +3502,7 @@
      "products": [
       "HO3"
      ],
+     "order": 2,
      "k_M-1s-1": 38000000000,
      "type": 0,
      "mesoOnly": false
@@ -3369,6 +3515,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 13100000000,
      "type": 1,
      "mesoOnly": false
@@ -3381,6 +3528,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 11400000000,
      "type": 1,
      "mesoOnly": false
@@ -3394,6 +3542,7 @@
       "HO2m",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 80000000,
      "type": 1,
      "mesoOnly": false
@@ -3407,6 +3556,7 @@
       "H2O2",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 840000,
      "type": 1,
      "mesoOnly": false
@@ -3420,6 +3570,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 6000000000,
      "type": 1,
      "mesoOnly": false
@@ -3433,6 +3584,7 @@
       "°OH",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 0.5,
      "type": 1,
      "mesoOnly": false
@@ -3447,6 +3599,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 0.5,
      "type": 1,
      "mesoOnly": false
@@ -3461,6 +3614,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 6000000000,
      "type": 1,
      "mesoOnly": false
@@ -3474,6 +3628,7 @@
       "HO3",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 500000000,
      "type": 1,
      "mesoOnly": false
@@ -3488,6 +3643,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 600000000,
      "type": 1,
      "mesoOnly": false
@@ -3503,6 +3659,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 0.3,
      "type": 0,
      "mesoOnly": false
@@ -3517,6 +3674,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 0.13,
      "type": 1,
      "mesoOnly": false
@@ -3531,6 +3689,7 @@
       "O2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 0.13,
      "type": 1,
      "mesoOnly": false
@@ -3546,6 +3705,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 10000,
      "type": 1,
      "mesoOnly": false
@@ -3559,6 +3719,7 @@
       "O3m",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 1500000000,
      "type": 1,
      "mesoOnly": false
@@ -3572,6 +3733,7 @@
       "HO2m",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 1000000000,
      "type": 1,
      "mesoOnly": false
@@ -3584,6 +3746,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 3750000000,
      "type": 1,
      "mesoOnly": false
@@ -3597,6 +3760,7 @@
       "H",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 128000000,
      "type": 1,
      "mesoOnly": false
@@ -3609,6 +3773,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 500000000,
      "type": 1,
      "mesoOnly": false
@@ -3622,6 +3787,7 @@
       "O2m",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 786000000,
      "type": 1,
      "mesoOnly": false
@@ -3635,6 +3801,7 @@
       "O2m",
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 700000000,
      "type": 1,
      "mesoOnly": false
@@ -3648,6 +3815,7 @@
       "O2m",
       "O2"
      ],
+     "order": 2,
      "k_M-1s-1": 5000000000,
      "type": 1,
      "mesoOnly": false
@@ -3661,6 +3829,7 @@
       "O2",
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000000,
      "type": 0,
      "mesoOnly": false
@@ -3673,6 +3842,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000,
      "type": 1,
      "mesoOnly": false
@@ -3683,6 +3853,7 @@
       "OHm"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 118000000000,
      "type": 0,
      "mesoOnly": false
@@ -3695,6 +3866,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000,
      "type": 1,
      "mesoOnly": false
@@ -3707,6 +3879,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000,
      "type": 1,
      "mesoOnly": false
@@ -3719,6 +3892,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000,
      "type": 1,
      "mesoOnly": false
@@ -3731,6 +3905,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 22000000,
      "type": 1,
      "mesoOnly": false
@@ -3743,6 +3918,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000,
      "type": 1,
      "mesoOnly": false
@@ -3755,6 +3931,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 20900000000,
      "type": 1,
      "mesoOnly": false
@@ -3768,7 +3945,8 @@
       "e_aq",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 0.00000583,
+     "order": 1,
+     "k_s-1": 5.83,
      "type": 0,
      "mesoOnly": false
     },
@@ -3780,6 +3958,7 @@
      "products": [
       "Om"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000,
      "type": 1,
      "mesoOnly": false
@@ -3793,7 +3972,8 @@
       "H",
       "OHm(B)"
      ],
-     "k_M-1s-1": 0.000019,
+     "order": 1,
+     "k_s-1": 19,
      "type": 0,
      "mesoOnly": true
     },
@@ -3805,6 +3985,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 20900000000,
      "type": 0,
      "mesoOnly": true
@@ -3817,6 +3998,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 22000000,
      "type": 0,
      "mesoOnly": true
@@ -3829,6 +4011,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000,
      "type": 0,
      "mesoOnly": true
@@ -3842,7 +4025,8 @@
       "°OH",
       "OHm(B)"
      ],
-     "k_M-1s-1": 1.27,
+     "order": 1,
+     "k_s-1": 1270000,
      "type": 8,
      "mesoOnly": true
     },
@@ -3855,7 +4039,8 @@
       "O2",
       "Om"
      ],
-     "k_M-1s-1": 0.00262,
+     "order": 1,
+     "k_s-1": 2620,
      "type": 0,
      "mesoOnly": true
     },
@@ -3868,6 +4053,7 @@
       "O2",
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000000,
      "type": 0,
      "mesoOnly": true
@@ -3881,7 +4067,8 @@
       "O2",
       "°OH"
      ],
-     "k_M-1s-1": 0.11,
+     "order": 1,
+     "k_s-1": 110000,
      "type": 0,
      "mesoOnly": true
     },
@@ -3893,6 +4080,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000,
      "type": 0,
      "mesoOnly": true
@@ -3906,7 +4094,8 @@
       "H3Op(B)",
       "O2m"
      ],
-     "k_M-1s-1": 0.773,
+     "order": 1,
+     "k_s-1": 773000,
      "type": 6,
      "mesoOnly": true
     },
@@ -3919,7 +4108,8 @@
       "HO2°",
       "OHm(B)"
      ],
-     "k_M-1s-1": 1.55e-7,
+     "order": 1,
+     "k_s-1": 0.155,
      "type": 0,
      "mesoOnly": true
     },
@@ -3931,6 +4121,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000,
      "type": 6,
      "mesoOnly": true
@@ -3941,6 +4132,7 @@
       "H3Op(B)"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 118000000000,
      "type": 0,
      "mesoOnly": true
@@ -3951,6 +4143,7 @@
       "OHm(B)"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 118000000000,
      "type": 0,
      "mesoOnly": true
@@ -3964,7 +4157,8 @@
       "H3Op(B)",
       "Om"
      ],
-     "k_M-1s-1": 9.43e-8,
+     "order": 1,
+     "k_s-1": 0.0943,
      "type": 0,
      "mesoOnly": true
     },
@@ -3976,6 +4170,7 @@
      "products": [
       "Om"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000,
      "type": 8,
      "mesoOnly": true
@@ -3989,7 +4184,8 @@
       "H3Op(B)",
       "HO2m"
      ],
-     "k_M-1s-1": 9.43e-8,
+     "order": 1,
+     "k_s-1": 0.0943,
      "type": 0,
      "mesoOnly": true
     },
@@ -4001,6 +4197,7 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000,
      "type": 7,
      "mesoOnly": true
@@ -4013,6 +4210,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000,
      "type": 0,
      "mesoOnly": true
@@ -4026,7 +4224,8 @@
       "H2O2",
       "OHm(B)"
      ],
-     "k_M-1s-1": 1.27,
+     "order": 1,
+     "k_s-1": 1270000,
      "type": 7,
      "mesoOnly": true
     }
@@ -4039,7 +4238,8 @@
       "e_aq",
       "H3Op(B)"
      ],
-     "k_M-1s-1": 0.00000583
+     "order": 1,
+     "k_s-1": 5.83
     },
     {
      "reactant": "H",
@@ -4047,6 +4247,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 13100000000
     },
     {
@@ -4055,6 +4256,7 @@
      "products": [
       "e_aq"
      ],
+     "order": 2,
      "k_M-1s-1": 22000000
     },
     {
@@ -4064,7 +4266,8 @@
       "H3Op(B)",
       "HO2m"
      ],
-     "k_M-1s-1": 9.43e-8
+     "order": 1,
+     "k_s-1": 0.0943
     },
     {
      "reactant": "H2O2",
@@ -4072,12 +4275,14 @@
      "products": [
       "HO2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000
     },
     {
      "reactant": "H3Op",
      "partner": "OHm(B)",
      "products": [],
+     "order": 2,
      "k_M-1s-1": 118000000000
     },
     {
@@ -4087,7 +4292,8 @@
       "H2O2",
       "OHm(B)"
      ],
-     "k_M-1s-1": 1.27
+     "order": 1,
+     "k_s-1": 1270000
     },
     {
      "reactant": "HO2m",
@@ -4095,6 +4301,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000
     },
     {
@@ -4104,7 +4311,8 @@
       "H3Op(B)",
       "O2m"
      ],
-     "k_M-1s-1": 0.773
+     "order": 1,
+     "k_s-1": 773000
     },
     {
      "reactant": "HO2°",
@@ -4112,6 +4320,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000
     },
     {
@@ -4121,7 +4330,8 @@
       "O2",
       "°OH"
      ],
-     "k_M-1s-1": 0.11
+     "order": 1,
+     "k_s-1": 110000
     },
     {
      "reactant": "O2m",
@@ -4130,7 +4340,8 @@
       "HO2°",
       "OHm(B)"
      ],
-     "k_M-1s-1": 1.55e-7
+     "order": 1,
+     "k_s-1": 0.155
     },
     {
      "reactant": "O2m",
@@ -4138,6 +4349,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000
     },
     {
@@ -4147,7 +4359,8 @@
       "O2",
       "Om"
      ],
-     "k_M-1s-1": 0.00262
+     "order": 1,
+     "k_s-1": 2620
     },
     {
      "reactant": "O3m",
@@ -4156,12 +4369,14 @@
       "O2",
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 90000000000
     },
     {
      "reactant": "OHm",
      "partner": "H3Op(B)",
      "products": [],
+     "order": 2,
      "k_M-1s-1": 118000000000
     },
     {
@@ -4171,7 +4386,8 @@
       "°OH",
       "OHm(B)"
      ],
-     "k_M-1s-1": 1.27
+     "order": 1,
+     "k_s-1": 1270000
     },
     {
      "reactant": "Om",
@@ -4179,6 +4395,7 @@
      "products": [
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 50200000000
     },
     {
@@ -4187,6 +4404,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 3750000000
     },
     {
@@ -4196,7 +4414,8 @@
       "H",
       "OHm(B)"
      ],
-     "k_M-1s-1": 0.000019
+     "order": 1,
+     "k_s-1": 19
     },
     {
      "reactant": "e_aq",
@@ -4204,6 +4423,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 20900000000
     },
     {
@@ -4212,6 +4432,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 19000000000
     },
     {
@@ -4221,7 +4442,8 @@
       "H3Op(B)",
       "Om"
      ],
-     "k_M-1s-1": 9.43e-8
+     "order": 1,
+     "k_s-1": 0.0943
     },
     {
      "reactant": "°OH",
@@ -4229,6 +4451,7 @@
      "products": [
       "Om"
      ],
+     "order": 2,
      "k_M-1s-1": 13300000000
     }
    ]
@@ -4789,6 +5012,7 @@
       "OHm",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 6360000000,
      "type": 0,
      "mesoOnly": false
@@ -4801,6 +5025,7 @@
      "products": [
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 29500000000,
      "type": 1,
      "mesoOnly": false
@@ -4814,6 +5039,7 @@
       "H2",
       "OHm"
      ],
+     "order": 2,
      "k_M-1s-1": 25000000000,
      "type": 0,
      "mesoOnly": false
@@ -4826,6 +5052,7 @@
      "products": [
       "H"
      ],
+     "order": 2,
      "k_M-1s-1": 21100000000,
      "type": 1,
      "mesoOnly": false
@@ -4839,6 +5066,7 @@
       "OHm",
       "°OH"
      ],
+     "order": 2,
      "k_M-1s-1": 11000000000,
      "type": 1,
      "mesoOnly": false
@@ -4851,6 +5079,7 @@
      "products": [
       "H2O2"
      ],
+     "order": 2,
      "k_M-1s-1": 5500000000,
      "type": 1,
      "mesoOnly": false
@@ -4861,6 +5090,7 @@
       "H"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 15500000000,
      "type": 1,
      "mesoOnly": false
@@ -4873,6 +5103,7 @@
      "products": [
       "H2"
      ],
+     "order": 2,
      "k_M-1s-1": 5030000000,
      "type": 0,
      "mesoOnly": false
@@ -4883,6 +5114,7 @@
       "OHm"
      ],
      "products": [],
+     "order": 2,
      "k_M-1s-1": 113000000000,
      "type": 0,
      "mesoOnly": false
@@ -4895,6 +5127,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 17400000000,
      "type": 0,
      "mesoOnly": true
@@ -4907,6 +5140,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 21000000000,
      "type": 0,
      "mesoOnly": true
@@ -4919,6 +5153,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 3700000000,
      "type": 0,
      "mesoOnly": true
@@ -4931,6 +5166,7 @@
      "products": [
       "HO2°"
      ],
+     "order": 2,
      "k_M-1s-1": 21000000000
     },
     {
@@ -4939,6 +5175,7 @@
      "products": [
       "O3m"
      ],
+     "order": 2,
      "k_M-1s-1": 3700000000
     },
     {
@@ -4947,6 +5184,7 @@
      "products": [
       "O2m"
      ],
+     "order": 2,
      "k_M-1s-1": 17400000000
     }
    ]

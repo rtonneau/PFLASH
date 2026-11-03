@@ -10,7 +10,9 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const K_KEY = 'k_M-1s-1';
+  // Rate key and display unit by reaction order (catalog.json "order"): an H2O partner is
+  // first order in Geant4 (k in s^-1), every other pair second order (k in M^-1 s^-1).
+  const RATE = { 1: { key: 'k_s-1', unit: 's⁻¹' }, 2: { key: 'k_M-1s-1', unit: 'M⁻¹ s⁻¹' } };
   const BASE_CHEMISTRY = 'PureWater';
   const PH_SPECIES = ['H3Op(B)', 'OHm(B)'];
 
@@ -31,11 +33,19 @@
     return reactants.join(' + ') + ' → ' + (products.length ? products.join(' + ') : '(no products)');
   }
 
+  function rate(r) {
+    const u = RATE[r.order];
+    if (!u) throw new Error('Unknown reaction order: ' + r.order);
+    return { order: r.order, k: r[u.key], kText: kText(r[u.key]), unit: u.unit };
+  }
+
+  function pairKey(a, b) { return [a, b].sort().join('|'); }
+
   // mesoOnly reactions are bulk pairs of the mesoscopic table only; they appear in bulkRows.
   function reactionRows(catalog, chemistry) {
     return chem(catalog, chemistry).reactions.filter(function (r) { return !r.mesoOnly; }).map(function (r) {
-      return { label: equation(r.reactants, r.products), reactants: r.reactants, products: r.products,
-        k: r[K_KEY], kText: kText(r[K_KEY]), typeIrt: r.type, typeSbs: 0 };
+      return Object.assign({ label: equation(r.reactants, r.products), reactants: r.reactants, products: r.products,
+        typeIrt: r.type, typeSbs: 0 }, rate(r));
     });
   }
 
@@ -49,11 +59,20 @@
     return null;
   }
 
+  // sharesTracked: the pair is also a bimolecular (non-mesoOnly) reaction, e.g. bulk O2 = the
+  // tracked O2. The driver then reuses that entry, so the mesoscopic table holds the pair once.
   function bulkRows(catalog, chemistry) {
-    return chem(catalog, chemistry).bulk.map(function (b) {
-      return { label: equation([b.reactant, b.partner], b.products), reactants: [b.reactant, b.partner], products: b.products,
-        partner: b.partner, k: b[K_KEY], kText: kText(b[K_KEY]), driver: bulkDriver(b.partner) };
+    const c = chem(catalog, chemistry);
+    const tracked = {};
+    c.reactions.forEach(function (r) { if (!r.mesoOnly) tracked[pairKey(r.reactants[0], r.reactants[1])] = true; });
+    return c.bulk.map(function (b) {
+      return Object.assign({ label: equation([b.reactant, b.partner], b.products), reactants: [b.reactant, b.partner], products: b.products,
+        partner: b.partner, driver: bulkDriver(b.partner), sharesTracked: !!tracked[pairKey(b.reactant, b.partner)] }, rate(b));
     });
+  }
+
+  function sharedBulkCount(catalog, chemistry) {
+    return bulkRows(catalog, chemistry).filter(function (b) { return b.sharesTracked; }).length;
   }
 
   function moleculeRows(catalog, chemistry) {
@@ -95,7 +114,7 @@
 
   function chemistryNames(catalog) { return Object.keys(catalog.chemistries); }
 
-  return { kText: kText, reactionRows: reactionRows, mesoOnlyCount: mesoOnlyCount, bulkRows: bulkRows,
+  return { kText: kText, reactionRows: reactionRows, mesoOnlyCount: mesoOnlyCount, bulkRows: bulkRows, sharedBulkCount: sharedBulkCount,
     moleculeRows: moleculeRows, dissociationRows: dissociationRows, physicsRows: physicsRows,
     filterRows: filterRows, chemistryNames: chemistryNames };
 }));

@@ -1269,15 +1269,17 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const uid = ++tableSeq;
     const rIds = 'rt-bi-' + uid, bIds = 'rt-bulk-' + uid;
     const reactions = CV.reactionRows(CATALOG, chemistry), bulk = CV.bulkRows(CATALOG, chemistry);
-    const nMeso = CV.mesoOnlyCount(CATALOG, chemistry);
+    const nMeso = CV.mesoOnlyCount(CATALOG, chemistry), nShared = CV.sharedBulkCount(CATALOG, chemistry);
+    // k is per row: s⁻¹ for first-order (H2O partner) reactions, M⁻¹ s⁻¹ otherwise.
+    const kCell = function (r) { return { c: r.kText + ' ' + r.unit, cls: 'num' }; };
     const reactionCells = function (r) {
-      return [{ c: r.label, cls: 'mono' }, { c: r.kText, cls: 'num' }, { c: String(r.typeIrt), cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { c: String(r.typeSbs), cls: 'num' + (hl === 'sbs' ? ' hl' : '') }];
+      return [{ c: r.label, cls: 'mono' }, kCell(r), { c: String(r.typeIrt), cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { c: String(r.typeSbs), cls: 'num' + (hl === 'sbs' ? ' hl' : '') }];
     };
-    const bulkCells = function (r) { return [{ c: r.label, cls: 'mono' }, { c: r.kText, cls: 'num' }, r.driver ? el('code', { text: r.driver }) : 'Always on']; };
+    const bulkCells = function (r) { return [{ c: r.label, cls: 'mono' }, kCell(r), r.driver ? el('code', { text: r.driver }) : 'Always on', r.sharesTracked ? 'Yes' : '—']; };
     const bi = table(chemistry + ': bimolecular reactions',
-      [{ text: 'Reaction' }, { text: 'k (M⁻¹ s⁻¹)', cls: 'num' }, { text: 'Type under IRT_syn', cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { text: 'Type under SBS', cls: 'num' + (hl === 'sbs' ? ' hl' : '') }],
+      [{ text: 'Reaction' }, { text: 'k', cls: 'num' }, { text: 'Type under IRT_syn', cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { text: 'Type under SBS', cls: 'num' + (hl === 'sbs' ? ' hl' : '') }],
       reactions.map(reactionCells), rIds);
-    const bk = table(chemistry + ': bulk reactions', [{ text: 'Reaction' }, { text: 'k (M⁻¹ s⁻¹)', cls: 'num' }, { text: 'Set by' }], bulk.map(bulkCells), bIds);
+    const bk = table(chemistry + ': bulk reactions', [{ text: 'Reaction' }, { text: 'k', cls: 'num' }, { text: 'Set by' }, { text: 'Also bimolecular' }], bulk.map(bulkCells), bIds);
     const count = el('p', { class: 'cat-note', role: 'status', 'aria-live': 'polite' });
     const upd = function (q) {
       const fr = CV.filterRows(reactions, q), fb = CV.filterRows(bulk, q);
@@ -1295,6 +1297,8 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     kids.push(el('p', { class: 'cat-note', text: 'SBS keeps every reaction type 0: partially diffusion-controlled pairs are only type 1 under IRT_syn.' }));
     if (nMeso > 0) kids.push(el('p', { class: 'cat-note', text: nMeso + ' bulk pairs are also in the mesoscopic reaction table; they are listed under Bulk reactions.' }));
     kids.push(el('h4', { class: 'cat-sub', text: 'Bulk reactions' }), bk.wrap);
+    kids.push(el('p', { class: 'cat-note', text: 'Rate constants with an H2O partner are first order (s⁻¹): Geant4 uses them directly as a rate per molecule, not per concentration.' }));
+    if (nShared > 0) kids.push(el('p', { class: 'cat-note', text: nShared + ' bulk reactions (Also bimolecular: Yes) have the same pair as a bimolecular reaction above, because the bulk partner is also a tracked species (bulk O2 is the tracked O2). They share that entry: the mesoscopic reaction table holds the pair once, so it is not counted twice.' }));
     upd('');
     return el('div', { class: 'reaction-table' }, kids);
   }

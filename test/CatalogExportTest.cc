@@ -32,28 +32,50 @@ static bool Before(const std::string& text, const std::string& a, const std::str
 static void TestReactionNode()
 {
   const std::string oh = "\xC2\xB0OH";
-  const std::string json = Json(CatalogExport::MakeReactionNode("e_aq", oh, {"OHm"}, 2.95e10, 1, true));
+  const std::string json = Json(CatalogExport::MakeReactionNode("e_aq", oh, {"OHm"}, 2.95e10, 2, 1, true));
   assert(json.find("\"type\": 1") != std::string::npos);
   assert(json.find("\"k_M-1s-1\": 29500000000") != std::string::npos);
   assert(json.find(oh) != std::string::npos);
   assert(json.find("\"mesoOnly\": true") != std::string::npos);
   assert(Before(json, "reactants", "products"));
-  assert(Before(json, "products", "k_M-1s-1"));
+  assert(json.find("\"order\": 2") != std::string::npos);
+  assert(json.find("k_s-1") == std::string::npos);
+  assert(Before(json, "products", "\"order\""));
+  assert(Before(json, "\"order\"", "k_M-1s-1"));
+}
+
+// H2O-partner reactions are first order: rate in s^-1 under "k_s-1", no "k_M-1s-1".
+static void TestFirstOrderReactionNode()
+{
+  assert(CatalogExport::RateKey(1) == "k_s-1");
+  assert(CatalogExport::RateKey(2) == "k_M-1s-1");
+  const std::string json =
+    Json(CatalogExport::MakeReactionNode("e_aq", "H2O", {"H", "OHm(B)"}, 868.21, 1, 0, true));
+  assert(json.find("\"order\": 1") != std::string::npos);
+  assert(json.find("\"k_s-1\": 868.21") != std::string::npos);
+  assert(json.find("k_M-1s-1") == std::string::npos);
 }
 
 static void TestEmptyProducts()
 {
-  const std::string json = Json(CatalogExport::MakeReactionNode("H3Op", "OHm", {}, 1.43e11, 0, false));
+  const std::string json = Json(CatalogExport::MakeReactionNode("H3Op", "OHm", {}, 1.43e11, 2, 0, false));
   assert(json.find("\"products\": []") != std::string::npos);
   assert(json.find("\"mesoOnly\": false") != std::string::npos);
 }
 
 static void TestBulkNode()
 {
-  const std::string json = Json(CatalogExport::MakeBulkNode("e_aq", "O2", {"O2m"}, 1.74e10));
+  const std::string json = Json(CatalogExport::MakeBulkNode("e_aq", "O2", {"O2m"}, 1.74e10, 2));
   assert(Before(json, "\"reactant\"", "\"partner\""));
   assert(Before(json, "\"partner\"", "\"products\""));
-  assert(Before(json, "\"products\"", "\"k_M-1s-1\""));
+  assert(Before(json, "\"products\"", "\"order\": 2"));
+  assert(Before(json, "\"order\": 2", "\"k_M-1s-1\""));
+
+  const std::string water =
+    Json(CatalogExport::MakeBulkNode("e_aq", "H2O", {"H", "OHm(B)"}, 868.21, 1));
+  assert(water.find("\"order\": 1") != std::string::npos);
+  assert(water.find("\"k_s-1\": 868.21") != std::string::npos);
+  assert(water.find("k_M-1s-1") == std::string::npos);
 }
 
 static void TestMoleculeNode()
@@ -73,6 +95,7 @@ int main()
   _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
   TestReactionNode();
+  TestFirstOrderReactionNode();
   TestEmptyProducts();
   TestBulkNode();
   TestMoleculeNode();

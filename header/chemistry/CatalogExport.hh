@@ -23,15 +23,20 @@ class G4MolecularConfiguration;
 
 namespace CatalogExport
 {
-/// Object {"reactants":[r1,r2],"products":[...],"k_M-1s-1":k,"type":type,"mesoOnly":bool}.
+/// Key of the rate constant for a reaction order: "k_s-1" for order 1 (H2O partner,
+/// which Geant4 uses as a first-order rate), "k_M-1s-1" for order 2 (every other pair).
+std::string RateKey(int order);
+
+/// Object {"reactants":[r1,r2],"products":[...],"order":order,<RateKey(order)>:k,
+/// "type":type,"mesoOnly":bool}. k is in s^-1 (order 1) or M^-1 s^-1 (order 2).
 /// mesoOnly marks entries added to the shared table only for the mesoscopic stage.
 DataNode MakeReactionNode(const std::string& reactant1, const std::string& reactant2,
-                          const std::vector<std::string>& products, double k_M_inv_s_inv,
+                          const std::vector<std::string>& products, double k, int order,
                           int type, bool mesoOnly);
 
-/// Object {"reactant","partner","products","k_M-1s-1"} (bulk reaction).
+/// Object {"reactant","partner","products","order",<RateKey(order)>} (bulk reaction).
 DataNode MakeBulkNode(const std::string& reactant, const std::string& partner,
-                      const std::vector<std::string>& products, double k_M_inv_s_inv);
+                      const std::vector<std::string>& products, double k, int order);
 
 /// Object {"name","D_m2s-1","radius_nm","charge","configuration"}. name is the species
 /// id used in all other sections (SpeciesId); configuration is the Geant4 configuration name.
