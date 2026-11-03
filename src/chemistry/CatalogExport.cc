@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <set>
 #include <tuple>
 #include <utility>
 
@@ -43,7 +44,7 @@ std::vector<std::string> ProductNames(const G4DNAMolecularReactionData* data)
 {
   std::vector<std::string> names;
   for (G4int i = 0; i < data->GetNbProducts(); ++i) {
-    names.push_back(data->GetProduct(i)->GetName());
+    names.push_back(CatalogExport::SpeciesId(data->GetProduct(i)));
   }
   return names;
 }
@@ -59,14 +60,21 @@ namespace CatalogExport
 {
 DataNode MakeReactionNode(const std::string& reactant1, const std::string& reactant2,
                           const std::vector<std::string>& products, double k_M_inv_s_inv,
-                          int type)
+                          int type, bool mesoOnly)
 {
   DataNode node = DataNode::MakeObject();
   node.Add("reactants", StringArray({reactant1, reactant2}));
   node.Add("products", StringArray(products));
   node.Add("k_M-1s-1", k_M_inv_s_inv);
   node.Add("type", type);
+  node.Add("mesoOnly", mesoOnly);
   return node;
+}
+
+std::string SpeciesId(const G4MolecularConfiguration* configuration)
+{
+  const G4String& userId = configuration->GetUserID();
+  return userId.empty() ? std::string(configuration->GetName()) : std::string(userId);
 }
 
 DataNode MakeBulkNode(const std::string& reactant, const std::string& partner,
@@ -81,17 +89,19 @@ DataNode MakeBulkNode(const std::string& reactant, const std::string& partner,
 }
 
 DataNode MakeMoleculeNode(const std::string& name, double diffusion_m2_s, double radius_nm,
-                          int charge)
+                          int charge, const std::string& configuration)
 {
   DataNode node = DataNode::MakeObject();
   node.Add("name", name);
   node.Add("D_m2s-1", diffusion_m2_s);
   node.Add("radius_nm", radius_nm);
   node.Add("charge", charge);
+  node.Add("configuration", configuration);
   return node;
 }
 
-DataNode BuildCatalog(const std::string& chemistryName)
+DataNode BuildCatalog(const std::string& chemistryName,
+                      const std::set<const G4DNAMolecularReactionData*>& mesoOnlyReactions)
 {
   DataNode root = DataNode::MakeObject();
   root.Add("chemistry", chemistryName);
@@ -109,13 +119,14 @@ DataNode BuildCatalog(const std::string& chemistryName)
     configurations.push_back(confIterator.value());
   }
   std::sort(configurations.begin(), configurations.end(),
-            [](const auto* a, const auto* b) { return a->GetName() < b->GetName(); });
+            [](const auto* a, const auto* b) { return SpeciesId(a) < SpeciesId(b); });
 
   DataNode molecules = DataNode::MakeArray();
   DataNode dissociation = DataNode::MakeArray();
   for (const auto* conf : configurations) {
-    molecules.Push(MakeMoleculeNode(conf->GetName(), conf->GetDiffusionCoefficient() / (m2 / s),
-                                    conf->GetVanDerVaalsRadius() / nm, conf->GetCharge()));
+    molecules.Push(MakeMoleculeNode(SpeciesId(conf), conf->GetDiffusionCoefficient() / (m2 / s),
+                                    conf->GetVanDerVaalsRadius() / nm, conf->GetCharge(),
+                                    std::string(conf->GetName())));
 
     const auto* channels = conf->GetDefinition()->GetDecayChannels(conf);
     if (channels == nullptr) {
@@ -125,7 +136,7 @@ DataNode BuildCatalog(const std::string& chemistryName)
     for (const auto* channel : *channels) {
       std::vector<std::string> products;
       for (G4int i = 0; i < channel->GetNbProducts(); ++i) {
-        products.push_back(channel->GetProduct(i)->GetName());
+        products.push_back(SpeciesId(channel->GetProduct(i)));
       }
       DataNode channelNode = DataNode::MakeObject();
       channelNode.Add("name", std::string(channel->GetName()));
@@ -135,7 +146,7 @@ DataNode BuildCatalog(const std::string& chemistryName)
       channelArray.Push(channelNode);
     }
     DataNode state = DataNode::MakeObject();
-    state.Add("state", std::string(conf->GetName()));
+    state.Add("state", SpeciesId(conf));
     state.Add("channels", channelArray);
     dissociation.Push(state);
   }
@@ -147,8 +158,9 @@ DataNode BuildCatalog(const std::string& chemistryName)
   for (const auto* data :
        G4DNAMolecularReactionTable::GetReactionTable()->GetVectorOfReactionData()) {
     reactions.Push(MakeReactionNode(
-      data->GetReactant1()->GetName(), data->GetReactant2()->GetName(), ProductNames(data),
-      data->GetObservedReactionRateConstant() / kRateUnit, data->GetReactionType()));
+      SpeciesId(data->GetReactant1()), SpeciesId(data->GetReactant2()), ProductNames(data),
+      data->GetObservedReactionRateConstant() / kRateUnit, data->GetReactionType(),
+      mesoOnlyReactions.count(data) > 0));
   }
   root.Add("reactions", reactions);
 
@@ -166,7 +178,7 @@ DataNode BuildCatalog(const std::string& chemistryName)
     }
     for (const auto& [mol, materialMap] : access->GetReactionMap()) {
       for (const auto& [material, data] : materialMap) {
-        bulkEntries.push_back({BulkKey{mol->GetName(), material->GetName(), ProductNames(data)},
+        bulkEntries.push_back({BulkKey{SpeciesId(mol), SpeciesId(material), ProductNames(data)},
                                data->GetObservedReactionRateConstant() / kRateUnit});
       }
     }
@@ -181,7 +193,8 @@ DataNode BuildCatalog(const std::string& chemistryName)
   return root;
 }
 
-void WriteCatalog(const G4String& filename, const std::string& chemistryName)
+void WriteCatalog(const G4String& filename, const std::string& chemistryName,
+                  const std::set<const G4DNAMolecularReactionData*>& mesoOnlyReactions)
 {
   std::ofstream out(filename);
   if (!out.is_open()) {
@@ -189,7 +202,7 @@ void WriteCatalog(const G4String& filename, const std::string& chemistryName)
                 (G4String("Could not open catalogue export file: ") + filename).c_str());
     return;
   }
-  JsonWriter::Write(out, BuildCatalog(chemistryName));
+  JsonWriter::Write(out, BuildCatalog(chemistryName, mesoOnlyReactions));
   DnaLogger::Print(DnaLogger::Level::Info, "[CatalogExport] catalogue written to " + filename);
 }
 }  // namespace CatalogExport

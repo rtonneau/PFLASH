@@ -14,31 +14,45 @@
 
 #include "globals.hh"
 
+#include <set>
 #include <string>
 #include <vector>
 
+class G4DNAMolecularReactionData;
+class G4MolecularConfiguration;
+
 namespace CatalogExport
 {
-/// Object {"reactants":[r1,r2],"products":[...],"k_M-1s-1":k,"type":type}.
+/// Object {"reactants":[r1,r2],"products":[...],"k_M-1s-1":k,"type":type,"mesoOnly":bool}.
+/// mesoOnly marks entries added to the shared table only for the mesoscopic stage.
 DataNode MakeReactionNode(const std::string& reactant1, const std::string& reactant2,
                           const std::vector<std::string>& products, double k_M_inv_s_inv,
-                          int type);
+                          int type, bool mesoOnly);
 
 /// Object {"reactant","partner","products","k_M-1s-1"} (bulk reaction).
 DataNode MakeBulkNode(const std::string& reactant, const std::string& partner,
                       const std::vector<std::string>& products, double k_M_inv_s_inv);
 
-/// Object {"name","D_m2s-1","radius_nm","charge"}.
+/// Object {"name","D_m2s-1","radius_nm","charge","configuration"}. name is the species
+/// id used in all other sections (SpeciesId); configuration is the Geant4 configuration name.
 DataNode MakeMoleculeNode(const std::string& name, double diffusion_m2_s, double radius_nm,
-                          int charge);
+                          int charge, const std::string& configuration);
+
+/// Species id used throughout the catalogue: the configuration's user ID (e.g. "e_aq",
+/// "H3Op", "°OH") when set, else its Geant4 name.
+std::string SpeciesId(const G4MolecularConfiguration* configuration);
 
 /// Reads the live molecule, decay and reaction tables. Requires final, frozen tables.
+/// mesoOnlyReactions are the reaction-table entries the driver added for the mesoscopic
+/// stage only (DnaChemistryList::MesoOnlyReactions). Read-only, master thread.
 /// Keys: chemistry, timeStepModel, geant4Version, molecules, dissociation, reactions, bulk.
-DataNode BuildCatalog(const std::string& chemistryName);
+DataNode BuildCatalog(const std::string& chemistryName,
+                      const std::set<const G4DNAMolecularReactionData*>& mesoOnlyReactions);
 
 /// Writes BuildCatalog as JSON to filename. A failed open is a fatal G4Exception
 /// "CannotOpenFile"; an Info line is logged on success.
-void WriteCatalog(const G4String& filename, const std::string& chemistryName);
+void WriteCatalog(const G4String& filename, const std::string& chemistryName,
+                  const std::set<const G4DNAMolecularReactionData*>& mesoOnlyReactions);
 }  // namespace CatalogExport
 
 #endif  // CatalogExport_h

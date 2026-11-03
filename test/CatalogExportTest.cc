@@ -32,18 +32,20 @@ static bool Before(const std::string& text, const std::string& a, const std::str
 static void TestReactionNode()
 {
   const std::string oh = "\xC2\xB0OH";
-  const std::string json = Json(CatalogExport::MakeReactionNode("e_aq", oh, {"OHm"}, 2.95e10, 1));
+  const std::string json = Json(CatalogExport::MakeReactionNode("e_aq", oh, {"OHm"}, 2.95e10, 1, true));
   assert(json.find("\"type\": 1") != std::string::npos);
   assert(json.find("\"k_M-1s-1\": 29500000000") != std::string::npos);
   assert(json.find(oh) != std::string::npos);
+  assert(json.find("\"mesoOnly\": true") != std::string::npos);
   assert(Before(json, "reactants", "products"));
   assert(Before(json, "products", "k_M-1s-1"));
 }
 
 static void TestEmptyProducts()
 {
-  const std::string json = Json(CatalogExport::MakeReactionNode("H3Op", "OHm", {}, 1.43e11, 0));
+  const std::string json = Json(CatalogExport::MakeReactionNode("H3Op", "OHm", {}, 1.43e11, 0, false));
   assert(json.find("\"products\": []") != std::string::npos);
+  assert(json.find("\"mesoOnly\": false") != std::string::npos);
 }
 
 static void TestBulkNode()
@@ -56,10 +58,11 @@ static void TestBulkNode()
 
 static void TestMoleculeNode()
 {
-  const std::string json = Json(CatalogExport::MakeMoleculeNode("H2O2", 2.3e-9, 0.21, 0));
+  const std::string json = Json(CatalogExport::MakeMoleculeNode("H2O2", 2.3e-9, 0.21, 0, "H2O2^0"));
   assert(Before(json, "\"name\"", "\"D_m2s-1\""));
   assert(Before(json, "\"D_m2s-1\"", "\"radius_nm\""));
   assert(Before(json, "\"radius_nm\"", "\"charge\""));
+  assert(Before(json, "\"charge\"", "\"configuration\": \"H2O2^0\""));
 }
 
 int main()

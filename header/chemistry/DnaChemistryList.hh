@@ -38,6 +38,7 @@
 #include "globals.hh"
 
 #include <memory>
+#include <set>
 
 namespace ChemistryRegistry
 {
@@ -46,6 +47,7 @@ struct Chemistry;
 class ChemistrySelectMessenger;
 class MesoMessenger;
 class G4DNABoundingBox;
+class G4DNAMolecularReactionData;
 class G4DNAMolecularReactionTable;
 class G4GenericMessenger;
 class DnaChemistryWorld;
@@ -93,6 +95,15 @@ public:
   /// Geant4 internal units. No bool/error-string result is provided.
   void ApplyReactionTimeBinning() const;
 
+  /// Reaction-table entries this driver added only for the mesoscopic stage (bulk
+  /// reactions whose pair was not already a tracked entry). Filled on the master
+  /// during ConstructReactionTable; read-only afterwards. Pointers are borrowed
+  /// from the reaction table.
+  const std::set<const G4DNAMolecularReactionData*>& MesoOnlyReactions() const
+  {
+    return fMesoOnlyReactions;
+  }
+
 private:
   /// Fatal unless the time-step model is IRT_syn or SBS, and when
   /// /chem/meso/enable true was given explicitly with SBS; otherwise prints
@@ -130,7 +141,10 @@ private:
   /// that entry, which must then have the same rate and products (fatal
   /// otherwise).
   void AddBulkReactionsToTable(G4DNAMolecularReactionTable* reactionTable,
-                               const ChemistryTypes::BulkReactionList& list) const;
+                               const ChemistryTypes::BulkReactionList& list);
+
+  /// Entries AddBulkReactionsToTable created (see MesoOnlyReactions).
+  std::set<const G4DNAMolecularReactionData*> fMesoOnlyReactions;
 
   /// Warns about every type-1 (partially diffusion-controlled) entry whose
   /// derived activation rate is <= 0. The singular equal-rate case is not detected.

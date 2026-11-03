@@ -487,7 +487,8 @@ void DnaChemistryList::ConstructProcess()
   if (!fCatalogExportFile.empty() && !G4Threading::IsWorkerThread()) {
     const auto* selected = ChemistryRegistry::Selected();
     CatalogExport::WriteCatalog(OutputDir::Resolve(fCatalogExportFile),
-                                selected != nullptr ? selected->name : std::string());
+                                selected != nullptr ? selected->name : std::string(),
+                                fMesoOnlyReactions);
   }
 }
 
@@ -521,9 +522,10 @@ void DnaChemistryList::RegisterBulkReactionProcesses(
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 void DnaChemistryList::AddBulkReactionsToTable(G4DNAMolecularReactionTable* reactionTable,
-                                               const ChemistryTypes::BulkReactionList& list) const
+                                               const ChemistryTypes::BulkReactionList& list)
 {
   const G4String caller = "AddBulkReactionsToTable";
+  fMesoOnlyReactions.clear();
   G4int added = 0;
   G4int shared = 0;
   for (const auto& entry : list) {
@@ -535,7 +537,9 @@ void DnaChemistryList::AddBulkReactionsToTable(G4DNAMolecularReactionTable* reac
                                ? nullptr
                                : reactionTable->GetReactionData(mol, partner);
       if (existing == nullptr) {
-        reactionTable->SetReaction(MakeBulkReactionData(mol, r, caller));
+        auto* bulkData = MakeBulkReactionData(mol, r, caller);
+        reactionTable->SetReaction(bulkData);
+        fMesoOnlyReactions.insert(bulkData);
         ++added;
         continue;
       }
