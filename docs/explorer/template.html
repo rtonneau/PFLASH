@@ -6,9 +6,11 @@
 <title>dnachem-min architecture explorer</title>
 <style>
   :root {
+    color-scheme:light;
     --bg:#f5f6f8; --surface:#fff; --sunk:#f0f2f5; --fg:#1a2030; --muted:#525b6c;
     --line:#d6dbe3; --line-strong:#a9b1be;
     --accent:#1d5bc9; --accent-soft:#e7effc; --accent-line:#8fb0ea;
+    --out:#12675b; --out-soft:#e8f5f1;
     --in:#6a4bb5; --in-soft:#f1edfa;
     --review:#8f5300; --review-line:#c98a12; --review-soft:#fff5e0;
     --match:#fff3c4; --match-line:#c79a00;
@@ -68,8 +70,7 @@
   .map-scope button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
   .map-scope button:disabled { cursor:default; color:var(--muted); border-color:var(--line); }
   .map-scope p { margin:0; color:var(--muted); font-size:13px; overflow-wrap:anywhere; }
-  .lanes.focused .node:not(.sel):not(.in):not(.out), .lanes.focused .other,
-  .lanes.focused .lane:not(:has(.node.sel, .node.in, .node.out)) { display:none; }
+  #stage.connections-mode > .starts-heading, #stage.connections-mode > .entry-points { display:none; }
   .map-wrap { position:relative; padding:40px 40px 0; }
   .lanes { columns:250px; column-gap:56px; }
   .lane { break-inside:avoid; margin:0 0 20px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px; }
@@ -87,15 +88,16 @@
   .node .nm { display:block; font-weight:600; overflow-wrap:anywhere; }
   .node .role { display:block; margin-top:3px; font-size:13px; line-height:1.4; color:var(--muted); }
   .node:hover { border-color:var(--accent-line); background:var(--surface); }
+  .node:not(.sel):hover { border-color:var(--accent); }
   .node.review { border-style:dashed; border-color:var(--review-line); }
   /* relationship tags sit on the box's top edge, so long class names never reflow */
   .rel { display:none; font-size:11px; font-weight:600; line-height:16px; padding:0 6px; border-radius:999px;
          white-space:nowrap; border:1px solid; background:var(--surface); }
   .node .rel { position:absolute; top:-8px; right:10px; }
-  .rel.r-out { color:var(--accent); border-color:var(--accent); }
+  .rel.r-out { color:var(--out); border-color:var(--out); }
   .rel.r-in { color:var(--in); border-color:var(--in); border-style:dashed; }
   .node.out .rel.r-out, .node.in .rel.r-in, .legend .rel { display:inline-block; }
-  .node.out { border-color:var(--accent); }
+  .node.out { border-color:var(--out); }
   .node.in { border-color:var(--in); border-style:dashed; }
   .node.out, .node.in { margin-top:16px; }
   .node.sel { background:var(--accent); border:1px solid var(--accent); color:#fff; }
@@ -112,8 +114,42 @@
   .edges { position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; overflow:visible; }
   .edges path { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
   .edges path.halo { stroke:#fff; stroke-width:6; stroke-opacity:.9; }
-  .edges .e-out { stroke:var(--accent); }
+  .edges .e-out { stroke:var(--out); }
   .edges .e-in { stroke:var(--in); stroke-dasharray:6 4; }
+
+  /* The focused map puts every direct connection beside the selected part.
+     Only the empty gaps between columns contain arrows. */
+  .connection-map { position:relative; padding:18px 4px 8px; }
+  .connection-columns { display:grid; grid-template-columns:minmax(0,1fr) minmax(180px,.86fr) minmax(0,1fr); gap:64px; align-items:center; }
+  .connection-columns.one-sided { grid-template-columns:minmax(180px,.86fr) minmax(0,1fr); max-width:760px; margin:auto; }
+  .connection-columns.isolated { display:block; max-width:360px; margin:auto; }
+  .connection-group, .connection-hub { min-width:0; }
+  .connection-heading { display:flex; align-items:center; gap:6px; margin:0 0 12px; font-size:12px; line-height:1.4; color:var(--muted); }
+  .connection-heading .tag { margin-left:auto; }
+  .connection-group.incoming .connection-heading { color:var(--in); }
+  .connection-group.outgoing .connection-heading { color:var(--out); }
+  .connection-map .node { margin:0; min-height:74px; padding:8px 12px; background:var(--surface); }
+  .connection-map .node + .node { margin-top:10px; }
+  .connection-map .node.out { border-left:3px solid var(--out); }
+  .connection-map .node.in { border-left:3px dashed var(--in); }
+  .connection-map .node.sel { background:var(--accent); }
+  .connection-map .node.out:hover, .connection-map .node.out:focus-visible { background:var(--out-soft); border-color:var(--out); }
+  .connection-map .node.in:hover, .connection-map .node.in:focus-visible { background:var(--in-soft); border-color:var(--in); }
+  .connection-folder { display:flex; align-items:center; gap:5px; margin-bottom:4px; font-size:11px; line-height:1.3; color:var(--muted); }
+  .connection-folder svg { flex:none; width:13px; height:13px; }
+  .node.sel .connection-folder { color:#e6eefc; }
+  .connection-map .edges path { stroke-width:2; }
+  .connection-map .edges path.halo { stroke:var(--bg); stroke-width:7; }
+  .connection-map.tracing .edges .e:not(.traced) { opacity:.16; }
+  .connection-map .edges .e.traced { stroke-width:3; }
+  .connection-empty { color:var(--muted); font-size:13px; }
+  .connection-tip { margin:14px 0 0; font-size:12.5px; color:var(--muted); }
+  .connection-details { display:none; margin-top:12px; width:100%; }
+  @media (min-width:901px) and (max-width:1250px) {
+    main:has(.connections-mode) { grid-template-columns:minmax(0,1fr); }
+    main:has(.connections-mode) #detail { position:static; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
+    .connection-details { display:block; }
+  }
 
   /* ---- run flow ---- */
   .flow { max-width:1040px; }
@@ -125,7 +161,7 @@
   .phase.loop .phase-head h3::before { content:"\21BB"; margin-right:6px; color:var(--accent); font-weight:400; }
   ol.steps { list-style:none; margin:0; padding:0; }
   ol.steps > li { position:relative; padding:0 0 10px 46px; }
-  ol.steps > li::before { content:""; position:absolute; left:15px; top:30px; bottom:-2px; width:2px; background:var(--line); }
+  ol.steps > li::before { content:""; position:absolute; left:15px; top:30px; bottom:-2px; width:2px; background:var(--muted); }
   ol.steps > li:not(:last-child)::after { content:""; position:absolute; left:12px; bottom:2px;
     width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); }
   ol.steps > li:last-child::before { display:none; }
@@ -133,6 +169,7 @@
          background:var(--surface); border:2px solid var(--line-strong); font-weight:700; font-size:14px; color:var(--muted); }
   .card { display:block; width:100%; text-align:left; font:inherit; color:inherit; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; cursor:pointer; }
   .card:hover { border-color:var(--accent-line); }
+  .card:not([aria-current=true]):hover { border-color:var(--accent); }
   .card[aria-current=true] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:#fbfdff; }
   li:has(> .card[aria-current=true]) > .num { border-color:var(--accent); background:var(--accent); color:#fff; }
   .card.review { border-style:dashed; border-color:var(--review-line); }
@@ -184,8 +221,10 @@
   .links { display:flex; flex-wrap:wrap; gap:6px; }
   .link { border:1px solid var(--line); background:var(--surface); border-radius:6px; min-height:40px; padding:7px 10px; cursor:pointer; font-size:13.5px; text-align:left; overflow-wrap:anywhere; }
   .link:hover { border-color:var(--accent); color:var(--accent); }
-  .link.l-out { border-left:3px solid var(--accent); }
+  .link.l-out { border-left:3px solid var(--out); }
   .link.l-in { border-left:3px dashed var(--in); }
+  .link.l-out:hover, .link.l-out:focus-visible { border-color:var(--out); color:var(--out); background:var(--out-soft); }
+  .link.l-in:hover, .link.l-in:focus-visible { border-color:var(--in); color:var(--in); background:var(--in-soft); }
   .link small { color:var(--muted); }
   .mods { display:grid; gap:6px; }
   .mods .link { display:block; width:100%; padding:8px 10px; }
@@ -263,6 +302,13 @@
     .edges, .legend svg { display:none; }
     .map-wrap { padding:0; }
     .lanes { column-gap:24px; }
+    .connection-columns, .connection-columns.one-sided { display:flex; flex-direction:column; align-items:stretch; gap:24px; max-width:540px; margin:auto; }
+    .connection-hub { order:-1; }
+    .connection-map { padding:12px 0; }
+    .connection-heading { margin-bottom:8px; }
+    .connection-map .node { min-height:74px; }
+    .connection-group { border-top:1px solid var(--line); padding-top:16px; }
+    .connection-tip { display:none; }
   }
   @media (max-width: 520px) {
     header, #stage, #detail { padding-left:12px; padding-right:12px; }
@@ -488,7 +534,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   function returnToView() {
     main.classList.remove('inspecting');
     focusedDetail = null;
-    let cur = stage.querySelector('.node.sel, .lane.sel .lane-head, [aria-current=true]') || stage;
+    let cur = stage.querySelector('.connection-map:not([hidden]) .node.sel') || stage.querySelector('.node.sel, .lane.sel .lane-head, [aria-current=true]') || stage;
     if (!cur.getClientRects().length) cur = stage.querySelector('input') || stage;
     window.scrollTo(0, overviewY);
     cur.focus({ preventScroll: true });
@@ -500,6 +546,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     stage.appendChild(el('ul', { class: 'entry-points', 'aria-label': 'Start here' }, starts.map(function (s) { return startItem(view, s); })));
   }
   function renderViewHeading(view, intro) {
+    stage.classList.remove('connections-mode');
     stage.appendChild(el('h2', { class: 'view-heading', text: viewLabel(view) }));
     stage.appendChild(el('p', { class: 'intro', text: intro }));
   }
@@ -535,7 +582,18 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
 
   // ---- module map ----
   let mapState = null;
-  let connectionsOnly = false;
+  let connectionsOnly = true;
+  function edgeLayer(prefix) {
+    const edges = svg('svg', { class: 'edges', 'aria-hidden': 'true' });
+    const defs = svg('defs');
+    [['out', 'var(--out)'], ['in', 'var(--in)']].forEach(function (m) {
+      const mk = svg('marker', { id: prefix + m[0], viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' });
+      const p = svg('path', { d: 'M0,0 L10,5 L0,10 z' }); p.style.fill = m[1];
+      mk.appendChild(p); defs.appendChild(mk);
+    });
+    edges.appendChild(defs);
+    return edges;
+  }
   function renderMap() {
     stage.textContent = '';
     renderViewHeading('map', 'Browse by source folder. Select a part to see its explanation, connections and files.');
@@ -545,7 +603,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     const count = el('span', { class: 'count', id: 'find-count', 'aria-live': 'polite' });
     const legend = el('div', { class: 'legend', 'aria-label': 'Legend' }, [
       el('span', {}, ['Connections of the selected part:']),
-      el('span', {}, [legendLine('var(--accent)', false), el('span', { class: 'rel r-out', text: 'used by selected' })]),
+      el('span', {}, [legendLine('var(--out)', false), el('span', { class: 'rel r-out', text: 'used by selected' })]),
       el('span', {}, [legendLine('var(--in)', true), el('span', { class: 'rel r-in', text: 'uses selected' })]),
       el('span', {}, [el('span', { class: 'flag', 'aria-hidden': 'true', text: '⚑' }), ' Summary awaiting physics review'])
     ]);
@@ -565,14 +623,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     stage.appendChild(noResults);
 
     const wrap = el('div', { class: 'map-wrap' });
-    const edges = svg('svg', { class: 'edges', 'aria-hidden': 'true' });
-    const defs = svg('defs');
-    [['a-out', 'var(--accent)'], ['a-in', 'var(--in)']].forEach(function (m) {
-      const mk = svg('marker', { id: m[0], viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
-      const p = svg('path', { d: 'M0,0 L10,5 L0,10 z' }); p.style.fill = m[1];
-      mk.appendChild(p); defs.appendChild(mk);
-    });
-    edges.appendChild(defs);
+    const edges = edgeLayer('a-');
     const lanesEl = el('div', { class: 'lanes' });
     const nodeEls = {}, laneEls = {}, otherEls = {};
     DATA.lanes.forEach(function (lane) {
@@ -599,8 +650,10 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     });
     wrap.appendChild(edges); wrap.appendChild(lanesEl);
     stage.appendChild(wrap);
+    const network = el('div', { class: 'connection-map', hidden: '', 'aria-label': 'Direct connections', role: 'region' });
+    stage.appendChild(network);
 
-    mapState = { sel: null, wrap: wrap, edges: edges, lanesEl: lanesEl, nodeEls: nodeEls, laneEls: laneEls, otherEls: otherEls, input: input, focusButton: focusButton, scopeNote: scopeNote, count: count };
+    mapState = { sel: null, wrap: wrap, edges: edges, network: network, focusedId: null, focusedEls: {}, lanesEl: lanesEl, nodeEls: nodeEls, laneEls: laneEls, otherEls: otherEls, input: input, focusButton: focusButton, scopeNote: scopeNote, count: count };
 
     function runSearch() {
       const q = input.value.trim().toLowerCase();
@@ -653,7 +706,101 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     if (window.ResizeObserver) {
       mapState.observer = new ResizeObserver(drawEdges);
       mapState.observer.observe(lanesEl);
+      mapState.observer.observe(network);
     }
+  }
+  function renderConnections(selected) {
+    const s = mapState;
+    if (s.focusedId === selected.id) return;
+    s.focusedId = selected.id;
+    s.focusedEls = {};
+    s.network.textContent = '';
+    s.network.classList.remove('tracing');
+    s.focusEdges = edgeLayer('focus-');
+    s.network.appendChild(s.focusEdges);
+    const incoming = usedBy[selected.id] || [], outgoing = usesOf[selected.id] || [];
+    const columns = el('div', { class: 'connection-columns' + (!incoming.length || !outgoing.length ? ' one-sided' : '') + (!incoming.length && !outgoing.length ? ' isolated' : '') });
+    function card(id, kind) {
+      const n = nodeById[id];
+      const folderIcon = svg('svg', { viewBox: '0 0 20 20', 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 });
+      folderIcon.appendChild(svg('path', { d: 'M2 5h6l2 2h8v10H2Z M2 5V3h6l2 2h8v2' }));
+      const b = el('button', { type: 'button', class: 'node ' + kind + (n.review ? ' review' : ''), 'data-id': id,
+        'data-focus': 'connection-' + kind + '-' + id, 'aria-pressed': kind === 'sel' ? 'true' : 'false' }, [
+        el('span', { class: 't' }, [
+          el('span', { class: 'connection-folder' }, [folderIcon, laneOfNode[id].title]),
+          el('span', { class: 'nm', text: n.title }), el('span', { class: 'role', text: n.role })]),
+        n.review ? flagEl() : null
+      ]);
+      b.addEventListener('click', function () { go('map', id, true); });
+      function trace(on) {
+        if (!s.focusEdges || kind === 'sel') return;
+        s.network.classList.toggle('tracing', on);
+        s.focusEdges.querySelectorAll('.e').forEach(function (p) {
+          p.classList.toggle('traced', on && (p.dataset.from === id || p.dataset.to === id));
+        });
+      }
+      b.addEventListener('mouseenter', function () { trace(true); });
+      b.addEventListener('mouseleave', function () { trace(document.activeElement === b); });
+      b.addEventListener('focus', function () { trace(true); });
+      b.addEventListener('blur', function () { trace(false); });
+      s.focusedEls[kind + ':' + id] = b;
+      return b;
+    }
+    function group(ids, kind, title) {
+      if (!ids.length) return;
+      const heading = el('h3', { class: 'connection-heading' }, [legendLine(kind === 'in' ? 'var(--in)' : 'var(--out)', kind === 'in'), title,
+        el('span', { class: 'tag', text: ids.length, 'aria-label': ids.length + ' parts' })]);
+      columns.appendChild(el('section', { class: 'connection-group ' + (kind === 'in' ? 'incoming' : 'outgoing'), 'aria-label': title },
+        [heading].concat(ids.map(function (id) { return card(id, kind); }))));
+    }
+    group(incoming, 'in', 'Uses selected');
+    const readDetails = el('button', { type: 'button', class: 'link connection-details', 'data-focus': 'connection-details', text: 'Read explanation and files ↓' });
+    readDetails.addEventListener('click', function () {
+      const heading = detail.querySelector('h2');
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({ block: 'start' });
+    });
+    columns.appendChild(el('div', { class: 'connection-hub' }, [
+      el('h3', { class: 'connection-heading', text: 'Selected part' }), card(selected.id, 'sel'), readDetails
+    ]));
+    group(outgoing, 'out', 'Selected uses, creates or fills');
+    s.network.appendChild(columns);
+    s.network.appendChild(el('p', { class: incoming.length || outgoing.length ? 'connection-tip' : 'connection-empty',
+      text: incoming.length || outgoing.length ? 'Arrows point from the part doing the using to the part it uses. Hover or focus a connected part to trace its arrow.' : 'No direct connections are listed for this part. Turn off Connections only to browse every folder.' }));
+  }
+  function drawConnectionEdges() {
+    const s = mapState, g = s.focusEdges;
+    g.querySelectorAll('.e, .halo').forEach(function (p) { p.remove(); });
+    if (narrow.matches || !s.network.getClientRects().length) return;
+    const base = s.network.getBoundingClientRect();
+    const hub = s.focusedEls['sel:' + s.sel].getBoundingClientRect();
+    // Sorted ports and monotone curves cannot cross one another. Their control
+    // points stay inside the empty column gaps, outside all cards and headings.
+    function connect(ids, kind) {
+      const items = ids.map(function (id) { return { id: id, rect: s.focusedEls[kind + ':' + id].getBoundingClientRect() }; })
+        .sort(function (a, b) { return a.rect.top - b.rect.top; });
+      items.forEach(function (item, i) {
+        const incoming = kind === 'in', other = item.rect;
+        const spacing = Math.min(9, (hub.height - 28) / Math.max(1, items.length - 1));
+        const hubY = (hub.top + hub.bottom) / 2 + (i - (items.length - 1) / 2) * spacing;
+        const x1 = (incoming ? other.right : hub.right) - base.left + 2;
+        const x2 = (incoming ? hub.left : other.left) - base.left - 4;
+        const y1 = (incoming ? (other.top + other.bottom) / 2 : hubY) - base.top;
+        const y2 = (incoming ? hubY : (other.top + other.bottom) / 2) - base.top;
+        const bend = (x2 - x1) * .45;
+        const d = 'M' + x1 + ',' + y1 + ' C' + (x1 + bend) + ',' + y1 + ' ' + (x2 - bend) + ',' + y2 + ' ' + x2 + ',' + y2;
+        g.appendChild(svg('path', { class: 'halo', d: d }));
+        g.appendChild(svg('path', { class: 'e e-' + kind, d: d, 'data-from': incoming ? item.id : s.sel,
+          'data-to': incoming ? s.sel : item.id, 'marker-end': 'url(#focus-' + kind + ')' }));
+      });
+    }
+    connect(usedBy[s.sel] || [], 'in');
+    connect(usesOf[s.sel] || [], 'out');
+    // A resize rebuilds paths; retain the keyboard's current traced connection.
+    const active = document.activeElement;
+    const traceId = active && s.network.contains(active) && !active.classList.contains('sel') ? active.dataset.id : null;
+    s.network.classList.toggle('tracing', !!traceId);
+    if (traceId) g.querySelectorAll('.e').forEach(function (p) { p.classList.toggle('traced', p.dataset.from === traceId || p.dataset.to === traceId); });
   }
   function legendLine(color, dashed) {
     const s = svg('svg', { width: 26, height: 10, viewBox: '0 0 26 10' });
@@ -667,22 +814,20 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     if (!mapState) return;
     const selected = mapState.sel && nodeById[mapState.sel];
     const focused = !!selected && connectionsOnly;
-    mapState.lanesEl.classList.toggle('focused', focused);
+    stage.classList.toggle('connections-mode', focused);
+    mapState.wrap.hidden = focused;
+    mapState.network.hidden = !focused;
     mapState.focusButton.disabled = !selected;
-    if (!mapState.input.value.trim()) {
-      const visibleCount = Object.values(mapState.nodeEls).filter(function (e) { return e.getClientRects().length; }).length;
-      mapState.count.textContent = (focused ? visibleCount + ' of ' : '') + Object.keys(mapState.nodeEls).length + ' parts';
-    }
-    DATA.lanes.forEach(function (lane) {
-      const visibleCount = lane.nodes.filter(function (n) { return mapState.nodeEls[n.id].getClientRects().length; }).length;
-      mapState.laneEls[lane.id].querySelector('.lane-count').textContent = focused ? visibleCount + ' / ' + lane.nodes.length : lane.nodes.length;
-    });
-    mapState.focusButton.setAttribute('aria-pressed', focused ? 'true' : 'false');
     const related = selected ? new Set((usesOf[selected.id] || []).concat(usedBy[selected.id] || [])) : null;
+    if (!mapState.input.value.trim()) {
+      mapState.count.textContent = (focused ? (related.size + 1) + ' of ' : '') + Object.keys(mapState.nodeEls).length + ' parts';
+    }
+    mapState.focusButton.setAttribute('aria-pressed', focused ? 'true' : 'false');
     const scopeText = selected ? (focused ? 'Showing ' : 'Focus on ') + selected.title + ' and ' + related.size + ' connected parts.' : 'Select a part to focus on its connections.';
     if (mapState.scopeNote.textContent !== scopeText) mapState.scopeNote.textContent = scopeText;
     const g = mapState.edges;
     Array.prototype.slice.call(g.querySelectorAll('path.e, path.halo')).forEach(function (p) { p.remove(); });
+    if (focused) { renderConnections(selected); drawConnectionEdges(); return; }
     const id = mapState.sel;
     if (!id || id.indexOf('lane:') === 0 || narrow.matches) return;
     if (!mapState.nodeEls[id].getClientRects().length) return;
@@ -754,6 +899,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
   }
   function selectMap(id, scroll, preserveQuery) {
     const s = mapState;
+    const fromConnections = s.network.contains(document.activeElement);
     // Following a connection must reveal its destination. History restores the query.
     if (id && !preserveQuery && s.input.value.trim()) {
       const target = id.indexOf('lane:') === 0 ? s.laneEls[id.slice(5)] : s.nodeEls[id];
@@ -787,7 +933,9 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     (usedBy[id] || []).forEach(function (f) { s.nodeEls[f].classList.add('in'); });
     drawEdges();
     showNode(n);
-    if (scroll) s.nodeEls[id].scrollIntoView({ block: 'nearest' });
+    const target = connectionsOnly ? s.focusedEls['sel:' + id] : s.nodeEls[id];
+    if (!narrow.matches && (fromConnections || (connectionsOnly && userAction))) target.focus({ preventScroll: true });
+    if (scroll) target.scrollIntoView({ block: 'nearest' });
   }
   function showNode(n) {
     const lane = laneOfNode[n.id];
@@ -1057,6 +1205,7 @@ const DATA = /*__ARCHITECTURE_JSON__*/null;
     } else if (id && (fromDetail || (narrow.matches && main.classList.contains('inspecting')))) {
       detail.querySelector('h2').focus({ preventScroll: true });
       if (narrow.matches) window.scrollTo(0, 0);
+      else if (fromDetail && getComputedStyle(detail).position === 'static') detail.querySelector('h2').scrollIntoView({ block: 'start' });
     } else if (switched && (!id || narrow.matches)) window.scrollTo(0, 0);
     userAction = false;
   }
