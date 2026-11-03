@@ -51,18 +51,18 @@ physics conclusions.
 
 ## 3. Write the G4Utils work report
 
-- [ ] Add `G4UTILS_REPORT.md` in this directory, based on the executed first
+- [x] Add the separate [G4UTILS_REPORT.md](G4UTILS_REPORT.md) in this directory, based on the executed first
   pass. For each gap, record the analysis it enables, actual input and current
   behavior, proposed interface and return data, units and normalization,
   optional/missing-file behavior, evidence, and acceptance checks.
-- [ ] Assess readers for physical interactions, track lengths, pre-chemical
+- [x] Assess readers for physical interactions, track lengths, pre-chemical
   event records and aggregate mesoscopic species counts; assess dump discovery
   for results indexes, subdirectories and filename prefixes. Confirm each gap
   against the current implementation before proposing a change.
-- [ ] Investigate the distinction between the ratio of total counts to total
+- [x] Investigate the distinction between the ratio of total counts to total
   energy and the mean of event-level G-values, including available information
   for uncertainty. Specify only estimators justified by the stored data.
-- [ ] Separate library responsibilities from notebook-specific visualization;
+- [x] Separate library responsibilities from notebook-specific visualization;
   prioritize additions and identify any unresolved scientific or format issues.
 
 **Done when:** every proposed library change is tied to an observed notebook
