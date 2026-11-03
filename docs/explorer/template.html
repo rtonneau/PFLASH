@@ -199,6 +199,26 @@
   .mode-pick label:has(input:focus-visible) { outline:3px solid var(--accent); outline-offset:2px; }
   .mode-pick label:has(input:checked) { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600; }
   .mode-pick small { font-weight:400; color:var(--muted); }
+  /* catalogue tables in the run-flow detail */
+  .tbl-wrap { overflow-x:auto; max-width:100%; margin:6px 0 10px; border:1px solid var(--line); border-radius:7px; }
+  .tbl-wrap:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .cat { border-collapse:collapse; width:100%; font-size:13px; }
+  .cat caption { text-align:left; padding:6px 10px; color:var(--muted); font-size:12.5px; }
+  .cat th, .cat td { text-align:left; vertical-align:top; padding:5px 10px; border-top:1px solid var(--line); }
+  .cat thead th { background:var(--sunk); font-weight:600; white-space:nowrap; border-top:0; }
+  .cat td.num, .cat th.num { white-space:nowrap; }
+  .cat td.mono, .cat .ref { font:12px var(--mono); }
+  .cat .ref { color:var(--muted); overflow-wrap:anywhere; }
+  .cat .hl { background:var(--accent-soft); }
+  .cat thead th.hl { color:var(--accent); }
+  .unverified { display:inline-block; margin-left:6px; font-size:11.5px; font-weight:600; color:var(--review); background:var(--review-soft); border:1px solid var(--review-line); border-radius:999px; padding:0 7px; }
+  .cat-note { margin:4px 0 10px; font-size:12.5px; color:var(--muted); }
+  .cat-filter { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:8px 0 2px; font-size:13px; }
+  .cat-filter input { min-height:34px; padding:3px 9px; border:1px solid var(--line-strong); border-radius:6px; font:inherit; }
+  .cat-sub { margin:12px 0 2px; font-size:14px; }
+  .cat-chooser { margin:0 0 6px; }
+  .cat-chooser .mode-pick { margin-top:0; }
+  .cmds { margin:0; padding-left:20px; }
   .card-mode { display:block; margin-top:6px; padding:3px 9px; font-size:13px; line-height:1.4; border-left:3px solid var(--accent);
                background:var(--accent-soft); border-radius:0 5px 5px 0; }
   .card-mode b { color:var(--accent); font-weight:600; }
@@ -1121,19 +1141,45 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       ]);
     }));
   }
-  function modePicker() {
+  // Chemistry and particle choices of the run flow, kept with the mode for the session.
+  const FLOW_KEY = 'dnachem-min-explorer-run-flow';
+  const CHEMISTRIES = CatalogView.chemistryNames(CATALOG);
+  const PARTICLES = Object.keys(PHYSICS.particles);
+  let flowChemistry = CHEMISTRIES.indexOf('PureWater') >= 0 ? 'PureWater' : CHEMISTRIES[0];
+  let flowParticle = PARTICLES.indexOf('e-') >= 0 ? 'e-' : PARTICLES[0];
+  try {
+    const saved = window.sessionStorage && JSON.parse(sessionStorage.getItem(FLOW_KEY) || 'null');
+    if (saved) {
+      if (saved.mode && modeById[saved.mode]) flowMode = saved.mode;
+      if (CHEMISTRIES.indexOf(saved.chemistry) >= 0) flowChemistry = saved.chemistry;
+      if (PARTICLES.indexOf(saved.particle) >= 0) flowParticle = saved.particle;
+    }
+  } catch (e) { /* storage unavailable */ }
+  function saveFlow() { try { if (window.sessionStorage) sessionStorage.setItem(FLOW_KEY, JSON.stringify({ mode: flowMode, chemistry: flowChemistry, particle: flowParticle })); } catch (e) { /* storage unavailable */ } }
+  // Radio group in the mode-picker style. options: [{id, label, small}].
+  function radioPicker(legend, name, options, selected, onPick) {
     return el('fieldset', { class: 'mode-pick' }, [
-      el('legend', { text: 'Show the run for' }),
-      el('div', { class: 'opts' }, modeStep.branches.map(function (b) {
-        const input = el('input', { type: 'radio', name: 'flow-mode', value: b.id });
-        input.checked = b.id === flowMode;
-        input.addEventListener('change', function () { if (input.checked) setFlowMode(b.id); });
-        return el('label', {}, [input, el('span', { text: b.label }), b.default ? el('small', { text: 'default' }) : null]);
+      el('legend', { text: legend }),
+      el('div', { class: 'opts' }, options.map(function (o) {
+        const input = el('input', { type: 'radio', name: name, value: o.id });
+        input.checked = o.id === selected;
+        input.addEventListener('change', function () { if (input.checked) onPick(o.id); });
+        return el('label', {}, [input, el('span', { text: o.label }), o.small ? el('small', { text: o.small }) : null]);
       }))
     ]);
   }
+  function modePicker() {
+    return radioPicker('Show the run for', 'flow-mode', modeStep.branches.map(function (b) { return { id: b.id, label: b.label, small: b.default ? 'default' : '' }; }), flowMode, setFlowMode);
+  }
+  function chemistryPicker() {
+    return radioPicker('Chemistry (/chem/select)', 'flow-chemistry', CHEMISTRIES.map(function (n) { return { id: n, label: n, small: n === 'PureWater' ? 'default' : '' }; }), flowChemistry, setFlowChemistry);
+  }
+  function setFlowChemistry(id) {
+    flowChemistry = id; saveFlow();
+    if (current === 'flow' && lastSel.flow) selectFlow(lastSel.flow, false);
+  }
   function setFlowMode(id) {
-    flowMode = id;
+    flowMode = id; saveFlow();
     applyFlowMode();
     if (current === 'flow' && lastSel.flow) selectFlow(lastSel.flow, false);
   }
@@ -1178,7 +1224,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
         card.appendChild(note);
         onActivate(card, function () { go('flow', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
         flowCards[s.id] = card;
-        const li = el('li', {}, [el('span', { class: 'b-num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? modePicker() : null]);
+        const li = el('li', {}, [el('span', { class: 'b-num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? el('div', {}, [modePicker(), chemistryPicker()]) : null]);
         flowParts[s.id] = { card: card, tag: tag, note: note, li: li };
         ol.appendChild(li);
       });
@@ -1187,6 +1233,128 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     });
     stage.appendChild(wrap);
     applyFlowMode();
+  }
+
+  // ---- catalogue tables (Chemistry reactions, physics processes) ----
+  let tableSeq = 0;
+  function rowEl(r) {
+    return el('tr', {}, r.map(function (c) {
+      const obj = c !== null && typeof c === 'object' && !(c instanceof Node) && 'c' in c;
+      const content = obj ? c.c : c;
+      return el('td', { class: obj ? c.cls : null }, [content === null || content === undefined ? '' : (typeof content === 'string' ? content : content)]);
+    }));
+  }
+  function fillRows(tbody, rows) { tbody.textContent = ''; rows.forEach(function (r) { tbody.appendChild(rowEl(r)); }); }
+  // head: [{text, cls}]; rows: arrays of cells (string, Node or {c, cls}).
+  function table(caption, head, rows, id) {
+    const tb = el('tbody');
+    fillRows(tb, rows);
+    const t = el('table', { class: 'cat', id: id || null }, [
+      el('caption', { text: caption }),
+      el('thead', {}, [el('tr', {}, head.map(function (h) { return el('th', { scope: 'col', class: h.cls || null, text: h.text }); }))]), tb]);
+    return { wrap: el('div', { class: 'tbl-wrap', tabindex: '0', role: 'region', 'aria-label': caption }, [t]), tbody: tb };
+  }
+  function refEl(ref) { return ref ? el('span', { class: 'ref', text: ref }) : '—'; }
+  function reviewMark(r) { return r.review ? el('span', { class: 'unverified', text: 'unverified' }) : null; }
+
+  // Reaction table of a Chemistry. opts: {highlight: 'irt'|'sbs'|null, filter: true}
+  function reactionTableEl(chemistry, opts) {
+    opts = opts || {};
+    const hl = opts.highlight || null;
+    const CV = window.CatalogView;
+    const uid = ++tableSeq;
+    const rIds = 'rt-bi-' + uid, bIds = 'rt-bulk-' + uid;
+    const reactions = CV.reactionRows(CATALOG, chemistry), bulk = CV.bulkRows(CATALOG, chemistry);
+    const nMeso = CV.mesoOnlyCount(CATALOG, chemistry);
+    const reactionCells = function (r) {
+      return [{ c: r.label, cls: 'mono' }, { c: r.kText, cls: 'num' }, { c: String(r.typeIrt), cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { c: String(r.typeSbs), cls: 'num' + (hl === 'sbs' ? ' hl' : '') }];
+    };
+    const bulkCells = function (r) { return [{ c: r.label, cls: 'mono' }, { c: r.kText, cls: 'num' }, r.driver ? el('code', { text: r.driver }) : 'Always on']; };
+    const bi = table(chemistry + ': bimolecular reactions',
+      [{ text: 'Reaction' }, { text: 'k (M⁻¹ s⁻¹)', cls: 'num' }, { text: 'Type under IRT_syn', cls: 'num' + (hl === 'irt' ? ' hl' : '') }, { text: 'Type under SBS', cls: 'num' + (hl === 'sbs' ? ' hl' : '') }],
+      reactions.map(reactionCells), rIds);
+    const bk = table(chemistry + ': bulk reactions', [{ text: 'Reaction' }, { text: 'k (M⁻¹ s⁻¹)', cls: 'num' }, { text: 'Set by' }], bulk.map(bulkCells), bIds);
+    const count = el('p', { class: 'cat-note', role: 'status', 'aria-live': 'polite' });
+    const upd = function (q) {
+      const fr = CV.filterRows(reactions, q), fb = CV.filterRows(bulk, q);
+      fillRows(bi.tbody, fr.map(reactionCells)); fillRows(bk.tbody, fb.map(bulkCells));
+      count.textContent = (q || '').trim() ? 'Showing ' + fr.length + ' of ' + reactions.length + ' bimolecular and ' + fb.length + ' of ' + bulk.length + ' bulk reactions.'
+        : reactions.length + ' bimolecular and ' + bulk.length + ' bulk reactions.';
+    };
+    const kids = [];
+    if (opts.filter) {
+      const input = el('input', { type: 'search', id: 'rt-filter-' + uid, autocomplete: 'off', 'aria-controls': rIds + ' ' + bIds });
+      input.addEventListener('input', function () { upd(input.value); });
+      kids.push(el('div', { class: 'cat-filter' }, [el('label', { for: 'rt-filter-' + uid, text: 'Filter by species' }), input]));
+    }
+    kids.push(count, bi.wrap);
+    kids.push(el('p', { class: 'cat-note', text: 'SBS keeps every reaction type 0: partially diffusion-controlled pairs are only type 1 under IRT_syn.' }));
+    if (nMeso > 0) kids.push(el('p', { class: 'cat-note', text: nMeso + ' bulk pairs are also in the mesoscopic reaction table; they are listed under Bulk reactions.' }));
+    kids.push(el('h4', { class: 'cat-sub', text: 'Bulk reactions' }), bk.wrap);
+    upd('');
+    return el('div', { class: 'reaction-table' }, kids);
+  }
+
+  function prechemEl(chemistry) {
+    const CV = window.CatalogView;
+    const parts = [];
+    parts.push(el('h4', { class: 'cat-sub', text: 'Dissociation channels' }));
+    parts.push(table(chemistry + ': dissociation channels', [{ text: 'Excited or ionised state' }, { text: 'Channel' }, { text: 'Probability', cls: 'num' }, { text: 'Products' }, { text: 'Displacement type', cls: 'num' }],
+      CV.dissociationRows(CATALOG, chemistry).map(function (r) {
+        return [{ c: r.state, cls: 'mono' }, { c: r.name, cls: 'mono' }, { c: r.probabilityText, cls: 'num' }, { c: r.products.length ? r.products.join(', ') : '(none)', cls: 'mono' }, { c: String(r.displacementType), cls: 'num' }];
+      })).wrap);
+    const sol = PHYSICS.solvation;
+    parts.push(el('h4', { class: 'cat-sub', text: 'Electron solvation' }));
+    parts.push(table('Electron solvation models', [{ text: 'Model' }, { text: 'Macro value' }, { text: 'What it does' }, { text: 'Source' }],
+      [[{ c: sol.default.model + ' (default)', cls: 'mono' }, { c: '(not set)', cls: 'mono' }, sol.default.what, refEl(sol.default.ref)]].concat(sol.alternatives.map(function (a) {
+        return [{ c: a.model, cls: 'mono' }, { c: '/process/dna/e-SolvationSubType ' + a.macroValue, cls: 'mono' }, a.what, refEl(a.ref)];
+      }))).wrap);
+    const d = PHYSICS.displacement;
+    parts.push(el('h4', { class: 'cat-sub', text: 'Product displacement' }));
+    parts.push(table('Displacement cases handled by G4DNAWaterDissociationDisplacer (Geant4); the channels this project installs are listed above',
+      [{ text: 'Case' }, { text: 'What happens' }, { text: 'Rrms (nm)', cls: 'num' }, { text: 'Source' }],
+      d.rows.map(function (r) { return [r.case, r.what, { c: r.rms_nm === undefined || r.rms_nm === null ? '—' : String(r.rms_nm), cls: 'num' }, refEl(r.ref)]; })).wrap);
+    parts.push(el('p', { class: 'cat-note', text: d.what }));
+    parts.push(el('h4', { class: 'cat-sub', text: 'Molecules' }));
+    parts.push(table(chemistry + ': molecules', [{ text: 'Name' }, { text: 'D (m² s⁻¹)', cls: 'num' }, { text: 'Radius (nm)', cls: 'num' }, { text: 'Charge', cls: 'num' }],
+      CV.moleculeRows(CATALOG, chemistry).map(function (m) {
+        return [{ c: m.name + (m.extra ? ' (this Chemistry only)' : ''), cls: 'mono' }, { c: String(m.D), cls: 'num' }, { c: String(m.radius_nm), cls: 'num' }, { c: String(m.charge), cls: 'num' }];
+      })).wrap);
+    return el('div', { class: 'prechem-table' }, parts);
+  }
+
+  function physicsEl(particle) {
+    const rows = window.CatalogView.physicsRows(PHYSICS, particle);
+    const t = table(PHYSICS.physicsConstructor + ' processes for ' + particle,
+      [{ text: 'Process' }, { text: 'Model' }, { text: 'From', cls: 'num' }, { text: 'To', cls: 'num' }, { text: 'Note' }, { text: 'Source' }],
+      rows.map(function (r) {
+        return [{ c: el('span', {}, [r.process, reviewMark(r)]), cls: 'mono' }, r.model, { c: r.eMin || '—', cls: 'num' }, { c: r.eMax || '—', cls: 'num' }, r.note || '', refEl(r.ref)];
+      }));
+    return el('div', { class: 'physics-table' }, [t.wrap]);
+  }
+
+  // Catalogue of a step (by its catalog field). The particle chooser re-renders only the table.
+  function stepCatalogEl(s) {
+    const mode = flowMode === 'sbs' ? 'sbs' : 'irt';
+    if (s.catalog === 'physics') {
+      const holder = el('div');
+      const draw = function () { holder.textContent = ''; holder.appendChild(physicsEl(flowParticle)); };
+      const chooser = el('div', { class: 'cat-chooser' }, [radioPicker('Beam particle (/gun/particle)', 'flow-particle', PARTICLES.map(function (p) { return { id: p, label: p, small: p === 'e-' ? 'default' : '' }; }), flowParticle,
+        function (id) { flowParticle = id; saveFlow(); draw(); })]);
+      draw();
+      return el('div', {}, [chooser, holder]);
+    }
+    if (s.catalog === 'prechem') return prechemEl(flowChemistry);
+    if (s.catalog === 'reactions') {
+      const kids = [reactionTableEl(flowChemistry, { highlight: mode, filter: true })];
+      if (s.phase === 'meso') {
+        const m = PHYSICS.meso;
+        kids.push(el('p', { class: 'cat-note', text: m.partialPairs }));
+        if (m.reactionsRecorded === false) kids.push(el('p', { class: 'cat-note', text: 'The mesoscopic stage does not record which reaction fired: Reactions.* covers the particle-based stage only.' }));
+      }
+      return el('div', {}, kids);
+    }
+    return null;
   }
   function selectFlow(id, scroll) {
     Object.keys(flowCards).forEach(function (k) { flowCards[k].removeAttribute('aria-current'); });
@@ -1202,6 +1370,14 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       prev ? linkButton('← Step ' + stepNumber(prev), null, ['flow', prev.id]) : el('span'),
       next ? linkButton('Step ' + stepNumber(next) + ' →', null, ['flow', next.id]) : el('span')
     ]);
+    const windowEl = ph && ph.window ? el('p', { text: ph.window }) : null;
+    const windowAfter = !!(windowEl && s.catalog && /\babove\b/.test(ph.window));
+    const cat = stepCatalogEl(s);
+    const partIds = s.parts ? s.parts.filter(function (p) { return nodeById[p]; }) : mods;
+    const cmds = s.commands && s.commands.length ? el('ul', { class: 'cmds' }, s.commands.map(function (c) {
+      const code = el('code', { text: c.cmd });
+      return el('li', {}, [c.builder ? el('a', { href: '#builder/' + c.builder }, [code]) : code]);
+    })) : null;
     setDetail([
       el('p', { class: 'kicker', text: 'Run flow › Step ' + stepNumber(s) + ' of ' + DATA.flow.length + (ph ? ' · ' + ph.title : '') }),
       el('h2', { text: stepTitle(s) }),
@@ -1211,8 +1387,12 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     ].concat(
       section('Modes', s === modeStep ? modeList(null) : null),
       section('In each mode', s.modes && modeStep ? modeList(s.modes) : null),
+      windowAfter ? [] : section('Time window', windowEl),
+      section('What can happen', cat),
+      windowAfter ? section('Time window', windowEl) : [],
+      section('Macro commands', cmds),
       section('Writes', s.outputs && s.outputs.length ? el('div', { class: 'links' }, s.outputs.map(function (o) { return el('span', { class: 'chip-out', text: o }); })) : null),
-      section('Modules involved', mods.length ? nodeLinks(mods) : null),
+      section('Modules involved', partIds.length ? nodeLinks(partIds) : null),
       section('Read more', s.docs && s.docs.length ? fileList(s.docs, true) : null),
       [codeSection('Where in the code', s.files, null), pager]
     ));
