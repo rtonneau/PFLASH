@@ -26,9 +26,6 @@
   const MAX_PIXELS = 65536;                  // MesoSettings kMaxPixels
   // G4EmDNAPhysics_option2.cc: emaxDNA = 1 MeV, the upper limit of the Geant4-DNA electron models.
   const E_DNA_MAX_EV = 1e6;
-  // "Off" for the primary-killer energy cuts (no switch in the C++ yet): a primary
-  // electron of at most 1 MeV can never lose 10 MeV, so neither cut can fire.
-  const KILLER_OFF = { value: '10', unit: 'MeV' };
 
   const CHEMISTRIES = [
     // node: the Chemistry's box in the explorer Module map (architecture.json), its full description.
@@ -324,7 +321,7 @@
         { value: 'off', label: 'Off: no energy cuts', help: 'The primary electron is followed until it stops or leaves the box.' }
       ],
       help: 'The primary electron is stopped once it has lost "stop after" energy, and the whole event is discarded once it has lost "abort after".',
-      tech: '/primaryKiller/eLossMin and /primaryKiller/eLossMax; these commands exist only after /run/initialize. dnachem-min has no off switch yet: "Off" sets both to 10 MeV, which a primary electron of at most 1 MeV can never lose. /primaryKiller/minKineticE is not offered: it has no effect (no handler).', refs: SRC.killer }),
+      tech: '/primaryKiller/eLossMin and /primaryKiller/eLossMax; "Off" writes /primaryKiller/energyCuts false, which disables every primary-electron energy cut and keeps only the box cut. These commands exist only after /run/initialize. /primaryKiller/minKineticE (kill the primary at or below a kinetic energy) is not offered.', refs: SRC.killer }),
     q('eLossMin', { step: 'beam', type: 'quantity', category: 'energy', label: 'Stop the primary after losing', required: true, rule: 'killer', showIf: function (c) { return c.killerMode === 'custom'; }, refs: SRC.killer }),
     q('eLossMax', { step: 'beam', type: 'quantity', category: 'energy', label: 'Abort the event after losing', required: true, rule: 'killer', showIf: function (c) { return c.killerMode === 'custom'; }, refs: SRC.killer }),
 
@@ -626,10 +623,8 @@
       cmd('/primaryKiller/eLossMin ' + qty(cfg.eLossMin), 'eLossMin');
       cmd('/primaryKiller/eLossMax ' + qty(cfg.eLossMax), 'eLossMax');
     } else if (cfg.killerMode === 'off' && killerApplies(cfg)) {
-      c('Primary-electron energy cuts off: no off switch exists yet, so both thresholds are');
-      c('set to ' + qty(KILLER_OFF) + ', which a primary electron of at most 1 MeV can never lose.');
-      cmd('/primaryKiller/eLossMin ' + qty(KILLER_OFF), 'killerMode');
-      cmd('/primaryKiller/eLossMax ' + qty(KILLER_OFF), 'killerMode');
+      c('Primary-electron energy cuts off: the primary is followed until it stops or leaves the box');
+      cmd('/primaryKiller/energyCuts false', 'killerMode');
     }
 
     cfg.runs.forEach(function (r, i) {
@@ -676,7 +671,7 @@
   }
 
   return {
-    STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES, KILLER_OFF: KILLER_OFF,
+    STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES,
     groupAvailability: groupAvailability, displayValue: displayValue,
     defaults: defaults, normalize: normalize, applyPatch: applyPatch, get: get, validate: validate, errors: errors,
     generate: generate, summary: summary, sanitizeFilename: sanitizeFilename, fieldAvailability: fieldAvailability,
