@@ -2,6 +2,21 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org/).
 
+## 1.2.0 (2026-11-03)
+
+- Add a `Farokhi2023` chemistry (`/chem/select Farokhi2023`) reproducing the FLASH oxygen-depletion radiolysis network of Farokhi et al. 2023 (Radiat. Phys. Chem. 212, 111184).
+- Add 8 example macros reproducing the paper's Fig. 2/Fig. 3 (90 MeV proton) and Fig. 5 (0.5 MeV electron) conditions at their O2 concentrations.
+- Switch the default physics constructor from `G4EmDNAPhysics` to `G4EmDNAPhysics_option2`, affecting every Chemistry's simulated output.
+- Record species G-values at a finer time grid (19 log-spaced points from 1 ps to 1 µs, up from 7).
+- Validate and document the `PrimaryKiller` track-segment-truncation feature (`/primaryKiller/eLossMin` etc.), previously undocumented.
+- Each dump now writes `TrackLengths.Txt` / `TrackLengths.csv` with one row per event: the primary's track length, its start and end kinetic energy, how it ended (`stopped`, `escaped` or `killed`), and the summed length and count of secondary electrons (first generation and all generations).
+- `Manifest.json` has a new `trackLengths` summary: event count, end-reason counts, and the mean and SEM of each column.
+- Added `docs/recipes/`: source-verified how-tos for recurring Geant4/Geant4-DNA development tasks in this project (creating a scorer, a species counter, mesoscopic 3D species counting, HDF5 export, a new macro command, dnachem-min's macro command reference, adding a new Chemistry, adding a reaction or molecule, and adding a per-run counter), each including a Serial vs MT section.
+- Added a clickable architecture explorer (docs/explorer/index.html): module map, run flow and task guides, with a ctest check that keeps it in sync with the source tree.
+- New `/primaryKiller/energyCuts <bool>` command (default true): `false` turns off every primary-electron energy cut and keeps only the box cut.
+- `/primaryKiller/minKineticE` now sets the kinetic energy at or below which the primary electron is killed (it previously did nothing).
+- Macro builder: "Off" for the primary-electron energy cuts now writes `/primaryKiller/energyCuts false` instead of setting both thresholds to 10 MeV.
+
 ## 1.0.0 (2026-10-09)
 
 - New `Tonneau2025` Chemistry (`/chem/select Tonneau2025`): the 73-reaction homogeneous pure-water network of Table 2 of Tonneau et al., Phys. Med. Biol. 70 (2025) 235021, run on tracked molecules from the pre-chemical stage instead of from 100 ns. It includes the acid-base block and the dissolved-O2 reactions.
