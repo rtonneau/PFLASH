@@ -52,7 +52,7 @@ box (no voxelization).
 
 - Geant4 with DNA models (verified with 11.4.1; older versions are not verified)
 - CMake 3.16+
-- A C++20 compiler (verified with MSVC on Windows; gcc or clang on Linux, not yet verified)
+- A C++20 compiler (verified with MSVC on Windows; GCC 13.3 on Linux, Ubuntu 24.04 with Geant4 11.4.3; clang not verified)
 - HDF5 with C++ support, optional: needed only for `/chem/meso/spatialOutput` (`SpeciesMesoSpatial.h5`)
 
 ## Build
@@ -63,15 +63,31 @@ In short: `build/` is a RelWithDebInfo tree used to run `sim`; `build-ninja/` is
 Debug tree used to run the unit tests with CTest. The build copies `macro/` next to
 the executable.
 
-### Linux (not yet verified)
+### Linux (verified on Ubuntu 24.04 (WSL 2), GCC 13.3, Geant4 11.4.3)
+
+Packages (Ubuntu/Debian; `libhdf5-dev` only for HDF5 support):
+
+```bash
+sudo apt install build-essential cmake ninja-build libexpat1-dev libxerces-c-dev libhdf5-dev
+```
+
+As on Windows, one RelWithDebInfo tree to run `sim` and a separate Debug tree for
+the tests: the tests use plain `assert`, which `NDEBUG` compiles out in
+RelWithDebInfo and Release, so they would pass without checking anything there.
 
 ```bash
 source /path/to/geant4-install/bin/geant4.sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo [-DDNACHEM_WITH_HDF5=OFF|ON]
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo [-DDNACHEM_WITH_HDF5=OFF|ON]
 cmake --build build -j
-cd build && ./sim beam.in
-ctest --test-dir build
+(cd build && ./sim beam.in)
+cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-debug -j && ctest --test-dir build-debug
 ```
+
+WSL: by default WSL appends the Windows `PATH`, so CMake can pick up a Windows HDF5
+(e.g. vcpkg's), which fails to compile (`ssize_t` conflict in `H5public.h`). Set
+`appendWindowsPath=false` under `[interop]` in `/etc/wsl.conf` and restart WSL
+(`wsl --shutdown`).
 
 `DNACHEM_WITH_HDF5` is `AUTO` by default: HDF5 is used if CMake finds it. `ON`
 requires it (configure fails otherwise); `OFF` builds without it. Without HDF5,
