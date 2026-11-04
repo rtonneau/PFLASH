@@ -1,11 +1,12 @@
 /// \file PhysicsInteractionCounter.hh
-/// \brief Count caller-supplied physical-interaction labels.
+/// \brief Per-event counts of caller-supplied physical-interaction labels.
 /// Standard library and Geant4 types; no kernel services.
-/// Callers coordinate access to shared mutable counters and streams.
+/// Callers coordinate access to shared mutable counters.
 ///
 /// Self-contained, project-agnostic unit: no OutputDir, DnaLogger, or other
-/// dnachem-min-specific includes -- only globals.hh (G4String) and the
-/// standard library. Copy-paste portable to another Geant4-DNA project.
+/// dnachem-min-specific includes -- only globals.hh (G4String), EventStat and
+/// OutputTable (both portable) and the standard library. Copy-paste portable
+/// to another Geant4-DNA project.
 ///
 /// Counts occurrences of whatever label callers pass to Record() -- it has
 /// no notion of "process" or "G4DNA"; callers decide what a label means and
@@ -15,36 +16,53 @@
 #define PhysicsInteractionCounter_h 1
 
 #include "globals.hh"
+#include "scoring/EventStat.hh"
+#include "scoring/OutputTable.hh"
 
-#include <iosfwd>
+#include <cstdint>
 #include <map>
 
-/// Mutable count table; allocations may throw. Stream writers use stream flags
-/// or enabled stream exceptions, without a separate success return.
+/// Per-event counts of labels. Record() fills the current event;
+/// CommitEvent() folds it into one EventStat per label and counts the event;
+/// DiscardEvent() drops it (aborted events). A label seen in any committed
+/// event contributes 0 to the events where it did not fire: the stats hold
+/// only sum and sumSq, and the mean divides by CommittedEvents().
+/// Not thread safe: one instance per thread, merged afterwards.
 class PhysicsInteractionCounter
 {
  public:
-  /// Increment label by one; labels are accepted without interpretation.
+  /// Increment label by one in the current event; labels are not interpreted.
   void Record(const G4String& label);
 
-  /// Add other's counts; a distinct source is unchanged. Self-merge doubles counts.
+  /// Fold the current event into the per-label stats, count it, start a new event.
+  void CommitEvent();
+
+  /// Drop the current event's counts without counting it.
+  void DiscardEvent();
+
+  /// Add other's committed stats and event count (its uncommitted event is
+  /// ignored). Self-merge doubles the totals.
   void Merge(const PhysicsInteractionCounter& other);
 
-  /// Remove all recorded counts; leave configuration unchanged.
+  /// Remove all recorded data, committed or not.
   void Clear();
 
-  using Counts = std::map<G4String, G4long>;
-  /// Borrow the stored counts; callers must coordinate concurrent mutation.
-  const Counts& GetCounts() const { return fCounts; }
+  using Stats = std::map<G4String, EventStat>;
+  /// Borrow the per-label stats; callers must coordinate concurrent mutation.
+  const Stats& GetStats() const { return fStats; }
 
-  /// Writes one "<label>    count = N" line per label, sorted by label.
-  void WriteAscii(std::ostream& out) const;
+  /// Number of committed events (the n of Mean/StdErr).
+  std::int64_t CommittedEvents() const { return fCommittedEvents; }
 
-  /// Write a "label,count" header and sorted rows; labels are not CSV-escaped.
-  void WriteCsv(std::ostream& out) const;
+  /// Table "physicsInteractions": process, nEvents, countSum, countSumSq,
+  /// countMean, countStdErr; one row per label, sorted by label. nEvents is
+  /// the committed-event count (zero-filled).
+  OutputTable ToTable() const;
 
  private:
-  Counts fCounts;
+  std::map<G4String, G4long> fCurrent;
+  Stats fStats;
+  std::int64_t fCommittedEvents = 0;
 };
 
 #endif  // PhysicsInteractionCounter_h

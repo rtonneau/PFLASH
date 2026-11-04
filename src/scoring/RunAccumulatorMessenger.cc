@@ -229,17 +229,8 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     analysisManager->Clear();
 
     // Physics interactions
-    const PhysicsInteractionCounter &interactionCounter =
-        RunAccumulator::GetAccumulatedInteractionCounter();
-    std::ofstream interactionsOut(OutputDir::Resolve("PhysicsInteractions.Txt"));
-    interactionCounter.WriteAscii(interactionsOut);
-    interactionsOut.close();
-    files.push_back(prefix + "PhysicsInteractions.Txt");
-
-    std::ofstream interactionsCsv(OutputDir::Resolve("PhysicsInteractions.csv"));
-    interactionCounter.WriteCsv(interactionsCsv);
-    interactionsCsv.close();
-    files.push_back(prefix + "PhysicsInteractions.csv");
+    ProductOutput::Write(OutputFormats::Product::PhysicsInteractions,
+                         {RunAccumulator::GetAccumulatedInteractionCounter().ToTable()}, prefix, files);
 
     // Per-event primary and secondary e- track lengths (physical stage).
     const TrackLengthTable &trackLengthTable = RunAccumulator::GetAccumulatedTrackLengthTable();

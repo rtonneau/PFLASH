@@ -3,6 +3,7 @@
 /// Thread safety: One instance per serial/worker thread; callbacks and mutable access stay on that thread.
 
 #include "actions/EventAction.hh"
+#include "actions/SteppingAction.hh"
 #include "actions/TrackingAction.hh"
 #include "core/DnaLogger.hh"
 #include "core/OutputDir.hh"
@@ -24,6 +25,15 @@ TrackingAction *ThreadTrackingAction()
     return const_cast<TrackingAction *>(dynamic_cast<const TrackingAction *>(
         G4RunManager::GetRunManager()->GetUserTrackingAction()));
 }
+
+// This thread's physical-interaction counter (SteppingAction's), or nullptr
+// where none is registered (same lookup as Run::Run).
+PhysicsInteractionCounter *ThreadInteractionCounter()
+{
+    auto *steppingAction = const_cast<SteppingAction *>(dynamic_cast<const SteppingAction *>(
+        G4RunManager::GetRunManager()->GetUserSteppingAction()));
+    return (steppingAction != nullptr) ? &steppingAction->GetInteractionCounter() : nullptr;
+}
 }  // namespace
 
 EventAction::EventAction() = default;
@@ -38,6 +48,8 @@ void EventAction::BeginOfEventAction(const G4Event *event)
                      eventPrefix + ": Begin of Event");
     if (auto *trackingAction = ThreadTrackingAction())
         trackingAction->ResetEvent();
+    if (auto *interactions = ThreadInteractionCounter())
+        interactions->DiscardEvent();
     if (G4DNAChemistryManager::GetInstanceIfExists() != nullptr)
     {
         // One pre-chemical file per event, staged until the next dump (ADR 0005
@@ -90,5 +102,14 @@ void EventAction::EndOfEventAction(const G4Event *event)
             trackingAction->CommitEvent(runId, eventId);
         }
         trackingAction->ResetEvent();
+    }
+
+    // Same rule for the per-event physical-interaction counts.
+    if (auto *interactions = ThreadInteractionCounter())
+    {
+        if (!event->IsAborted())
+            interactions->CommitEvent();
+        else
+            interactions->DiscardEvent();
     }
 }

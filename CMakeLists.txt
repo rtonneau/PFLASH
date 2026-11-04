@@ -141,7 +141,7 @@ add_test(NAME ReactionCounterTest COMMAND ReactionCounterTest)
 
 # Standalone unit test for PhysicsInteractionCounter (fully generic,
 # portable, no dnachem-min-specific dependency -- no OutputDir.cc needed).
-add_executable(PhysicsInteractionCounterTest test/PhysicsInteractionCounterTest.cc src/scoring/PhysicsInteractionCounter.cc)
+add_executable(PhysicsInteractionCounterTest test/PhysicsInteractionCounterTest.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_link_libraries(PhysicsInteractionCounterTest ${Geant4_LIBRARIES})
 target_include_directories(PhysicsInteractionCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME PhysicsInteractionCounterTest COMMAND PhysicsInteractionCounterTest)
