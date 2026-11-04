@@ -6,7 +6,7 @@
 
 <p align="center">
 Minimal Geant4-DNA application for water radiolysis from electron beams:<br>
-physics, chemistry and scoring for conventional and ultra-high-dose-rate (UHDR) studies.
+physics, chemistry and scoring for conventional-dose-rate (CDR) studies.
 </p>
 
 <p align="center">
@@ -30,9 +30,10 @@ physics, chemistry and scoring for conventional and ultra-high-dose-rate (UHDR) 
 
 ---
 
-UHDR is a use case, not a separate implementation: there is no pulse-structure,
-dose-rate-effect or delivery-model code. The geometry is one homogeneous water
-box (no voxelization).
+This is the conventional-dose-rate (CDR) base case only. Ultra-high-dose-rate
+(UHDR) studies are meant to be built on top of it later: there is no
+pulse-structure, dose-rate-effect or delivery-model code. The geometry is one
+homogeneous water box (no voxelization).
 
 ## Highlights
 

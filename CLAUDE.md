@@ -2,9 +2,9 @@
 
 ## Purpose and Scope
 
-Minimal Geant4-DNA example for studying water radiolysis from electron beams. It provides the common physics, chemistry, and scoring basis for conventional and ultra-high-dose-rate (UHDR) irradiation studies.
+Minimal Geant4-DNA example for studying water radiolysis from electron beams. It provides the common physics, chemistry, and scoring basis for conventional-dose-rate (CDR) irradiation studies.
 
-UHDR is a use case, not a separate implementation: do not add UHDR-specific pulse structure, dose-rate effects or delivery models unless the project scope changes. The one scope change so far (ADR 0006) is the chemistry model below, taken from the Geant4-DNA UHDR example.
+This is the CDR base case only; ultra-high-dose-rate (UHDR) studies are meant to be built on top of it later, not inside it: do not add UHDR-specific pulse structure, dose-rate effects or delivery models unless the project scope changes. The one scope change so far (ADR 0006) is the chemistry model below, taken from the Geant4-DNA UHDR example.
 
 The geometry is one homogeneous water box. Do not introduce voxelization or G4Vox-based geometry. The chemistry runs the **Particle-based stage** (IRT_syn, or SBS) and, with IRT_syn, can hand over at the **Hand-over time** to the **Mesoscopic stage** (counts per cell on Geant4's cell mesh, which exists only inside the chemistry, not in the geometry) up to the end time. Three modes are selectable: SBS; IRT_syn alone; IRT_syn + mesoscopic (the default). Pulse structure and multi-track dose effects are future work (stage 2). Design records: `docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md` and `docs/adr/0008-selectable-chemistry-modes.md`.
 
