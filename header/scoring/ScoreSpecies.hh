@@ -14,15 +14,17 @@
 #ifndef CHEM4_ScoreSpecies_h
 #define CHEM4_ScoreSpecies_h 1
 
+#include "scoring/OutputTable.hh"
+
 #include "G4THitsMap.hh"
 #include "G4VPrimitiveScorer.hh"
 
+#include <map>
 #include <set>
+#include <string>
+#include <vector>
 
-class G4VAnalysisManager;
 class G4MolecularConfiguration;
-
-// #define _ScoreSpecies_FOR_ALL_EVENTS
 
 /** \file ScoreSpecies.hh*/
 
@@ -53,21 +55,19 @@ public:
   /// Return the number of non-aborted events accumulated since the last clear/merge.
   inline int GetNumberOfRecordedEvents() const { return fNEvent; }
 
-  /// Write accumulated molecule counts to Species.Txt (time in internal ns).
-  /// A failed open returns silently; later stream failures are not checked.
-  void ASCII();
+  /// Table "species" with SpeciesSchema's columns: one row per (time, species),
+  /// times ascending (ns) then species sorted by name; nEvents is the number of
+  /// accumulated events (zero-filled). Does not clear the scorer.
+  OutputTable ToTable() const;
 
-  /// Write counts and G-value sums through a non-null initialized analysis manager.
-  /// Opens/writes/closes its file; Geant4 reports failures, with no success return.
-  void WriteWithAnalysisManager(G4VAnalysisManager *);
-
-  /// Accumulated molecule count, sumG and sumG2 across accepted events.
+  /// Accumulated molecule count, count^2, sumG and sumG2 across accepted events.
   struct SpeciesInfo
   {
     /// Initialize all accumulated values to zero.
     SpeciesInfo()
     {
       fNumber = 0;
+      fNumberSq = 0.;
       fG = 0.;
       fG2 = 0.;
     }
@@ -75,6 +75,7 @@ public:
     SpeciesInfo(const SpeciesInfo &right)
     {
       fNumber = right.fNumber;
+      fNumberSq = right.fNumberSq;
       fG = right.fG;
       fG2 = right.fG2;
     }
@@ -84,48 +85,16 @@ public:
       if (&right == this)
         return *this;
       fNumber = right.fNumber;
+      fNumberSq = right.fNumberSq;
       fG = right.fG;
       fG2 = right.fG2;
       return *this;
     }
     int fNumber;
+    double fNumberSq;
     double fG;
     double fG2;
   };
-
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-  /// Optional per-event arrays; the disabled output path needs separate repair.
-  struct SpeciesInfoSOA
-  {
-    /// Construct empty per-event arrays.
-    SpeciesInfoSOA()
-    {
-    }
-    /// Copy all per-event arrays; allocation may throw.
-    SpeciesInfoSOA(const SpeciesInfoSOA &right)
-    {
-      fNumber = right.fNumber;
-      fG = right.fG;
-      fG2 = right.fG2;
-      fEventID = right.fEventID;
-    }
-    /// Copy the arrays; self-assignment is a no-op, allocations may throw.
-    SpeciesInfoSOA &operator=(const SpeciesInfoSOA &right)
-    {
-      if (&right == this)
-        return *this;
-      fNumber = right.fNumber;
-      fG = right.fG;
-      fG2 = right.fG2;
-      fEventID = right.fEventID;
-      return *this;
-    }
-    std::vector<int> fNumber;
-    std::vector<double> fG;
-    std::vector<double> fG2;
-    std::vector<int> fEventID;
-  };
-#endif
 
 private:
   typedef const G4MolecularConfiguration Species;
@@ -133,17 +102,10 @@ private:
   typedef std::map<double, InnerSpeciesMap> SpeciesMap;
   SpeciesMap fSpeciesInfoPerTime;
 
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-  typedef std::map<Species, SpeciesInfoSOA> InnerSpeciesMapPerEvent;
-  typedef std::map<double, InnerSpeciesMapPerEvent> SpeciesMapPerEvent;
-  SpeciesMapPerEvent fSpeciesInfoPerEvent;
-#endif
-
   std::set<G4double> fTimeToRecord;
 
   int fNEvent;          // number of processed events
   double fEdep;         // total energy deposition
-  G4String fOutputType; // output type
 
 protected:
   /// Accumulate weighted energy from a live step; requires Initialize first.
@@ -164,8 +126,8 @@ public:
   /// Null, wrong-type and self arguments are ignored. Caller stops worker mutation;
   /// allocation failures propagate and can leave partial accumulation.
   virtual void AbsorbResultsFromWorkerScorer(G4VPrimitiveScorer *);
-  /// On master/serial, write through the analysis manager then clear aggregate
-  /// counts/event count, even without checked write success. Workers do nothing.
+  /// On master/serial, clear aggregate counts and the event count (call after
+  /// the Dump wrote ToTable()). Workers do nothing.
   virtual void OutputAndClear();
 
   /// Copy the accumulated map (internal time units, counts and G-value sums).
@@ -174,7 +136,6 @@ public:
 
 private:
   void MergeSpeciesTotalsFrom(ScoreSpecies *right);
-  void WriteAggregateSpeciesRows(G4VAnalysisManager *analysisManager, const int &ntupleId);
 
   G4int fHCID;
   G4THitsMap<G4double> *fEvtMap;

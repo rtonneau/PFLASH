@@ -24,7 +24,6 @@
 #include "G4Event.hh"
 #include "G4UnitsTable.hh"
 
-#include <G4AnalysisManager.hh>
 #include <G4EventManager.hh>
 #include <G4MolecularConfiguration.hh>
 #include <G4MoleculeCounter.hh>
@@ -57,7 +56,6 @@ namespace
 ScoreSpecies::ScoreSpecies(G4String name, G4int depth)
     : G4VPrimitiveScorer(name, depth),
       fEdep(0),
-      fOutputType("csv"), // other options: "root", "hdf5", "xml"
       fHCID(-1),
       fEvtMap(0)
 {
@@ -141,10 +139,6 @@ void ScoreSpecies::EndOfEvent(G4HCofThisEvent *)
 
 
 
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-  int eventID = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
-#endif
-
   // TimeStepAction mutes the molecule counter from the hand-over to the end
   // of the event, so it holds frozen hand-over counts at later times: score
   // only the record times up to the hand-over (SpeciesMeso.* covers the
@@ -172,17 +166,11 @@ void ScoreSpecies::EndOfEvent(G4HCofThisEvent *)
 
       SpeciesInfo &molInfo = fSpeciesInfoPerTime[recordTime][moleculeIndex.Molecule];
       molInfo.fNumber += moleculeCount;
+      molInfo.fNumberSq += static_cast<double>(moleculeCount) * moleculeCount;
       double gValue = (moleculeCount / (fEdep / eV)) * kGValueReferenceEnergy_eV;
       molInfo.fG += gValue;
       molInfo.fG2 += gValue * gValue;
 
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-      SpeciesInfoSOA &molInfoPerEvent = fSpeciesInfoPerEvent[recordTime][molecule];
-      molInfoPerEvent.fNumber.push_back(moleculeCount);
-      molInfoPerEvent.fG.push_back(gValue);
-      molInfoPerEvent.fG2.push_back(gValue * gValue);
-      molInfoPerEvent.fEventID.push_back(eventID);
-#endif
 
     }
   }
@@ -211,33 +199,6 @@ void ScoreSpecies::AbsorbResultsFromWorkerScorer(G4VPrimitiveScorer *workerScore
 
   MergeSpeciesTotalsFrom(right);
   //---------------------------------------------------------
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-  {
-    SpeciesMapPerEvent::iterator timeEntry = right->fSpeciesInfoPerEvent.begin();
-    SpeciesMapPerEvent::iterator timeEnd = right->fSpeciesInfoPerEvent.end();
-
-    for (; timeEntry != timeEnd; ++timeEntry)
-    {
-      auto &speciesByConfiguration = timeEntry->second;
-      InnerSpeciesMapPerEvent::iterator speciesEntry = speciesByConfiguration.begin();
-      InnerSpeciesMapPerEvent::iterator speciesEnd = speciesByConfiguration.end();
-
-      for (; speciesEntry != speciesEnd; ++speciesEntry)
-      {
-        SpeciesInfoSOA &molInfo = fSpeciesInfoPerEvent[timeEntry->first][speciesEntry->first];
-        molInfo.fNumber.insert(molInfo.fNumber.end(), speciesEntry->second.fNumber.begin(),
-                               speciesEntry->second.fNumber.end());
-        molInfo.fG.insert(molInfo.fG.end(), speciesEntry->second.fG.begin(), speciesEntry->second.fG.end());
-        molInfo.fG2.insert(molInfo.fG2.end(), speciesEntry->second.fG2.begin(),
-                           speciesEntry->second.fG2.end());
-        molInfo.fEventID.insert(molInfo.fEventID.end(), speciesEntry->second.fEventID.begin(),
-                                speciesEntry->second.fEventID.end());
-
-      }
-    }
-    right->fSpeciesInfoPerEvent.clear();
-  }
-#endif
 
   // The worker scorer persists across /run/beamOn calls (unlike Run), so
   // empty it now that it has been absorbed -- otherwise the next run would
@@ -274,27 +235,31 @@ void ScoreSpecies::PrintAll()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void ScoreSpecies::ASCII()
+OutputTable ScoreSpecies::ToTable() const
 {
-  std::ofstream out(OutputDir::Resolve("Species.Txt"));
-  if (!out)
-    return;
-
-  out << "Time is in ns" << G4endl;
-
-  for (auto timeEntry : fSpeciesInfoPerTime)
+  // Molecular configurations with the same name (if any) share one row.
+  std::map<double, std::map<std::string, SpeciesSchema::Row>> merged;
+  for (const auto &timeEntry : fSpeciesInfoPerTime)
   {
-    InnerSpeciesMap &speciesByConfiguration = timeEntry.second;
-
-    out << timeEntry.first << G4endl;
-
-    for (auto speciesEntry : speciesByConfiguration)
+    for (const auto &speciesEntry : timeEntry.second)
     {
-      out << speciesEntry.first->GetName() << " " << speciesEntry.second.fNumber << G4endl;
+      SpeciesSchema::Row &row = merged[timeEntry.first][speciesEntry.first->GetName()];
+      row.time_ns = timeEntry.first / ns;
+      row.species = speciesEntry.first->GetName();
+      row.nEvents = fNEvent;
+      row.countSum += speciesEntry.second.fNumber;
+      row.countSumSq += speciesEntry.second.fNumberSq;
+      row.gSum += speciesEntry.second.fG;
+      row.gSumSq += speciesEntry.second.fG2;
     }
   }
-
-  out.close();
+  std::vector<SpeciesSchema::Row> rows;
+  for (const auto &byTime : merged)
+    for (const auto &bySpecies : byTime.second)
+      rows.push_back(bySpecies.second);
+  return SpeciesSchema::Build("species",
+                              "Species: per-event molecule counts and G-values, Particle-based stage",
+                              rows);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -304,90 +269,11 @@ void ScoreSpecies::OutputAndClear()
   if (G4Threading::IsWorkerThread())
     return;
 
-  //----------------------------------------------------------------------------
-  // Save results
-
-  G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
-  analysisManager->SetDefaultFileType(fOutputType);
-
-  if (analysisManager)
-  {
-    this->WriteWithAnalysisManager(analysisManager);
-  }
-
   fNEvent = 0;
   fSpeciesInfoPerTime.clear();
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
-void ScoreSpecies::WriteWithAnalysisManager(G4VAnalysisManager *analysisManager)
-{
-
-  analysisManager->OpenFile(OutputDir::Resolve("Species"));
-  int ntupleId = analysisManager->CreateNtuple("species", "species");
-  analysisManager->CreateNtupleIColumn(ntupleId, "speciesID");
-  analysisManager->CreateNtupleIColumn(ntupleId, "number");
-  analysisManager->CreateNtupleIColumn(ntupleId, "nEvent");
-  analysisManager->CreateNtupleSColumn(ntupleId, "speciesName");
-  analysisManager->CreateNtupleDColumn(ntupleId, "time");
-  analysisManager->CreateNtupleDColumn(ntupleId, "sumG");
-  analysisManager->CreateNtupleDColumn(ntupleId, "sumG2");
-  analysisManager->FinishNtuple(ntupleId);
-
-  WriteAggregateSpeciesRows(analysisManager, ntupleId);
-
-  //----------------------------------------------------------------------------
-
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-  ntupleId = analysisManager->CreateNtuple("species_all", "species_all");
-  analysisManager->CreateNtupleIColumn(ntupleId, "speciesID");
-  analysisManager->CreateNtupleIColumn(ntupleId, "number");
-  analysisManager->CreateNtupleIColumn(ntupleId, "nEvent");
-  analysisManager->CreateNtupleSColumn(ntupleId, "speciesName");
-  analysisManager->CreateNtupleDColumn(ntupleId, "time");
-  analysisManager->CreateNtupleDColumn(ntupleId, "G");
-  analysisManager->CreateNtupleDColumn(ntupleId, "G2");
-  analysisManager->CreateNtupleIColumn(ntupleId, "eventID");
-  analysisManager->FinishNtuple(ntupleId);
-
-  for (auto timeEntry : fSpeciesInfoPerEvent)
-  {
-    InnerSpeciesMapPerEvent &speciesByConfiguration = timeEntry.second;
-
-    for (auto speciesEntry : speciesByConfiguration)
-    {
-      double time = timeEntry.first;
-      const Species &species = speciesEntry.first;
-      const G4String &name = species->GetName();
-      int molID = speciesEntry.first->GetMoleculeID();
-
-      size_t nG = speciesEntry.second.fG.size();
-
-      for (size_t i = 0; i < nG; ++i)
-      {
-        int number = speciesEntry.second.fNumber[i];
-        double sumG = speciesEntry.second.fG[i];
-        double sumG2 = speciesEntry.second.fG2[i];
-        int eventID = speciesEntry.second.fEventID[i];
-
-        analysisManager->FillNtupleIColumn(ntupleId, 0, molID);
-        analysisManager->FillNtupleIColumn(ntupleId, 1, number);
-        analysisManager->FillNtupleIColumn(ntupleId, 2, fNEvent);
-        analysisManager->FillNtupleSColumn(ntupleId, 3, name);
-        analysisManager->FillNtupleDColumn(ntupleId, 4, time);
-        analysisManager->FillNtupleDColumn(ntupleId, 5, sumG);
-        analysisManager->FillNtupleDColumn(ntupleId, 6, sumG2);
-        analysisManager->FillNtupleIColumn(ntupleId, 7, eventID);
-        analysisManager->AddNtupleRow(ntupleId);
-      }
-    }
-  }
-#endif
-
-  analysisManager->Write();
-  analysisManager->CloseFile();
-}
 
 void ScoreSpecies::MergeSpeciesTotalsFrom(ScoreSpecies *right)
 {
@@ -405,38 +291,11 @@ void ScoreSpecies::MergeSpeciesTotalsFrom(ScoreSpecies *right)
       {
         SpeciesInfo &molInfo = fSpeciesInfoPerTime[timeEntry->first][speciesEntry->first];
         molInfo.fNumber += speciesEntry->second.fNumber;
+        molInfo.fNumberSq += speciesEntry->second.fNumberSq;
         molInfo.fG += speciesEntry->second.fG;
         molInfo.fG2 += speciesEntry->second.fG2;
 
       }
-    }
-  }
-}
-
-void ScoreSpecies::WriteAggregateSpeciesRows(G4VAnalysisManager *analysisManager, const int &ntupleId)
-{
-  for (auto timeEntry : fSpeciesInfoPerTime)
-  {
-    InnerSpeciesMap &speciesByConfiguration = timeEntry.second;
-
-    for (auto speciesEntry : speciesByConfiguration)
-    {
-      double time = timeEntry.first;
-      auto species = speciesEntry.first;
-      const G4String &name = species->GetName();
-      int molID = speciesEntry.first->GetMoleculeID();
-      int number = speciesEntry.second.fNumber;
-      double sumG = speciesEntry.second.fG;
-      double sumG2 = speciesEntry.second.fG2;
-
-      analysisManager->FillNtupleIColumn(ntupleId, 0, molID);
-      analysisManager->FillNtupleIColumn(ntupleId, 1, number);
-      analysisManager->FillNtupleIColumn(ntupleId, 2, fNEvent);
-      analysisManager->FillNtupleSColumn(ntupleId, 3, name);
-      analysisManager->FillNtupleDColumn(ntupleId, 4, time);
-      analysisManager->FillNtupleDColumn(ntupleId, 5, sumG);
-      analysisManager->FillNtupleDColumn(ntupleId, 6, sumG2);
-      analysisManager->AddNtupleRow(ntupleId);
     }
   }
 }

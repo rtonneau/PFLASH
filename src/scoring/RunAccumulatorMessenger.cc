@@ -19,7 +19,6 @@
 #include "G4UIcmdWithAString.hh"
 #include "G4SDManager.hh"
 #include "G4MultiFunctionalDetector.hh"
-#include "G4AnalysisManager.hh"
 
 #include <fstream>
 #include <string>
@@ -37,14 +36,8 @@ void WriteSpeciesOutput(const G4String &prefix, std::vector<std::string> &files)
         auto *scorer = dynamic_cast<ScoreSpecies *>(mfdet->GetPrimitive(collectionId));
         if (scorer != nullptr)
         {
-            scorer->ASCII();          // Species.Txt (human-readable)
-            scorer->OutputAndClear(); // Species_nt_species(_all).csv, then clears the scorer
-            files.push_back(prefix + "Species.Txt");
-            files.push_back(prefix + "Species_nt_species.csv");
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-            // Only written when ScoreSpecies is built with per-event output.
-            files.push_back(prefix + "Species_nt_species_all.csv");
-#endif
+            ProductOutput::Write(OutputFormats::Product::Species, {scorer->ToTable()}, prefix, files);
+            scorer->OutputAndClear(); // clears the scorer for the next dump cycle
         }
     }
 }
@@ -194,16 +187,6 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     // which RunAccumulator tracks separately) -- same lookup Run::Run()
     // uses.
     WriteSpeciesOutput(prefix, files);
-
-    // Keep dump cycles independent: CloseFile leaves analysis bookings and
-    // file-manager state available for reuse. Clear removes them before the
-    // next prefix/subdir; Reset retains bookings and the file-manager registry.
-    // G4CsvFileManager::CreateNtupleFile renames an already registered name
-    // with "_bis"; preserving this Clear avoids that observed reuse problem.
-    // Clear also deletes histogram bookings; this project creates none.
-    // Still needed for Species (written through the analysis manager above)
-    // until it moves to ProductOutput.
-    G4AnalysisManager::Instance()->Clear();
 
     // Reactions (+ catalogue of reaction ids)
     ProductOutput::Write(OutputFormats::Product::Reactions,
