@@ -1,5 +1,152 @@
 # G4Utils work report from the executed vertical slice
 
+## Delivery update: 2026-11-03
+
+All five library priorities below are implemented on G4Utils branch
+`feat/g4utils-report-improvements`, validated in the checkout at
+`${DEV_DIR}/PYTHON/G4Utils`. The implementation commits are `fbae985`
+(discovery), `0ce2c19` (physical/track readers), `8431772` (pre-chemical
+records), `0ea79f4` (aggregate mesoscopic species), and `9b683f3` (particle
+G estimates). The package metadata still says 0.4.0; these additions have not
+been identified as a new published release. The original assessment below is
+retained as the requirements baseline at `a456290`, not a description of the
+current API. Notebook-series work in PLAN step 5 remains unstarted.
+
+| Delivered interface | Data and behavior |
+| --- | --- |
+| `discover_dumps(root)` / `DumpLocation` | Immutable locations with manifest-relative keys, selected paths and literal prefixes; follows index order and supports prefixed/nested dumps. |
+| `Dump.from_manifest(path)` / `Simulation(root)` | Explicit manifest selection and distinct canonical keys; folder aliases remain available only when unambiguous. A plain manifest containing an index is included once. |
+| `Dump.physical_interactions(per_event=False)` | Raw `label,count`; optional `count_per_event` is process firings per event. |
+| `Dump.track_lengths()` | Ten raw CSV fields with `(run,event)` identity; nm lengths and keV energies. Available manifest summaries are checked within writer precision. |
+| `Dump.prechemical_records(allow_missing=False)` | Inventory-selected event records, raw modification codes, nm/eV fields and nullable final positions. Explicit optional absence is supported; missing listed files still fail. |
+| `Dump.meso_species()` / `has_meso_species` | Summed integer CSV counts, raw species names and ns times; `mean_count_per_event = count / totalEvents`, with manifest stage times. Separate from spatial `has_meso`/`meso`. |
+| `Dump.particle_g_estimates(assume_valid_event_g=False)` | `aggregate_energy_G = 100 * number / totalEnergyDeposit_eV`, `mean_event_G = sumG / nEvent`, and nullable `mean_event_G_sem`. Legacy `species().G` is preserved. |
+
+Reader frames retain `dump`, `dump_key`, `manifest_path`, and `prefix`. Final review added strict integer-token validation (fractional event counts cannot be truncated) and rejection of folder-label collisions with reader data or manifest metadata.
+Manifest file inventories and literal prefixes choose data paths; missing
+listed files are not replaced by another dump or by TXT output. Typed empty
+tables, malformed data, missing optional output, duplicate event identities,
+invalid denominators and inconsistent moments are covered by unit tests.
+Modern mesoscopic manifests use boolean `mesoEnabled`; historical manifests
+without it require the exact model string `IRT_syn+mesoscopic`.
+
+The G4Utils README documents each interface, installation, discovery fallback,
+and estimator assumptions. Use Python >= 3.10 and install the checkout in the
+notebook's environment with `python -m pip install -e ".[dev]"`. Jupyter and
+matplotlib remain optional dependencies. Until the change is merged, select
+`feat/g4utils-report-improvements` (or a revision containing these commits)
+before installing and restarting the kernel. After merging, use a main-branch
+revision containing the changes. `/gps finish` opens the PR and switches the
+checkout back to main; an editable install follows that checkout, so restarting
+on an unmerged base branch alone does not make these APIs available.
+Imports of all exported DnaChem names and
+`SpeciesMesoSpatialFile` passed in the GEANT4 interpreter used by the notebook,
+`E:/miniconda3/envs/GEANT4/python.exe`, with editable metadata pointing to this
+checkout (pandas 3.0.0, numpy 2.4.2, h5py 3.16.0). No notebook was modified or
+re-executed for this library validation.
+
+### Real-output and regression evidence
+
+The opt-in `tests/validate_dnachem_output.py` accepts user-supplied paths and
+compares complete raw CSV tables, independently parsed fixed-width fields,
+null-coordinate masks, normalization and provenance. It also compares
+discovery order with raw indexes, checks each selected species table and
+records manifests outside automatic selection. Its JSON records input hashes,
+package versions and installation metadata. It never regenerates data.
+
+The existing demonstrations in
+`.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the/`
+were checked with these results:
+
+| Check | IRT | Meso-spatial |
+| --- | --- | --- |
+| Physical CSV rows, all fields equal | 6 | 6 |
+| Track CSV rows, all fields equal | 2 | 2 |
+| Pre-chemical rows, all raw fields and null masks equal | 2,152 | 2,165 |
+| `e_aq` records with all final coordinates | 999 | 998 |
+| Particle ntuple rows and both G calculations checked | 793 | 444 |
+
+IRT event identities are `(0,0)` and `(0,1)`; 1,153 rows have absent final
+positions. Its first physical row remains `e-_G4DNAAttachment,17`, and its
+first track row retains `primaryLength_nm=3940.635938`, `primaryEnd=stopped`.
+All 712 mesoscopic aggregate rows agree with the raw CSV and the companion TXT
+means. The first is `H2O2^0` at 5 ns: 97 / 2 = 48.5 molecules per event.
+The recorded IRT baselines 2,152/999 have no changed-data discrepancy.
+Baseline flags are optional and discrepancies are reported separately from
+raw parser failures. No SEM eligibility assertion was made for the real data.
+The spatial HDF5 file's availability was checked; this script does not inspect
+its contents.
+
+Actual historical datasets under this repository's `.scratch/tests/` supplied
+the additional discovery checks:
+
+- `2026-09-29__serial-counter-reset/serial`: `A_Manifest.json`,
+  `B_Manifest.json`, `C_Manifest.json` in one folder, each with its own raw
+  species values and distinct provenance.
+- `2026-10-09__add-a-md-file-in-docs-output-describing-the-directory-tree-and/01-spatial`:
+  root `pfx_Manifest.json` and nested `run02/Manifest.json`.
+- `2026-10-08__verify-feature-combinations-and-add-three-example-macros-with/06-irt-o2-serial`:
+  index selects `sub_01/Manifest.json`.
+- That same session's `out_sub`: index order is `sub_01/Manifest.json`,
+  `sub_02/Manifest.json`, `EndOfRun_Manifest.json`.
+- Both modern demo manifests combine plain dump metadata and a self-referencing
+  `dumps[]` entry; each is selected exactly once.
+- Historical `out_sbs` has a plain root manifest without an index beside
+  `EndOfRun_Manifest.json`. The documented legacy fallback selects only the
+  plain dump. Explicit `Dump.from_manifest()` selection recovered the omitted
+  dump and matched its raw species table/provenance. Automatic discovery does
+  not merge arbitrary historical sibling dumps; deeper layouts need index
+  references or explicit selection.
+
+Run from the G4Utils checkout in the GEANT4 environment to reproduce the
+validation (all paths are configurable):
+
+```powershell
+$sim = Join-Path $env:DEV_DIR 'GEANT4/SIM/dnachem-min'
+$demo = Join-Path $sim '.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the'
+$old = Join-Path $sim '.scratch/tests/2026-10-08__verify-feature-combinations-and-add-three-example-macros-with'
+$spatial = Join-Path $sim '.scratch/tests/2026-10-09__add-a-md-file-in-docs-output-describing-the-directory-tree-and/01-spatial'
+$shared = Join-Path $sim '.scratch/tests/2026-09-29__serial-counter-reset/serial'
+$evidence = '.scratch/tests/2026-11-03__g4utils-report-improvements/evidence'
+python tests/validate_dnachem_output.py --irt-dump "$demo/irt" --meso-dump "$demo/meso-spatial" --discovery-root "$demo/irt" --discovery-root "$demo/meso-spatial" --discovery-root $shared --discovery-root $spatial --discovery-root "$old/06-irt-o2-serial" --discovery-root "$old/out_sub" --discovery-root "$old/out_sbs" --explicit-manifest "$old/out_sbs/EndOfRun_Manifest.json" --expected-irt-records 2152 --expected-irt-final-electrons 999 --output "$evidence/06-real-output.json"
+python -m pytest tests -q
+python tests/validate_dnachem_output.py --help
+```
+
+All three commands passed; the full suite reported **393 passed**. Evidence
+is retained outside Git in the G4Utils checkout at
+`.scratch/tests/2026-11-03__g4utils-report-improvements/evidence/`:
+`06-real-output.json`, `06-real-output.log`, `06-pytest.log`, and `06-help.log`.
+The suite used scratch `--basetemp` and pytest cache paths. Generated inputs
+remain in their original ignored directories. These two documentation edits
+in dnachem-min are left uncommitted for separate integration; unrelated local
+changes are preserved.
+
+### Deferred scientific and environment limits
+
+- The configured Geant4 source remains 11.4.1 while the active install and
+  demonstration manifests report 11.4.3. `~/.claude/CONFIG_RESOLUTION.md` is
+  missing. No alternative source-resolution rule or matching source path was
+  invented; the parser validates the observed layout, not matched-source
+  semantics. Modification codes remain raw and unlabelled.
+- The executable's exact source revision, sampling independence and
+  convergence are not established by these two-event examples. The two demos
+  have different seeds and are not one continuous trajectory.
+- Real CSVs do not prove equal valid-event coverage of `sumG`/`sumG2`, inclusion
+  of zeros or positive per-event deposits. SEM remains null unless the caller
+  explicitly asserts those facts; interpreting it as uncertainty additionally
+  needs independent events. No uncertainty for the aggregate-energy ratio or
+  event count/energy correlations can be recovered from these totals.
+- Aggregate mesoscopic output has no per-event variance or reaction identities.
+  Particle reaction coverage still omits the mesoscopic stage and documented
+  scavenger/acid-base contributions. Stage, hand-over, species names, event
+  counts and normalization must remain explicit in later notebook comparisons.
+
+## Original assessment (requirements baseline at a456290)
+
+The sections below retain the executed vertical slice's original observations
+and proposed acceptance criteria. Delivery status and later evidence are above.
+
 ## Evidence and scope
 
 The [vertical-slice notebook](vertical_slice.ipynb) was executed top to bottom
@@ -261,3 +408,4 @@ particle reaction file covers the particle stage only, with documented
 scavenger and acid-base omissions. Any comparison between particle and
 mesoscopic curves must account for stage, hand-over time, species naming,
 event count, and the different normalization.
+

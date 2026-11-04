@@ -71,17 +71,30 @@ are identified explicitly rather than filled with assumptions.
 
 ## 4. Improve G4Utils
 
-- [ ] Implement the report's justified reusable readers and calculations in
+- [x] Implement the report's justified reusable readers and calculations in
   the G4Utils repository, following its local instructions and conventions.
-- [ ] Add focused tests using representative formats and edge cases, including
+- [x] Add focused tests using representative formats and edge cases, including
   units, prefixes, missing optional files, event/run identity and normalization
   where applicable. Document public interfaces and installation requirements.
-- [ ] Run the relevant G4Utils tests and validate representative outputs against
+- [x] Run the relevant G4Utils tests and validate representative outputs against
   the original simulation files. Update the report with decisions, completed
   changes and any deferred limitations.
 
 **Done when:** the selected library capabilities are documented, tested and
 usable from the Jupyter kernel, with any deferred items recorded.
+
+**Completed 2026-11-03:** 393 G4Utils tests passed in the editable GEANT4
+environment used by the notebook, and all public imports passed there.
+The opt-in validator matched both demo dumps against raw physical, track,
+pre-chemical, particle and mesoscopic files, including the IRT 2,152/999 counts
+and mesoscopic 97/2 normalization. Actual shared-folder prefixes, nested and
+indexed historical output, collision manifests and explicit selection of an
+omitted historical sibling were checked. The report's delivery update records
+commands, evidence and remaining scientific/source-version limits. Existing
+kernels need restarting to load the changed library; notebook replacement and
+fresh execution remain in step 5. Use G4Utils branch
+`feat/g4utils-report-improvements`, or a merged revision containing it, before
+restarting; an editable checkout switched back to unmerged main lacks the APIs.
 
 ## 5. Complete the notebook series
 
@@ -124,3 +137,4 @@ Current references: project `CLAUDE.md`, `.claude/skills/sim-output/SKILL.md`,
 `docs/output/README.md`, `docs/output/SpeciesMesoSpatial-h5.md`, and the
 G4Utils README and source. Recheck them during implementation as formats and
 interfaces can change.
+
