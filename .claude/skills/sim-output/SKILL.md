@@ -1,94 +1,147 @@
 ---
 name: sim-output
-description: Use when running sim.exe, writing macros that dump output (/run/dumpDataAndReset, /run/dumpDataAndResetToDir, /run/outputDir, --dir), analyzing its output files, or changing output/scoring code (RunAccumulator, OutputDir, counters).
+description: Use when running sim.exe, writing macros that dump output (/run/dumpDataAndReset, /run/dumpDataAndResetToDir, /run/outputDir, --dir, /output/...), analyzing its output files, or changing output/scoring code (RunAccumulator, OutputDir, counters, ProductOutput).
 ---
 
 # sim.exe output files and dump commands
 
 Species/reaction/energy/physical-interaction data accumulates across `/run/beamOn`
-calls rather than being written and reset after every run — species yields
+calls rather than being written and reset after every run: species yields
 accumulate automatically (the `ScoreSpecies` scorer is itself a persistent,
-SD-registered object), while energy deposit, the three counters and the track-length table accumulate via
+SD-registered object), while energy deposit, the counters and the track-length table accumulate via
 `RunAccumulator` (`src/scoring/RunAccumulator.cc`), fed once per run from
-`RunAction::EndOfRunAction`. Pre-chemical and optional spatial files are staged
+`RunAction::EndOfRunAction`. Pre-chemical and spatial data are staged
 during events. Final dump files are published when a macro issues
 `/run/dumpDataAndReset [prefix]` (`Idle` state, i.e. between `beamOn` calls),
 which writes everything accumulated since the last dump (or program start) and
-resets all counters to empty/zero:
+resets all counters to empty/zero.
 
-- `Species.Txt` (accumulated molecule counts vs. time) and the CSV ntuple
-  `Species_nt_species.csv` (counts, nEvent and aggregate sumG/sumG2 per
-  species/time; mean G = sumG/nEvent in molecules per 100 eV); a second
-  ntuple, `Species_nt_species_all.csv` (same, per event), is only written when
-  `ScoreSpecies` is compiled with `_ScoreSpecies_FOR_ALL_EVENTS` (off by
-  default). That disabled branch currently contains inconsistent symbols/types
-  and needs a separate repair before use; see `header/scoring/ScoreSpecies.hh`.
-- `SpeciesMeso.Txt` and `SpeciesMeso.csv`: species counts of the mesoscopic
-  stage (after the hand-over time, default 5 ns, to the end time), collected per
-  event by `TimeStepAction` into `MesoSpeciesCounter`, merged in `Run::Merge`,
-  accumulated by `RunAccumulator`. `.Txt` is the mean count per event at each
-  record time (header `Time is in ns; mean count per event over N events`);
-  `.csv` rows are `time_ns,species,count` (summed over events). Record times
-  are a log grid from the hand-over time to the end time
-  (`/chem/meso/timesPerDecade`, default 10). Bulk species are not listed.
-  `Species.*` stops at the hand-over time. Neither file is written when the
-  mesoscopic stage is off: `mesoEnabled: false` in the manifest, which is the
-  case under SBS (`/process/chem/TimeStepModel SBS`) and with
-  `/chem/meso/enable false` under IRT_syn. There `Species.*` covers the whole
-  chemistry run.
-- `SpeciesMesoSpatial.h5`: only with `/output/speciesMesoSpatial/format h5` and a sim built with HDF5
-  (PreInit, default false). Spatial snapshots of the mesoscopic mesh, appended
-  per event by `TimeStepAction` into the staging folder
-  `<outdir>/.pending_meso_spatial/`; every dump (prefix, subfolder and the
-  `EndOfRun_` safety net alike) moves it to the dump and lists it in
-  `Manifest.json` `files` (`mesoSpatialOutput` records the switch). A failed
-  move is a `MesoSpatialMoveFailed` warning. Layout:
-  `/run<R>/event<E>/snapshot<k>/` with attributes `time_ns`, `cellSize_nm`
-  and datasets `position_nm` (N x 3 float64, cell centres) and `counts`
-  (N x S uint32); only non-empty cells are written (format version 2). Full
-  format (attributes, species columns, concentration formula, h5py example,
-  version history): `docs/output/SpeciesMesoSpatial-h5.md`.
-  Directory trees per layout and one line per output file:
-  `docs/output/README.md`.
-- `PreChemical_run<R>_event<E>.txt`: one pre-chemical file per event (Serial
-  and MT alike). Each event writes it into the staging folder
-  `<outdir>/.pending_prechem/`; every dump then moves all staged files into
-  the dump (prefixed, or inside the subfolder), in numeric (run, event)
-  order, and lists them in that dump's `Manifest.json` `files`. A failed move
-  is a `PreChemicalMoveFailed` warning and the file stays staged for the next
-  dump.
-- `Reactions.Txt`, `Reactions_nt_reactions.csv`, and `ReactionsMetadata.csv`:
-  per-time-bin firing counts of each bimolecular reaction (counted live in
-  `TimeStepAction::UserReactionAction` via `ReactionCounter`, merged across
-  threads in `Run::Merge`, accumulated across runs by `RunAccumulator`).
-  `Reactions_nt_reactions.csv` rows are `(reactionId, time, count)`;
-  `ReactionsMetadata.csv` maps each `reactionId` to its full `"A + B -> C + D"`
-  label (`Reactions.Txt` still prints the full label directly). Reactions
-  cover the particle-based stage only (the mesoscopic stage does not record
-  which reaction fired). Acid-base/
-  scavenger reactions are not counted (they never reach that hook). The
-  default time-bin edges are a built-in 7-entry table; override them with
-  `/chem/reaction/timeBinsFixed <width> <unit>` (a fixed step, expanded up to
-  the chemistry scheduler's end time) or `/chem/reaction/timeBinsList <e1>
-  <e2> ... <eN> <unit>` (explicit edges) — both `PreInit`, mutually exclusive
-  (issuing both is fatal when BeginOfRunAction applies the binning).
+## Output products, formats and names
+
+Seven **Output products**, each written as `<Product>.<ext>` in the formats
+chosen for it (several at once allowed; the extension is the format name,
+lower case): `txt`, `csv`, `h5`, `root`. The built-in default is `csv`.
+
+```text
+/output/defaultFormat csv h5             # default for products without their own command; 'none' = no file
+/output/<product>/format txt csv h5 root # replaces the default for one product; 'none' = no file
+```
+
+Both are PreInit (before `/run/initialize`). `<product>` is one of `species`,
+`speciesMeso`, `reactions`, `physicsInteractions`, `trackLengths`,
+`preChemical`, `speciesMesoSpatial`. Formats are case-insensitive, listed in
+canonical order; `none` cannot be combined with another format.
+`speciesMesoSpatial` accepts only `h5`/`root`, never follows the default and
+writes nothing unless its own command is given. A product skips default
+formats it does not accept. Chosen lists are in `Manifest.json`
+`outputFormats`; every written file is in `files`.
+
+Failure modes: an unknown format, a format the product does not accept, `none`
+mixed with others, or `h5` in a build without HDF5 (`hdf5: false`) is a fatal
+`G4Exception` (`InvalidOutputFormat`) at the command. Under the default list a
+build without HDF5 silently drops `h5`. A file that cannot be written is a
+`ProductOutputWriteFailed` warning naming the file; the other files are still
+written. Layouts of h5/root: `docs/output/tables-h5-root.md`.
+
+File naming: `txt`/`csv` write one file per table (`Reactions.csv` and
+`ReactionsCatalog.csv`); `h5`/`root` write one `<Product>.<ext>` holding every
+table of the product (h5: group per table, dataset per column with `unit` and
+`description` attributes; root: TTree per table, integers stored as doubles,
+unit in the leaf title). The prefix or subfolder of the dump applies to all
+names.
+
+## Common table conventions
+
+Event-wise products share the statistic columns: `nEvents` (non-aborted events
+of the dump; absent species/reactions/processes count as 0 in an event),
+`countSum`, `countSumSq`, `countMean` = countSum/nEvents, `countStdErr` =
+sqrt((countSumSq/n - mean^2)/(n-1)) (0 when n < 2). Sums, not means, are
+the mergeable quantities: add `countSum`/`countSumSq`/`nEvents` across dumps and
+recompute. G-values are per event, molecules per 100 eV of that event's energy
+deposit (an event with zero deposit adds counts but G = 0).
+
+## Products and columns
+
+- **Species** (`Species.<ext>`; table `species`): molecule counts and G-values
+  of the particle-based stage (up to the hand-over time; the whole run when the
+  mesoscopic stage is off). Columns: `time_ns` (ns), `species`,
+  `nEvents`, `countSum`, `countSumSq`, `countMean`, `countStdErr`, `gSum`,
+  `gSumSq`, `gMean`, `gStdErr` (G columns in molecules/100 eV and its square).
+  Long layout: one row per (time, species), by time then species. The
+  Chemistry decides the species (`Tonneau2025` adds `HO3`).
+- **SpeciesMeso** (`SpeciesMeso.<ext>`; table `speciesMeso`): the same columns
+  for the mesoscopic stage (hand-over time, default 5 ns, to the end time), on
+  the log record grid (`/chem/meso/timesPerDecade`, default 10). Bulk species
+  are not listed. Not written when the mesoscopic stage is off
+  (`mesoEnabled: false`: SBS, or `/chem/meso/enable false`); with end time at or
+  before the hand-over time it is written with only its header.
+- **Reactions** (`Reactions.<ext>` + `ReactionsCatalog.<ext>`; tables
+  `reactions`, `reactionCatalog`): per-time-bin firing counts of each
+  bimolecular reaction, counted in `TimeStepAction::UserReactionAction`.
+  `reactions`: `reactionId`, `binStart_ns` (0 for the first bin), `binEnd_ns`
+  (ns), `nEvents`, `countSum`, `countSumSq`, `countMean`, `countStdErr`.
+  `reactionCatalog`: `reactionId`, `reaction` (`"A + B -> C + D"`, ids sorted
+  by label). Particle-based stage only; acid-base/scavenger reactions are not
+  counted. Bin edges: a built-in 7-entry table, overridden by
+  `/chem/reaction/timeBinsFixed <width> <unit>` or `/chem/reaction/timeBinsList
+  <e1> ... <eN> <unit>` (PreInit, mutually exclusive; both is fatal at
+  BeginOfRunAction).
+- **PhysicsInteractions** (`PhysicsInteractions.<ext>`): per discrete `G4DNA`
+  process (`e-_G4DNAIonisation`, `e-_G4DNAExcitation`, `e-_G4DNAElastic`,
+  `e-_G4DNAVibExcitation`, `e-_G4DNAAttachment`, ...; `Transportation` excluded),
+  recorded per step by `SteppingAction`. Columns: `process`, `nEvents`,
+  `countSum`, `countSumSq`, `countMean`, `countStdErr`.
+- **TrackLengths** (`TrackLengths.<ext>`): one row per non-aborted event, by run
+  then event. Columns: `run`, `event`, `primaryLength_nm` (nm),
+  `primaryEkinStart_keV`, `primaryEkinEnd_keV` (keV), `primaryEnd` (`stopped`,
+  `escaped` or `killed` by `PrimaryKiller`), `secondaryFirstGenLength_nm` (nm,
+  electrons other than track 1 whose parent is track 1), `nSecondaryFirstGen`,
+  `secondaryAllLength_nm`, `nSecondaryAll` (every non-primary electron, PDG 11).
+  Events aborted by `/primaryKiller/eLossMax` are skipped. The manifest's
+  `trackLengths` object summarises the rows (`events`, end-reason counts,
+  `mean`/`sem`, `null` without events).
+- **PreChemical**: species created by the physical stage, one row each. Columns:
+  `run`, `event`, `parentTrackId`, `molecule` (`H2O` or `e_aq`), `modification`
+  (`ionisation`, `excitation`, `dissociativeAttachment` for H2O; `solvation` for
+  e_aq), `level` (electronic level, -1 for e_aq), `energy_eV` (eV: deposited
+  for H2O, kinetic for e_aq), `parentX_nm`, `parentY_nm`, `parentZ_nm` (incoming
+  track), `x_nm`, `y_nm`, `z_nm` (species), all nm. txt/csv: one file per event,
+  `PreChemical_run<R>_event<E>.<ext>` (run and event start at 0, the run
+  index keeps counting across dumps), staged in `<outdir>/.pending_prechem/`
+  by `EventAction`; h5/root: one `PreChemical.<ext>` per dump, rows kept in
+  memory until the dump, staged there too. Every dump moves the staged files into
+  the dump (prefixed, or inside the subfolder) in numeric (run, event) order and
+  lists them in `Manifest.json` `files`. A failed move is a
+  `PreChemicalMoveFailed` warning and the file stays staged. `none` stages nothing.
+- **SpeciesMesoSpatial** (`SpeciesMesoSpatial.h5` and/or `.root`): spatial
+  snapshots of the mesoscopic mesh, only with `/output/speciesMesoSpatial/format`
+  (the old `/chem/meso/` switch is gone). h5: nested
+  `/run<R>/event<E>/snapshot<k>/` with attributes `time_ns`, `cellSize_nm` and
+  datasets `position_nm` (N x 3 float64, cell centres) and `counts` (N x S
+  uint32), non-empty cells only, appended per event by `TimeStepAction` into
+  `<outdir>/.pending_meso_spatial/`; root: one long tree with columns `run`,
+  `event`, `snapshot`, `time_ns`, `cellSize_nm`, `x_nm`, `y_nm`, `z_nm`,
+  `species`, `count` (> 0), rows held in memory until the dump. Every dump
+  moves the staged file(s); a failed move is a `MesoSpatialMoveFailed`
+  warning. Full format: `docs/output/SpeciesMesoSpatial-h5.md`. Directory trees
+  per layout and one line per file: `docs/output/README.md`.
 - `Manifest.json`: one per dump, describing what produced the data beside it
   (`RunManifest` builds a `DataNode` tree and is the only place listing the
   entries, the generic `JsonWriter` serialises it; `schemaVersion: 1`, units
   in the keys). Top level: `timestamp`, `elapsedSinceStart_s` (main start → dump),
   `elapsedSincePreviousDump_s` (previous dump or process start → dump),
-  `geant4Version`, `macro`, `chemistry`, `scavengers` (`species`, `molarity_M`), `pH`,
+  `geant4Version`, `outputFormats` (format list per product), `macro`, `chemistry`, `scavengers` (`species`, `molarity_M`), `pH`,
   `chemistryEndTime_ns` (1e9 for the 1 s end time with meso; 1000 for the 1 us
   default without it), `timeStepModel` (`"IRT_syn"` or `"SBS"`), `hdf5`
-  (bool; false = built without HDF5, no `SpeciesMesoSpatial.h5`), `mesoEnabled`
+  (bool; false = built without HDF5, no h5 files), `mesoEnabled`
   (bool; false = no `SpeciesMeso*` files), `chemistryModel` (`"IRT_syn+mesoscopic"`,
   `"IRT_syn"` or `"SBS"`), `handOverTime_ns` (null without the mesoscopic stage), `voxelSize_nm` (requested cell
   size), `mesoPixels` (initial mesh pixels per side, capped at 65536, so on the
   default 1 mm box the cell actually used is 15.26 nm; null without a chemistry
   world), `mesoTimesPerDecade`, `runMode` (`Serial`/`MT`), `threads`,
   `outputDirAsConfigured`/`outputDirAbsolute`, `prefix`, `subdir`,
-  `totalEvents`, `totalEnergyDeposit_eV` (sums over `runs`; this replaces the
-  old `EnergyDeposit.Txt`), `files` (the data files this dump wrote, relative
+  `totalEvents`, `totalEnergyDeposit_eV` (sums over `runs`; there is no
+  `EnergyDeposit.Txt`), `files` (the data files this dump wrote, relative
   to the manifest's folder, manifest excluded) and `runs[]`: one entry per
   `/run/beamOn` folded into the dump with `run`, `events`, `particle`,
   `beamEnergy_keV`, `position_um`, `direction`, `energyDeposit_eV`, `seed` and `wallTime_s`.
@@ -98,29 +151,13 @@ resets all counters to empty/zero:
   started (it follows `/random/setSeeds`); output is still not bit-reproducible
   from it. It is written on every dump, including the `EndOfRun_` flush, and
   carries the same prefix or subfolder as the data files
-  (`EndOfRun_Manifest.json`, `run01/Manifest.json`). Read totals from here;
-  there is no `EnergyDeposit.Txt` any more.
-- `PhysicsInteractions.Txt`/`PhysicsInteractions.csv` (per-process physical-
-  interaction firing counts — totals only, no time binning; only discrete
-  G4DNA physics processes are counted, e.g. `e-_G4DNAIonisation`,
-  `e-_G4DNAExcitation`, `e-_G4DNAElastic`, `e-_G4DNAVibExcitation`,
-  `e-_G4DNAAttachment` — `Transportation` and other bookkeeping steps are
-  excluded). `PhysicsInteractionCounter` is recorded live per step by
-  `SteppingAction`, merged across worker threads in `Run::Merge`, and
-  accumulated across runs by `RunAccumulator`, same as the reaction counts.
-- `TrackLengths.Txt` (space-separated, `#` header line) and `TrackLengths.csv` (comma-separated, header row): one row per non-aborted event, sorted by run then event, with columns `run,event,primaryLength_nm,primaryEkin0_keV,primaryEkinEnd_keV,primaryEnd,secondaryFirstGen_nm,nSecondaryFirstGen,secondaryAll_nm,nSecondaryAll`. Lengths are in nm and kinetic energies in keV. `primaryEnd` is `stopped` (the primary stayed in the water), `escaped` (it left the world, no next volume) or `killed` (`PrimaryKiller` stopped track 1). The secondary columns sum over every electron (PDG 11) other than track 1: `secondaryFirstGen_*` only those whose parent is track 1, `secondaryAll_*` the whole delta-ray tree. Events aborted by `PrimaryKiller` (`/primaryKiller/eLossMax`) are skipped, as in `Run::RecordEvent`. Rows accumulate across `/run/beamOn` calls like the other counters and are cleared by each dump; both files are written at every dump, with the prefix and subfolder rules above. The manifest's `trackLengths` object summarises the same rows: `events`, the `stopped`/`escaped`/`killed` counts, and `mean`/`sem` per quantity (`null` when there are no events).
+  (`EndOfRun_Manifest.json`, `run01/Manifest.json`).
 
 `prefix` (optional, default none) is prepended literally to every filename
 above — no separator is inserted, so pass e.g. `run1_` if you want one.
 Reusing a prefix already used earlier in the same `sim.exe` process is a
 fatal error (`RunAccumulator::TryReservePrefix`), to catch accidental
-overwrites. Each dump also calls `G4AnalysisManager::Clear()` after writing
-its CSV ntuples — without it, a later dump cycle reusing the same ntuple
-names ("species"/"reactions") under a new prefix hits a Geant4 analysis-
-manager limitation (its per-ntuple file registry isn't cleared by
-`CloseFile()` alone) and silently renames or drops that dump's CSV output;
-`Clear()` removes the bookings and file-manager state before the next dump.
-It does not make publication transactional or guarantee successful I/O.
+overwrites.
 
 `/run/dumpDataAndResetToDir <subdir>` (`Idle` state, parameter required) is the
 same dump, but writes the unprefixed files into `<subdir>` under the output
@@ -135,7 +172,7 @@ absolute paths and `..` components are a fatal `G4Exception`
 `G4Exception` (`DuplicateDumpSubdir`, `RunAccumulator::TryReserveSubdir` — a
 set separate from the prefix one); a folder already on disk from an earlier
 process is reused and its files overwritten. It does not combine with a
-prefix. The per-event `PreChemical_run*_event*.txt` files are moved into the
+prefix. The staged `PreChemical` files are moved into the
 subfolder like the other data files.
 
 If a macro never issues `/run/dumpDataAndReset` and there is still accumulated

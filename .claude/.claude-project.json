@@ -45,18 +45,16 @@
       "note": "Write a scratch macro into <runBuildDir>/macro (untracked). Do not edit macro/beam.in (100 keV, 1 s end time by default: long). For a quick run issue '/scheduler/endTime 1 ms' after /run/initialize. End the macro with '/run/dumpDataAndReset' (no prefix) so the files in run.outputs are produced with their bare names -- omitting it falls back to the EndOfRun_-prefixed safety-net dump at process exit instead."
     },
     "outputs": [
-      "Species.Txt",
-      "SpeciesMeso.Txt",
-      "SpeciesMeso.csv",
-      "SpeciesMesoSpatial.h5 (only with /chem/meso/spatialOutput true)",
-      "Species_nt_species.csv",
-      "Reactions.Txt",
-      "Reactions_nt_reactions.csv",
-      "ReactionsMetadata.csv",
       "Manifest.json",
-      "PhysicsInteractions.Txt",
+      "Species.csv",
+      "SpeciesMeso.csv (only with the mesoscopic stage)",
+      "Reactions.csv",
+      "ReactionsCatalog.csv",
       "PhysicsInteractions.csv",
-      "PreChemical_run<R>_event<E>.txt (one per event, moved into the Dump)"
+      "TrackLengths.csv",
+      "PreChemical_run<R>_event<E>.csv (one per event, moved into the Dump)",
+      "built-in default format is csv; /output/defaultFormat and /output/<product>/format add txt, h5, root",
+      "SpeciesMesoSpatial.h5 / .root (only with /output/speciesMesoSpatial/format)"
     ],
     "successMarkers": [
       "[RunAccumulatorMessenger] dumped and reset",

@@ -20,18 +20,13 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 <outdir>/
   Manifest.json                (results index)
   pfx_Manifest.json
-  pfx_Species.Txt
-  pfx_Species_nt_species.csv
-  pfx_Reactions.Txt
-  pfx_Reactions_nt_reactions.csv
-  pfx_ReactionsMetadata.csv
-  pfx_PhysicsInteractions.Txt
+  pfx_Species.csv
+  pfx_Reactions.csv
+  pfx_ReactionsCatalog.csv
   pfx_PhysicsInteractions.csv
-  pfx_TrackLengths.Txt
   pfx_TrackLengths.csv
-  pfx_SpeciesMeso.Txt
   pfx_SpeciesMeso.csv
-  pfx_PreChemical_run0_event0.txt
+  pfx_PreChemical_run0_event0.csv
   pfx_...
   .pending_prechem/            (empty)
 ```
@@ -55,19 +50,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 <outdir>/
   Manifest.json                (results index)
   pfx_Manifest.json
-  pfx_Species.Txt
-  pfx_Species_nt_species.csv
-  pfx_Reactions.Txt
-  pfx_Reactions_nt_reactions.csv
-  pfx_ReactionsMetadata.csv
-  pfx_PhysicsInteractions.Txt
+  pfx_Species.csv
+  pfx_Reactions.csv
+  pfx_ReactionsCatalog.csv
   pfx_PhysicsInteractions.csv
-  pfx_TrackLengths.Txt
   pfx_TrackLengths.csv
-  pfx_SpeciesMeso.Txt
   pfx_SpeciesMeso.csv
   pfx_SpeciesMesoSpatial.h5
-  pfx_PreChemical_run0_event0.txt
+  pfx_PreChemical_run0_event0.csv
   pfx_...
   .pending_prechem/            (empty)
   .pending_meso_spatial/       (empty)
@@ -91,18 +81,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 <outdir>/
   Manifest.json                (results index)
   pfx_Manifest.json
-  pfx_Species.Txt
-  pfx_Species_nt_species.csv
-  pfx_Reactions.Txt
-  pfx_Reactions_nt_reactions.csv
-  pfx_ReactionsMetadata.csv
-  pfx_PhysicsInteractions.Txt
+  pfx_Species.csv
+  pfx_Reactions.csv
+  pfx_ReactionsCatalog.csv
   pfx_PhysicsInteractions.csv
-  pfx_TrackLengths.Txt
   pfx_TrackLengths.csv
-  pfx_PreChemical_run0_event0.txt
+  pfx_PreChemical_run0_event0.csv
   pfx_...
   .pending_prechem/            (empty)
 ```
 
-`SpeciesMeso.Txt` and `SpeciesMeso.csv` are not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).
+`SpeciesMeso.csv` (and any other `SpeciesMeso.<ext>`) is not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).

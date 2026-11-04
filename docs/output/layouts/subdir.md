@@ -21,18 +21,13 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
   Manifest.json                (results index)
   run01/
     Manifest.json
-    Species.Txt
-    Species_nt_species.csv
-    Reactions.Txt
-    Reactions_nt_reactions.csv
-    ReactionsMetadata.csv
-    PhysicsInteractions.Txt
+    Species.csv
+    Reactions.csv
+    ReactionsCatalog.csv
     PhysicsInteractions.csv
-    TrackLengths.Txt
     TrackLengths.csv
-    SpeciesMeso.Txt
     SpeciesMeso.csv
-    PreChemical_run0_event0.txt
+    PreChemical_run0_event0.csv
     ...
   .pending_prechem/            (empty)
 ```
@@ -57,19 +52,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
   Manifest.json                (results index)
   run01/
     Manifest.json
-    Species.Txt
-    Species_nt_species.csv
-    Reactions.Txt
-    Reactions_nt_reactions.csv
-    ReactionsMetadata.csv
-    PhysicsInteractions.Txt
+    Species.csv
+    Reactions.csv
+    ReactionsCatalog.csv
     PhysicsInteractions.csv
-    TrackLengths.Txt
     TrackLengths.csv
-    SpeciesMeso.Txt
     SpeciesMeso.csv
     SpeciesMesoSpatial.h5
-    PreChemical_run0_event0.txt
+    PreChemical_run0_event0.csv
     ...
   .pending_prechem/            (empty)
   .pending_meso_spatial/       (empty)
@@ -94,18 +84,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
   Manifest.json                (results index)
   run01/
     Manifest.json
-    Species.Txt
-    Species_nt_species.csv
-    Reactions.Txt
-    Reactions_nt_reactions.csv
-    ReactionsMetadata.csv
-    PhysicsInteractions.Txt
+    Species.csv
+    Reactions.csv
+    ReactionsCatalog.csv
     PhysicsInteractions.csv
-    TrackLengths.Txt
     TrackLengths.csv
-    PreChemical_run0_event0.txt
+    PreChemical_run0_event0.csv
     ...
   .pending_prechem/            (empty)
 ```
 
-`SpeciesMeso.Txt` and `SpeciesMeso.csv` are not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).
+`SpeciesMeso.csv` (and any other `SpeciesMeso.<ext>`) is not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).

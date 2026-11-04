@@ -55,9 +55,9 @@ created:**
   `G4GenericMessenger(this, "/chem/", ...)` would try to create a second
   `/chem/` directory
   (`header/chemistry/ChemistrySelectMessenger.hh`).
-- `src/chemistry/MesoMessenger.cc` — five PreInit commands
+- `src/chemistry/MesoMessenger.cc` — four PreInit commands
   (`/chem/meso/handOverTime`, `voxelSize`, `timesPerDecade`,
-  `spatialOutput`, `enable`), each a typed `G4UIcmdWith*` built in the
+  `enable`), each a typed `G4UIcmdWith*` built in the
   constructor with `SetGuidance`/`SetParameterName`/`SetDefaultUnit`/
   `AvailableForStates(G4State_PreInit)`; `SetNewValue` validates each value
   (e.g. `/chem/meso/handOverTime` must be `> 0`, else a fatal

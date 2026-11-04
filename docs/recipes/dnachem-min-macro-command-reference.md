@@ -69,10 +69,9 @@ attached to the same `/chem/env/` directory but constructed *after*
 | `/chem/meso/handOverTime <value> <unit>` | PreInit | `src/chemistry/MesoMessenger.cc` |
 | `/chem/meso/voxelSize <value> <unit>` | PreInit | `src/chemistry/MesoMessenger.cc` |
 | `/chem/meso/timesPerDecade <n>` | PreInit | `src/chemistry/MesoMessenger.cc` |
-| `/chem/meso/spatialOutput <bool>` | PreInit | `src/chemistry/MesoMessenger.cc` |
 | `/chem/meso/enable <bool>` | PreInit | `src/chemistry/MesoMessenger.cc` |
 
-All five are typed `G4UIcmdWith*` objects built in `MesoMessenger`'s
+All four are typed `G4UIcmdWith*` objects built in `MesoMessenger`'s
 constructor, writing into the process-wide `MesoSettings::Current()`.
 `handOverTime`, `voxelSize` must be `> 0` and `timesPerDecade` must be `>= 1`
 — each a fatal `G4Exception` otherwise (`MesoMessenger.cc`). The

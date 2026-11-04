@@ -22,18 +22,13 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ```text
 <exeDir>/results/
   Manifest.json                (dump manifest + dumps[] index, see above)
-  Species.Txt
-  Species_nt_species.csv
-  Reactions.Txt
-  Reactions_nt_reactions.csv
-  ReactionsMetadata.csv
-  PhysicsInteractions.Txt
+  Species.csv
+  Reactions.csv
+  ReactionsCatalog.csv
   PhysicsInteractions.csv
-  TrackLengths.Txt
   TrackLengths.csv
-  SpeciesMeso.Txt
   SpeciesMeso.csv
-  PreChemical_run0_event0.txt
+  PreChemical_run0_event0.csv
   ...
   .pending_prechem/            (empty)
 ```
@@ -57,19 +52,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ```text
 <exeDir>/results/
   Manifest.json                (dump manifest + dumps[] index)
-  Species.Txt
-  Species_nt_species.csv
-  Reactions.Txt
-  Reactions_nt_reactions.csv
-  ReactionsMetadata.csv
-  PhysicsInteractions.Txt
+  Species.csv
+  Reactions.csv
+  ReactionsCatalog.csv
   PhysicsInteractions.csv
-  TrackLengths.Txt
   TrackLengths.csv
-  SpeciesMeso.Txt
   SpeciesMeso.csv
   SpeciesMesoSpatial.h5
-  PreChemical_run0_event0.txt
+  PreChemical_run0_event0.csv
   ...
   .pending_prechem/            (empty)
   .pending_meso_spatial/       (empty)
@@ -93,18 +83,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 ```text
 <exeDir>/results/
   Manifest.json                (dump manifest + dumps[] index)
-  Species.Txt
-  Species_nt_species.csv
-  Reactions.Txt
-  Reactions_nt_reactions.csv
-  ReactionsMetadata.csv
-  PhysicsInteractions.Txt
+  Species.csv
+  Reactions.csv
+  ReactionsCatalog.csv
   PhysicsInteractions.csv
-  TrackLengths.Txt
   TrackLengths.csv
-  PreChemical_run0_event0.txt
+  PreChemical_run0_event0.csv
   ...
   .pending_prechem/            (empty)
 ```
 
-`SpeciesMeso.Txt` and `SpeciesMeso.csv` are not written, and the manifest says `mesoEnabled: false`, `chemistryModel: "IRT_syn"`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000`. `Species.*` and `Reactions.*` then cover the whole run (Species.Txt about 1 KB instead of 0.5 KB). Same result under SBS (`/process/chem/TimeStepModel SBS`), with `timeStepModel: "SBS"`; see the [README](../README.md#mesoscopic-stage-on-or-off).
+`SpeciesMeso.csv` (and any other `SpeciesMeso.<ext>`) is not written, and the manifest says `mesoEnabled: false`, `chemistryModel: "IRT_syn"`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000`. `Species.*` and `Reactions.*` then cover the whole run (Species.csv is about the same size, it only gains rows past the hand-over time). Same result under SBS (`/process/chem/TimeStepModel SBS`), with `timeStepModel: "SBS"`; see the [README](../README.md#mesoscopic-stage-on-or-off).

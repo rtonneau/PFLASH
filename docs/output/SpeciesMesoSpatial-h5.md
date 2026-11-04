@@ -9,8 +9,8 @@ each event and each record time, where the molecules are and how many of each
 species sit in each occupied cell of Geant4's cell mesh. `SpeciesMeso.*` only
 gives totals; this file lets you compute concentration maps.
 
-The file exists only when a macro sets `/output/speciesMesoSpatial/format h5` (before
-`/run/initialize`; default false). It needs a `sim` built with HDF5: without it the command is a fatal error and `Manifest.json` has `"hdf5": false`. Events append to a staging file
+The file exists only when a macro sets `/output/speciesMesoSpatial/format h5` or `h5 root` (before
+`/run/initialize`; no file by default, this product never follows `/output/defaultFormat`). It needs a `sim` built with HDF5: without it the `h5` choice is a fatal error and `Manifest.json` has `"hdf5": false`. With `root` a `SpeciesMesoSpatial.root` is written too (see the root variant below). Events append to a staging file
 `<outdir>/.pending_meso_spatial/SpeciesMesoSpatial.h5`. Every dump moves it to
 the dump target:
 
@@ -161,3 +161,27 @@ if len(pos):
 |---|---|
 | 1 | Every cell of the mesh was written, empty ones included. |
 | 2 | Only cells with at least one molecule are written (N can be 0); the root attribute `formatDoc` was added. |
+
+## Root variant
+
+`/output/speciesMesoSpatial/format root` (alone, or with `h5`) writes
+`SpeciesMesoSpatial.root` instead of, or beside, the nested h5 file. It needs
+no HDF5 build. The same snapshots are flattened into one long ntuple (tree
+`speciesMesoSpatial`), one row per non-empty cell and species with count > 0:
+
+| Column | Unit | Meaning |
+|---|---|---|
+| `run`, `event` | none | run and event number |
+| `snapshot` | none | record index k, as in `snapshot<k>` of the h5 file |
+| `time_ns` | ns | record time |
+| `cellSize_nm` | nm | side of the cubic mesh cell |
+| `x_nm`, `y_nm`, `z_nm` | nm | cell centre |
+| `species` | none | species name |
+| `count` | molecules | molecules of that species in that cell (> 0) |
+
+Integer columns are stored as doubles (g4tools has no 64-bit integer leaf),
+exact up to 2^53; units are in the leaf titles (see
+[`tables-h5-root.md`](tables-h5-root.md)). Rows are held in memory until the
+dump, which writes the file into `.pending_meso_spatial/` and moves it in, so
+a long run with many events costs memory; prefer h5 for large runs. Summing
+`count` over all rows gives the same total as summing `counts` in the h5 file.

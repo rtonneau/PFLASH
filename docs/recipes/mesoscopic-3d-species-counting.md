@@ -112,10 +112,11 @@ bypass the scheduler's own map are in the dnachem-min section below.
 
 ## Output
 
-`SpeciesMeso.Txt` and `SpeciesMeso.csv`
-(`MesoSpeciesCounter::WriteAscii`/`WriteCsv`, `src/scoring/MesoSpeciesCounter.cc`)
-are written by the same `/run/dumpDataAndReset` handler that writes
-`Species.Txt` (`src/scoring/RunAccumulatorMessenger.cc`); they cover the
+`SpeciesMeso.<ext>`
+(`MesoSpeciesCounter::ToTable`, `src/scoring/MesoSpeciesCounter.cc`, written through
+`ProductOutput` in the formats of `/output/speciesMeso/format`, default csv)
+is written by the same `/run/dumpDataAndReset` handler that writes
+`Species.<ext>` (`src/scoring/RunAccumulatorMessenger.cc`); it covers the
 mesoscopic stage's record-time grid (hand-over time to end time) and are
 not written at all when the mesoscopic stage is off
 (`/chem/meso/enable false`, or the SBS time-step model). File formats,
@@ -156,11 +157,11 @@ one `TimeStepAction`, one `MeshTotalsAction` and no merge step.
   output continues in time.
 - [`export-data-as-hdf5.md`](export-data-as-hdf5.md) — the separate
   per-event spatial snapshot of the mesh (`SpeciesMesoSpatial.h5`),
-  `/chem/meso/spatialOutput`.
+  `/output/speciesMesoSpatial/format`.
 - [`docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md`](../adr/0006-irt-syn-and-mesoscopic-chemistry.md)
   — why the mesoscopic stage exists, the mesh-index overflow and its 65536
   cap, and the IRT_syn/SBS validation.
 - [`docs/adr/0008-selectable-chemistry-modes.md`](../adr/0008-selectable-chemistry-modes.md)
   — how SBS, IRT_syn alone and IRT_syn + mesoscopic became selectable modes.
-- [`docs/output/README.md`](../output/README.md) — `SpeciesMeso.Txt`/`.csv`
+- [`docs/output/README.md`](../output/README.md) — `SpeciesMeso.<ext>`
   file formats and dump conventions.

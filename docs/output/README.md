@@ -7,7 +7,7 @@ events and with the chemistry end time, so read them as orders of magnitude.
 
 Detailed semantics (columns, units, commands, failure modes) are in the
 `sim-output` skill: [`.claude/skills/sim-output/SKILL.md`](../../.claude/skills/sim-output/SKILL.md).
-The HDF5 layout has its own page: [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md).
+The spatial snapshot layout has its own page: [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md); the h5 and root layout of every other product: [`tables-h5-root.md`](tables-h5-root.md).
 
 ## When files are written
 
@@ -30,45 +30,71 @@ A dump writes the data since the previous dump (or process
 start) and resets the counters. Reusing a prefix or a subfolder name in one
 process is fatal.
 
+## Formats and file names
+
+Each **Output product** is written in the formats chosen for it, as
+`<Product>.<ext>` (`Species.csv`, `Reactions.h5`, ...). Formats: `txt`, `csv`,
+`h5`, `root`; several at once are allowed. The built-in default is `csv`. Both
+commands are PreInit (before `/run/initialize`):
+
+```text
+/output/defaultFormat csv h5            # default for every product; 'none' = no file
+/output/species/format txt csv h5 root  # one product, replaces the default
+```
+
+Products: `species`, `speciesMeso`, `reactions`, `physicsInteractions`,
+`trackLengths`, `preChemical`, `speciesMesoSpatial`. `speciesMesoSpatial`
+accepts only `h5`/`root` and never follows the default (no file unless its own
+command is given). A product skips default formats it does not accept; `h5`
+needs an HDF5 build (the registry rejects it otherwise). The chosen lists are
+in `Manifest.json` under `outputFormats`. Columns, units and failure modes:
+the `sim-output` skill; the h5 and root table layouts:
+[`tables-h5-root.md`](tables-h5-root.md).
+
 ## Layout examples
 
-Plain dump (`/run/dumpDataAndReset`):
+Plain dump (`/run/dumpDataAndReset`, default format `csv`):
 
 ```text
 <outdir>/
   Manifest.json                (dump manifest + results index, see below)
-  Species.Txt, Species_nt_species.csv
-  Reactions.Txt, Reactions_nt_reactions.csv, ReactionsMetadata.csv
-  PhysicsInteractions.Txt, PhysicsInteractions.csv
-  TrackLengths.Txt, TrackLengths.csv
-  SpeciesMeso.Txt, SpeciesMeso.csv
-  PreChemical_run0_event0.txt, PreChemical_run0_event1.txt
+  Species.csv
+  Reactions.csv, ReactionsCatalog.csv
+  PhysicsInteractions.csv
+  TrackLengths.csv
+  SpeciesMeso.csv
+  PreChemical_run0_event0.csv, PreChemical_run0_event1.csv
   .pending_prechem/            (empty after the dump)
 ```
+
+With `/output/defaultFormat txt csv h5 root` every product has `.txt`,
+`.csv`, `.h5` and `.root` files (one file per table for txt/csv, one file
+holding all tables for h5/root); `PreChemical` writes per-event
+`PreChemical_run<R>_event<E>.txt/.csv` files plus one `PreChemical.h5` and
+`PreChemical.root` per dump.
 
 Prefix dump then subfolder dump, with `/output/speciesMesoSpatial/format h5`:
 
 ```text
 <outdir>/
   Manifest.json                (results index, lists both dumps)
-  pfx_Manifest.json, pfx_Species.Txt, ... pfx_SpeciesMesoSpatial.h5
-  pfx_PreChemical_run0_event0.txt, pfx_PreChemical_run0_event1.txt
+  pfx_Manifest.json, pfx_Species.csv, ... pfx_SpeciesMesoSpatial.h5
+  pfx_PreChemical_run0_event0.csv, pfx_PreChemical_run0_event1.csv
   run02/
-    Manifest.json, Species.Txt, ... SpeciesMesoSpatial.h5
-    PreChemical_run1_event0.txt, PreChemical_run1_event1.txt
+    Manifest.json, Species.csv, ... SpeciesMesoSpatial.h5
+    PreChemical_run1_event0.csv, PreChemical_run1_event1.csv
   .pending_prechem/            (empty)
   .pending_meso_spatial/       (empty)
 ```
 
 No dump in the macro: the same file set as the plain dump, every name
-prefixed with `EndOfRun_` (`EndOfRun_Manifest.json`, `EndOfRun_Species.Txt`, ...),
+prefixed with `EndOfRun_` (`EndOfRun_Manifest.json`, `EndOfRun_Species.csv`, ...),
 plus the results index `Manifest.json`.
 
 Mesoscopic stage off (`/chem/meso/enable false`, or SBS): the same trees
-without `SpeciesMeso.Txt` and `SpeciesMeso.csv`; see
-[below](#mesoscopic-stage-on-or-off).
+without `SpeciesMeso.*`; see [below](#mesoscopic-stage-on-or-off).
 
-The `PreChemical_run<R>_event<E>.txt` names carry the run and event index
+The `PreChemical_run<R>_event<E>.<ext>` names carry the run and event index
 (both start at 0; the run index keeps counting across dumps, so the second
 dump above holds `run1`).
 
@@ -83,30 +109,27 @@ dumps keep their own manifest (`pfx_Manifest.json`, `run01/Manifest.json`,
 `EndOfRun_Manifest.json`) next to the index. Collision: a flat dump with an
 empty prefix has its manifest at the index's path, so the single `Manifest.json`
 is that dump's manifest plus a top-level `dumps` array (and no `kind`). Seen in
-the real runs: index of 0.6 KB beside the dump manifests, a collided file of
-about 1.9 KB.
+the real runs: a collided file of about 2.8 KB (3.4 KB with all formats listed).
 
 ## File reference
 
-All files are written at a dump unless noted. "Writer" is the source file that
-produces the content.
+All files are written at a dump unless noted. Sizes are from one real run: 10 keV
+e-, `/run/beamOn 2`, Serial, `/scheduler/endTime 1 ms`, `PureWater`, mesoscopic
+stage on, so read them as orders of magnitude (they grow with events and end
+time). Table columns are in the `sim-output` skill.
 
-| File | Content | Writer | Appears | Typical size |
-|---|---|---|---|---|
-| `Manifest.json` | What produced the data beside it: timestamp, Chemistry, scavengers, pH, box, `timeStepModel` (`IRT_syn` or `SBS`), `mesoEnabled`, hand-over and end time, mesh settings, run mode, threads, output dir, prefix/subdir, totals, `files` (the data files of this dump), `runs[]` (beam, energy deposit, seed, wall time). In the output directory itself it is also the results index (`dumps[]`, see above) | `src/scoring/RunManifest.cc` via `JsonWriter` (index: `ResultsIndex`) | every dump, with the same prefix/subfolder as the data | 1.5 to 2 KB; index alone 0.6 KB |
-| `Species.Txt` | Accumulated molecule counts vs. time; up to the hand-over time, or the whole run when the mesoscopic stage is off | `src/scoring/ScoreSpecies.cc` | every dump | 0.5 to 1 KB |
-| `Species_nt_species.csv` | Counts and per-event G-value sums: `speciesID,number,nEvent,speciesName,time,sumG,sumG2`; mean G = sumG/nEvent in molecules per 100 eV | `ScoreSpecies.cc` (Geant4 analysis manager) | every dump | 2 to 3 KB |
-| `Reactions.Txt` | Bimolecular reaction firing counts per time bin, particle-based stage only | `src/scoring/ReactionCounter.cc` | every dump | 2 KB |
-| `Reactions_nt_reactions.csv` | CSV ntuple `reactionId,time,count` | `ReactionCounter.cc` | every dump | under 1 KB |
-| `ReactionsMetadata.csv` | `reactionId,reaction` label map for the ntuple | `ReactionCounter.cc` | every dump | under 1 KB |
-| `TrackLengths.Txt` / `.csv` | Per-event primary track length, start/end kinetic energy, end reason (`stopped`/`escaped`/`killed`), secondary-electron lengths and counts; aborted events skipped | `src/scoring/TrackLengthTable.cc` | every dump | about 120 B per event |
-| `PhysicsInteractions.Txt` / `.csv` | Firing counts per discrete `G4DNA` physics process (totals, no time bins) | `src/scoring/PhysicsInteractionCounter.cc` | every dump | about 200 B |
-| `SpeciesMeso.Txt` | Mean count per event vs. time for the mesoscopic stage (hand-over time to end time, log grid) | `src/scoring/MesoSpeciesCounter.cc` | every dump with the mesoscopic stage on; not written when it is off | about 9 KB at 1 ms end time |
-| `SpeciesMeso.csv` | Rows `time_ns,species,count` (counts summed over events) | `MesoSpeciesCounter.cc` | same as above | about 15 KB at 1 ms end time |
-| `PreChemical_run<R>_event<E>.txt` | Per-event pre-chemical table: parent track, molecule, ionisation/excitation level, energy, positions | `src/actions/EventAction.cc`, moved by `PreChemicalFiles::MoveStaged` | every dump, one file per event | about 150 KB per 10 keV event |
-| `SpeciesMesoSpatial.h5` | Per-event spatial snapshots of the mesoscopic mesh (non-empty cells only) | `src/scoring/MesoSpatialFile.cc` | only with `/output/speciesMesoSpatial/format h5` and an HDF5 build (`Manifest.json` `hdf5` key); one file per dump | about 3 MB per 10 keV event at 1 ms end time (grows with end time) |
+| File | Content | Writer | Size: csv / txt / h5 / root |
+|---|---|---|---|
+| `Manifest.json` | What produced the data beside it: timestamp, Chemistry, scavengers, pH, box, `timeStepModel`, `mesoEnabled`, `outputFormats`, hand-over and end time, mesh settings, run mode, threads, output dir, prefix/subdir, totals, `files`, `runs[]`. In the output directory itself it is also the results index | `src/scoring/RunManifest.cc` via `JsonWriter` (index: `ResultsIndex`) | 2.8 KB (3.4 KB with all formats) |
+| `Species.<ext>` | Per (time, species): event count, count sum/mean/standard error, G-value sum/mean/standard error; particle-based stage (the whole run when the mesoscopic stage is off) | `src/scoring/ScoreSpecies.cc` | 49 / 48 / 63 / 51 KB |
+| `SpeciesMeso.<ext>` | Same schema for the mesoscopic stage (hand-over time to end time, log grid) | `src/scoring/MesoSpeciesCounter.cc` | 75 / 74 / 96 / 63 KB |
+| `Reactions.<ext>` + `ReactionsCatalog.<ext>` | Per (time bin, reaction id): firing-count statistics; the catalogue maps `reactionId` to the `A + B -> C + D` label. Particle-based stage only | `src/scoring/ReactionCounter.cc` | 1.3 KB + 0.5 KB; txt 4.7 KB + 1.1 KB; h5 15 KB and root 36 KB (both tables in one file) |
+| `PhysicsInteractions.<ext>` | Per `G4DNA` physics process: count statistics per event, zeros included | `src/scoring/PhysicsInteractionCounter.cc` | 0.3 / 0.7 / 11 / 34 KB |
+| `TrackLengths.<ext>` | One row per non-aborted event: primary and secondary-electron track lengths, end reason | `src/scoring/TrackLengthTable.cc` | 0.4 / 0.7 / 12 / 34 KB |
+| `PreChemical_run<R>_event<E>.<ext>` (txt, csv) / `PreChemical.<ext>` (h5, root) | Pre-chemical species of the physical stage: parent track, molecule, modification, level, energy, positions | `src/scoring/PreChemicalRecorder.cc`, moved by `PreChemicalFiles::MoveStaged` | csv about 160 KB per event, txt 165 KB per event; h5 400 KB and root 180 KB for 2 events |
+| `SpeciesMesoSpatial.<ext>` | Per-event spatial snapshots of the mesoscopic mesh (non-empty cells only). h5: the nested layout of [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md); root: one long ntuple | `src/scoring/MesoSpatialFile.cc`, `MesoSpatialRootRows.cc` | only with `/output/speciesMesoSpatial/format`; h5 6.9 MB, root 1.7 MB for 2 events (grows with end time) |
 
-The Chemistry decides the species columns: `Tonneau2025` adds `HO3`.
+The Chemistry decides the species: `Tonneau2025` adds `HO3`.
 `Reactions.*` cover the particle-based stage only; the mesoscopic stage
 records counts, not which reaction fired.
 
@@ -116,11 +139,11 @@ Two hidden folders sit in the output directory and are created on demand:
 
 | Folder | Holds | Filled by | Emptied by |
 |---|---|---|---|
-| `.pending_prechem/` | `PreChemical_run<R>_event<E>.txt`, one per finished event | each event (Serial and MT) | every dump moves the files out, in (run, event) order |
-| `.pending_meso_spatial/` | `SpeciesMesoSpatial.h5` | `TimeStepAction`, appended per event | every dump moves it out |
+| `.pending_prechem/` | `PreChemical_run<R>_event<E>.txt/.csv` per finished event; `PreChemical.h5/.root` written at the dump | each event (Serial and MT); the dump for h5/root | every dump moves the files out, in (run, event) order |
+| `.pending_meso_spatial/` | `SpeciesMesoSpatial.h5` (appended per event), `SpeciesMesoSpatial.root` (written at the dump) | `TimeStepAction`; the dump for root | every dump moves them out |
 
 Observed during a run (after `/run/beamOn 2`, before the dump): `.pending_prechem/`
-held `PreChemical_run0_event0.txt` and `PreChemical_run0_event1.txt`, and with
+held `PreChemical_run0_event0.csv` and `PreChemical_run0_event1.csv`, and with
 spatial output `.pending_meso_spatial/SpeciesMesoSpatial.h5` too. After the dump
 both folders were still present and empty. A failed move is a
 `PreChemicalMoveFailed` / `MesoSpatialMoveFailed` warning and the file stays
@@ -132,11 +155,10 @@ The mesoscopic stage is on by default under IRT_syn. It is off with
 `/chem/meso/enable false` (PreInit) or under SBS
 (`/process/chem/TimeStepModel SBS`). Then:
 
-- `SpeciesMeso.Txt` and `SpeciesMeso.csv` are not written.
+- `SpeciesMeso.<ext>` is not written.
 - `Manifest.json` records `mesoEnabled: false`, `timeStepModel` (`IRT_syn` or
   `SBS`), `handOverTime_ns: null`, `voxelSize_nm: null`, `mesoPixels: null`.
-- `Species.*` and `Reactions.*` cover the whole chemistry run, so `Species.Txt`
-  is about 1 KB instead of 0.5 KB and `Reactions.Txt` about 4 KB instead of 2 KB.
+- `Species.*` and `Reactions.*` cover the whole chemistry run.
 - The default end time is 1 us instead of 1 s (`chemistryEndTime_ns: 1000`);
   the real runs used it unchanged, without a `/scheduler/endTime` line.
 
@@ -145,13 +167,13 @@ The mesoscopic stage is on by default under IRT_syn. It is off with
 With the mesoscopic stage on, `/scheduler/endTime 3 ns` and the default 5 ns
 hand-over, the chemistry stops before the mesoscopic stage starts. The dump is
 still complete and uses the same file names (re-checked on the current build).
-`Species.*` and `Reactions.*` stop at the end time. `SpeciesMeso.Txt` and
-`SpeciesMeso.csv` are still written but contain only their header line (51 B
-and 23 B). `Manifest.json` records `chemistryEndTime_ns: 3` and
+`Species.*` and `Reactions.*` stop at the end time. `SpeciesMeso.<ext>` is
+still written but holds only its header (93 B for csv). `Manifest.json` records `chemistryEndTime_ns: 3` and
 `handOverTime_ns: 5`. This is different from the mesoscopic stage being off,
 where those two files do not exist.
 
 ## See also
 
 - [`sim-output` skill](../../.claude/skills/sim-output/SKILL.md): commands, file semantics, prefix and subfolder rules, failure modes.
-- [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md): HDF5 layout, attributes, reading example.
+- [`SpeciesMesoSpatial-h5.md`](SpeciesMesoSpatial-h5.md): spatial h5 and root layout, attributes, reading example.
+- [`tables-h5-root.md`](tables-h5-root.md): h5 and root layout of the table products.

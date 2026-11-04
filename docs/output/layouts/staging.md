@@ -1,6 +1,6 @@
 # Layout: staging folders
 
-Two hidden folders in the output directory hold files between the end of an event and the next dump: `.pending_prechem/` (one `PreChemical_run<R>_event<E>.txt` per event) and `.pending_meso_spatial/` (`SpeciesMesoSpatial.h5`, only with `/output/speciesMesoSpatial/format h5`). Each dump moves the files out and leaves both folders in place, empty. The output directory is `--dir`, else `<exeDir>/results` (e.g. `build/results`). File meaning: [../README.md](../README.md).
+Two hidden folders in the output directory hold files between the end of an event and the next dump: `.pending_prechem/` (one `PreChemical_run<R>_event<E>.csv` per event (`.txt` too if the product has the txt format; with h5 or root: one `PreChemical.<ext>`)) and `.pending_meso_spatial/` (`SpeciesMesoSpatial.h5`, only with `/output/speciesMesoSpatial/format h5`). Each dump moves the files out and leaves both folders in place, empty. The output directory is `--dir`, else `<exeDir>/results` (e.g. `build/results`). File meaning: [../README.md](../README.md).
 
 Each tree below is the listing taken by `/control/shell dir /s /b <outdir>` right after `/run/beamOn 2` (before the dump; the real runs used the default directory, `build
 esults`), then the tree after `/run/dumpDataAndReset`.
@@ -25,8 +25,8 @@ After `/run/beamOn 2`, before the dump:
 ```text
 <outdir>/
   .pending_prechem/
-    PreChemical_run0_event0.txt
-    PreChemical_run0_event1.txt
+    PreChemical_run0_event0.csv
+    PreChemical_run0_event1.csv
 ```
 
 After the dump (a flat dump with an empty prefix: the dump's manifest and the results index are one `Manifest.json`):
@@ -34,18 +34,13 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 ```text
 <outdir>/
   Manifest.json                (dump manifest + dumps[] index)
-  Species.Txt
-  Species_nt_species.csv
-  Reactions.Txt
-  Reactions_nt_reactions.csv
-  ReactionsMetadata.csv
-  PhysicsInteractions.Txt
+  Species.csv
+  Reactions.csv
+  ReactionsCatalog.csv
   PhysicsInteractions.csv
-  TrackLengths.Txt
   TrackLengths.csv
-  SpeciesMeso.Txt
   SpeciesMeso.csv
-  PreChemical_run0_event0.txt
+  PreChemical_run0_event0.csv
   ...
   .pending_prechem/            (empty)
 ```
@@ -71,8 +66,8 @@ After `/run/beamOn 2`, before the dump:
 ```text
 <outdir>/
   .pending_prechem/
-    PreChemical_run0_event0.txt
-    PreChemical_run0_event1.txt
+    PreChemical_run0_event0.csv
+    PreChemical_run0_event1.csv
   .pending_meso_spatial/
     SpeciesMesoSpatial.h5
 ```
@@ -82,19 +77,14 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 ```text
 <outdir>/
   Manifest.json                (dump manifest + dumps[] index)
-  Species.Txt
-  Species_nt_species.csv
-  Reactions.Txt
-  Reactions_nt_reactions.csv
-  ReactionsMetadata.csv
-  PhysicsInteractions.Txt
+  Species.csv
+  Reactions.csv
+  ReactionsCatalog.csv
   PhysicsInteractions.csv
-  TrackLengths.Txt
   TrackLengths.csv
-  SpeciesMeso.Txt
   SpeciesMeso.csv
   SpeciesMesoSpatial.h5
-  PreChemical_run0_event0.txt
+  PreChemical_run0_event0.csv
   ...
   .pending_prechem/            (empty)
   .pending_meso_spatial/       (empty)
@@ -120,8 +110,8 @@ After `/run/beamOn 2`, before the dump:
 ```text
 <outdir>/
   .pending_prechem/
-    PreChemical_run0_event0.txt
-    PreChemical_run0_event1.txt
+    PreChemical_run0_event0.csv
+    PreChemical_run0_event1.csv
 ```
 
 After the dump (a flat dump with an empty prefix: the dump's manifest and the results index are one `Manifest.json`):
@@ -129,18 +119,14 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 ```text
 <outdir>/
   Manifest.json                (dump manifest + dumps[] index)
-  Species.Txt
-  Species_nt_species.csv
-  Reactions.Txt
-  Reactions_nt_reactions.csv
-  ReactionsMetadata.csv
-  PhysicsInteractions.Txt
+  Species.csv
+  Reactions.csv
+  ReactionsCatalog.csv
   PhysicsInteractions.csv
-  TrackLengths.Txt
   TrackLengths.csv
-  PreChemical_run0_event0.txt
+  PreChemical_run0_event0.csv
   ...
   .pending_prechem/            (empty)
 ```
 
-`SpeciesMeso.Txt` and `SpeciesMeso.csv` are not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).
+`SpeciesMeso.csv` (and any other `SpeciesMeso.<ext>`) is not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).
