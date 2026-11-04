@@ -8,7 +8,32 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Look for geant4 paths (normaly sets by sourcing: ~/software/geant4/geant4-v*.*.*-install/share/Geant4/geant4make/geant4make.sh
 find_package(Geant4 REQUIRED ui_all vis_all)
-find_package(HDF5 REQUIRED COMPONENTS C CXX) # <-- must request CXX
+
+# HDF5 is optional: it is only needed for the mesoscopic spatial snapshots
+# (SpeciesMesoSpatial.h5). AUTO uses it when found, ON requires it, OFF does not
+# search for it (a stub of MesoSpatialFile is built instead).
+set(DNACHEM_WITH_HDF5 "AUTO" CACHE STRING "HDF5 support for SpeciesMesoSpatial.h5: AUTO, ON or OFF")
+set_property(CACHE DNACHEM_WITH_HDF5 PROPERTY STRINGS AUTO ON OFF)
+string(TOUPPER "${DNACHEM_WITH_HDF5}" _dnachemWithHdf5)
+if(_dnachemWithHdf5 STREQUAL "ON")
+  find_package(HDF5 REQUIRED COMPONENTS C CXX) # <-- must request CXX
+elseif(_dnachemWithHdf5 STREQUAL "AUTO")
+  find_package(HDF5 COMPONENTS C CXX) # <-- must request CXX
+  if(NOT HDF5_FOUND)
+    message(STATUS "HDF5 not found: building without HDF5 (SpeciesMesoSpatial.h5 unavailable)")
+  endif()
+elseif(_dnachemWithHdf5 STREQUAL "OFF")
+  message(STATUS "HDF5 disabled (DNACHEM_WITH_HDF5=OFF): SpeciesMesoSpatial.h5 unavailable")
+else()
+  message(FATAL_ERROR "DNACHEM_WITH_HDF5 must be AUTO, ON or OFF (got '${DNACHEM_WITH_HDF5}')")
+endif()
+if(_dnachemWithHdf5 STREQUAL "OFF")
+  set(DNACHEM_HAS_HDF5 FALSE)
+elseif(HDF5_FOUND)
+  set(DNACHEM_HAS_HDF5 TRUE)
+else()
+  set(DNACHEM_HAS_HDF5 FALSE)
+endif()
 
 #Look for toml++ library (installed by vcpkg)
 #find_package(tomlplusplus CONFIG REQUIRED)
@@ -23,13 +48,26 @@ file(GLOB_RECURSE headers CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/header/*.hh)
 # e.g. #include "chemistry/DnaChemistryList.hh".
 set(project_include_dirs ${PROJECT_SOURCE_DIR}/header)
 
+# Exactly one MesoSpatialFile implementation is compiled: the HDF5 one, or the
+# std-only stub that reports the feature as unavailable.
+if(DNACHEM_HAS_HDF5)
+  list(FILTER sources EXCLUDE REGEX "/src/scoring/MesoSpatialFileNoHdf5[.]cc$")
+else()
+  list(FILTER sources EXCLUDE REGEX "/src/scoring/MesoSpatialFile[.]cc$")
+endif()
+
 # Tell CMake the name of the executable to produce.
 # sim.cc will be the main source code.
 add_executable(sim sim.cc ${sources} ${headers})
 
 # Still need to link all Geant4 lib
-target_link_libraries(sim ${Geant4_LIBRARIES} hdf5::hdf5-shared
-    hdf5::hdf5_cpp-shared)
+target_link_libraries(sim ${Geant4_LIBRARIES})
+if(DNACHEM_HAS_HDF5)
+  target_link_libraries(sim hdf5::hdf5-shared hdf5::hdf5_cpp-shared)
+  target_compile_definitions(sim PRIVATE DNACHEM_HAS_HDF5=1)
+else()
+  target_compile_definitions(sim PRIVATE DNACHEM_HAS_HDF5=0)
+endif()
 target_include_directories(sim PRIVATE ${project_include_dirs})
 
 add_custom_target(Simulation DEPENDS sim)
@@ -130,10 +168,18 @@ add_test(NAME MesoSpeciesCounterTest COMMAND MesoSpeciesCounterTest)
 
 # Standalone unit test for MesoSpatialFile (HDF5 writer of the mesoscopic
 # spatial snapshots -- std + HDF5 only, no Geant4).
-add_executable(MesoSpatialFileTest test/MesoSpatialFileTest.cc src/scoring/MesoSpatialFile.cc)
-target_link_libraries(MesoSpatialFileTest hdf5::hdf5-shared hdf5::hdf5_cpp-shared)
-target_include_directories(MesoSpatialFileTest PRIVATE ${project_include_dirs})
-add_test(NAME MesoSpatialFileTest COMMAND MesoSpatialFileTest)
+# Added only when HDF5 is on; without it the stub is tested instead.
+if(DNACHEM_HAS_HDF5)
+  add_executable(MesoSpatialFileTest test/MesoSpatialFileTest.cc src/scoring/MesoSpatialFile.cc)
+  target_link_libraries(MesoSpatialFileTest hdf5::hdf5-shared hdf5::hdf5_cpp-shared)
+  target_include_directories(MesoSpatialFileTest PRIVATE ${project_include_dirs})
+  add_test(NAME MesoSpatialFileTest COMMAND MesoSpatialFileTest)
+else()
+  # Standalone unit test for the no-HDF5 stub of MesoSpatialFile (std only).
+  add_executable(MesoSpatialFileNoHdf5Test test/MesoSpatialFileNoHdf5Test.cc src/scoring/MesoSpatialFileNoHdf5.cc)
+  target_include_directories(MesoSpatialFileNoHdf5Test PRIVATE ${project_include_dirs})
+  add_test(NAME MesoSpatialFileNoHdf5Test COMMAND MesoSpatialFileNoHdf5Test)
+endif()
 
 # Standalone unit test for Tonneau2025Table (Table 2 of Tonneau et al. 2025 as
 # plain data) and the Geant4-free part of Tonneau2025Reactions (routing, types,
@@ -161,8 +207,10 @@ add_custom_command(
 # install provides them (sim.exe loads the G4*.dll by name, so it must be the
 # same Geant4 version and build options, see packaging/README.txt).
 install(TARGETS sim RUNTIME DESTINATION .)
-install(FILES $<TARGET_FILE:hdf5::hdf5-shared> $<TARGET_FILE:hdf5::hdf5_cpp-shared>
-        DESTINATION .)
+if(DNACHEM_HAS_HDF5)
+  install(FILES $<TARGET_FILE:hdf5::hdf5-shared> $<TARGET_FILE:hdf5::hdf5_cpp-shared>
+          DESTINATION .)
+endif()
 install(DIRECTORY macro/ DESTINATION macro
         FILES_MATCHING PATTERN "*.in" PATTERN "*.mac")
 install(FILES packaging/README.txt packaging/check-env.ps1 DESTINATION .)
