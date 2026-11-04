@@ -1157,3 +1157,89 @@ Skipped at 2026-11-04T09:42:46.8945222+01:00: C:\DEV\GEANT4\SIM\dnachem-min\note
 Skipped at 2026-11-04T11:49:45.1381348+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.work\sessions\2026-11-04__support-for-linux-without-hdf5-included\.write-payload.md
 Skipped at 2026-11-04T11:50:45.5033489+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.work\sessions\2026-11-04__support-for-linux-without-hdf5-included\.write-payload.md
 Skipped at 2026-11-04T12:02:53.9378678+01:00: C:\DEV\GEANT4\SIM\dnachem-min\README.md
+Skipped at 2026-11-04T14:25:32.7242916+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.claude\plans\2026-11-04-linux-hdf5-targets.md
+Skipped at 2026-11-04T14:26:59.6172036+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CMakeLists.txt
+Skipped at 2026-11-04T14:27:00.2045255+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CMakeLists.txt
+Skipped at 2026-11-04T14:27:00.8167528+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CMakeLists.txt
+Skipped at 2026-11-04T14:27:01.4957911+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CMakeLists.txt
+Skipped at 2026-11-04T14:28:49.5221368+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.work\changelog\2026-11-04__linux-hdf5-targets.md
+Skipped at 2026-11-04T14:29:07.2225657+01:00: C:\DEV\GEANT4\SIM\dnachem-min\README.md
+Skipped at 2026-11-04T14:31:11.2190253+01:00: C:\DEV\GEANT4\SIM\dnachem-min\README.md
+Skipped at 2026-11-04T14:31:11.7914967+01:00: C:\DEV\GEANT4\SIM\dnachem-min\README.md
+Skipped at 2026-11-04T14:56:35.8893598+01:00: C:\DEV\GEANT4\SIM\dnachem-min\README.md
+Skipped at 2026-11-04T14:56:36.4930115+01:00: C:\DEV\GEANT4\SIM\dnachem-min\README.md
+Skipped at 2026-11-04T14:58:56.7766661+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CLAUDE.md
+Skipped at 2026-11-04T15:28:04.5006254+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CONTEXT.md
+Skipped at 2026-11-04T15:28:15.4586298+01:00: C:\DEV\GEANT4\SIM\dnachem-min\docs\adr\0009-standardized-output-products.md
+Skipped at 2026-11-04T15:29:43.2295878+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.work\sessions\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\.write-payload.md
+Skipped at 2026-11-04T15:33:38.8155272+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.work\sessions\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\.write-payload.md
+Skipped at 2026-11-04T15:41:32.9684477+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\OutputFormats.hh
+Triggered at 2026-11-04T15:41:33.9004617+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\OutputFormats.cc
+Completed at 2026-11-04T15:41:44.3096175+01:00: copied compile_commands.json
+Skipped at 2026-11-04T15:41:44.8618506+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\OutputFormatsMessenger.hh
+Triggered at 2026-11-04T15:41:45.3805286+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\OutputFormatsMessenger.cc
+Completed at 2026-11-04T15:41:49.8350098+01:00: copied compile_commands.json
+Triggered at 2026-11-04T15:42:12.8652188+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\OutputFormatsTest.cc
+Completed at 2026-11-04T15:42:18.4468391+01:00: copied compile_commands.json
+Skipped at 2026-11-04T15:47:54.8455355+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\EventStat.hh
+Triggered at 2026-11-04T15:47:55.4623128+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\EventStat.cc
+Completed at 2026-11-04T15:48:01.3301585+01:00: copied compile_commands.json
+Skipped at 2026-11-04T15:48:02.0539534+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\OutputTable.hh
+Triggered at 2026-11-04T15:48:02.6867879+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\OutputTable.cc
+Completed at 2026-11-04T15:48:08.2494114+01:00: copied compile_commands.json
+Skipped at 2026-11-04T15:48:08.9624451+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\TableWriters.hh
+Triggered at 2026-11-04T15:48:09.5869061+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\TableWriters.cc
+Completed at 2026-11-04T15:48:15.6783471+01:00: copied compile_commands.json
+Triggered at 2026-11-04T15:48:16.3497573+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\OutputTableTest.cc
+Completed at 2026-11-04T15:48:22.4496896+01:00: copied compile_commands.json
+Skipped at 2026-11-04T15:48:23.2184590+01:00: C:\DEV\GEANT4\SIM\dnachem-min\CMakeLists.txt
+Triggered at 2026-11-04T15:50:04.7807157+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\TableWriters.cc
+Completed at 2026-11-04T15:50:10.1052901+01:00: copied compile_commands.json
+Skipped at 2026-11-04T15:52:00.4906210+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\Hdf5TableFile.hh
+Triggered at 2026-11-04T15:52:00.9685408+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\Hdf5TableFileNoHdf5.cc
+Completed at 2026-11-04T15:52:06.3702807+01:00: copied compile_commands.json
+Triggered at 2026-11-04T15:52:07.0239526+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\Hdf5TableFile.cc
+Completed at 2026-11-04T15:52:12.0307945+01:00: copied compile_commands.json
+Triggered at 2026-11-04T15:52:12.6743507+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\Hdf5TableFileNoHdf5Test.cc
+Completed at 2026-11-04T15:52:18.4363859+01:00: copied compile_commands.json
+Triggered at 2026-11-04T15:52:19.1036126+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\Hdf5TableFileTest.cc
+Completed at 2026-11-04T15:52:24.8382470+01:00: copied compile_commands.json
+Skipped at 2026-11-04T16:02:26.9081680+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\ProductOutput.hh
+Triggered at 2026-11-04T16:02:27.4956763+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\ProductOutput.cc
+Completed at 2026-11-04T16:02:33.4076797+01:00: copied compile_commands.json
+Skipped at 2026-11-04T16:02:34.0417230+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.scratch\tests\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\edit05.py
+Skipped at 2026-11-04T16:08:31.2851021+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\PhysicsInteractionCounter.hh
+Triggered at 2026-11-04T16:08:31.8679020+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\PhysicsInteractionCounter.cc
+Completed at 2026-11-04T16:08:36.2416841+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:13:26.6254892+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\ReactionCounter.cc
+Completed at 2026-11-04T16:13:31.6514040+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:14:11.1251584+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\actions\EventAction.cc
+Completed at 2026-11-04T16:14:17.2786555+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:14:33.5232099+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\actions\EventAction.cc
+Completed at 2026-11-04T16:14:38.9708736+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:18:36.2770232+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\ReactionCounterTest.cc
+Completed at 2026-11-04T16:18:42.4004549+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:21:26.9689482+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\ProductOutput.cc
+Completed at 2026-11-04T16:21:33.5773052+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:21:34.2924256+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\ProductOutput.cc
+Completed at 2026-11-04T16:21:40.7487678+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:21:41.4508811+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\ProductOutputTest.cc
+Completed at 2026-11-04T16:21:46.5436822+01:00: copied compile_commands.json
+Skipped at 2026-11-04T16:36:34.4346818+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\PreChemicalRecorder.hh
+Triggered at 2026-11-04T16:36:35.0930834+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\PreChemicalRecorder.cc
+Completed at 2026-11-04T16:36:41.1990612+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:38:07.6330905+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\PreChemicalFilesTest.cc
+Triggered at 2026-11-04T16:38:12.7891431+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\PreChemicalFilesTest.cc
+Triggered at 2026-11-04T16:38:19.3698461+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\PreChemicalRecorderTest.cc
+Completed at 2026-11-04T16:38:25.8266425+01:00: copied compile_commands.json
+Skipped at 2026-11-04T16:44:58.1928185+01:00: C:\DEV\GEANT4\SIM\dnachem-min\header\scoring\MesoSpatialRootRows.hh
+Triggered at 2026-11-04T16:44:58.8422331+01:00: C:\DEV\GEANT4\SIM\dnachem-min\src\scoring\MesoSpatialRootRows.cc
+Completed at 2026-11-04T16:45:05.6506926+01:00: copied compile_commands.json
+Triggered at 2026-11-04T16:45:06.3387652+01:00: C:\DEV\GEANT4\SIM\dnachem-min\test\MesoSpatialRootRowsTest.cc
+Completed at 2026-11-04T16:45:12.3172774+01:00: copied compile_commands.json
+Skipped at 2026-11-04T16:52:32.7052426+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.scratch\tests\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\edit12_readme.py
+Skipped at 2026-11-04T16:52:33.2054721+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.scratch\tests\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\readme_mid.md
+Skipped at 2026-11-04T16:53:21.0398717+01:00: C:\DEV\GEANT4\SIM\dnachem-min\docs\output\tables-h5-root.md
+Skipped at 2026-11-04T16:54:29.1532192+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.scratch\tests\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\skill_top.md
+Skipped at 2026-11-04T16:59:50.4047889+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.scratch\tests\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\edit_test.py
+Skipped at 2026-11-04T16:59:51.0512305+01:00: C:\DEV\GEANT4\SIM\dnachem-min\.scratch\tests\2026-11-04__data-output-should-be-standardized-each-type-of-data-should-have\new_tests.js
