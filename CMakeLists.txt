@@ -199,6 +199,12 @@ add_executable(OutputFormatsTest test/OutputFormatsTest.cc src/scoring/OutputFor
 target_include_directories(OutputFormatsTest PRIVATE ${project_include_dirs})
 add_test(NAME OutputFormatsTest COMMAND OutputFormatsTest)
 
+# Standalone unit test for OutputTable, EventStat, SpeciesSchema and
+# TableWriters (typed table model and its csv/txt serialisers -- std only).
+add_executable(OutputTableTest test/OutputTableTest.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc)
+target_include_directories(OutputTableTest PRIVATE ${project_include_dirs})
+add_test(NAME OutputTableTest COMMAND OutputTableTest)
+
 # Standalone unit test for MesoSpeciesCounter (per-time species counts of the
 # mesoscopic stage -- pure logic, std only).
 add_executable(MesoSpeciesCounterTest test/MesoSpeciesCounterTest.cc src/scoring/MesoSpeciesCounter.cc)

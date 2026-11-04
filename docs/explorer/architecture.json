@@ -464,6 +464,27 @@
           ]
         },
         {
+          "id": "output-table",
+          "title": "OutputTable",
+          "role": "Typed table model, csv and txt",
+          "summary": "Portable format-neutral table of typed columns (name, unit, description, type) and rows, EventStat sums for per-event mean and standard error, the shared Species/SpeciesMeso schema, and the csv and txt serialisers. Nothing uses it yet.",
+          "files": [
+            "src/scoring/OutputTable.cc",
+            "header/scoring/OutputTable.hh",
+            "src/scoring/EventStat.cc",
+            "header/scoring/EventStat.hh",
+            "src/scoring/TableWriters.cc",
+            "header/scoring/TableWriters.hh"
+          ],
+          "symbols": [
+            "OutputTable::AddRow",
+            "EventStat::StdErr",
+            "SpeciesSchema::Build",
+            "TableWriters::WriteCsv",
+            "TableWriters::WriteTxt"
+          ]
+        },
+        {
           "id": "track-length",
           "title": "TrackLengthTable",
           "role": "Table of track lengths",
@@ -717,6 +738,7 @@
             "test/PhysicsInteractionCounterTest.cc",
             "test/MesoSpeciesCounterTest.cc",
             "test/OutputFormatsTest.cc",
+            "test/OutputTableTest.cc",
             "test/MesoSpatialFileTest.cc",
             "test/MesoSpatialFileNoHdf5Test.cc",
             "test/TrackLengthTableTest.cc",
