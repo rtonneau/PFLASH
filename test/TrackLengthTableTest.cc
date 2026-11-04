@@ -9,7 +9,8 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include <sstream>
+#include <cstdint>
+#include <variant>
 #include <string>
 
 #ifdef _MSC_VER
@@ -56,38 +57,50 @@ static void TestMergeOrderIndependent()
   m2.Merge(a);
   assert(m1.Size() == 4 && m2.Size() == 4);
   assert(a.Size() == 2 && b.Size() == 2);
-  std::ostringstream s1, s2;
-  m1.WriteCsv(s1);
-  m2.WriteCsv(s2);
-  assert(s1.str() == s2.str());
+  assert(m1.ToTable().Rows() == m2.ToTable().Rows());
 }
 
-static void TestSortedOutput()
+static void TestToTable()
 {
+  using E = TrackLengthTable::End;
   TrackLengthTable t;
-  t.Add(MakeRow(1, 0));
+  TrackLengthTable::Row r = MakeRow(1, 0, 3., E::Killed);
+  r.primaryEkin0_keV = 10.;
+  r.primaryEkinEnd_keV = 2.;
+  r.secondaryFirstGen_nm = 4.;
+  r.nSecondaryFirstGen = 5;
+  r.secondaryAll_nm = 6.;
+  r.nSecondaryAll = 7;
+  t.Add(r);
   t.Add(MakeRow(0, 5));
   t.Add(MakeRow(0, 1));
 
-  std::ostringstream csv;
-  t.WriteCsv(csv);
-  std::string s = csv.str();
-  assert(s.rfind("run,event,primaryLength_nm", 0) == 0);
-  const auto p01 = s.find("\n0,1,");
-  const auto p05 = s.find("\n0,5,");
-  const auto p10 = s.find("\n1,0,");
-  assert(p01 != std::string::npos && p05 != std::string::npos && p10 != std::string::npos);
-  assert(p01 < p05 && p05 < p10);
+  const OutputTable table = t.ToTable();
+  assert(table.Name() == "trackLengths");
+  const char* names[] = {"run", "event", "primaryLength_nm", "primaryEkinStart_keV", "primaryEkinEnd_keV",
+                         "primaryEnd", "secondaryFirstGenLength_nm", "nSecondaryFirstGen",
+                         "secondaryAllLength_nm", "nSecondaryAll"};
+  assert(table.Columns().size() == 10);
+  for (std::size_t i = 0; i < 10; ++i) assert(table.Columns()[i].name == names[i]);
+  assert(table.Columns()[5].type == OutputTable::ColumnType::String);
+  assert(table.Columns()[0].type == OutputTable::ColumnType::Int64);
+  assert(table.Columns()[2].unit == "nm" && table.Columns()[3].unit == "keV");
 
-  std::ostringstream txt;
-  t.WriteAscii(txt);
-  s = txt.str();
-  assert(s.rfind("# run event", 0) == 0);
-  const auto q01 = s.find("\n0 1 ");
-  const auto q05 = s.find("\n0 5 ");
-  const auto q10 = s.find("\n1 0 ");
-  assert(q01 != std::string::npos && q05 != std::string::npos && q10 != std::string::npos);
-  assert(q01 < q05 && q05 < q10);
+  // sorted by (run, event)
+  assert(table.Rows().size() == 3);
+  assert(std::get<std::int64_t>(table.Rows()[0][0]) == 0 && std::get<std::int64_t>(table.Rows()[0][1]) == 1);
+  assert(std::get<std::int64_t>(table.Rows()[1][1]) == 5);
+  const auto& last = table.Rows()[2];
+  assert(std::get<std::int64_t>(last[0]) == 1);
+  assert(Near(std::get<double>(last[2]), 3.));
+  assert(Near(std::get<double>(last[3]), 10.));
+  assert(Near(std::get<double>(last[4]), 2.));
+  assert(std::get<std::string>(last[5]) == "killed");
+  assert(Near(std::get<double>(last[6]), 4.));
+  assert(std::get<std::int64_t>(last[7]) == 5);
+  assert(Near(std::get<double>(last[8]), 6.));
+  assert(std::get<std::int64_t>(last[9]) == 7);
+  assert(std::get<std::string>(table.Rows()[0][5]) == "stopped");
 }
 
 static void TestEndStrings()
@@ -96,11 +109,6 @@ static void TestEndStrings()
   assert(std::string(TrackLengthTable::EndToString(E::Stopped)) == "stopped");
   assert(std::string(TrackLengthTable::EndToString(E::Escaped)) == "escaped");
   assert(std::string(TrackLengthTable::EndToString(E::Killed)) == "killed");
-  TrackLengthTable t;
-  t.Add(MakeRow(0, 0, 1., E::Killed));
-  std::ostringstream csv;
-  t.WriteCsv(csv);
-  assert(csv.str().find(",killed,") != std::string::npos);
 }
 
 static void TestSummary()
@@ -137,7 +145,7 @@ int main()
 #endif
   TestAddSizeEmptyClear();
   TestMergeOrderIndependent();
-  TestSortedOutput();
+  TestToTable();
   TestEndStrings();
   TestSummary();
   std::cout << "TrackLengthTableTest: all tests passed\n";

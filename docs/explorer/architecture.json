@@ -474,6 +474,19 @@
           ]
         },
         {
+          "id": "product-output",
+          "title": "ProductOutput",
+          "role": "Writes a product's tables",
+          "summary": "Writes the tables of one Output product in every format chosen for it (csv and txt: one file per table; h5 and root: one file), through OutputDir, and warns instead of failing when a file cannot be written.",
+          "files": [
+            "src/scoring/ProductOutput.cc",
+            "header/scoring/ProductOutput.hh"
+          ],
+          "symbols": [
+            "ProductOutput::Write"
+          ]
+        },
+        {
           "id": "output-formats",
           "title": "OutputFormats",
           "role": "Chooses output file formats",
@@ -772,6 +785,7 @@
             "test/Hdf5TableFileNoHdf5Test.cc",
             "test/RootTableFileTest.cc",
             "test/TrackLengthTableTest.cc",
+            "test/ProductOutputTest.cc",
             "test/PreChemicalFilesTest.cc"
           ],
           "symbols": []

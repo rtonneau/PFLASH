@@ -9,6 +9,8 @@
 #include "core/OutputDir.hh"
 #include "core/DnaLogger.hh"
 #include "scoring/PreChemicalFiles.hh"
+#include "scoring/ProductOutput.hh"
+#include "scoring/OutputFormats.hh"
 #include "scoring/MesoSpatialFile.hh"
 #include "chemistry/ChemUtils.hh"
 #include "chemistry/MesoSettings.hh"
@@ -241,15 +243,7 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
 
     // Per-event primary and secondary e- track lengths (physical stage).
     const TrackLengthTable &trackLengthTable = RunAccumulator::GetAccumulatedTrackLengthTable();
-    std::ofstream trackLengthsOut(OutputDir::Resolve("TrackLengths.Txt"));
-    trackLengthTable.WriteAscii(trackLengthsOut);
-    trackLengthsOut.close();
-    files.push_back(prefix + "TrackLengths.Txt");
-
-    std::ofstream trackLengthsCsv(OutputDir::Resolve("TrackLengths.csv"));
-    trackLengthTable.WriteCsv(trackLengthsCsv);
-    trackLengthsCsv.close();
-    files.push_back(prefix + "TrackLengths.csv");
+    ProductOutput::Write(OutputFormats::Product::TrackLengths, {trackLengthTable.ToTable()}, prefix, files);
 
     // Mesoscopic stage off (/chem/meso/enable false, or SBS): no SpeciesMeso files.
     if (MesoSettings::StageEnabled(MesoSettings::Current(),

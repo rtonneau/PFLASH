@@ -147,7 +147,7 @@ target_include_directories(PhysicsInteractionCounterTest PRIVATE ${project_inclu
 add_test(NAME PhysicsInteractionCounterTest COMMAND PhysicsInteractionCounterTest)
 
 # Standalone unit test for TrackLengthTable (portable, standard library only).
-add_executable(TrackLengthTableTest test/TrackLengthTableTest.cc src/scoring/TrackLengthTable.cc)
+add_executable(TrackLengthTableTest test/TrackLengthTableTest.cc src/scoring/TrackLengthTable.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
 target_include_directories(TrackLengthTableTest PRIVATE ${project_include_dirs})
 add_test(NAME TrackLengthTableTest COMMAND TrackLengthTableTest)
 
@@ -161,7 +161,7 @@ add_test(NAME JsonWriterTest COMMAND JsonWriterTest)
 # bookkeeping logic, no Geant4 kernel dependency -- DumpAndReset's
 # file-writing/species lookup lives in RunAccumulatorMessenger instead,
 # which is not unit-tested, matching this project's existing convention).
-add_executable(RunAccumulatorTest test/RunAccumulatorTest.cc src/scoring/RunAccumulator.cc src/scoring/ReactionCounter.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/MesoSpeciesCounter.cc src/scoring/TrackLengthTable.cc src/scoring/DataNode.cc src/core/OutputDir.cc)
+add_executable(RunAccumulatorTest test/RunAccumulatorTest.cc src/scoring/RunAccumulator.cc src/scoring/ReactionCounter.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/MesoSpeciesCounter.cc src/scoring/TrackLengthTable.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/DataNode.cc src/core/OutputDir.cc)
 target_link_libraries(RunAccumulatorTest ${Geant4_LIBRARIES})
 target_include_directories(RunAccumulatorTest PRIVATE ${project_include_dirs})
 add_test(NAME RunAccumulatorTest COMMAND RunAccumulatorTest)
@@ -204,6 +204,23 @@ add_test(NAME OutputFormatsTest COMMAND OutputFormatsTest)
 add_executable(OutputTableTest test/OutputTableTest.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc)
 target_include_directories(OutputTableTest PRIVATE ${project_include_dirs})
 add_test(NAME OutputTableTest COMMAND OutputTableTest)
+
+# Unit test for ProductOutput (Geant4-facing: G4Exception + OutputDir; no kernel).
+set(productOutputSources test/ProductOutputTest.cc src/scoring/ProductOutput.cc src/scoring/OutputFormats.cc
+    src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc
+    src/scoring/RootTableFile.cc src/core/OutputDir.cc)
+if(DNACHEM_HAS_HDF5)
+  list(APPEND productOutputSources src/scoring/Hdf5TableFile.cc)
+else()
+  list(APPEND productOutputSources src/scoring/Hdf5TableFileNoHdf5.cc)
+endif()
+add_executable(ProductOutputTest ${productOutputSources})
+target_link_libraries(ProductOutputTest ${Geant4_LIBRARIES})
+if(DNACHEM_HAS_HDF5)
+  target_link_libraries(ProductOutputTest dnachem_hdf5)
+endif()
+target_include_directories(ProductOutputTest PRIVATE ${project_include_dirs})
+add_test(NAME ProductOutputTest COMMAND ProductOutputTest)
 
 # Standalone unit test for MesoSpeciesCounter (per-time species counts of the
 # mesoscopic stage -- pure logic, std only).
