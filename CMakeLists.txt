@@ -84,9 +84,9 @@ set(project_include_dirs ${PROJECT_SOURCE_DIR}/header)
 # Exactly one MesoSpatialFile implementation is compiled: the HDF5 one, or the
 # std-only stub that reports the feature as unavailable.
 if(DNACHEM_HAS_HDF5)
-  list(FILTER sources EXCLUDE REGEX "/src/scoring/MesoSpatialFileNoHdf5[.]cc$")
+  list(FILTER sources EXCLUDE REGEX "/src/scoring/(MesoSpatialFile|Hdf5TableFile)NoHdf5[.]cc$")
 else()
-  list(FILTER sources EXCLUDE REGEX "/src/scoring/MesoSpatialFile[.]cc$")
+  list(FILTER sources EXCLUDE REGEX "/src/scoring/(MesoSpatialFile|Hdf5TableFile)[.]cc$")
 endif()
 
 # Tell CMake the name of the executable to produce.
@@ -219,11 +219,22 @@ if(DNACHEM_HAS_HDF5)
   target_link_libraries(MesoSpatialFileTest dnachem_hdf5)
   target_include_directories(MesoSpatialFileTest PRIVATE ${project_include_dirs})
   add_test(NAME MesoSpatialFileTest COMMAND MesoSpatialFileTest)
+
+  # Standalone unit test for Hdf5TableFile (HDF5 writer of OutputTables).
+  add_executable(Hdf5TableFileTest test/Hdf5TableFileTest.cc src/scoring/Hdf5TableFile.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+  target_link_libraries(Hdf5TableFileTest dnachem_hdf5)
+  target_include_directories(Hdf5TableFileTest PRIVATE ${project_include_dirs})
+  add_test(NAME Hdf5TableFileTest COMMAND Hdf5TableFileTest)
 else()
   # Standalone unit test for the no-HDF5 stub of MesoSpatialFile (std only).
   add_executable(MesoSpatialFileNoHdf5Test test/MesoSpatialFileNoHdf5Test.cc src/scoring/MesoSpatialFileNoHdf5.cc)
   target_include_directories(MesoSpatialFileNoHdf5Test PRIVATE ${project_include_dirs})
   add_test(NAME MesoSpatialFileNoHdf5Test COMMAND MesoSpatialFileNoHdf5Test)
+
+  # Standalone unit test for the no-HDF5 stub of Hdf5TableFile.
+  add_executable(Hdf5TableFileNoHdf5Test test/Hdf5TableFileNoHdf5Test.cc src/scoring/Hdf5TableFileNoHdf5.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+  target_include_directories(Hdf5TableFileNoHdf5Test PRIVATE ${project_include_dirs})
+  add_test(NAME Hdf5TableFileNoHdf5Test COMMAND Hdf5TableFileNoHdf5Test)
 endif()
 
 # Standalone unit test for Tonneau2025Table (Table 2 of Tonneau et al. 2025 as

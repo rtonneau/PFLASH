@@ -447,6 +447,20 @@
           ]
         },
         {
+          "id": "hdf5-table-file",
+          "title": "Hdf5TableFile",
+          "role": "Saves tables as HDF5",
+          "summary": "Portable HDF5 writer for OutputTables: one group per table, one typed dataset per column with unit and description attributes.",
+          "files": [
+            "src/scoring/Hdf5TableFile.cc",
+            "src/scoring/Hdf5TableFileNoHdf5.cc",
+            "header/scoring/Hdf5TableFile.hh"
+          ],
+          "symbols": [
+            "Hdf5TableFile::Write"
+          ]
+        },
+        {
           "id": "output-formats",
           "title": "OutputFormats",
           "role": "Chooses output file formats",
@@ -741,6 +755,8 @@
             "test/OutputTableTest.cc",
             "test/MesoSpatialFileTest.cc",
             "test/MesoSpatialFileNoHdf5Test.cc",
+            "test/Hdf5TableFileTest.cc",
+            "test/Hdf5TableFileNoHdf5Test.cc",
             "test/TrackLengthTableTest.cc",
             "test/PreChemicalFilesTest.cc"
           ],
