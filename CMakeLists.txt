@@ -193,6 +193,12 @@ add_executable(MesoSettingsTest test/MesoSettingsTest.cc src/chemistry/MesoSetti
 target_include_directories(MesoSettingsTest PRIVATE ${project_include_dirs})
 add_test(NAME MesoSettingsTest COMMAND MesoSettingsTest)
 
+# Standalone unit test for OutputFormats (output products and their selectable
+# file formats -- pure logic, std only).
+add_executable(OutputFormatsTest test/OutputFormatsTest.cc src/scoring/OutputFormats.cc)
+target_include_directories(OutputFormatsTest PRIVATE ${project_include_dirs})
+add_test(NAME OutputFormatsTest COMMAND OutputFormatsTest)
+
 # Standalone unit test for MesoSpeciesCounter (per-time species counts of the
 # mesoscopic stage -- pure logic, std only).
 add_executable(MesoSpeciesCounterTest test/MesoSpeciesCounterTest.cc src/scoring/MesoSpeciesCounter.cc)

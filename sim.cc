@@ -13,6 +13,7 @@
 #include "core/OutputDir.hh"
 #include "core/OutputDirMessenger.hh"
 #include "physics/PhysicsList.hh"
+#include "scoring/OutputFormatsMessenger.hh"
 #include "scoring/RunAccumulatorMessenger.hh"
 #include "scoring/RunManifest.hh"
 
@@ -137,6 +138,8 @@ int main(int argc, char **argv)
   DnaLoggerMessenger *dnaLoggerMessenger = new DnaLoggerMessenger();
   // Exposes "/run/outputDir <path>" as a macro-file counterpart to --dir
   OutputDirMessenger *outputDirMessenger = new OutputDirMessenger();
+  // Exposes "/output/defaultFormat" and "/output/<product>/format" to choose the output file formats
+  OutputFormatsMessenger *outputFormatsMessenger = new OutputFormatsMessenger();
   // Exposes "/run/dumpDataAndReset [prefix]" to flush accumulated
   // species/reaction/interaction/energy data to disk and reset it
   RunAccumulatorMessenger *runAccumulatorMessenger = new RunAccumulatorMessenger();
@@ -199,6 +202,7 @@ int main(int argc, char **argv)
   delete simulationTimer;
   delete dnaLoggerMessenger;
   delete outputDirMessenger;
+  delete outputFormatsMessenger;
   delete runAccumulatorMessenger;
   delete runManager;
 

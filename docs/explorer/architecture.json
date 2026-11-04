@@ -447,6 +447,23 @@
           ]
         },
         {
+          "id": "output-formats",
+          "title": "OutputFormats",
+          "role": "Chooses output file formats",
+          "summary": "Portable registry of the seven Output products, their file stems and the formats (txt, csv, h5, root) chosen per product or by default; /output/defaultFormat and /output/<product>/format set it.",
+          "files": [
+            "src/scoring/OutputFormats.cc",
+            "header/scoring/OutputFormats.hh",
+            "src/scoring/OutputFormatsMessenger.cc",
+            "header/scoring/OutputFormatsMessenger.hh"
+          ],
+          "symbols": [
+            "OutputFormats::Effective",
+            "OutputFormats::SetProduct",
+            "OutputFormatsMessenger"
+          ]
+        },
+        {
           "id": "track-length",
           "title": "TrackLengthTable",
           "role": "Table of track lengths",
@@ -699,6 +716,7 @@
             "test/ReactionCounterTest.cc",
             "test/PhysicsInteractionCounterTest.cc",
             "test/MesoSpeciesCounterTest.cc",
+            "test/OutputFormatsTest.cc",
             "test/MesoSpatialFileTest.cc",
             "test/MesoSpatialFileNoHdf5Test.cc",
             "test/TrackLengthTableTest.cc",
@@ -1399,7 +1417,7 @@
       "id": "decisions",
       "title": "Read the design decisions",
       "audience": "everyone",
-      "summary": "The eight architecture decision records and the project glossary.",
+      "summary": "The nine architecture decision records and the project glossary.",
       "docs": [
         "CONTEXT.md",
         "docs/adr/0001-baseline-acid-base-buffer.md",
@@ -1409,7 +1427,8 @@
         "docs/adr/0005-manifest-per-dump.md",
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
         "docs/adr/0007-extra-molecules-per-chemistry.md",
-        "docs/adr/0008-selectable-chemistry-modes.md"
+        "docs/adr/0008-selectable-chemistry-modes.md",
+        "docs/adr/0009-standardized-output-products.md"
       ],
       "files": []
     }

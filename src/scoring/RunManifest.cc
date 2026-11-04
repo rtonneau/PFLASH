@@ -15,6 +15,7 @@
 #include "scoring/DataNode.hh"
 #include "scoring/JsonWriter.hh"
 #include "scoring/MesoSpatialFile.hh"
+#include "scoring/OutputFormats.hh"
 #include "scoring/ResultsIndex.hh"
 #include "scoring/RunAccumulator.hh"
 #include "scoring/TrackLengthTable.hh"
@@ -119,6 +120,20 @@ namespace
     node.Add("nSecondaryAll", stat(summary.nSecondaryAll));
     return node;
   }
+  // outputFormats: the formats each Output product is written in (empty = none).
+  DataNode OutputFormatsNode()
+  {
+    DataNode node = DataNode::MakeObject();
+    for (OutputFormats::Product product : OutputFormats::AllProducts())
+    {
+      DataNode formats = DataNode::MakeArray();
+      for (OutputFormats::Format format : OutputFormats::Effective(product))
+        formats.Push(OutputFormats::FormatName(format));
+      node.Add(OutputFormats::CommandName(product), formats);
+    }
+    return node;
+  }
+
   void AppendChemistryFields(DataNode &manifest, const ChemistryRegistry::Chemistry *chemistry,
                              const DataNode &scavengers, const DnaChemistryWorld *chemistryWorld,
                              const bool &mesoOn, const bool &sbs, const DataNode &mesoPixels)
@@ -256,6 +271,7 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
   manifest.Add("elapsedSincePreviousDump_s", elapsedSincePreviousDump_s);
   manifest.Add("geant4Version", Geant4Version());
   manifest.Add("hdf5", MesoSpatialFile::Available());
+  manifest.Add("outputFormats", OutputFormatsNode());
   manifest.Add("macro", std::string(gMacroName));
   AppendChemistryFields(manifest, chemistry, scavengers, chemistryWorld, mesoOn, sbs, mesoPixels);
   manifest.Add("runMode", (mtRunManager != nullptr) ? "MT" : "Serial");
