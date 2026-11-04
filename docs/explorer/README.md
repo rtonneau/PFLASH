@@ -10,16 +10,22 @@ Online: https://rtonneau.github.io/dnachem-min/explorer/ (GitHub Pages, branch `
 
 ## Edit it
 
-`architecture.json` is the only source of content; `index.html` is generated from it and `template.html`.
+`architecture.json` holds the architecture, run-flow and task content. `template.html` holds the interface; `build.js` combines it with that content, the macro-builder model and the scientific catalogues to generate `index.html`. Never edit `index.html` by hand.
 
 - `lanes[]`: one per source folder, with `nodes[]` (title, a short plain-language `role` shown under the title in the box, at most 40 characters, the fuller `summary`, `files`, `symbols`) and `otherFiles[]` for files that are not worth a box.
-- `edges[]`: `{from, to}` node ids; `from` uses, creates or fills `to`. The map draws only the selected box's edges (teal solid arrows: what it uses; purple dashed arrows: what uses it). Arrowheads always point from the part doing the using to the part it uses. Blue marks selection; amber flags mark summaries awaiting review. These meanings are shared by the map, run flow and task details in the existing light theme.
+- `edges[]`: `{from, to}` node ids; `from` uses, creates or fills `to`. The map draws only the selected box's edges (teal solid arrows: what it uses; violet dashed arrows: what uses it). Arrowheads always point from the part doing the using to the part it uses. Cyan marks selection; amber warning icons mark summaries awaiting review. These meanings are shared by the dark theme's map, run flow and task details.
 - `phases[]`: `{id, title, summary, window}`, the groups of the run flow, in order: `setup`, `physical`, `prechem`, `hetero`, `meso`, `output`. `window` is the time window text (copied from `physics-catalog.json` `timeWindows` for the four stages).
 - `flow[]`: the run steps, titled `"N. Title"` in order, each with a short `overview` for scanning, the full `summary` for details, a `phase`, an optional `condition` (when the step only happens in some modes), output file names (each ending `(staged)`, `(recorded)` or `(written at dump)`) and linked docs. A step may also have `catalog` (`physics`, `prechem` or `reactions`: which catalogue it shows), `commands[]` `{cmd, builder?}` (macro commands from the messengers in `src/`; `builder` is a Macro builder `STEPS` id and may be omitted) and `parts[]` (map node ids). Keep scientific qualifications in the summary, condition and mode notes; verify changes against source.
-- Chemistry modes: one step (the chemistry mode, in the first phase because it is chosen before `/run/initialize`) has `branches[]` `{id, label, summary, default?}`; the run flow shows a chooser under it. A later step may have `modes` `{branchId: note}`: the note is shown on its card for that mode, and a mode missing from `modes` marks the step as skipped. Steps without `modes` run the same way in every mode.
+- Chemistry modes: one step (the chemistry mode, in the first phase because it is chosen before `/run/initialize`) has `branches[]` `{id, label, summary, default?}`; the run flow shows its chooser above the timeline. A later step may have `modes` `{branchId: note}`: the note is shown on its card for that mode, and a mode missing from `modes` marks the step as skipped. Steps without `modes` run the same way in every mode.
 - `tasks[]`: entry points that link the guides in `docs/recipes/` and the ADRs.
-- `startHere`: `{map, flow, tasks}`, each a list of `{id, why}` shown above the view as suggested first clicks, with the plain-language reason first.
-- `"review": true` marks a summary that still awaits a physics review (shown with a dashed outline and a ⚑ marker).
+- `startHere`: `{map, flow, tasks}`, each a list of `{id, why}` defining suggested first clicks. Map and Tasks show these suggestions above their cards; Run flow uses a six-phase navigation rail as its entry point.
+- `"review": true` marks a summary that still awaits a physics review (shown with a dashed outline and an amber warning icon).
+
+### Interface design
+
+The dark palette and semantic colors are CSS custom properties at the top of `template.html`. Shared surfaces, focus rings, buttons, cards and typography keep all four views consistent. `ICONS` defines the small inline SVG family; icons are decorative alongside accessible text, with no external fonts, images or runtime dependencies.
+
+Run flow's phase rail jumps to each phase and identifies skipped phases for the chosen mode. Details show the current mode's explanation first; **Compare all chemistry modes** reveals the full comparison. Catalogue details use a wider desktop panel, with keyboard-focusable horizontal scrolling for wide tables. Task cards group guides into **Understand & run** and **Extend & develop**. The builder shows section validity separately from the current step, a collapsible configuration summary, syntax-colored macro lines and explicit error, warning and disabled states. Scientific content and validation rules remain in their existing data/model files.
 
 The page derives the rest from the file lists: a box's run steps and tasks are those that share one of its files, so keep `files` accurate. Selecting a part opens **Connections only** by default: incoming parts sit to its left and outgoing parts to its right, with the source folder shown on every card. Ordered curves stay in the empty gaps between columns. Hover or keyboard-focus a connected part to emphasize its arrow. On narrow screens, labeled groups list the same relationships without long routes. Starting-point suggestions are hidden while focused to leave room for the connections.
 
@@ -35,7 +41,7 @@ On desktop the details panel can be widened or narrowed by dragging its left edg
 
 ## Run flow catalogue
 
-The Run flow is grouped in six phases (setup, physical, physico-chemical, heterogeneous particle-based, mesoscopic, output), each with a time window line. A step with a `catalog` field shows a table in its details: `physics` (processes, models and energy ranges of `G4EmDNAPhysics_option2` for the chosen beam particle), `prechem` (dissociation channels, electron solvation, product displacement, initial species) or `reactions` (the full reaction table of the chosen Chemistry). The step's `commands[]` are listed with a link to the Macro builder step when `builder` is set, and its `parts[]` link to Module map boxes.
+The Run flow is grouped in six phases (setup, physical, physico-chemical, heterogeneous particle-based, mesoscopic, output), with the full time window in each step's details. A step with a `catalog` field shows a table in its details: `physics` (processes, models and energy ranges of `G4EmDNAPhysics_option2` for the chosen beam particle), `prechem` (dissociation channels, electron solvation, product displacement, initial species) or `reactions` (the full reaction table of the chosen Chemistry). The step's `commands[]` are listed with a link to the Macro builder step when `builder` is set, and its `parts[]` link to Module map boxes.
 
 Two choosers sit above the tables and are kept for the page session with the chemistry mode: **Chemistry** (any registered Chemistry) and, for the physics table, **Beam particle** (`e-` or `proton`). The same reaction tables are reachable from a Chemistry's box in the Module map and from the Chemistry options of the Macro builder.
 
@@ -92,6 +98,8 @@ After editing:
 node docs/explorer/build.js            # regenerate index.html
 node docs/explorer/check.js            # validate
 node docs/explorer/macro-builder.test.js   # builder model tests
+node docs/explorer/catalog-view.test.js    # catalogue presentation model tests
+node docs/explorer/export-catalog.test.js  # exporter tests, no sim required
 ```
 
 ## What the check enforces

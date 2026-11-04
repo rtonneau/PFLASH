@@ -3,25 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1020">
+<meta name="description" content="Explore dnachem-min: a guide to the code, simulation lifecycle, scientific catalogues and Geant4-DNA macro configuration.">
 <title>dnachem-min architecture explorer</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InQiPgogIDx0aXRsZSBpZD0idCI+ZG5hY2hlbS1taW46IGFuIGVsZWN0cm9uIHRyYWNrIGlvbml6aW5nIHdhdGVyPC90aXRsZT4KICA8IS0tIGJhY2tncm91bmQ6IHNhbWUgdGVhbCBmYW1pbHkgYXMgdGhlIGV4cGxvcmVyIGJhZGdlICgjMGE3ZWE0KSAtLT4KICA8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjI2IiBmaWxsPSIjMGIzZDUyIi8+CiAgPCEtLSBlbGVjdHJvbiB0cmFjazogamFnZ2VkIHBhdGgsIGFzIGluIGEgR2VhbnQ0LUROQSB0cmFjayAtLT4KICA8cG9seWxpbmUgcG9pbnRzPSIxMCwxMTggMjYsOTYgMjAsNzYgMzgsNTggMzEsNDAgNTIsMjYgNzYsMTggMTE4LDEwIgogICAgICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiM3ZmQzZjIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBpb25pemF0aW9uIC8gZXhjaXRhdGlvbiBldmVudHMgYWxvbmcgdGhlIHRyYWNrIC0tPgogIDxjaXJjbGUgY3g9IjI2IiBjeT0iOTYiIHI9IjYiIGZpbGw9IiNmNWI5NDIiLz4KICA8Y2lyY2xlIGN4PSIzOCIgY3k9IjU4IiByPSI2IiBmaWxsPSIjZjViOTQyIi8+CiAgPGNpcmNsZSBjeD0iNTIiIGN5PSIyNiIgcj0iNiIgZmlsbD0iI2Y1Yjk0MiIvPgogIDwhLS0gd2F0ZXIgbW9sZWN1bGUgKEgtTy1ILCB+MTA0LjUgZGVncmVlcykgLS0+CiAgPGcgc3Ryb2tlPSIjZjJmNGY1IiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iODAiIHkxPSI4NCIgeDI9IjU4IiB5Mj0iMTAxIi8+CiAgICA8bGluZSB4MT0iODAiIHkxPSI4NCIgeDI9IjEwMiIgeTI9IjEwMSIvPgogIDwvZz4KICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjgyIiByPSIxOCIgZmlsbD0iI2U0NTcyZSIvPgogIDxjaXJjbGUgY3g9IjU2IiBjeT0iMTAzIiByPSIxMSIgZmlsbD0iI2YyZjRmNSIvPgogIDxjaXJjbGUgY3g9IjEwNCIgY3k9IjEwMyIgcj0iMTEiIGZpbGw9IiNmMmY0ZjUiLz4KICA8IS0tIHJhZGljYWwgZG90OiB0aGUgY2hlbWlzdHJ5IHRoYXQgZm9sbG93cyAtLT4KICA8Y2lyY2xlIGN4PSI5OCIgY3k9IjYyIiByPSI1IiBmaWxsPSIjZjViOTQyIi8+Cjwvc3ZnPgo=">
 <style>
   :root {
-    color-scheme:light;
-    --bg:#f5f6f8; --surface:#fff; --sunk:#f0f2f5; --fg:#1a2030; --muted:#525b6c;
-    --line:#d6dbe3; --line-strong:#a9b1be;
-    --accent:#1d5bc9; --accent-soft:#e7effc; --accent-line:#8fb0ea;
-    --out:#12675b; --out-soft:#e8f5f1;
-    --in:#6a4bb5; --in-soft:#f1edfa;
-    --review:#8f5300; --review-line:#c98a12; --review-soft:#fff5e0;
-    --match:#fff3c4; --match-line:#c79a00;
+    color-scheme:dark;
+    --bg:#0b1020; --surface:#151e2e; --sunk:#101827; --raised:#1b283c;
+    --fg:#e5edf7; --muted:#a3b2c7; --subtle:#8495ae;
+    --line:#2a384e; --line-strong:#52647e;
+    --accent:#78c7ff; --accent-soft:#162d46; --accent-line:#4e8fb8;
+    --out:#64d8c0; --out-soft:#12332f;
+    --in:#b6a0ff; --in-soft:#29223e;
+    --review:#edbe69; --review-line:#91733c; --review-soft:#302819;
+    --match:#23364c; --match-line:#78c7ff;
+    --bad:#ff9f9a; --bad-soft:#352127; --ok:#7cdeae; --ok-soft:#142e29;
     --mono:ui-monospace, "Cascadia Mono", Consolas, monospace;
-    --radius:8px;
+    --radius:10px; --shadow:0 8px 24px #03071226;
   }
   * { box-sizing:border-box; }
   html { scroll-padding-top:calc(var(--header-height, 80px) + 12px); }
-  body { margin:0; font:15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  body { margin:0; font:14px/1.6 system-ui, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  ::selection { background:#34587a; color:#fff; }
+  * { scrollbar-width:thin; scrollbar-color:var(--line-strong) var(--bg); }
   button { font:inherit; color:inherit; }
+  input, select, textarea { color:var(--fg); }
   a { color:var(--accent); }
   :focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:4px; }
   [hidden] { display:none !important; }
@@ -30,19 +37,25 @@
   .skip:focus { transform:none; }
 
   /* ---- header and tabs ---- */
-  header { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; padding:16px 24px;
-           background:var(--surface); border-bottom:1px solid var(--line); }
-  header h1 { margin:0; font-size:18px; letter-spacing:-.01em; }
-  header p { margin:0; color:var(--muted); font-size:13.5px; }
-  [role=tablist] { display:flex; gap:2px; padding:3px; background:var(--sunk); border-radius:9px; margin-left:auto; }
-  [role=tab] { border:0; background:transparent; min-height:40px; padding:8px 16px; border-radius:7px; cursor:pointer; color:var(--muted); font-weight:500; }
-  [role=tab]:hover { color:var(--fg); }
-  [role=tab][aria-selected=true] { background:var(--surface); color:var(--accent); font-weight:600; box-shadow:0 1px 2px rgba(20,30,50,.12); }
+  header { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px 28px; padding:14px 28px;
+           background:#0e1525; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:18px; letter-spacing:-.04em; font-weight:700; }
+  header p { margin:0; color:var(--subtle); font-size:10px; text-transform:uppercase; letter-spacing:.14em; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand-mark { display:grid; place-items:center; width:40px; height:40px; border:1px solid #385470; background:var(--accent-soft); color:var(--accent); border-radius:12px; }
+  .brand-mark .icon { width:25px; height:25px; }
+  .repo-link { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; text-decoration:none; min-height:40px; }
+  .repo-link:hover { color:var(--fg); }
+  [role=tablist] { display:flex; gap:4px; padding:4px; background:var(--bg); border:1px solid var(--line); border-radius:10px; margin-left:auto; }
+  [role=tab] { display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid transparent; background:transparent; min-height:40px; padding:8px 14px; border-radius:7px; cursor:pointer; color:var(--muted); font-weight:500; }
+  [role=tab]:hover { color:var(--fg); background:var(--surface); }
+  [role=tab][aria-selected=true] { background:var(--accent-soft); color:var(--accent); border-color:#345778; font-weight:600; }
 
   /* ---- layout ---- */
   /* --detail-w is set by dragging the panel edge (#detail-resize); unset = the default width of each view. */
   main { display:grid; grid-template-columns:minmax(0,1fr) var(--detail-w, 370px); align-items:start; }
-  #stage { grid-column:1; grid-row:1; padding:24px 24px 40px; min-width:0; }
+  main.catalog-layout { grid-template-columns:minmax(0,1fr) var(--detail-w, min(680px,52%)); }
+  #stage { grid-column:1; grid-row:1; padding:30px 28px 48px; min-width:0; }
   #detail { grid-column:2; grid-row:1; }
   #detail-resize { grid-column:2; grid-row:1; justify-self:start; align-self:start; position:sticky; top:var(--header-height, 80px); z-index:3;
                    width:10px; margin-left:-5px; height:calc(100vh - var(--header-height, 80px)); cursor:col-resize; touch-action:none; }
@@ -51,10 +64,10 @@
   #detail-resize:focus-visible { outline:none; }
   #detail-resize:focus-visible::after { background:var(--accent); width:4px; left:3px; }
   main.resizing { cursor:col-resize; user-select:none; }
-  #detail { position:sticky; top:var(--header-height, 80px); max-height:calc(100vh - var(--header-height, 80px)); overflow:auto; background:var(--surface);
+  #detail { position:sticky; top:var(--header-height, 80px); max-height:calc(100vh - var(--header-height, 80px)); overflow:auto; background:#101828;
             border-left:1px solid var(--line); padding:20px 24px 32px; min-height:calc(100vh - var(--header-height, 80px)); }
-  .view-heading { margin:0 0 4px; font-size:24px; line-height:1.25; letter-spacing:-.025em; }
-  .intro { margin:0 0 16px; color:var(--muted); font-size:14px; max-width:80ch; }
+  .view-heading { margin:0 0 9px; font-size:clamp(25px,2.3vw,34px); font-weight:650; line-height:1.2; letter-spacing:-.04em; }
+  .intro { margin:0 0 20px; color:var(--muted); font-size:14px; max-width:80ch; }
   .starts-heading { margin:0 0 8px; font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; }
 
   /* ---- shared bits ---- */
@@ -62,14 +75,15 @@
   .badge { display:inline-block; background:var(--review-soft); color:var(--review); border:1px solid var(--review-line);
            border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600; }
   .tag { display:inline-block; background:var(--sunk); color:var(--muted); border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600; }
-  .chip-out { display:inline-block; font:12px var(--mono); background:#edf6ef; color:#1d5130; border:1px solid #b7d9c0; border-radius:6px; padding:1px 7px; }
+  .chip-out { display:inline-block; font:12px var(--mono); background:var(--out-soft); color:var(--out); border:1px solid #315e55; border-radius:6px; padding:4px 7px; }
   code { font:12.5px var(--mono); background:var(--sunk); padding:1px 5px; border-radius:4px; }
 
   /* ---- module map ---- */
   .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin:0 0 12px; }
   .search-label { font-size:13px; font-weight:600; }
   .search { position:relative; flex:1 1 280px; }
-  .search input { width:100%; min-height:44px; padding:9px 44px 9px 12px; border:1px solid var(--line-strong); border-radius:7px; font:inherit; font-size:14px; background:var(--surface); }
+  .search input { width:100%; min-height:44px; padding:9px 44px 9px 40px; border:1px solid var(--line-strong); border-radius:9px; font:inherit; font-size:14px; background:var(--sunk); }
+  .search > .icon { position:absolute; left:13px; top:14px; color:var(--muted); pointer-events:none; }
   .search input:focus-visible { outline-offset:0; }
   .search .clear { position:absolute; right:2px; top:50%; transform:translateY(-50%); width:40px; height:40px; border:0; background:none; cursor:pointer; color:var(--muted); font-size:20px; }
   .count { font-size:13px; color:var(--muted); min-width:9ch; }
@@ -92,7 +106,7 @@
   .lane-head:hover b { color:var(--accent); }
   .lane.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
   .node { position:relative; z-index:2; display:flex; align-items:center; gap:8px; width:100%; min-height:58px; margin-top:8px; padding:9px 12px;
-          text-align:left; background:#fbfcfd; border:1px solid var(--line); border-radius:7px; cursor:pointer;
+          text-align:left; background:var(--sunk); border:1px solid var(--line); border-radius:8px; cursor:pointer;
           font-size:13.5px; line-height:1.3; transition:opacity .12s, border-color .12s; }
   .node .t { flex:1; min-width:0; }
   .node .nm { display:block; font-weight:600; overflow-wrap:anywhere; }
@@ -110,9 +124,9 @@
   .node.out { border-color:var(--out); }
   .node.in { border-color:var(--in); border-style:dashed; }
   .node.out, .node.in { margin-top:16px; }
-  .node.sel { background:var(--accent); border:1px solid var(--accent); color:#fff; }
-  .node.sel .flag { color:#fff; }
-  .node.sel .role { color:#e6eefc; }
+  .node.sel { background:var(--accent-soft); border:1px solid var(--accent); color:var(--fg); box-shadow:0 0 0 1px var(--accent); }
+  .node.sel .flag { color:var(--review); }
+  .node.sel .role { color:#bad3ec; }
   .other { display:block; width:100%; margin-top:6px; padding:4px 9px; text-align:left; border:1px dashed var(--line-strong);
            background:none; border-radius:7px; cursor:pointer; font-size:12.5px; color:var(--muted); }
   .other:hover { color:var(--accent); border-color:var(--accent-line); }
@@ -120,10 +134,10 @@
   .searching .node:not(.match), .searching .other:not(.match), .searching .lane.nomatch { display:none; }
   .no-results { padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); color:var(--muted); }
   .node.match, .other.match { background:var(--match); border-color:var(--match-line); opacity:1; }
-  .node.sel.match { background:var(--accent); }
+  .node.sel.match { background:var(--accent-soft); }
   .edges { position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; overflow:visible; }
   .edges path { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
-  .edges path.halo { stroke:#fff; stroke-width:6; stroke-opacity:.9; }
+  .edges path.halo { stroke:var(--bg); stroke-width:6; stroke-opacity:.9; }
   .edges .e-out { stroke:var(--out); }
   .edges .e-in { stroke:var(--in); stroke-dasharray:6 4; }
 
@@ -144,7 +158,7 @@
   .connection-map .node + .node { margin-top:10px; }
   .connection-map .node.out { border-left:3px solid var(--out); }
   .connection-map .node.in { border-left:3px dashed var(--in); }
-  .connection-map .node.sel { background:var(--accent); }
+  .connection-map .node.sel { background:var(--accent-soft); }
   .connection-map .node.out:hover, .connection-map .node.out:focus-visible { background:var(--out-soft); border-color:var(--out); }
   .connection-map .node.in:hover, .connection-map .node.in:focus-visible { background:var(--in-soft); border-color:var(--in); }
   .connection-folder { display:flex; align-items:center; gap:5px; margin-bottom:4px; font-size:11px; line-height:1.3; color:var(--muted); }
@@ -172,8 +186,7 @@
   .phase-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 8px; }
   .phase-head h3 { margin:0; font-size:16px; }
   .phase-head p { margin:0; color:var(--muted); font-size:13.5px; }
-  .phase.loop { background:#eef2f8; border-color:#d3dbe8; }
-  .phase.loop .phase-head h3::before { content:"\21BB"; margin-right:6px; color:var(--accent); font-weight:400; }
+  .phase.loop { background:#101a2b; border-color:var(--line); }
   ol.steps { list-style:none; margin:0; padding:0; }
   ol.steps > li { position:relative; padding:0 0 10px 46px; }
   ol.steps > li::before { content:""; position:absolute; left:15px; top:30px; bottom:-2px; width:2px; background:var(--muted); }
@@ -185,20 +198,20 @@
   .card { display:block; width:100%; text-align:left; font:inherit; color:inherit; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; cursor:pointer; }
   .card:hover { border-color:var(--accent-line); }
   .card:not([aria-current=true]):hover { border-color:var(--accent); }
-  .card[aria-current=true] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:#fbfdff; }
-  li:has(> .card[aria-current=true]) > .num { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .card[aria-current=true] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:var(--accent-soft); }
+  li:has(> .card[aria-current=true]) > .num { border-color:var(--accent); background:var(--accent); color:var(--bg); }
   .card.review { border-style:dashed; border-color:var(--review-line); }
   .card-title { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-weight:600; }
   .card-sum { color:var(--muted); font-size:14px; margin-top:2px; }
   .fork { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; margin:6px 0 0; padding:0; list-style:none; }
-  .fork li { border:1px solid var(--line); border-left:3px solid var(--line-strong); border-radius:6px; padding:6px 10px; font-size:13.5px; background:#fafbfc; }
+  .fork li { border:1px solid var(--line); border-left:3px solid var(--line-strong); border-radius:6px; padding:6px 10px; font-size:13.5px; background:var(--sunk); }
   .fork li.current { border-color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); }
   .fork li.skipped > span { font-style:italic; }
   .fork b { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; }
   .fork b small { font-weight:400; color:var(--muted); }
   .fork .shown { margin-left:auto; font-size:11.5px; color:var(--accent); }
   .fork li > span { display:block; color:var(--muted); }
-  /* chemistry-mode chooser under step 2 of the run flow */
+  /* chemistry-mode chooser above the run timeline */
   .mode-pick { margin:8px 0 0; padding:4px 12px 10px; border:1px solid var(--accent-line); border-radius:var(--radius); background:var(--surface); min-width:0; }
   .mode-pick legend { padding:0 4px; font-size:12.5px; font-weight:600; color:var(--muted); }
   .mode-pick .opts { display:flex; flex-wrap:wrap; gap:6px; }
@@ -270,13 +283,13 @@
   .mods .link span { display:block; font-size:12.5px; color:var(--muted); line-height:1.35; }
   .mods .link:hover span { color:var(--muted); }
   #detail .role-sub { margin:-4px 0 8px; color:var(--muted); font-size:14px; }
-  details.code { margin-top:18px; border:1px solid var(--line); border-radius:var(--radius); background:#fafbfc; }
+  details.code { margin-top:18px; border:1px solid var(--line); border-radius:var(--radius); background:var(--sunk); }
   details.code > summary { cursor:pointer; font-weight:600; padding:8px 12px; }
   details.b-reactions { margin-top:10px; }
   details.b-reactions > summary { cursor:pointer; font-weight:600; }
   details.code > div { padding:0 12px 10px; }
   ul.files { list-style:none; padding:0; margin:4px 0 0; }
-  ul.files li { display:flex; gap:8px; align-items:flex-start; padding:4px 0; border-top:1px solid #edf0f3; }
+  ul.files li { display:flex; gap:8px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--line); }
   ul.files li:first-child { border-top:0; }
   ul.files a { text-decoration:none; min-width:0; flex:1; }
   ul.files a:hover .fn { text-decoration:underline; }
@@ -314,18 +327,17 @@
   .card[aria-current=true] { border:2px solid var(--accent); padding:13px 15px; background:var(--accent-soft); }
   .flow .card[aria-current=true] { padding:8px 13px; }
   #detail .fork { grid-template-columns:1fr; }
-  .node.sel .nm::before { content:'✓ '; }
+  .node.sel .nm { color:var(--accent); }
   .chip-out, code { overflow-wrap:anywhere; }
   #detail h2:focus { outline-offset:4px; }
 
   /* ---- macro builder: guide in #stage, live preview in #detail ---- */
-  :root { --bad:#a3271f; --bad-soft:#fdeeec; --ok:#1d6b3a; --ok-soft:#eaf6ee; }
   main.building { grid-template-columns:minmax(0,1fr) var(--detail-w, minmax(370px,42%)); }
   .b-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 14px; }
   .b-btn { min-height:40px; padding:7px 14px; border:1px solid var(--line-strong); border-radius:7px; background:var(--surface); cursor:pointer; font-size:13.5px; font-weight:600; }
   .b-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
-  .b-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .b-btn.primary:hover:not(:disabled) { background:#174ca8; color:#fff; }
+  .b-btn.primary { background:var(--accent); border-color:var(--accent); color:#0b1828; }
+  .b-btn.primary:hover:not(:disabled) { background:#a7daff; color:#0b1828; }
   .b-btn.danger { border-color:var(--bad); color:var(--bad); }
   .b-btn:disabled { cursor:not-allowed; color:var(--muted); background:var(--sunk); border-color:var(--line); }
   .b-btn.small { min-height:34px; padding:4px 10px; font-size:13px; }
@@ -336,7 +348,7 @@
   .b-steps button:hover { border-color:var(--accent); }
   .b-steps button[aria-current=step] { border:2px solid var(--accent); padding:6px 9px; background:var(--accent-soft); }
   .b-steps .n { flex:none; display:grid; place-items:center; width:22px; height:22px; border-radius:50%; border:2px solid var(--line-strong); font-weight:700; font-size:12px; color:var(--muted); }
-  .b-steps button[aria-current=step] .n { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .b-steps button[aria-current=step] .n { background:var(--accent); border-color:var(--accent); color:var(--bg); }
   .b-steps .top { display:flex; gap:6px; align-items:center; }
   .b-steps b { font-weight:600; }
   .b-steps .st { display:block; margin-top:3px; font-size:12px; color:var(--muted); }
@@ -387,9 +399,9 @@
   .b-issues { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
   .b-issue { padding:7px 10px; border-radius:6px; font-size:13.5px; border:1px solid; }
   .b-issue .k { font-weight:700; margin-right:4px; }
-  .b-issue.error { border-color:var(--bad); background:var(--bad-soft); color:#5c140f; }
-  .b-issue.warning { border-color:var(--review-line); background:var(--review-soft); color:#5a3500; }
-  .b-issue.info { border-color:var(--accent-line); background:var(--accent-soft); color:#163c80; }
+  .b-issue.error { border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
+  .b-issue.warning { border-color:var(--review-line); background:var(--review-soft); color:var(--review); }
+  .b-issue.info { border-color:var(--accent-line); background:var(--accent-soft); color:var(--accent); }
   .b-issue .acts { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   .b-tech { margin-top:8px; font-size:13px; }
   .b-tech > summary { cursor:pointer; color:var(--accent); font-weight:600; min-height:28px; }
@@ -406,19 +418,169 @@
   .b-sum dt { color:var(--muted); }
   .b-sum dd { margin:0; overflow-wrap:anywhere; }
   .b-status { display:flex; gap:8px; align-items:flex-start; padding:8px 10px; border-radius:7px; border:1px solid; font-size:13.5px; }
-  .b-status.bad { border-color:var(--bad); background:var(--bad-soft); color:#5c140f; }
-  .b-status.ok { border-color:var(--ok); background:var(--ok-soft); color:#123f22; }
+  .b-status.bad { border-color:var(--bad); background:var(--bad-soft); color:var(--bad); }
+  .b-status.ok { border-color:#326452; background:var(--ok-soft); color:var(--ok); }
   .b-status .ic { font-weight:700; }
-  .b-pre { margin:8px 0 0; padding:10px 0; background:#f7f8fa; border:1px solid var(--line); border-radius:7px; font:12.5px/1.5 var(--mono); overflow:auto; max-height:60vh; white-space:pre-wrap; overflow-wrap:anywhere; counter-reset:bline; }
+  .b-pre { margin:8px 0 0; padding:16px 0; background:#0b1220; color:#c6ddf5; border:1px solid var(--line); border-radius:9px; font:12.5px/1.8 var(--mono); overflow:auto; max-height:60vh; white-space:pre-wrap; overflow-wrap:anywhere; counter-reset:bline; tab-size:2; }
   .b-pre span { display:block; padding:0 10px 0 40px; position:relative; min-height:1.5em; }
-  .b-pre span::before { counter-increment:bline; content:counter(bline); position:absolute; left:0; width:30px; text-align:right; color:#666e7c; user-select:none; }
-  .b-pre span.c { color:#4f5866; }
+  .b-pre span::before { counter-increment:bline; content:counter(bline); position:absolute; left:0; width:30px; text-align:right; color:var(--subtle); user-select:none; }
+  .b-pre span.c { color:#91a3bb; }
   .b-pre span.bad { background:var(--bad-soft); box-shadow:inset 3px 0 0 var(--bad); }
   .b-pre span.bad::after { content:'  \2190 fix'; color:var(--bad); font-weight:700; user-select:none; }
   .b-file { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .b-export { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
   .b-note { font-size:13px; color:var(--muted); }
   .b-review h4 { margin:16px 0 6px; font-size:14px; }
+
+  /* Portal components. Icons are local SVG paths; no fonts or runtime assets. */
+  .icon { display:inline-block; flex:none; width:16px; height:16px; vertical-align:-3px; pointer-events:none; }
+  .view-eyebrow { display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--accent); font-size:11px; font-weight:650; letter-spacing:.12em; text-transform:uppercase; }
+  .view-stats { display:flex; flex-wrap:wrap; gap:8px 22px; margin:0 0 24px; color:var(--muted); font-size:12px; }
+  .view-stats span { display:flex; align-items:center; gap:6px; }
+  .view-stats b { font-weight:600; color:var(--fg); }
+  .entry-points { gap:10px; margin-bottom:24px; }
+  .entry-points button { position:relative; padding:14px 32px 14px 14px; background:linear-gradient(120deg,#182b40,var(--surface)); border-color:#31465e; transition:border-color .15s,background .15s; }
+  .entry-points button > .icon { position:absolute; right:12px; top:16px; color:var(--accent); }
+  .entry-points b { line-height:1.45; }
+  .entry-points span { font:11px/1.5 var(--mono); margin-top:6px; }
+  .toolbar { padding:12px; border:1px solid var(--line); background:var(--surface); border-radius:var(--radius); }
+  .search-label { font-size:12px; }
+  .legend { gap:8px 14px; font-size:11px; margin-bottom:12px; }
+  .legend > span { display:inline-flex; gap:4px; align-items:center; }
+  .legend .rel { font-size:11px; border:0; background:none; padding:0; }
+  .map-scope { margin-bottom:0; }
+  .map-wrap { padding-top:32px; }
+  .lane { border-radius:12px; padding:14px; box-shadow:var(--shadow); }
+  .lane-head > .icon { color:var(--accent); }
+  .lane-head b { font-size:14px; }
+  .lane-summary { font-size:12px; margin:6px 2px 12px; }
+  .node .nm { font-size:12.5px; font-family:var(--mono); font-weight:600; }
+  .node .role { font-size:12.5px; }
+  .node > .icon { color:var(--subtle); width:14px; height:14px; }
+  .node.review { border-color:var(--line-strong); }
+  .node.review:hover { border-color:var(--review); }
+  .node.sel.review { border-color:var(--accent); }
+  .node.out.review { border-color:var(--out); border-style:solid; }
+  .node.in.review { border-color:var(--in); }
+  .connection-map { margin-top:16px; padding:20px 8px 12px; border-top:1px solid var(--line); }
+  .connection-map .node { box-shadow:var(--shadow); }
+  .connection-heading { font-size:11px; }
+  .connection-hub .connection-heading { color:var(--accent); }
+  .connection-map .node.sel { padding-top:18px; padding-bottom:18px; }
+  #stage.connections-mode > .view-stats { display:none; }
+  .detail-nav:empty { display:none; }
+  #detail h2 { font-size:22px; letter-spacing:-.035em; }
+  #detail .lead { font-size:14px; line-height:1.8; }
+  #detail h3 { display:flex; align-items:center; gap:7px; margin-top:24px; font-size:10.5px; }
+  .kicker { font-size:11px; margin-bottom:10px; }
+  .badge { display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:4px 9px; border-radius:6px; }
+  .welcome-symbol { display:grid; place-items:center; width:52px; height:52px; margin:8px 0 22px; background:var(--accent-soft); border:1px solid #345778; border-radius:14px; color:var(--accent); }
+  .welcome-symbol .icon { width:26px; height:26px; }
+  .welcome-steps { margin:24px 0; padding:0; list-style:none; counter-reset:welcome; }
+  .welcome-steps li { position:relative; padding:0 0 20px 34px; color:var(--muted); font-size:13px; }
+  .welcome-steps li::before { counter-increment:welcome; content:counter(welcome); position:absolute; left:0; top:1px; width:22px; height:22px; display:grid; place-items:center; border:1px solid var(--line-strong); border-radius:7px; color:var(--accent); font:11px var(--mono); }
+  .welcome-steps b { display:block; color:var(--fg); margin-bottom:3px; }
+  .portal-links { display:grid; gap:8px; }
+  .portal-link { display:flex; align-items:center; gap:10px; padding:12px; background:var(--surface); border:1px solid var(--line); border-radius:8px; text-decoration:none; color:var(--fg); font-size:12px; }
+  .portal-link .icon { color:var(--accent); }
+  .portal-link .icon:last-child { margin-left:auto; width:14px; }
+  .portal-link:hover { border-color:var(--accent); background:var(--raised); }
+  .keyboard-note { margin-top:28px; border-top:1px solid var(--line); padding-top:18px; font-size:11px; color:var(--muted); }
+  kbd { display:inline-block; padding:1px 5px; border:1px solid var(--line-strong); border-bottom-width:2px; border-radius:4px; font:11px var(--mono); }
+  .phase-rail { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:7px; margin:0 0 16px; }
+  .phase-jump { display:flex; flex-direction:column; align-items:flex-start; gap:7px; min-width:0; padding:12px 10px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--fg); text-align:left; cursor:pointer; }
+  .phase-jump .phase-index { display:flex; align-items:center; justify-content:space-between; width:100%; color:var(--accent); font:11px var(--mono); }
+  .phase-jump b { font-size:11px; font-weight:600; overflow-wrap:anywhere; }
+  .phase-jump small { font-size:10px; color:var(--muted); }
+  .phase-jump:hover, .phase-jump[aria-current=true] { border-color:var(--accent); background:var(--accent-soft); }
+  .phase-jump.is-skipped { border-style:dashed; }
+  .phase-jump.is-skipped .phase-index, .phase-jump.is-skipped small { color:var(--review); }
+  .flow-settings { padding:14px; margin-bottom:24px; background:var(--surface); border:1px solid var(--line); border-radius:12px; }
+  .flow-settings .mode-pick { margin:0; padding:0; border:0; background:none; }
+  .flow-settings .mode-pick + .mode-pick { margin-top:12px; }
+  .flow-settings .mode-pick legend { padding:0 0 8px; font-size:11px; }
+  .flow-settings .mode-pick label { border-radius:6px; min-height:36px; padding:5px 10px; font-size:12px; }
+  .flow .phase { padding:18px 16px 8px; margin-bottom:18px; background:var(--sunk); }
+  .flow .phase-head { align-items:flex-start; gap:12px; margin-bottom:16px; }
+  .phase-symbol { width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--line-strong); border-radius:10px; color:var(--accent); background:var(--surface); flex:none; }
+  .phase-head h3 { font-size:15px; line-height:1.4; }
+  .phase-head h3:focus { outline-offset:5px; }
+  .phase-head p { max-width:68ch; font-size:12px; }
+  .phase-head .phase-order { color:var(--subtle); margin-right:7px; font:11px var(--mono); }
+  .phase-meta { display:flex; gap:6px; align-items:center; font-size:10px; margin-top:5px; color:var(--subtle); }
+  .phase-meta .icon { width:12px; height:12px; }
+  ol.steps > li::before { background:var(--line-strong); }
+  ol.steps > li:not(:last-child)::after { border-color:var(--line-strong); }
+  .num { width:30px; height:30px; font:12px var(--mono); border-width:1px; border-radius:9px; }
+  .flow .card { padding:12px 14px; }
+  .flow .card[aria-current=true] { padding:11px 13px; }
+  .flow .card-sum { display:block; font-size:12px; margin-top:4px; }
+  .flow .card-mode { font-size:12px; }
+  .flow li.skipped .card { background:var(--bg); border-style:dashed; opacity:1; }
+  .flow li.skipped .tag { color:var(--review); background:var(--review-soft); }
+  .flow li.skipped .num { border-style:dashed; color:var(--review); }
+  .tasks-group > h3 { display:flex; align-items:center; gap:9px; }
+  .tasks-group > h3 .icon { color:var(--accent); }
+  .tasks-group > .intro { font-size:12px; margin-top:-8px; }
+  .tasks { gap:12px; grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr)); }
+  .tasks .card { display:flex; flex-direction:column; align-items:stretch; padding:16px; border-radius:12px; }
+  .task-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .task-symbol { display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:9px; background:var(--sunk); color:var(--accent); }
+  .task-top > .icon { color:var(--subtle); width:14px; }
+  .tasks .card-title { font-size:14px; }
+  .tasks .card-sum { font-size:12px; margin-top:6px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .tasks .meta { font-size:11px; display:flex; align-items:center; gap:6px; padding-top:14px; margin-top:auto; }
+  .tasks .meta .icon { width:13px; height:13px; }
+  .cat { font-size:12px; }
+  .cat th, .cat td { padding:9px 12px; }
+  .cat tbody tr:nth-child(even) { background:#ffffff03; }
+  .cat tbody tr:hover { background:#ffffff07; }
+  .cat thead th { color:var(--muted); }
+  .cat caption { padding:10px 12px; }
+  .reaction-table .cat td.mono { min-width:220px; }
+  .cat-filter { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .cat-filter input { flex:1 1 140px; min-width:0; min-height:40px; border:1px solid var(--line-strong); border-radius:7px; padding:7px 10px; background:var(--bg); color:var(--fg); }
+  .table-hint { display:block; margin-top:4px; font-size:11px; font-weight:400; color:var(--muted); }
+  .mode-context { margin-top:14px; padding:10px 12px; background:var(--accent-soft); border-left:2px solid var(--accent); border-radius:0 7px 7px 0; font-size:12px; }
+  .mode-context.skipped { background:var(--review-soft); border-color:var(--review); }
+  .mode-context b { display:block; color:var(--accent); margin-bottom:3px; }
+  .mode-context.skipped b { color:var(--review); }
+  .mode-comparison > summary { cursor:pointer; color:var(--muted); margin-top:10px; font-size:12px; }
+  .b-progress { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; font-size:11px; color:var(--muted); margin-bottom:8px; }
+  .b-progress b { color:var(--fg); font-weight:500; }
+  .b-progress meter { flex-basis:100%; width:100%; height:5px; appearance:none; border:0; background:var(--line); border-radius:3px; }
+  .b-progress meter::-webkit-meter-bar { height:5px; border:0; background:var(--line); }
+  .b-progress meter::-webkit-meter-optimum-value { background:var(--accent); }
+  .b-progress meter::-moz-meter-bar { background:var(--accent); }
+  .b-steps { display:flex; overflow-x:auto; gap:6px; padding:3px 2px 8px; margin-bottom:18px; }
+  .b-steps > li { flex:1 0 100px; min-width:0; }
+  .b-steps .n { width:20px; height:20px; border-width:1px; border-radius:6px; font-size:10px; }
+  .b-steps b { font-size:11px; }
+  .b-steps .st { font-size:10px; padding-left:26px; }
+  .b-steps .st .icon { width:11px; height:11px; }
+  .b-panel > h3 { display:flex; align-items:center; gap:8px; font-size:19px; }
+  .b-panel > h3 .icon, .b-group > h4 .icon { color:var(--accent); }
+  .b-field { padding:18px; border-radius:11px; }
+  .b-help { margin-top:5px; margin-bottom:12px; font-size:12px; }
+  .b-opt { padding:12px; }
+  .b-opt small { font-size:12px; margin-top:3px; }
+  [data-bfield=logLevel] .b-opts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .b-field.unavailable { border-style:dashed; }
+  .b-field.unavailable .b-label, .b-field.unavailable legend { color:var(--muted); }
+  .b-input input[type=text], .b-input select { background:var(--bg); }
+  .b-btn .icon { margin-right:6px; }
+  .b-status { font-size:12px; padding:12px; }
+  .b-status > .icon { margin-top:2px; }
+  .b-summary { margin:14px 0; border-bottom:1px solid var(--line); }
+  .b-summary > summary { cursor:pointer; color:var(--muted); font-size:12px; padding:0 0 10px; }
+  .preview-title { display:flex; align-items:center; gap:8px; }
+  .preview-title > .icon { color:var(--accent); }
+  .preview-file { display:flex; align-items:center; gap:7px; color:var(--muted); font:11px var(--mono); }
+  .b-pre span.command { color:#a5d7ff; }
+  .b-pre span.initialize { color:var(--out); background:#64d8c009; }
+  .b-req { font-size:10px; }
+  .b-tech > summary { font-size:11px; font-weight:500; }
+  @media (max-width:1150px) { .repo-link { display:none; } .phase-rail { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 
   /* ---- narrow screens ---- */
   @media (max-width: 900px) {
@@ -431,6 +593,10 @@
     .b-switch button[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
     .b-switch small { display:block; font-weight:400; font-size:12px; }
     .b-pre { max-height:none; }
+    .brand-mark { width:34px; height:34px; border-radius:9px; }
+    header { gap:10px 18px; }
+    .view-stats { margin-bottom:18px; }
+    .phase-rail { grid-template-columns:repeat(6,minmax(0,1fr)); }
     main { display:block; }
     #detail-resize { display:none; }
     #detail { position:static; overflow:visible; max-height:none; min-height:0; border-left:0; border-top:1px solid var(--line); }
@@ -466,8 +632,32 @@
     header, #stage, #detail { padding-left:12px; padding-right:12px; }
     header { gap:10px; padding-top:12px; padding-bottom:12px; }
     [role=tablist] { width:100%; }
-    [role=tab] { flex:1; padding-left:8px; padding-right:8px; }
-    .view-heading { font-size:22px; }
+    [role=tab] { flex:1; flex-direction:column; gap:4px; padding:7px 3px; font-size:10px; white-space:nowrap; }
+    [role=tablist] { gap:2px; }
+    .view-heading { font-size:27px; }
+    #stage { padding-top:22px; }
+    .view-eyebrow { font-size:10px; }
+    .view-stats { gap:10px; font-size:10px; }
+    .entry-points { display:grid; grid-template-columns:1fr; }
+    .entry-points button { padding:11px 32px 11px 12px; }
+    .entry-points span { margin-top:3px; }
+    .toolbar { gap:8px; }
+    .search { flex-basis:100%; }
+    .count { font-size:11px; }
+    .legend { gap:8px 10px; }
+    .legend > span:first-child { flex-basis:100%; }
+    .phase-rail { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .phase-jump { padding:10px; }
+    .flow-settings .mode-pick label { width:auto; flex:1 1 100px; }
+    .flow .phase-head { gap:8px; }
+    .phase-head > div { flex:1; min-width:0; }
+    .phase-head p { font-size:11px; }
+    .b-tools { gap:8px; }
+    .b-tools .b-note { flex-basis:100%; font-size:11px; }
+    .b-tools .b-btn { font-size:11px; padding:6px 9px; }
+    .b-field { padding:14px; }
+    .b-steps > li { flex:0 0 126px; }
+    .b-pager .b-btn { font-size:12px; }
     .search-label { flex-basis:100%; }
     .flow .phase { padding:12px 8px 2px; }
     .phase-head { gap:2px; }
@@ -482,11 +672,12 @@
 <body>
 <a class="skip" href="#stage">Skip to explorer</a>
 <header>
-  <div>
-    <h1>dnachem-min architecture explorer</h1>
-    <p>How the simulation is organised, how one run proceeds, and where to start for common tasks.</p>
+  <div class="brand">
+    <span class="brand-mark" id="brand-mark" aria-hidden="true"></span>
+    <div><h1>dnachem-min</h1><p>Architecture explorer</p></div>
   </div>
   <div role="tablist" id="tabs" aria-label="Views"></div>
+  <a class="repo-link" href="https://github.com/rtonneau/dnachem-min" target="_blank" rel="noopener" id="repo-link">Source on GitHub</a>
 </header>
 <main>
   <section id="stage" role="tabpanel" tabindex="-1"></section>
@@ -541,6 +732,48 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     for (const k in (attrs || {})) e.setAttribute(k, attrs[k]);
     return e;
   }
+  // One stroke-based SVG family, embedded in the standalone page. All icons are
+  // decorative: their adjacent text (or the control's aria-label) names the action.
+  const ICONS = {
+    map: 'M9 3H3v6h6ZM21 3h-6v6h6ZM15 15H9v6h6ZM6 9v3h12V9M12 12v3',
+    flow: 'M6 3v14a4 4 0 0 0 4 4h8M3 6l3-3 3 3M15 18l3 3-3 3M6 10h9a3 3 0 0 0 3-3V3',
+    book: 'M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1ZM12 5v15',
+    terminal: 'm4 7 5 5-5 5M12 17h8',
+    atom: 'M12 3c4 0 7 4 7 9s-3 9-7 9-7-4-7-9 3-9 7-9ZM4 7c2-3 7-3 12 0s7 7 4 10-7 3-12 0-7-7-4-10ZM12 12h.01',
+    box: 'm12 3 9 5v9l-9 5-9-5V8ZM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5',
+    folder: 'M3 7V4h6l2 3h10v13H3ZM3 7h8',
+    bolt: 'm13 2-9 12h7l-1 8 10-12h-7Z',
+    flask: 'M9 3h6M10 3v7L4 19a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2l-6-9V3M7 15h10',
+    sliders: 'M4 6h5m4 0h7M4 12h9m4 0h3M4 18h2m4 0h10M9 3v6M13 9v6M6 15v6',
+    chart: 'M3 3v18h18M7 16v-5m5 5V7m5 9v-3',
+    check: 'm5 12 4 4L19 6',
+    shield: 'm12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Zm-4 9 3 3 5-6',
+    arrow: 'M4 12h16m-6-6 6 6-6 6',
+    external: 'M14 3h7v7m0-7L10 14M10 3H3v18h18v-7',
+    search: 'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm5 12 6 6',
+    info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 11v6M12 7h.01',
+    warning: 'm12 3 10 18H2ZM12 9v5m0 3h.01',
+    file: 'M14 2H4v20h16V8ZM14 2v6h6M8 12h8m-8 4h6',
+    copy: 'M9 9h12v12H9ZM5 15H3V3h12v2',
+    clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM12 7v5l3 2',
+    grid: 'M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z',
+    play: 'm7 3 14 9-14 9Z',
+    download: 'M12 3v12m-5-5 5 5 5-5M4 15v6h16v-6',
+    reset: 'M3 11a9 9 0 1 1 3 8M3 3v8h8',
+    loop: 'm17 2 4 4-4 4M3 11V8a2 2 0 0 1 2-2h16M7 22l-4-4 4-4m14-1v3a2 2 0 0 1-2 2H3',
+    close: 'm6 6 12 12M6 18 18 6'
+  };
+  function icon(name) {
+    const s = svg('svg', { class: 'icon', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false' });
+    s.appendChild(svg('path', { d: ICONS[name] || ICONS.box }));
+    return s;
+  }
+  const VIEW_ICONS = { map:'map', flow:'flow', tasks:'book', builder:'terminal' };
+  const LANE_ICONS = { app:'play', actions:'flow', physics:'bolt', geometry:'box', chemistry:'flask', scoring:'chart', core:'sliders', macro:'terminal', test:'shield' };
+  const PHASE_ICONS = { setup:'sliders', physical:'bolt', prechem:'flask', hetero:'atom', meso:'grid', output:'file' };
+  const STEP_ICONS = { basics:'file', chemistry:'flask', timing:'clock', environment:'box', beam:'bolt', runs:'play', review:'shield' };
+  document.getElementById('brand-mark').appendChild(icon('atom'));
+  document.getElementById('repo-link').appendChild(icon('external'));
   function onActivate(node, fn) {
     node.addEventListener('click', fn);
     if (node.tagName !== 'BUTTON') {
@@ -551,8 +784,9 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   }
   function flagEl() {
     return el('span', { class: 'flag', title: 'Summary awaiting physics review' },
-      [el('span', { 'aria-hidden': 'true', text: '⚑' }), el('span', { class: 'sr-only', text: 'Summary awaiting physics review' })]);
+      [icon('warning'), el('span', { class: 'sr-only', text: 'Summary awaiting physics review' })]);
   }
+  function reviewBadge() { return el('span', { class: 'badge' }, [icon('warning'), 'Summary awaiting physics review']); }
 
   // ---- indexes (computed from the JSON; nothing here is curated) ----
   const nodeById = {}, laneOfNode = {}, laneById = {}, nodesOfFile = {};
@@ -628,15 +862,15 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       const path = f.split('#')[0];
       const d = describePath(f);
       const a = el('a', { href: REPO + f, target: '_blank', rel: 'noopener' }, [
-        el('span', { class: 'fn' }, [d.kind && asDocs ? el('span', { class: 'fk', text: d.kind }) : null, d.name]),
+        el('span', { class: 'fn' }, [icon(asDocs ? 'book' : 'file'), ' ', d.kind && asDocs ? el('span', { class: 'fk', text: d.kind }) : null, d.name]),
         el('span', { class: 'fd', text: d.sub })
       ]);
-      const btn = el('button', { class: 'copy', type: 'button', text: 'Copy', 'aria-label': 'Copy path ' + path, title: 'Copy ' + path });
+      const btn = el('button', { class: 'copy', type: 'button', 'aria-label': 'Copy path ' + path, title: 'Copy ' + path }, [icon('copy')]);
       btn.addEventListener('click', function () {
         const show = function (msg) {
           btn.textContent = msg;
           document.getElementById('copy-status').textContent = msg === 'Copied' ? 'Copied path: ' + path : 'Could not copy path: ' + path;
-          setTimeout(function () { btn.textContent = 'Copy'; }, 1400);
+          setTimeout(function () { btn.replaceChildren(icon('copy')); }, 1400);
         };
         copyText(path).then(function () { show('Copied'); }, function () { show('Failed'); });
       });
@@ -656,7 +890,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       symbols.forEach(function (s, i) { if (i) p.appendChild(document.createTextNode(' ')); p.appendChild(el('code', { text: s })); });
       inner.appendChild(p);
     }
-    const d = el('details', { class: 'code', open: codeOpen ? '' : null }, [el('summary', { text: label }), inner]);
+    const d = el('details', { class: 'code', open: codeOpen ? '' : null }, [el('summary', {}, [icon('file'), ' ', label]), inner]);
     d.addEventListener('toggle', function () { codeOpen = d.open; });
     return d;
   }
@@ -676,7 +910,8 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   }
   function section(title, content) {
     if (!content) return [];
-    return [el('h3', { text: title }), content];
+    const name = /[Rr]eaction|happen/.test(title) ? 'flask' : /[Ff]ile|Writes/.test(title) ? 'file' : /[Tt]ime/.test(title) ? 'clock' : /[Cc]ommand/.test(title) ? 'terminal' : /[Uu]ses|used by|Parts|Modules/.test(title) ? 'map' : /[Gg]uide|Read|[Tt]ask/.test(title) ? 'book' : 'info';
+    return [el('h3', {}, [icon(name), title]), content];
   }
   function setDetail(children) {
     detail.textContent = '';
@@ -691,6 +926,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     nav.appendChild(back);
     detail.appendChild(nav);
     children.forEach(function (c) { if (c) detail.appendChild(c); });
+    main.classList.toggle('catalog-layout', current === 'flow' && !!detail.querySelector('.tbl-wrap'));
     const heading = detail.querySelector('h2');
     if (heading) heading.tabIndex = -1;
     detail.scrollTop = 0;
@@ -707,13 +943,20 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   }
   function renderStarts(view) {
     const starts = (DATA.startHere && DATA.startHere[view]) || [];
-    stage.appendChild(el('h3', { class: 'starts-heading', text: 'Suggested starting points' }));
+    stage.appendChild(el('h3', { class: 'starts-heading', text: 'Start exploring' }));
     stage.appendChild(el('ul', { class: 'entry-points', 'aria-label': 'Start here' }, starts.map(function (s) { return startItem(view, s); })));
   }
   function renderViewHeading(view, intro) {
     stage.classList.remove('connections-mode');
-    stage.appendChild(el('h2', { class: 'view-heading', text: viewLabel(view) }));
+    const titles = { map:'Explore the architecture', flow:'Follow a simulation', tasks:'Find your next step', builder:'Build a simulation macro' };
+    stage.appendChild(el('p', { class: 'view-eyebrow' }, [icon(VIEW_ICONS[view]), viewLabel(view) + ' / dnachem-min']));
+    stage.appendChild(el('h2', { class: 'view-heading', text: titles[view] }));
     stage.appendChild(el('p', { class: 'intro', text: intro }));
+    if (view === 'map') stage.appendChild(el('div', { class: 'view-stats' }, [
+      el('span', {}, [icon('box'), el('b', { text: Object.keys(nodeById).length }), 'components']),
+      el('span', {}, [icon('folder'), el('b', { text: DATA.lanes.length }), 'source groups']),
+      el('span', {}, [icon('map'), el('b', { text: DATA.edges.length }), 'connections'])
+    ]));
   }
 
   // ---- empty state: how to read the view, and where to start ----
@@ -721,7 +964,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     map: ['The code, grouped by source folder. Each box is one part of the program.',
           'Select a box to read what it does in plain language, see which parts it works with (the map draws those arrows), and find its files. Use the search box to locate a file or class.'],
     flow: ['What happens during one simulation run, from start-up to the files on disk.',
-           'The chemistry mode is chosen once, at step 2. Pick a mode there to see which steps run and what changes.',
+           'The chemistry mode is chosen before the run. Use the chooser above the timeline to see which steps run and what changes.',
            'The shaded group repeats for every event (every primary particle). Select a step to see the modules and files involved and the output it writes.'],
     tasks: ['Start from what you want to do.',
             'Each task links the guide to read first and the modules and files involved.']
@@ -731,17 +974,25 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     if (view === 'map' && nodeById[s.id]) title = nodeById[s.id].title;
     if (view === 'flow' && stepById[s.id]) title = 'Step ' + stepNumber(stepById[s.id]) + ': ' + stepTitle(stepById[s.id]);
     if (view === 'tasks' && taskById[s.id]) title = taskById[s.id].title;
-    const b = el('button', { type: 'button' }, [el('b', { text: s.why }), el('span', { text: title })]);
+    const b = el('button', { type: 'button' }, [el('b', { text: s.why }), el('span', { text: title }), icon('arrow')]);
     b.addEventListener('click', function () { go(view, s.id, true); });
     return el('li', {}, [b]);
   }
   function showEmpty(view) {
-    const parts = [el('h2', { text: 'How to read this view' }),
+    const parts = [el('div', { class: 'welcome-symbol' }, [icon(VIEW_ICONS[view])]),
+      el('p', { class: 'view-eyebrow', text: 'A guide, at every level' }),
+      el('h2', { text: 'From the big picture to the code' }),
       el('div', { class: 'empty-help' }, HELP[view].map(function (t) { return el('p', { text: t }); }))];
-    if (view === 'map') {
-      const n = DATA.lanes.reduce(function (a, l) { return a + l.nodes.length; }, 0);
-      parts.push(el('p', { class: 'kicker', text: n + ' parts in ' + DATA.lanes.length + ' folders, ' + DATA.edges.length + ' connections.' }));
-    }
+    parts.push(el('ol', { class: 'welcome-steps' }, [
+      el('li', {}, [el('b', { text:'Choose an entry point' }), 'Start with a suggested component, phase or task.']),
+      el('li', {}, [el('b', { text:'Follow the connections' }), 'Read a plain-language explanation and explore related parts.']),
+      el('li', {}, [el('b', { text:'Go deeper when you need to' }), 'Open source files, guides and scientific tables in the detail panel.'])
+    ]));
+    const routes = [{id:'map',text:'Explore the module map'}, {id:'flow',text:'Follow the simulation lifecycle'}, {id:'tasks',text:'Find a development guide'}, {id:'builder',text:'Create a simulation macro'}];
+    parts.push(el('div', { class:'portal-links' }, routes.filter(function (r) { return r.id !== view; }).map(function (r) {
+      return el('a', { class:'portal-link', href:'#' + r.id }, [icon(VIEW_ICONS[r.id]), r.text, icon('arrow')]);
+    })));
+    parts.push(el('p', { class:'keyboard-note' }, [icon('info'), ' Keyboard friendly: ', el('kbd', {text:'←'}), ' ', el('kbd', {text:'→'}), ' switch tabs. ', el('kbd', {text:'Esc'}), ' returns to the overview.']));
     setDetail(parts);
   }
 
@@ -764,19 +1015,19 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     renderViewHeading('map', 'Browse by source folder. Select a part to see its explanation, connections and files.');
     renderStarts('map');
     const input = el('input', { type: 'search', id: 'find', placeholder: 'e.g. TimeStepAction or output', autocomplete: 'off', 'aria-describedby': 'find-count' });
-    const clear = el('button', { type: 'button', class: 'clear', 'aria-label': 'Clear search', text: '×', hidden: '' });
+    const clear = el('button', { type: 'button', class: 'clear', 'aria-label': 'Clear search', hidden: '' }, [icon('close')]);
     const count = el('span', { class: 'count', id: 'find-count', 'aria-live': 'polite' });
     const legend = el('div', { class: 'legend', 'aria-label': 'Legend' }, [
-      el('span', {}, ['Connections of the selected part:']),
-      el('span', {}, [legendLine('var(--out)', false), el('span', { class: 'rel r-out', text: 'used by selected' })]),
-      el('span', {}, [legendLine('var(--in)', true), el('span', { class: 'rel r-in', text: 'uses selected' })]),
-      el('span', {}, [el('span', { class: 'flag', 'aria-hidden': 'true', text: '⚑' }), ' Summary awaiting physics review'])
+      el('span', {}, ['Connection key:']),
+      el('span', {}, [legendLine('var(--out)', false), el('span', { class: 'rel r-out', text: 'Outgoing · selected uses this' })]),
+      el('span', {}, [legendLine('var(--in)', true), el('span', { class: 'rel r-in', text: 'Incoming · uses selected' })]),
+      el('span', {}, [flagEl(), ' Awaiting review'])
     ]);
     stage.appendChild(el('div', { class: 'toolbar' }, [
       el('label', { class: 'search-label', for: 'find', text: 'Find a part, file or symbol' }),
-      el('div', { class: 'search' }, [input, clear]), count]));
+      el('div', { class: 'search' }, [icon('search'), input, clear]), count]));
     stage.appendChild(legend);
-    const focusButton = el('button', { type: 'button', 'aria-pressed': 'false', 'aria-describedby': 'map-scope-note', text: 'Connections only' });
+    const focusButton = el('button', { type: 'button', 'aria-pressed': 'false', 'aria-describedby': 'map-scope-note' }, [icon('map'), 'Connections only']);
     const scopeNote = el('p', { id: 'map-scope-note', 'aria-live': 'polite' });
     stage.appendChild(el('div', { class: 'map-scope' }, [focusButton, scopeNote]));
     focusButton.addEventListener('click', function () {
@@ -793,11 +1044,12 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const nodeEls = {}, laneEls = {}, otherEls = {};
     DATA.lanes.forEach(function (lane) {
       const head = el('button', { type: 'button', class: 'lane-head', 'aria-label': lane.title + ': ' + lane.summary + ' (folder details)' },
-        [el('b', { text: lane.title }), el('span', { class: 'lane-count', 'aria-hidden': 'true', text: lane.nodes.length })]);
+        [icon(LANE_ICONS[lane.id]), el('b', { text: lane.title }), el('span', { class: 'lane-count', 'aria-hidden': 'true', text: lane.nodes.length })]);
       head.addEventListener('click', function () { go('map', 'lane:' + lane.id, true); });
       const box = el('section', { class: 'lane', 'aria-label': lane.title }, [el('h3', { class: 'lane-title' }, [head]), el('p', { class: 'lane-summary', text: lane.summary })]);
       lane.nodes.forEach(function (n) {
         const b = el('button', { type: 'button', class: 'node' + (n.review ? ' review' : ''), 'data-id': n.id }, [
+          icon('box'),
           el('span', { class: 't' }, [el('span', { class: 'nm', text: n.title }), el('span', { class: 'role', text: n.role })]),
           n.review ? flagEl() : null,
           el('span', { class: 'rel r-out', text: 'used by selected', title: 'The selected part uses, creates or fills this one' }),
@@ -887,8 +1139,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const columns = el('div', { class: 'connection-columns' + (!incoming.length || !outgoing.length ? ' one-sided' : '') + (!incoming.length && !outgoing.length ? ' isolated' : '') });
     function card(id, kind) {
       const n = nodeById[id];
-      const folderIcon = svg('svg', { viewBox: '0 0 20 20', 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 });
-      folderIcon.appendChild(svg('path', { d: 'M2 5h6l2 2h8v10H2Z M2 5V3h6l2 2h8v2' }));
+      const folderIcon = icon(LANE_ICONS[laneOfNode[id].id]);
       const b = el('button', { type: 'button', class: 'node ' + kind + (n.review ? ' review' : ''), 'data-id': id,
         'data-focus': 'connection-' + kind + '-' + id, 'aria-pressed': kind === 'sel' ? 'true' : 'false' }, [
         el('span', { class: 't' }, [
@@ -911,7 +1162,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       columns.appendChild(el('section', { class: 'connection-group ' + (kind === 'in' ? 'incoming' : 'outgoing'), 'aria-label': title },
         [heading].concat(ids.map(function (id) { return card(id, kind); }))));
     }
-    group(incoming, 'in', 'Uses ' + selected.title);
+    group(incoming, 'in', 'Incoming · uses ' + selected.title);
     const readDetails = el('button', { type: 'button', class: 'link connection-details', 'data-focus': 'connection-details', text: 'Read explanation and files ↓' });
     readDetails.addEventListener('click', function () {
       overviewY = window.scrollY;
@@ -922,7 +1173,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     columns.appendChild(el('div', { class: 'connection-hub' }, [
       el('h3', { class: 'connection-heading', text: 'Selected part' }), card(selected.id, 'sel'), readDetails
     ]));
-    group(outgoing, 'out', selected.title + ' uses, creates or fills');
+    group(outgoing, 'out', 'Outgoing · ' + selected.title + ' uses, creates or fills');
     s.network.appendChild(columns);
     s.network.appendChild(el('p', { class: incoming.length || outgoing.length ? 'connection-tip' : 'connection-empty',
       text: incoming.length || outgoing.length ? 'Arrows point from the part doing the using to the part it uses. Hover or focus a connected part to trace its arrow.' : 'No direct connections are listed for this part. Turn off Connections only to browse every folder.' }));
@@ -1117,7 +1368,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       el('p', { class: 'kicker' }, ['Module map › ', laneBtn]),
       el('h2', { text: n.title }),
       el('p', { class: 'role-sub', text: n.role }),
-      n.review ? el('span', { class: 'badge', text: '⚑ Summary awaiting physics review' }) : null,
+      n.review ? reviewBadge() : null,
       el('p', { class: 'lead', text: n.summary }),
     ].concat(
       section('Reactions', chemBox ? reactionTableEl(chemBox.value, { highlight: null, filter: true }) : null),
@@ -1140,7 +1391,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   }
 
   // ---- run flow ----
-  let flowCards = {}, flowParts = {};
+  let flowCards = {}, flowParts = {}, phaseJumps = {};
   // The chemistry mode is chosen once (the step with branches); the flow shows the run for one mode.
   const modeStep = DATA.flow.filter(function (s) { return s.branches && s.branches.length; })[0] || null;
   const modeById = {};
@@ -1190,7 +1441,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     ]);
   }
   function modePicker() {
-    return radioPicker('Show the run for', 'flow-mode', modeStep.branches.map(function (b) { return { id: b.id, label: b.label, small: b.default ? 'default' : '' }; }), flowMode, setFlowMode);
+    return radioPicker('Chemistry mode · updates the timeline', 'flow-mode', modeStep.branches.map(function (b) { return { id: b.id, label: b.label, small: b.default ? 'default' : '' }; }), flowMode, setFlowMode);
   }
   function chemistryPicker() {
     return radioPicker('Chemistry (/chem/select)', 'flow-chemistry', CHEMISTRIES.map(function (n) { return { id: n, label: n, small: n === 'PureWater' ? 'default' : '' }; }), flowChemistry, setFlowChemistry);
@@ -1219,22 +1470,48 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       p.note.hidden = !note;
       p.card.setAttribute('aria-describedby', [tagText ? p.tag.id : '', 'step-overview-' + s.id, note ? p.note.id : ''].join(' ').trim());
     });
+    DATA.phases.forEach(function (ph) {
+      const jump = phaseJumps[ph.id];
+      if (!jump) return;
+      const skipped = DATA.flow.filter(function (s) { return s.phase === ph.id; }).every(function (s) { return !stepRuns(s); });
+      jump.classList.toggle('is-skipped', skipped);
+      jump.querySelector('small').textContent = skipped ? 'Skipped in this mode' : ph.id === 'setup' ? 'Before the run' : ph.id === 'output' ? 'At each dump' : 'Each event';
+    });
   }
   function renderFlow() {
     stage.textContent = '';
-    flowCards = {}; flowParts = {};
-    renderViewHeading('flow', 'Follow a run from start-up to results. Select a step for its explanation, outputs and code. Pick a chemistry mode at step 2 to see what changes. ⚑ = awaiting physics review.');
-    renderStarts('flow');
+    flowCards = {}; flowParts = {}; phaseJumps = {};
+    renderViewHeading('flow', 'From the first particle to the files on disk. Explore six phases, compare chemistry modes, and open any step for the science and code behind it.');
+    const rail = el('nav', { class:'phase-rail', 'aria-label':'Simulation phases' });
+    const labels = { setup:'Set up', physical:'Physical', prechem:'Physico-chemical', hetero:'Particle-based', meso:'Mesoscopic', output:'Output' };
+    DATA.phases.forEach(function (ph, i) {
+      const jump = el('button', { type:'button', class:'phase-jump', 'aria-label':'Jump to phase ' + (i + 1) + ': ' + ph.title }, [
+        el('span', { class:'phase-index' }, [String(i + 1).padStart(2, '0'), icon(PHASE_ICONS[ph.id])]),
+        el('b', { text:labels[ph.id] }), el('small')
+      ]);
+      jump.addEventListener('click', function () {
+        const heading = document.getElementById('phase-' + ph.id);
+        heading.focus({ preventScroll:true }); heading.scrollIntoView({ block:'start' });
+      });
+      phaseJumps[ph.id] = jump; rail.appendChild(jump);
+    });
+    stage.appendChild(rail);
+    stage.appendChild(el('div', { class:'flow-settings' }, [modePicker(), chemistryPicker()]));
     const wrap = el('div', { class: 'flow' });
     const groups = [];
     DATA.flow.forEach(function (s) {
       const last = groups[groups.length - 1];
       if (last && last.phase === (s.phase || '')) last.steps.push(s); else groups.push({ phase: s.phase || '', steps: [s] });
     });
-    groups.forEach(function (gr) {
+    groups.forEach(function (gr, index) {
       const ph = phaseById[gr.phase];
       const box = el('section', { class: 'phase' + (['physical', 'prechem', 'hetero', 'meso'].indexOf(gr.phase) >= 0 ? ' loop' : ''), 'aria-label': ph ? ph.title : 'Steps' });
-      if (ph) box.appendChild(el('div', { class: 'phase-head' }, [el('h3', { text: ph.title }), el('p', { text: ph.summary })]));
+      if (ph) box.appendChild(el('div', { class: 'phase-head' }, [
+        el('span', { class:'phase-symbol' }, [icon(PHASE_ICONS[ph.id])]),
+        el('div', {}, [el('h3', { id:'phase-' + ph.id, tabindex:'-1' }, [el('span', { class:'phase-order', text:String(index + 1).padStart(2, '0') }), ph.title]),
+          el('p', { text:ph.summary }),
+          el('span', { class:'phase-meta' }, [icon(box.classList.contains('loop') ? 'loop' : 'clock'), box.classList.contains('loop') ? 'Within each event · select a step for timing and conditions' : 'Select a step for configuration and timing'])])
+      ]));
       const ol = el('ol', { class: 'steps' });
       gr.steps.forEach(function (s) {
         const card = el('button', { type: 'button', class: 'card' + (s.review ? ' review' : ''), 'aria-label': 'Step ' + stepNumber(s) + ': ' + stepTitle(s), 'aria-describedby': 'step-overview-' + s.id });
@@ -1245,7 +1522,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
         card.appendChild(note);
         onActivate(card, function () { go('flow', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : s.id, true); });
         flowCards[s.id] = card;
-        const li = el('li', {}, [el('span', { class: 'b-num', 'aria-hidden': 'true', text: stepNumber(s) }), card, s === modeStep ? el('div', {}, [modePicker(), chemistryPicker()]) : null]);
+        const li = el('li', {}, [el('span', { class: 'num', 'aria-hidden': 'true', text: stepNumber(s) }), card]);
         flowParts[s.id] = { card: card, tag: tag, note: note, li: li };
         ol.appendChild(li);
       });
@@ -1271,7 +1548,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const tb = el('tbody');
     fillRows(tb, rows);
     const t = el('table', { class: 'cat', id: id || null }, [
-      el('caption', { text: caption }),
+      el('caption', {}, [caption, el('span', {class:'table-hint', text:'Scroll horizontally to see all columns when needed.'})]),
       el('thead', {}, [el('tr', {}, head.map(function (h) { return el('th', { scope: 'col', class: h.cls || null, text: h.text }); }))]), tb]);
     return { wrap: el('div', { class: 'tbl-wrap', tabindex: '0', role: 'region', 'aria-label': caption }, [t]), tbody: tb };
   }
@@ -1388,10 +1665,12 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   }
   function selectFlow(id, scroll) {
     Object.keys(flowCards).forEach(function (k) { flowCards[k].removeAttribute('aria-current'); });
+    Object.keys(phaseJumps).forEach(function (k) { phaseJumps[k].removeAttribute('aria-current'); });
     if (!id) { showEmpty('flow'); return; }
     const s = stepById[id];
     if (!s) { go('flow', null, false); return; }
     flowCards[id].setAttribute('aria-current', 'true');
+    if (phaseJumps[s.phase]) phaseJumps[s.phase].setAttribute('aria-current', 'true');
     if (scroll) flowCards[id].scrollIntoView({ block: 'nearest' });
     const ph = phaseById[s.phase];
     const mods = nodesForFiles(s.files);
@@ -1411,12 +1690,15 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     setDetail([
       el('p', { class: 'kicker', text: 'Run flow › Step ' + stepNumber(s) + ' of ' + DATA.flow.length + (ph ? ' · ' + ph.title : '') }),
       el('h2', { text: stepTitle(s) }),
-      s.review ? el('span', { class: 'badge', text: '⚑ Summary awaiting physics review' }) : null,
+      s.review ? reviewBadge() : null,
       s.condition ? el('span', { class: 'tag', text: s.condition }) : null,
-      el('p', { class: 'lead', text: s.summary })
+      el('p', { class: 'lead', text: s.summary }),
+      s.modes && flowMode ? el('div', {class:'mode-context' + (stepRuns(s) ? '' : ' skipped')}, [
+        el('b', {text:modeById[flowMode].label}), stepRuns(s) ? s.modes[flowMode] : 'Skipped: this step does not run in this mode.'
+      ]) : null
     ].concat(
       section('Modes', s === modeStep ? modeList(null) : null),
-      section('In each mode', s.modes && modeStep ? modeList(s.modes) : null),
+      s.modes && modeStep ? [el('details', {class:'mode-comparison'}, [el('summary', {text:'Compare all chemistry modes'}), modeList(s.modes)])] : [],
       windowAfter ? [] : section('Time window', windowEl),
       section('What can happen', cat),
       windowAfter ? section('Time window', windowEl) : [],
@@ -1435,7 +1717,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     taskCards = {};
     renderViewHeading('tasks', 'Start from what you want to do. Select a task for the guide to read first and the parts of the code involved.');
     renderStarts('tasks');
-    [['everyone', 'For everyone'], ['developer', 'For developers']].forEach(function (g) {
+    [['everyone', 'Understand & run', 'Start here: configuration, output formats and design decisions.', 'book'], ['developer', 'Extend & develop', 'Focused guides to adding chemistry, commands, scoring and exports.', 'terminal']].forEach(function (g) {
       const tasks = DATA.tasks.filter(function (t) { return t.audience === g[0]; });
       if (!tasks.length) return;
       const grid = el('div', { class: 'tasks' });
@@ -1443,14 +1725,16 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
         const nd = (t.docs || []).length, nf = (t.files || []).length;
         const meta = [nd + (nd === 1 ? ' guide' : ' guides')];
         if (nf) meta.push(nf + (nf === 1 ? ' file' : ' files'));
+        const taskIcon = {run:'play',read:'file',commands:'terminal',chemistry:'flask',reaction:'atom','macro-cmd':'terminal',scorer:'chart','species-counter':'chart',counter:'chart','meso-count':'grid',hdf5:'download',decisions:'book'}[t.id] || 'book';
         const card = el('button', { class: 'card', type: 'button' }, [
+          el('span', { class:'task-top' }, [el('span', { class:'task-symbol' }, [icon(taskIcon)]), icon('arrow')]),
           el('div', { class: 'card-title', text: t.title }), el('div', { class: 'card-sum', text: t.summary }),
-          el('div', { class: 'meta', text: meta.join(' · ') })]);
+          el('div', { class: 'meta' }, [icon('book'), meta.join(' · ')])]);
         onActivate(card, function () { go('tasks', !narrow.matches && card.getAttribute('aria-current') === 'true' ? null : t.id, true); });
         taskCards[t.id] = card;
         grid.appendChild(card);
       });
-      stage.appendChild(el('section', { class: 'tasks-group', 'aria-label': g[1] }, [el('h3', { text: g[1] }), grid]));
+      stage.appendChild(el('section', { class: 'tasks-group', 'aria-label': g[1] }, [el('h3', {}, [icon(g[3]), g[1], el('span', {class:'tag',text:tasks.length + ' topics'})]), el('p', {class:'intro',text:g[2]}), grid]));
     });
   }
   function selectTask(id, scroll) {
@@ -1514,10 +1798,8 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
 
   function renderBuilder() {
     stage.textContent = '';
-    stage.classList.remove('connections-mode');
-    stage.appendChild(el('h2', { class: 'view-heading', text: 'Macro builder' }));
-    stage.appendChild(el('p', { class: 'intro', text: 'Create a simulation macro (.in file) for dnachem-min, step by step. The macro preview updates as you change settings. ' +
-      'The checks compare your choices with the current dnachem-min code; they do not run the simulation.' }));
+    main.classList.remove('catalog-layout');
+    renderViewHeading('builder', 'Configure your experiment, inspect the live macro, then export a ready-to-use .in file. Settings are checked against the current code; the simulation is not run.');
     bui = { switches: [] };
     stage.appendChild(switchBar());
     bui.tools = el('div', { class: 'b-tools' });
@@ -1525,7 +1807,8 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     bui.confirm = el('div', { class: 'b-confirm', role: 'alertdialog', 'aria-labelledby': 'b-confirm-text', hidden: '' });
     stage.appendChild(bui.confirm);
     bui.steps = el('ol', { class: 'b-steps', 'aria-label': 'Builder steps' });
-    stage.appendChild(el('nav', { 'aria-label': 'Macro builder progress' }, [bui.steps]));
+    bui.progress = el('div', { class:'b-progress' });
+    stage.appendChild(el('nav', { 'aria-label': 'Macro builder progress' }, [bui.progress, bui.steps]));
     bui.panel = el('section', { class: 'b-panel', 'aria-labelledby': 'b-step-heading' });
     stage.appendChild(bui.panel);
     bui.back = el('button', { type: 'button', class: 'b-btn' });
@@ -1537,23 +1820,29 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     // The preview lives in the side panel; it is rebuilt in place on every change.
     detail.textContent = '';
     detail.appendChild(switchBar());
-    bui.previewHeading = el('h2', { tabindex: '-1', text: 'Macro preview' });
+    bui.previewHeading = el('h2', { tabindex: '-1', class:'preview-title' }, [icon('terminal'), 'Macro preview']);
+    bui.previewFile = el('p', { class:'preview-file' });
     bui.status = el('div', { class: 'b-status' });
     bui.summary = el('dl', { class: 'b-sum', 'aria-label': 'Configuration summary' });
-    bui.copy = el('button', { type: 'button', class: 'b-btn small' , text: 'Copy macro' });
+    bui.copy = el('button', { type: 'button', class: 'b-btn small' }, [icon('copy'), 'Copy macro']);
     bui.copy.addEventListener('click', function () {
-      copyText(MB.generate(bcfg).text).then(function () { announce('Macro copied to the clipboard.'); bui.copy.textContent = 'Copied'; },
-        function () { announce('Could not copy the macro.'); bui.copy.textContent = 'Copy failed'; });
-      setTimeout(function () { bui.copy.textContent = 'Copy macro'; }, 1400);
+      const button = bui.copy;
+      copyText(MB.generate(bcfg).text).then(function () { announce('Macro copied to the clipboard.'); button.textContent = 'Copied'; },
+        function () { announce('Could not copy the macro.'); button.textContent = 'Copy failed'; });
+      setTimeout(function () { button.replaceChildren(icon('copy'), 'Copy macro'); }, 1400);
     });
+    const review = el('button', { type:'button', class:'b-btn small' }, [icon('download'), 'Review & export']);
+    review.addEventListener('click', function () { go('builder', 'review', true); });
     bui.pre = el('pre', { class: 'b-pre', tabindex: '0', 'aria-label': 'Generated macro' });
-    detail.append(bui.previewHeading, bui.status, bui.summary, el('div', { class: 'b-export' }, [bui.copy]), bui.pre,
+    detail.append(bui.previewHeading, bui.previewFile, bui.status,
+      el('details', { class:'b-summary' }, [el('summary', {text:'Configuration summary'}), bui.summary]),
+      el('div', { class: 'b-export' }, [bui.copy, review]), bui.pre,
       el('p', { class: 'b-note', text: 'Lines marked "fix" belong to a setting with a problem. Comments (#) are ignored by Geant4.' }));
     detail.scrollTop = 0;
   }
   function switchBar() {
-    const guide = el('button', { type: 'button', 'aria-pressed': 'true' }, ['Guide']);
-    const prev = el('button', { type: 'button', 'aria-pressed': 'false' }, ['Preview', el('small')]);
+    const guide = el('button', { type: 'button', 'aria-pressed': 'true' }, [icon('sliders'), ' Guide']);
+    const prev = el('button', { type: 'button', 'aria-pressed': 'false' }, [icon('terminal'), ' Preview', el('small')]);
     guide.addEventListener('click', function () { showPane(false); });
     prev.addEventListener('click', function () { showPane(true); });
     bui.switches.push({ guide: guide, prev: prev });
@@ -1587,12 +1876,12 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
 
     // Tools and reset confirmation.
     bui.tools.textContent = '';
-    const smoke = el('button', { type: 'button', class: 'b-btn small', text: 'Use the quick smoke-test preset' });
+    const smoke = el('button', { type: 'button', class: 'b-btn small' }, [icon('play'), 'Quick smoke-test preset']);
     smoke.addEventListener('click', function () {
       if (MB.changedCount(bcfg) > 0) { bconfirm = { kind: 'smoke' }; refreshBuilder(); bui.confirm.querySelector('button').focus(); }
       else applySmoke();
     });
-    const reset = el('button', { type: 'button', class: 'b-btn small', text: 'Reset all settings…', 'data-bkey': 'tool:reset' });
+    const reset = el('button', { type: 'button', class: 'b-btn small', 'data-bkey': 'tool:reset' }, [icon('reset'), 'Reset settings…']);
     reset.addEventListener('click', function () { bconfirm = { kind: 'reset' }; refreshBuilder(); bui.confirm.querySelector('button').focus(); });
     bui.tools.append(smoke, reset, el('span', { class: 'b-note', text: MB.changedCount(bcfg) + ' setting(s) changed from the defaults.' }));
     bui.confirm.textContent = '';
@@ -1614,20 +1903,28 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     }
 
     // Progress.
+    const checkedSteps = MB.STEPS.filter(function (s) { return s.id !== 'review'; });
+    const validSteps = checkedSteps.filter(function (s) { return !stepIssues(s.id).some(function (i) { return i.severity === 'error'; }); }).length;
+    bui.progress.replaceChildren(el('b', {text:'Step ' + (builderStepById[bstep].index + 1) + ' of ' + MB.STEPS.length}),
+      el('span', {text:validSteps + ' / ' + checkedSteps.length + ' configuration sections valid'}),
+      el('meter', {min:0,max:checkedSteps.length,value:validSteps,'aria-label':'Valid configuration sections'}));
     bui.steps.textContent = '';
     MB.STEPS.forEach(function (s, i) {
       const own = stepIssues(s.id);
       const errs = own.filter(function (x) { return x.severity === 'error'; }).length;
       let st, cls = '';
       if (s.id === 'review') { st = errorCount ? errorCount + ' to fix overall' : 'Ready to export'; cls = errorCount ? 'bad' : 'ok'; }
-      else if (errs) { st = '✕ ' + errs + ' to fix'; cls = 'bad'; }
-      else { st = '✓ OK' + (own.length ? ', ' + own.length + ' note' + (own.length > 1 ? 's' : '') : ''); cls = 'ok'; }
+      else if (errs) { st = errs + ' to fix'; cls = 'bad'; }
+      else { st = 'Valid' + (own.length ? ' · ' + own.length + ' note' + (own.length > 1 ? 's' : '') : ''); cls = 'ok'; }
       const b = el('button', { type: 'button', 'aria-current': s.id === bstep ? 'step' : null, 'data-bkey': 'step:' + s.id },
-        [el('span', { class: 'top' }, [el('span', { class: 'n', 'aria-hidden': 'true', text: String(i + 1) }), el('b', { text: s.short })]), el('span', { class: 'st ' + cls, text: st })]);
+        [el('span', { class: 'top' }, [el('span', { class: 'n', 'aria-hidden': 'true', text: String(i + 1) }), el('b', { text: s.short })]), el('span', { class: 'st ' + cls }, [icon(cls === 'bad' ? 'warning' : 'check'), ' ', st])]);
       b.setAttribute('aria-label', 'Step ' + (i + 1) + ' of ' + MB.STEPS.length + ': ' + s.title + ', ' + st);
       b.addEventListener('click', function () { go('builder', s.id, true); });
       bui.steps.appendChild(el('li', {}, [b]));
     });
+    // Keep the active step visible without moving the document or stealing focus.
+    const activeStep = bui.steps.querySelector('[aria-current=step]');
+    bui.steps.scrollLeft = Math.max(0, activeStep.offsetLeft - bui.steps.offsetLeft - (bui.steps.clientWidth - activeStep.offsetWidth) / 2);
     const cur = builderStepById[bstep];
     bui.back.disabled = cur.index === 0;
     bui.back.textContent = cur.index === 0 ? '← Back' : '← Back: ' + MB.STEPS[cur.index - 1].title;
@@ -1639,15 +1936,17 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     // Preview.
     bui.status.className = 'b-status ' + (errorCount ? 'bad' : 'ok');
     bui.status.textContent = '';
-    bui.status.append(el('span', { class: 'ic', 'aria-hidden': 'true', text: errorCount ? '✕' : '✓' }),
+    bui.status.append(icon(errorCount ? 'warning' : 'shield'),
       el('span', { text: errorCount ? errorCount + ' problem' + (errorCount > 1 ? 's' : '') + ' must be fixed before export.' :
         'Configuration valid for the current code' + (warnCount ? ' (' + warnCount + ' warning' + (warnCount > 1 ? 's' : '') + ')' : '') + '. Not a simulation run: the macro has not been executed.' }));
     bui.summary.textContent = '';
     MB.summary(bcfg).forEach(function (row) { bui.summary.append(el('dt', { text: row[0] }), el('dd', { text: row[1] })); });
+    bui.previewFile.replaceChildren(icon('file'), MB.sanitizeFilename(bcfg.filename), ' · live preview');
     bui.pre.textContent = '';
     gen.lines.forEach(function (l) {
       const bad = l.field && hasError(l.field);
-      bui.pre.appendChild(el('span', { class: (l.text.charAt(0) === '#' ? 'c' : '') + (bad ? ' bad' : '') }, [l.text + '\n']));
+      const syntax = l.text.charAt(0) === '#' ? 'c' : l.text.indexOf('/run/initialize') === 0 ? 'initialize' : l.text.charAt(0) === '/' ? 'command' : '';
+      bui.pre.appendChild(el('span', { class: syntax + (bad ? ' bad' : '') }, [l.text + '\n']));
     });
     bui.copy.disabled = errorCount > 0;
     bui.copy.title = errorCount ? 'Fix the problems first' : '';
@@ -1675,7 +1974,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const s = builderStepById[bstep];
     const panel = bui.panel;
     panel.textContent = '';
-    panel.append(el('h3', { id: 'b-step-heading', tabindex: '-1', text: 'Step ' + (s.index + 1) + ' of ' + MB.STEPS.length + ': ' + s.title }),
+    panel.append(el('h3', { id: 'b-step-heading', tabindex: '-1' }, [icon(STEP_ICONS[s.id]), s.title]),
       el('p', { class: 'intro', text: s.intro }));
     if (s.id === 'review') renderReview(panel);
     else {
@@ -1700,7 +1999,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   function renderGroup(g, fields) {
     const ga = MB.groupAvailability(bcfg, g);
     const sec = el('section', { class: 'b-group' + (ga ? ' unavailable' : ''), 'aria-labelledby': 'b-group-' + g.id },
-      [el('h4', { id: 'b-group-' + g.id, text: g.title }), el('p', { class: 'intro', text: g.intro })]);
+      [el('h4', { id: 'b-group-' + g.id }, [icon(g.id === 'meso' ? 'grid' : 'clock'), ' ', g.title]), el('p', { class: 'intro', text: g.intro })]);
     if (ga) sec.appendChild(el('p', { class: 'b-unavail' }, [whyBlock(ga, fields.length ? fields[0].id : null)]));
     fields.forEach(function (f) { const n = renderField(f, !!ga && f.rule === g.rule); if (n) sec.appendChild(n); });
     return sec;
@@ -1717,13 +2016,13 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       else li.append(el('a', { href: REPO + m[1], target: '_blank', rel: 'noopener' }, [el('code', { text: m[1] })]), m[2]);
       list.appendChild(li);
     });
-    return el('details', { class: 'b-tech' }, [el('summary', { text: 'Technical details and sources' }),
+    return el('details', { class: 'b-tech' }, [el('summary', {}, [icon('info'), ' Technical details and sources']),
       f.tech ? el('p', { text: f.tech }) : null, f.refs && f.refs.length ? list : null]);
   }
   function whyBlock(a, fieldId) {
     const auto = a.kind === 'automatic';
-    const box = el('span', { class: 'b-why' }, [el('span', { class: 'k',
-      text: auto ? 'Set automatically: ' : a.kind === 'unsupported' ? '⊘ Not supported by dnachem-min: ' : '⊘ Unavailable: ' }), a.why]);
+    const box = el('span', { class: 'b-why' }, [icon(a.kind === 'unsupported' ? 'warning' : 'info'), ' ', el('span', { class: 'k',
+      text: auto ? 'Set automatically: ' : a.kind === 'unsupported' ? 'Not supported by dnachem-min: ' : 'Unavailable: ' }), a.why]);
     if (a.fix) {
       const b = el('button', { type: 'button', class: 'b-btn small', text: (auto ? 'To choose: ' : 'To make it available: ') + a.fix.label });
       b.addEventListener('click', function (ev) { ev.preventDefault(); applyResolution(a.fix, fieldId); });
@@ -1935,11 +2234,13 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
       el('p', { class: 'b-note', id: 'b-file-final' }, ['Will be saved as ', el('code', { text: finalName })])]));
 
     const dl1 = el('button', { type: 'button', class: 'b-btn primary', text: 'Download ' + finalName, 'data-bkey': 'export:download', disabled: errs.length ? '' : null, 'aria-describedby': 'b-export-note' });
+    dl1.prepend(icon('download'));
     dl1.addEventListener('click', downloadMacro);
     const actions = [dl1];
     const canPick = typeof window.showSaveFilePicker === 'function';
     if (canPick) {
       const save = el('button', { type: 'button', class: 'b-btn', text: 'Save to a folder…', 'data-bkey': 'export:save', disabled: errs.length ? '' : null, 'aria-describedby': 'b-export-note' });
+      save.prepend(icon('folder'));
       save.addEventListener('click', saveMacroToFolder);
       actions.push(save);
     }
@@ -2093,7 +2394,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     userAction = false;
   }
   VIEWS.forEach(function (v, i) {
-    v.btn = el('button', { role: 'tab', type: 'button', id: 'tab-' + v.id, 'data-focus': 'tab-' + v.id, 'aria-controls': 'stage', text: v.label });
+    v.btn = el('button', { role: 'tab', type: 'button', id: 'tab-' + v.id, 'data-focus': 'tab-' + v.id, 'aria-controls': 'stage' }, [icon(VIEW_ICONS[v.id]), v.label]);
     v.btn.addEventListener('click', function () { go(v.id, lastSel[v.id] || null, false); });
     v.btn.addEventListener('keydown', function (ev) {
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
