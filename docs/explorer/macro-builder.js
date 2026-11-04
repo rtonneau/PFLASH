@@ -27,6 +27,25 @@
   // G4EmDNAPhysics_option2.cc: emaxDNA = 1 MeV, the upper limit of the Geant4-DNA electron models.
   const E_DNA_MAX_EV = 1e6;
 
+  // src/scoring/OutputFormats.cc: formats in canonical order, and the seven Output products.
+  const FORMATS = ['txt', 'csv', 'h5', 'root'];
+  const PRODUCTS = [
+    { id: 'species', stem: 'Species', what: 'species counts and G values against time (particle-based stage)' },
+    { id: 'speciesMeso', stem: 'SpeciesMeso', what: 'species counts and G values on the mesoscopic record grid; written only with the mesoscopic stage', meso: true },
+    { id: 'reactions', stem: 'Reactions', what: 'reaction firing counts per time bin, plus the ReactionsCatalog table' },
+    { id: 'physicsInteractions', stem: 'PhysicsInteractions', what: 'discrete G4DNA physics-interaction counts per event' },
+    { id: 'trackLengths', stem: 'TrackLengths', what: 'primary and secondary-electron track lengths, one row per event' },
+    { id: 'preChemical', stem: 'PreChemical', what: 'pre-chemical species positions: one file per event for txt and csv, one file per dump for h5 and root' },
+    { id: 'speciesMesoSpatial', stem: 'SpeciesMesoSpatial', what: 'per-event spatial snapshots of the mesoscopic mesh; h5 and root only, no file unless set (the file can be very large)', spatial: true }
+  ];
+  function emptyFormats() { const o = {}; PRODUCTS.forEach(function (p) { o[p.id] = []; }); return o; }
+  // Checking a format keeps the canonical order; 'none' excludes every format and the reverse.
+  function toggleFormats(list, value, on) {
+    let out = (list || []).filter(function (v) { return v !== value; });
+    if (on) out = value === 'none' ? ['none'] : out.filter(function (v) { return v !== 'none'; }).concat([value]);
+    return out.sort(function (a, b) { return FORMATS.indexOf(a) - FORMATS.indexOf(b); }).sort(function (a, b) { return (a === 'none') - (b === 'none'); });
+  }
+
   const CHEMISTRIES = [
     // node: the Chemistry's box in the explorer Module map (architecture.json), its full description.
     { value: 'PureWater', label: 'PureWater', node: 'pure-water', note: 'Default. Base pure-water reactions plus the full O2-derived network and an acid-base buffer (pH has an effect).', buffer: true },
@@ -46,7 +65,7 @@
       ] },
     { id: 'environment', short: 'Environment', title: 'Water environment', intro: 'The water box and what is dissolved in it.' },
     { id: 'beam', short: 'Beam', title: 'Beam', intro: 'The particle shot into the water and when its track is cut short.' },
-    { id: 'runs', short: 'Runs', title: 'Runs and output', intro: 'How many events to simulate, the random seeds, and when results are written.' },
+    { id: 'runs', short: 'Runs', title: 'Runs and output', intro: 'How many events to simulate, the random seeds, when results are written and in which file formats.' },
     { id: 'review', short: 'Review', title: 'Review and export', intro: 'Check the configuration and save the macro.' }
   ];
 
@@ -64,6 +83,7 @@
     pH: ['src/geometry/DnaChemistryWorld.cc', 'src/chemistry/catalog/PureWaterReactions.cc', 'docs/adr/0001-baseline-acid-base-buffer.md'],
     halfBox: ['src/geometry/DnaChemistryWorld.cc (SetHalfBox)'],
     outputDir: ['src/core/OutputDirMessenger.cc', 'src/core/OutputDir.cc'],
+    formats: ['src/scoring/OutputFormatsMessenger.cc', 'src/scoring/OutputFormats.cc', 'docs/adr/0009-standardized-output-products.md', 'docs/output/README.md'],
     gun: ['src/actions/PrimaryGeneratorAction.cc', 'G4: source/event/src/G4ParticleGunMessenger.cc'],
     dnaLimit: ['src/physics/PhysicsList.cc (G4EmDNAPhysics_option2)', 'G4: source/physics_lists/constructors/electromagnetic/src/G4EmDNAPhysics_option2.cc (emaxDNA = 1 MeV)'],
     position: ['src/actions/PrimaryGeneratorAction.cc (position set once in the constructor, kept between events)', 'src/geometry/DetectorConstruction.cc (water box centred on the origin)', 'G4: source/event/src/G4ParticleGunMessenger.cc (/gun/position)'],
@@ -88,7 +108,6 @@
       handOver: { value: '5', unit: 'ns' },
       voxel: { value: '6.25', unit: 'nm' },
       timesPerDecade: '10',
-      spatialOutput: false,
       binsMode: 'default',
       binWidth: { value: '1', unit: 'ns' },
       binList: { values: '1 10 100 1000', unit: 'ps' },
@@ -98,6 +117,8 @@
       halfBox: { value: '500', unit: 'um' },
       outputDirMode: 'default',
       outputDir: '',
+      defaultFormats: ['csv'],
+      formats: emptyFormats(),
       particle: 'e-',
       energy: { value: '10', unit: 'keV' },
       beamZ: { value: '0', unit: 'um' },
@@ -107,7 +128,7 @@
       runs: [{ events: '2', seeds: '', dump: 'reset', name: '' }]
     };
   }
-  const MESO_DEFAULTS = { handOver: { value: '5', unit: 'ns' }, voxel: { value: '6.25', unit: 'nm' }, timesPerDecade: '10', spatialOutput: false };
+  const MESO_DEFAULTS = { handOver: { value: '5', unit: 'ns' }, voxel: { value: '6.25', unit: 'nm' }, timesPerDecade: '10', 'formats.speciesMesoSpatial': [] };
 
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
   function get(cfg, path) {
@@ -128,6 +149,8 @@
   function normalize(cfg) {
     const d = defaults();
     const out = Object.assign(d, cfg || {});
+    out.formats = Object.assign(emptyFormats(), (cfg && cfg.formats) || {});
+    if (!Array.isArray(out.defaultFormats)) out.defaultFormats = ['csv'];
     if (!Array.isArray(out.runs) || !out.runs.length) out.runs = defaults().runs;
     return out;
   }
@@ -148,7 +171,7 @@
   function mesoOn(cfg) { return cfg.model !== 'SBS' && !!cfg.meso; }
   function mesoCustomized(cfg) {
     return !sameQ(cfg.handOver, MESO_DEFAULTS.handOver) || !sameQ(cfg.voxel, MESO_DEFAULTS.voxel) ||
-      String(cfg.timesPerDecade).trim() !== MESO_DEFAULTS.timesPerDecade || !!cfg.spatialOutput;
+      String(cfg.timesPerDecade).trim() !== MESO_DEFAULTS.timesPerDecade || cfg.formats.speciesMesoSpatial.length > 0;
   }
   function phCustomized(cfg) { const n = num(cfg.pH); return !(n.value === 7); }
   function killerApplies(cfg) { return cfg.particle === 'e-'; }
@@ -270,17 +293,13 @@
     q('timesPerDecade', { step: 'timing', type: 'number', integer: true, label: 'Record times per decade', required: false, rule: 'mesoParams', group: 'meso',
       help: 'How many output times per factor of 10 in time, from the hand-over time to the end time. Default 10.',
       tech: '/chem/meso/timesPerDecade <n>, PreInit, >= 1. Written only when changed.', refs: SRC.meso }),
-    q('spatialOutput', { step: 'timing', type: 'bool', label: 'Spatial snapshots (HDF5)', required: false, rule: 'mesoParams', group: 'meso', group: 'meso',
-      options: [{ value: false, label: 'Off (default)' }, { value: true, label: 'On: write SpeciesMesoSpatial.h5' }],
-      help: 'Saves where the species are on the mesh at every record time. Requires sim built with HDF5. The file can be very large.',
-      tech: '/output/speciesMesoSpatial/format h5, PreInit. Written only when on.', refs: SRC.meso }),
     q('binsMode', { step: 'timing', group: 'time', type: 'choice', label: 'Reaction-count time bins', required: false,
       options: [
         { value: 'default', label: 'Built-in table (default)', help: 'A fixed 7-edge table.' },
         { value: 'fixed', label: 'Fixed width' },
         { value: 'list', label: 'Explicit edges' }
       ],
-      help: 'How reaction counts are grouped in time in Reactions.Txt (particle-based stage only). The two custom forms cannot be combined.',
+      help: 'How reaction counts are grouped in time in the Reactions product (particle-based stage only). The two custom forms cannot be combined.',
       tech: '/chem/reaction/timeBinsFixed or /chem/reaction/timeBinsList, PreInit; issuing both is fatal (ConflictingTimeBins).', refs: SRC.bins }),
     q('binWidth', { step: 'timing', group: 'time', type: 'quantity', category: 'time', label: 'Bin width', required: true, showIf: function (c) { return c.binsMode === 'fixed'; },
       help: 'Bins of this width up to the end time.', refs: SRC.bins }),
@@ -336,8 +355,18 @@
       help: 'Where all output files go.',
       tech: '/run/outputDir <path>, PreInit. Launching with a different --dir is then fatal (ConflictingOutputDir).', refs: SRC.outputDir }),
     q('outputDir', { step: 'runs', type: 'text', label: 'Output folder path', required: true, showIf: function (c) { return c.outputDirMode === 'custom'; },
-      help: 'Its parent folder must already exist. No spaces or "#".', placeholder: 'results_o2' })
-  ];
+      help: 'Its parent folder must already exist. No spaces or "#".', placeholder: 'results_o2' }),
+    q('defaultFormats', { step: 'runs', type: 'multi', label: 'Default output formats', required: true,
+      options: FORMATS.map(function (f) { return { value: f, label: f + (f === 'csv' ? ' (default)' : '') }; }).concat([{ value: 'none', label: 'none', help: 'No file for products that follow the default.' }]),
+      help: 'File formats for every product that has no choice of its own below. Several can be checked: each product is then written once per format. h5 and root hold all tables of a product in one file.',
+      tech: '/output/defaultFormat <formats...>, PreInit. Space-separated txt, csv, h5, root, or none (cannot be combined). Built-in default csv, so nothing is written when csv alone is checked. h5 needs a sim built with HDF5.', refs: SRC.formats })
+  ].concat(PRODUCTS.map(function (p) {
+    return q('fmt_' + p.id, Object.assign({ path: 'formats.' + p.id, step: 'runs', type: 'multi', label: p.stem + ' formats', required: false,
+      options: (p.spatial ? ['h5', 'root'] : FORMATS).map(function (f) { return { value: f, label: f }; }).concat(p.spatial ? [] : [{ value: 'none', label: 'none', help: 'No ' + p.stem + ' file.' }]),
+      help: (p.spatial ? 'Nothing checked: no ' + p.stem + ' file (it never follows the default). ' : 'Nothing checked: follows the default formats. ') + 'Contents: ' + p.what + '.',
+      tech: '/output/' + p.id + '/format <formats...>, PreInit; replaces the default for this product. ' + (p.spatial ? 'Accepts h5 and root only; written only when checked, and only with the mesoscopic stage.' : 'Written only when something is checked.'), refs: SRC.formats },
+      p.spatial ? { rule: 'mesoParams' } : {}));
+  }));
   const FIELD = {};
   FIELDS.forEach(function (f) { FIELD[f.id] = f; });
 
@@ -526,6 +555,32 @@
       if (!d) add('outputDir', 'incomplete', 'Enter the output folder path.');
       else safeText('outputDir', d, 'The output folder path');
     }
+
+    // Output formats (OutputFormats::Parse: 'none' alone, product acceptance, h5 needs HDF5)
+    function checkFormats(field, list, accepted, what) {
+      const bad = list.filter(function (f) { return accepted.indexOf(f) < 0 && f !== 'none'; });
+      if (bad.length) { add(field, 'invalid', what + ' does not accept "' + bad[0] + '" (accepted: ' + accepted.join(', ') + ').'); return false; }
+      if (list.indexOf('none') >= 0 && list.length > 1) { add(field, 'invalid', what + ': "none" cannot be combined with another format.'); return false; }
+      return true;
+    }
+    const usesH5 = [];
+    if (!Array.isArray(cfg.defaultFormats) || !cfg.defaultFormats.length) {
+      add('defaultFormats', 'incomplete', 'Check at least one format, or "none" for no file by default.',
+        [{ label: 'Use csv (the built-in default)', patch: { defaultFormats: ['csv'] } }]);
+    } else if (checkFormats('defaultFormats', cfg.defaultFormats, FORMATS, 'The default formats') && cfg.defaultFormats.indexOf('h5') >= 0) usesH5.push('the default');
+    PRODUCTS.forEach(function (p) {
+      const list = cfg.formats[p.id], field = 'fmt_' + p.id;
+      if (!list.length) return;
+      if (checkFormats(field, list, p.spatial ? ['h5', 'root'] : FORMATS, 'The ' + p.stem + ' product') && list.indexOf('h5') >= 0) usesH5.push(p.stem);
+      if (p.meso && !mesoOn(cfg)) {
+        add(field, 'warning', p.stem + ' is written only with the mesoscopic stage, which is off, so this choice has no effect.',
+          [{ label: 'Clear the ' + p.stem + ' formats', patch: (function () { const o = {}; o['formats.' + p.id] = []; return o; })() }]);
+      }
+    });
+    if (usesH5.length) {
+      add(usesH5.indexOf('the default') >= 0 ? 'defaultFormats' : 'fmt_' + PRODUCTS.filter(function (p) { return usesH5.indexOf(p.stem) >= 0; })[0].id, 'info',
+        'h5 is used for ' + usesH5.join(', ') + '. It needs a sim built with HDF5 (-DDNACHEM_WITH_HDF5=ON); otherwise the command is fatal at the start of the run.');
+    }
     return issues;
   }
   function errors(issues) { return issues.filter(function (i) { return i.severity === 'error'; }); }
@@ -586,8 +641,16 @@
       if (!sameQ(cfg.handOver, MESO_DEFAULTS.handOver)) cmd('/chem/meso/handOverTime ' + qty(cfg.handOver), 'handOver');
       if (!sameQ(cfg.voxel, MESO_DEFAULTS.voxel)) cmd('/chem/meso/voxelSize ' + qty(cfg.voxel), 'voxel');
       if (String(cfg.timesPerDecade).trim() !== MESO_DEFAULTS.timesPerDecade) cmd('/chem/meso/timesPerDecade ' + String(cfg.timesPerDecade).trim(), 'timesPerDecade');
-      if (cfg.spatialOutput) { c('Per-event mesh snapshots in SpeciesMesoSpatial.h5 (large file)'); cmd('/output/speciesMesoSpatial/format h5', 'spatialOutput'); }
     }
+    // Output file formats: the built-in default is csv; a product with nothing checked follows it.
+    const defFormats = cfg.defaultFormats.join(' ');
+    if (defFormats !== 'csv' && cfg.defaultFormats.length) { c('Default output file formats'); cmd('/output/defaultFormat ' + defFormats, 'defaultFormats'); }
+    PRODUCTS.forEach(function (p) {
+      const list = cfg.formats[p.id];
+      if (!list.length || (p.meso && !meso) || (p.spatial && !meso)) return;
+      c(p.stem + ' file formats' + (p.spatial ? ' (per-event mesh snapshots, large files)' : ''));
+      cmd('/output/' + p.id + '/format ' + list.join(' '), 'fmt_' + p.id);
+    });
     if (cfg.binsMode === 'fixed') { c('Reaction-count time bins of fixed width'); cmd('/chem/reaction/timeBinsFixed ' + qty(cfg.binWidth), 'binWidth'); }
     if (cfg.binsMode === 'list') {
       c('Reaction-count time bin edges');
@@ -656,6 +719,8 @@
       ['Water box', 'half side ' + qty(cfg.halfBox) + (cfg.o2 ? ', O2 ' + cfg.o2Value.value + ' ' + cfg.o2Value.unit : ', no O2')],
       ['Beam', cfg.particle + ', ' + cfg.energy.value + ' ' + cfg.energy.unit + ', from z = ' + cfg.beamZ.value + ' ' + cfg.beamZ.unit +
         (cfg.particle === 'e-' ? ', energy cuts ' + ({ default: 'default', custom: 'custom', off: 'off' })[cfg.killerMode] : '')],
+      ['Output formats', cfg.defaultFormats.join(', ') + (cfg.defaultFormats.join(' ') === 'csv' ? ' (default)' : '') +
+        (PRODUCTS.some(function (p) { return cfg.formats[p.id].length; }) ? '; custom for ' + PRODUCTS.filter(function (p) { return cfg.formats[p.id].length; }).map(function (p) { return p.stem; }).join(', ') : '')],
       ['Runs', cfg.runs.length + ' sub-run' + (cfg.runs.length === 1 ? '' : 's') + ', ' + events + ' event' + (events === 1 ? '' : 's') + ', ' + dumps + ' dump' + (dumps === 1 ? '' : 's')]
     ];
   }
@@ -671,6 +736,7 @@
   }
 
   return {
+    FORMATS: FORMATS, PRODUCTS: PRODUCTS, toggleFormats: toggleFormats,
     STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES,
     groupAvailability: groupAvailability, displayValue: displayValue,
     defaults: defaults, normalize: normalize, applyPatch: applyPatch, get: get, validate: validate, errors: errors,

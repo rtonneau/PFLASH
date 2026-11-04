@@ -40,15 +40,14 @@ Writes, next to this script:
     SEM observed per species/O2-level/particle, and the fraction of the 61
     recorded times where it exceeds 25 %.
 
-Mean and SEM per (run, species, time) come directly from the ntuple
-dnachem-min already writes (Species_nt_species.csv: nEvent, sumG, sumG2,
-where sumG/sumG2 are the sum/sum-of-squares of each EVENT's own G-value,
-n_mol / eventEdep_eV * 100, src/scoring/ScoreSpecies.cc:164) -- no re-running
-of the simulation, no re-derivation of G from a run-level ratio:
+Mean and SEM per (run, species, time) come directly from the Species table
+dnachem-min already writes (Species.csv: nEvents, gMean, gStdErr, built from
+each EVENT's own G-value, n_mol / eventEdep_eV * 100, with the Bessel-corrected
+sample variance; src/scoring/ProductTable) -- no re-running of the
+simulation, no re-derivation of G from a run-level ratio:
 
-    mean = sumG / n
-    sample variance = (sumG2 - n * mean^2) / (n - 1)   (Bessel-corrected)
-    SEM = sqrt(sample variance / n)
+    mean = gMean
+    SEM  = gStdErr   (= sqrt(sample variance / nEvents))
 
 Caveats -- this comparison is indicative only, not a reproduction (same as
 the earlier session-local check this directory supersedes for Farokhi2023):
@@ -90,7 +89,7 @@ PROTON_20UM_RUNS = PROTON_RUNS
 PROTON_40UM_RUNS = PROTON_RUNS
 O2_COLORS = {0: "tab:blue", 3: "tab:green", 2.5: "tab:green", 7: "tab:orange", 5: "tab:orange", 21: "magenta"}
 
-SPECIES_CSV_NAME = "Species_nt_species.csv"
+SPECIES_CSV_NAME = "Species.csv"
 
 SPECIES_CSV_LABEL = {
     "e_aq": "e_aq^-1",
@@ -111,23 +110,11 @@ def load_series(run_dir):
     path = run_dir / SPECIES_CSV_NAME
     series = {}
     with open(path, newline="", encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("#") or not line.strip():
-                continue
-            row = next(csv.reader([line]))
-            name = row[3]
-            time_s = float(row[4]) * 1e-9
-            n = int(row[2])
-            sum_g = float(row[5])
-            sum_g2 = float(row[6])
-            mean = sum_g / n
-            if n > 1:
-                var = (sum_g2 - n * mean * mean) / (n - 1)
-                var = max(var, 0.0)
-                sem = math.sqrt(var / n)
-            else:
-                sem = float("nan")
-            series.setdefault(name, []).append((time_s, mean, sem, n))
+        for row in csv.DictReader(f):
+            n = int(row["nEvents"])
+            sem = float(row["gStdErr"]) if n > 1 else float("nan")
+            series.setdefault(row["species"], []).append(
+                (float(row["time_ns"]) * 1e-9, float(row["gMean"]), sem, n))
     for pts in series.values():
         pts.sort()
     return series

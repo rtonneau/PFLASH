@@ -254,7 +254,7 @@
           "id": "meso-msg",
           "title": "MesoMessenger",
           "role": "Mesoscopic stage commands",
-          "summary": "Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade, spatialOutput).",
+          "summary": "Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade).",
           "files": [
             "src/chemistry/MesoMessenger.cc",
             "header/chemistry/MesoMessenger.hh"
@@ -1297,10 +1297,6 @@
           "builder": "timing"
         },
         {
-          "cmd": "/chem/meso/spatialOutput",
-          "builder": "timing"
-        },
-        {
           "cmd": "/scheduler/endTime",
           "builder": "timing"
         }
@@ -1339,6 +1335,14 @@
       ],
       "commands": [
         {
+          "cmd": "/output/defaultFormat",
+          "builder": "runs"
+        },
+        {
+          "cmd": "/output/speciesMesoSpatial/format",
+          "builder": "runs"
+        },
+        {
           "cmd": "/run/dumpDataAndReset",
           "builder": "runs"
         },
@@ -1358,7 +1362,7 @@
       "modes": {
         "sbs": "No SpeciesMeso files: the mesoscopic stage is off.",
         "irt": "No SpeciesMeso files: the mesoscopic stage is off.",
-        "meso": "Also writes SpeciesMeso.Txt / .csv, and SpeciesMesoSpatial.h5 when /chem/meso/spatialOutput is true."
+        "meso": "Also writes the SpeciesMeso product, and SpeciesMesoSpatial.h5 / .root when /output/speciesMesoSpatial/format asks for them."
       }
     }
   ],

@@ -74,16 +74,14 @@ from the project root after the simulations:
 
 ```powershell
 $scratch = Join-Path (Get-Location).Path '.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the'
-$common = @('Manifest.json', 'Species.Txt', 'Species_nt_species.csv',
-  'Reactions.Txt', 'Reactions_nt_reactions.csv', 'ReactionsMetadata.csv',
-  'PhysicsInteractions.Txt', 'PhysicsInteractions.csv',
-  'TrackLengths.Txt', 'TrackLengths.csv',
-  'PreChemical_run0_event0.txt', 'PreChemical_run0_event1.txt')
+$common = @('Manifest.json', 'Species.csv', 'Reactions.csv', 'ReactionsCatalog.csv',
+  'PhysicsInteractions.csv', 'TrackLengths.csv',
+  'PreChemical_run0_event0.csv', 'PreChemical_run0_event1.csv')
 foreach ($run in @('irt', 'meso-spatial')) {
   $dir = Join-Path $scratch $run
   $required = $common
   if ($run -eq 'meso-spatial') {
-    $required += @('SpeciesMeso.Txt', 'SpeciesMeso.csv', 'SpeciesMesoSpatial.h5')
+    $required += @('SpeciesMeso.csv', 'SpeciesMesoSpatial.h5')
   }
   foreach ($name in $required) {
     $file = Join-Path $dir $name
@@ -102,10 +100,20 @@ foreach ($run in @('irt', 'meso-spatial')) {
 The IRT directory supplies physical interaction totals, per-event track
 lengths, two pre-chemical event tables, particle-stage species and reaction
 curves. The mesoscopic directory supplies the same files plus aggregate
-`SpeciesMeso.*` and per-event `SpeciesMesoSpatial.h5`. See
+`SpeciesMeso.csv` and per-event `SpeciesMesoSpatial.h5`. See
 [output layouts](../docs/output/README.md) and the
 [HDF5 format](../docs/output/SpeciesMesoSpatial-h5.md) for units and layouts.
-The CSV ntuples from Geant4 include metadata lines before their data rows.
+Since the standardized output (ADR 0009) the default format is `csv`: plain
+tables with a header row and no metadata lines, named `<Product>.csv`
+(`Species.csv` has `gMean`/`gStdErr`, the count tables `countMean`/`countSum`).
+Other formats (`txt`, `h5`, `root`) are chosen with `/output/defaultFormat` and
+`/output/<product>/format` (see the `sim-output` skill).
+
+> **Pending: G4Utils.** The notebooks read the dumps through G4Utils, whose
+> `Dump` readers still expect the pre-ADR-0009 names (`Species_nt_species.csv`,
+> `Reactions_nt_reactions.csv`, `sumG`/`nEvent`/`number` columns,
+> `ReactionsMetadata.csv`). Until G4Utils reads the new tables, run the notebooks
+> on dumps written before that change; the notebooks themselves are unchanged.
 
 ## Python and Jupyter
 

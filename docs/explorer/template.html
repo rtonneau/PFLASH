@@ -376,6 +376,7 @@
   .b-input input:disabled, .b-input select:disabled { background:var(--sunk); color:var(--muted); }
   .b-input input[aria-invalid=true] { border-color:var(--bad); box-shadow:inset 0 0 0 1px var(--bad); }
   .b-opts { display:grid; gap:6px; margin:4px 0 0; }
+  .b-opts.b-multi { grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); }
   .b-opt { display:flex; gap:9px; align-items:flex-start; padding:7px 10px; border:1px solid var(--line); border-radius:7px; cursor:pointer; font-size:14px; }
   .b-opt input { margin:3px 0 0; accent-color:var(--accent); flex:none; width:16px; height:16px; }
   .b-opt input:focus-visible { outline:none; }
@@ -2080,7 +2081,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const err = own.some(function (i) { return i.severity === 'error'; });
     const helpId = 'b-help-' + f.id;
     const describedBy = [helpId].concat(own.map(function (i) { return 'b-issue-' + i.field.replace(/\W/g, '-') + '-' + i.kind; })).join(' ');
-    const isGroup = f.type === 'choice' || f.type === 'bool';
+    const isGroup = f.type === 'choice' || f.type === 'bool' || f.type === 'multi';
     const wrap = el(isGroup ? 'fieldset' : 'div', { class: 'b-field' + (err ? ' has-error' : '') + (avail ? ' unavailable' : ''), 'data-bfield': f.id });
     const inputId = 'b-in-' + f.id;
     const title = [f.label, tagFor(f)];
@@ -2090,14 +2091,21 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     const disabled = !!avail;
     const value = MB.displayValue(bcfg, f);
     if (isGroup) {
-      const opts = el('div', { class: 'b-opts' });
+      const multi = f.type === 'multi';
+      const opts = el('div', { class: 'b-opts' + (multi ? ' b-multi' : '') });
       f.options.forEach(function (o) {
         const oa = MB.optionAvailability(bcfg, o);
-        const checked = value === o.value;
-        const input = el('input', { type: 'radio', name: 'b-' + f.id, 'data-bkey': 'opt:' + f.id + ':' + String(o.value),
+        const checked = multi ? value.indexOf(o.value) >= 0 : value === o.value;
+        const input = el('input', { type: multi ? 'checkbox' : 'radio', name: 'b-' + f.id, 'data-bkey': 'opt:' + f.id + ':' + String(o.value),
           disabled: disabled || (oa && !checked) ? '' : null, 'aria-describedby': describedBy });
         input.checked = checked;
-        input.addEventListener('change', function () { if (input.checked) { const p = {}; p[f.path] = o.value; patch(p, 'opt:' + f.id + ':' + String(o.value)); } });
+        input.addEventListener('change', function () {
+          const p = {};
+          if (multi) p[f.path] = MB.toggleFormats(value, o.value, input.checked);
+          else if (input.checked) p[f.path] = o.value;
+          else return;
+          patch(p, 'opt:' + f.id + ':' + String(o.value));
+        });
         const text = el('span', {}, [el('b', { text: o.label }), o.help ? el('small', { text: o.help }) : null]);
         if (o.link) {
           // A plain click opens the Module map entry here; a middle or modified click

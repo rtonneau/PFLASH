@@ -5,7 +5,7 @@
 /process/dna/e-SolvationSubType Ritchie1994
 /process/chem/TimeStepModel IRT_syn
 /chem/meso/enable true
-/chem/meso/spatialOutput true
+/output/speciesMesoSpatial/format h5
 /run/initialize
 /scheduler/endTime 1 ms
 /gun/particle e-
