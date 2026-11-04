@@ -15,6 +15,11 @@
 #include "G4RunManager.hh"
 #include "G4Scheduler.hh"
 #include "G4Run.hh"
+#include "G4Event.hh"
+#include "G4HCofThisEvent.hh"
+#include "G4SDManager.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4THitsMap.hh"
 
 #include <memory>
 
@@ -44,6 +49,34 @@ ReactionCounter *ThreadReactionCounter()
     auto *timeStepAction =
         dynamic_cast<TimeStepAction *>(G4Scheduler::Instance()->GetUserTimeStepAction());
     return (timeStepAction != nullptr) ? &timeStepAction->GetReactionCounter() : nullptr;
+}
+
+// This thread's mesoscopic species counter (the chemistry TimeStepAction's),
+// or nullptr where none is registered (same lookup as Run::Run).
+MesoSpeciesCounter *ThreadMesoSpeciesCounter()
+{
+    auto *timeStepAction =
+        dynamic_cast<TimeStepAction *>(G4Scheduler::Instance()->GetUserTimeStepAction());
+    return (timeStepAction != nullptr) ? &timeStepAction->GetMesoSpeciesCounter() : nullptr;
+}
+
+// Energy deposit of the event in eV: the sum of the "mfDetector/Species" hits
+// map, the same value ScoreSpecies accumulated in its fEdep for its G
+// (and Run::RecordEvent sums). Valid in EndOfEventAction, after the SD
+// EndOfEvent (which resets ScoreSpecies::fEdep) and before the Run records it.
+double EventEnergyDeposit_eV(const G4Event *event)
+{
+    G4HCofThisEvent *hitsCollections = event->GetHCofThisEvent();
+    if (hitsCollections == nullptr)
+        return 0.;
+    const G4int collectionId = G4SDManager::GetSDMpointer()->GetCollectionID("mfDetector/Species");
+    auto *edepMap = dynamic_cast<G4THitsMap<G4double> *>(hitsCollections->GetHC(collectionId));
+    if (edepMap == nullptr)
+        return 0.;
+    G4double total = 0.;
+    for (const auto &hit : *edepMap->GetMap())
+        total += *hit.second;
+    return total / eV;
 }
 }  // namespace
 
@@ -134,5 +167,15 @@ void EventAction::EndOfEventAction(const G4Event *event)
             reactions->CommitEvent();
         else
             reactions->DiscardEvent();
+    }
+
+    // And for the mesoscopic species counts: the mesoscopic stage runs inside
+    // the event (hand-over in TimeStepAction), so they are complete here.
+    if (auto *meso = ThreadMesoSpeciesCounter())
+    {
+        if (!event->IsAborted())
+            meso->CommitEvent(EventEnergyDeposit_eV(event));
+        else
+            meso->DiscardEvent();
     }
 }

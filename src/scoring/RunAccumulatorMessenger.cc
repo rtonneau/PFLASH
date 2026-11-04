@@ -52,16 +52,8 @@ void WriteSpeciesOutput(const G4String &prefix, std::vector<std::string> &files)
 void WriteMesoscopicOutput(const G4String &prefix, std::vector<std::string> &files)
 {
     // Species counts of the mesoscopic stage (hand-over to end time).
-    const MesoSpeciesCounter &mesoSpeciesCounter = RunAccumulator::GetAccumulatedMesoSpeciesCounter();
-    std::ofstream mesoOut(OutputDir::Resolve("SpeciesMeso.Txt"));
-    mesoSpeciesCounter.WriteAscii(mesoOut, RunAccumulator::GetAccumulatedEvents());
-    mesoOut.close();
-    files.push_back(prefix + "SpeciesMeso.Txt");
-
-    std::ofstream mesoCsv(OutputDir::Resolve("SpeciesMeso.csv"));
-    mesoSpeciesCounter.WriteCsv(mesoCsv);
-    mesoCsv.close();
-    files.push_back(prefix + "SpeciesMeso.csv");
+    ProductOutput::Write(OutputFormats::Product::SpeciesMeso,
+                         {RunAccumulator::GetAccumulatedMesoSpeciesCounter().ToTable()}, prefix, files);
 }
 
 void MoveSpatialOutput(const G4String &prefix, std::vector<std::string> &files)

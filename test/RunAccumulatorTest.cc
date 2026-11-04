@@ -134,13 +134,14 @@ static void TestAccumulateMergesMesoSpeciesCounts()
   MesoSpeciesCounter meso;
   TrackLengthTable trackLengths;
   meso.Add(5., "OH^0", 3);
+  meso.CommitEvent(100.);
 
   RunAccumulator::Accumulate(0., 0, reactions, interactions, meso, trackLengths);
   RunAccumulator::Accumulate(0., 0, reactions, interactions, meso, trackLengths);
 
   assert(!RunAccumulator::GetAccumulatedMesoSpeciesCounter().Empty());
-  assert(RunAccumulator::GetAccumulatedMesoSpeciesCounter().GetCounts().at(5.).at("OH^0") == 6);
-  assert(meso.GetCounts().at(5.).at("OH^0") == 3);
+  assert(RunAccumulator::GetAccumulatedMesoSpeciesCounter().GetStats().at(5.).at("OH^0").count.Sum() == 6);
+  assert(meso.GetStats().at(5.).at("OH^0").count.Sum() == 3);
 
   RunAccumulator::ClearAccumulated();
 }
@@ -194,6 +195,7 @@ static void TestClearAccumulatedResetsEverything()
   MesoSpeciesCounter meso;
   TrackLengthTable trackLengths;
   meso.Add(5., "OH^0", 3);
+  meso.CommitEvent(100.);
   TrackLengthTable::Row row;
   row.event = 1;
   trackLengths.Add(row);

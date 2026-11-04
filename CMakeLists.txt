@@ -224,7 +224,7 @@ add_test(NAME ProductOutputTest COMMAND ProductOutputTest)
 
 # Standalone unit test for MesoSpeciesCounter (per-time species counts of the
 # mesoscopic stage -- pure logic, std only).
-add_executable(MesoSpeciesCounterTest test/MesoSpeciesCounterTest.cc src/scoring/MesoSpeciesCounter.cc)
+add_executable(MesoSpeciesCounterTest test/MesoSpeciesCounterTest.cc src/scoring/MesoSpeciesCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_include_directories(MesoSpeciesCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME MesoSpeciesCounterTest COMMAND MesoSpeciesCounterTest)
 
