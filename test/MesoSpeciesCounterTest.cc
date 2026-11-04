@@ -8,133 +8,169 @@
 #include "scoring/MesoSpeciesCounter.hh"
 
 #include <cassert>
+#include <cmath>
+#include <cstdint>
 #include <iostream>
-#include <sstream>
 #include <string>
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
 #endif
 
-/// Count at (time, species), or -1 when absent (keeps failures assertions).
-static long CountAt(const MesoSpeciesCounter& counter, double time, const std::string& species)
+static bool Near(double a, double b)
 {
-  const auto byTime = counter.GetCounts().find(time);
-  if (byTime == counter.GetCounts().end()) return -1;
-  const auto bySpecies = byTime->second.find(species);
-  return bySpecies == byTime->second.end() ? -1 : bySpecies->second;
+  return std::fabs(a - b) <= 1e-9 * (1. + std::fabs(a) + std::fabs(b));
 }
 
-static void TestAddSumsSameTimeAndSpecies()
+static const MesoSpeciesCounter::Stat& StatAt(const MesoSpeciesCounter& c, double time,
+                                              const std::string& species)
+{
+  return c.GetStats().at(time).at(species);
+}
+
+static void TestAddIsUncommittedUntilCommit()
 {
   MesoSpeciesCounter counter;
   counter.Add(5., "OH^0", 3);
-  counter.Add(5., "OH^0", 4);
-
-  assert(CountAt(counter, 5., "OH^0") == 7);
+  assert(counter.Empty());
+  assert(counter.CommittedEvents() == 0);
+  counter.CommitEvent(100.);
+  assert(!counter.Empty());
+  assert(counter.CommittedEvents() == 1);
 }
 
-static void TestAddKeepsTimesAndSpeciesSeparate()
+static void TestCommitFoldsCountsAndG()
 {
   MesoSpeciesCounter counter;
   counter.Add(5., "OH^0", 3);
+  counter.Add(5., "OH^0", 4);  // same (time, species) sums within the event
   counter.Add(10., "OH^0", 2);
-  counter.Add(5., "H_2^0", 1);
+  counter.CommitEvent(200.);
 
-  assert(CountAt(counter, 5., "OH^0") == 3);
-  assert(CountAt(counter, 10., "OH^0") == 2);
-  assert(CountAt(counter, 5., "H_2^0") == 1);
+  assert(Near(StatAt(counter, 5., "OH^0").count.Sum(), 7.));
+  assert(Near(StatAt(counter, 5., "OH^0").count.SumSq(), 49.));
+  assert(Near(StatAt(counter, 5., "OH^0").g.Sum(), 7. / 200. * 100.));
+  assert(Near(StatAt(counter, 10., "OH^0").g.Sum(), 1.));
 }
 
-static void TestMergeSumsPerTimeAndSpecies()
+static void TestZeroFillAcrossEvents()
 {
-  MesoSpeciesCounter a;
+  MesoSpeciesCounter counter;
+  counter.Add(5., "OH^0", 4);
+  counter.CommitEvent(100.);
+  counter.Add(5., "H_2^0", 2);  // OH^0 absent in event 2
+  counter.CommitEvent(100.);
+
+  const auto& oh = StatAt(counter, 5., "OH^0");
+  assert(counter.CommittedEvents() == 2);
+  assert(Near(oh.count.Sum(), 4.));
+  assert(Near(oh.count.Mean(counter.CommittedEvents()), 2.));
+  assert(Near(StatAt(counter, 5., "H_2^0").count.Mean(2), 1.));
+  assert(Near(oh.g.Mean(2), 2.));
+}
+
+static void TestZeroEdepEventAddsCountsButNoG()
+{
+  MesoSpeciesCounter counter;
+  counter.Add(5., "OH^0", 4);
+  counter.CommitEvent(0.);
+
+  assert(Near(StatAt(counter, 5., "OH^0").count.Sum(), 4.));
+  assert(StatAt(counter, 5., "OH^0").g.Sum() == 0.);
+}
+
+static void TestDiscardDropsCurrentEvent()
+{
+  MesoSpeciesCounter counter;
+  counter.Add(5., "OH^0", 4);
+  counter.DiscardEvent();
+  counter.CommitEvent(100.);
+  assert(counter.Empty());
+  assert(counter.CommittedEvents() == 1);
+}
+
+static void TestMergeEqualsSingleFeed()
+{
+  MesoSpeciesCounter a, b, single;
   a.Add(5., "OH^0", 3);
-  a.Add(10., "OH^0", 1);
-  MesoSpeciesCounter b;
-  b.Add(5., "OH^0", 4);
+  a.CommitEvent(100.);
+  b.Add(5., "OH^0", 5);
   b.Add(10., "e_aq^-1", 2);
+  b.CommitEvent(50.);
+  b.Add(10., "e_aq^-1", 1);
+  b.CommitEvent(25.);
+
+  single.Add(5., "OH^0", 3);
+  single.CommitEvent(100.);
+  single.Add(5., "OH^0", 5);
+  single.Add(10., "e_aq^-1", 2);
+  single.CommitEvent(50.);
+  single.Add(10., "e_aq^-1", 1);
+  single.CommitEvent(25.);
 
   a.Merge(b);
 
-  assert(CountAt(a, 5., "OH^0") == 7);
-  assert(CountAt(a, 10., "OH^0") == 1);
-  assert(CountAt(a, 10., "e_aq^-1") == 2);
+  assert(a.CommittedEvents() == single.CommittedEvents());
+  const OutputTable ta = a.ToTable();
+  const OutputTable ts = single.ToTable();
+  assert(ta.Rows().size() == ts.Rows().size());
+  for (std::size_t i = 0; i < ta.Rows().size(); ++i) {
+    assert(ta.Rows()[i] == ts.Rows()[i]);
+  }
 }
 
 static void TestMergeDoesNotModifyOther()
 {
-  MesoSpeciesCounter a;
+  MesoSpeciesCounter a, b;
   a.Add(5., "OH^0", 3);
-  MesoSpeciesCounter b;
+  a.CommitEvent(100.);
   b.Add(5., "OH^0", 4);
-
+  b.CommitEvent(100.);
   a.Merge(b);
-
-  assert(CountAt(b, 5., "OH^0") == 4);
-  assert(b.GetCounts().size() == 1);
+  assert(Near(StatAt(b, 5., "OH^0").count.Sum(), 4.));
+  assert(b.CommittedEvents() == 1);
 }
 
-static void TestEmptyAndClear()
+static void TestClear()
 {
   MesoSpeciesCounter counter;
-  assert(counter.Empty());
-
   counter.Add(5., "OH^0", 3);
-  assert(!counter.Empty());
-
+  counter.CommitEvent(100.);
+  counter.Add(5., "OH^0", 3);
   counter.Clear();
   assert(counter.Empty());
-  assert(counter.GetCounts().empty());
+  assert(counter.CommittedEvents() == 0);
+  counter.CommitEvent(100.);
+  assert(counter.Empty());
 }
 
-static void TestWriteCsvHeaderAndRowOrder()
+static void TestToTableColumnsAndRows()
 {
   MesoSpeciesCounter counter;
   counter.Add(1000000., "OH^0", 2);
   counter.Add(5., "OH^0", 3);
   counter.Add(5., "H_2^0", 1);
-  counter.Add(5., "OH^0", 4);
+  counter.CommitEvent(100.);
 
-  std::ostringstream out;
-  counter.WriteCsv(out);
+  const OutputTable table = counter.ToTable();
+  const OutputTable expected = SpeciesSchema::MakeTable("speciesMeso", "");
+  assert(table.Name() == "speciesMeso");
+  assert(table.Columns().size() == expected.Columns().size());
+  for (std::size_t i = 0; i < table.Columns().size(); ++i) {
+    assert(table.Columns()[i].name == expected.Columns()[i].name);
+  }
+  assert(table.Columns()[0].name == "time_ns");
+  assert(table.Columns()[1].name == "species");
+  assert(table.Columns()[2].name == "nEvents");
 
-  assert(out.str() ==
-         "time_ns,species,count\n"
-         "5,H_2^0,1\n"
-         "5,OH^0,7\n"
-         "1000000,OH^0,2\n");
-}
-
-static void TestWriteAsciiMeansOverTwoEvents()
-{
-  MesoSpeciesCounter counter;
-  counter.Add(5., "OH^0", 3);
-  counter.Add(5., "OH^0", 4);
-  counter.Add(5., "H_2^0", 2);
-  counter.Add(1000000., "OH^0", 1);
-
-  std::ostringstream out;
-  counter.WriteAscii(out, 2);
-
-  assert(out.str() ==
-         "Time is in ns; mean count per event over 2 events\n"
-         "5\n"
-         "H_2^0 1\n"
-         "OH^0 3.5\n"
-         "1000000\n"
-         "OH^0 0.5\n");
-}
-
-static void TestWriteAsciiZeroEventsGivesZeroMeans()
-{
-  MesoSpeciesCounter counter;
-  counter.Add(5., "OH^0", 3);
-
-  std::ostringstream out;
-  counter.WriteAscii(out, 0);
-
-  assert(out.str().find("OH^0 0\n") != std::string::npos);
+  assert(table.Rows().size() == 3);
+  // time ascending, then species sorted
+  assert(std::get<double>(table.Rows()[0][0]) == 5.);
+  assert(std::get<std::string>(table.Rows()[0][1]) == "H_2^0");
+  assert(std::get<std::string>(table.Rows()[1][1]) == "OH^0");
+  assert(std::get<double>(table.Rows()[2][0]) == 1000000.);
+  assert(std::get<std::int64_t>(table.Rows()[1][2]) == 1);
+  assert(Near(std::get<double>(table.Rows()[1][3]), 3.));
 }
 
 int main()
@@ -147,14 +183,15 @@ int main()
   _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
 
-  TestAddSumsSameTimeAndSpecies();
-  TestAddKeepsTimesAndSpeciesSeparate();
-  TestMergeSumsPerTimeAndSpecies();
+  TestAddIsUncommittedUntilCommit();
+  TestCommitFoldsCountsAndG();
+  TestZeroFillAcrossEvents();
+  TestZeroEdepEventAddsCountsButNoG();
+  TestDiscardDropsCurrentEvent();
+  TestMergeEqualsSingleFeed();
   TestMergeDoesNotModifyOther();
-  TestEmptyAndClear();
-  TestWriteCsvHeaderAndRowOrder();
-  TestWriteAsciiMeansOverTwoEvents();
-  TestWriteAsciiZeroEventsGivesZeroMeans();
+  TestClear();
+  TestToTableColumnsAndRows();
 
   std::cout << "All MesoSpeciesCounter tests passed." << std::endl;
   return 0;

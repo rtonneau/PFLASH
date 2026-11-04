@@ -20,18 +20,13 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 <outdir>/
   Manifest.json                (results index)
   EndOfRun_Manifest.json
-  EndOfRun_Species.Txt
-  EndOfRun_Species_nt_species.csv
-  EndOfRun_Reactions.Txt
-  EndOfRun_Reactions_nt_reactions.csv
-  EndOfRun_ReactionsMetadata.csv
-  EndOfRun_PhysicsInteractions.Txt
+  EndOfRun_Species.csv
+  EndOfRun_Reactions.csv
+  EndOfRun_ReactionsCatalog.csv
   EndOfRun_PhysicsInteractions.csv
-  EndOfRun_TrackLengths.Txt
   EndOfRun_TrackLengths.csv
-  EndOfRun_SpeciesMeso.Txt
   EndOfRun_SpeciesMeso.csv
-  EndOfRun_PreChemical_run0_event0.txt
+  EndOfRun_PreChemical_run0_event0.csv
   EndOfRun_...
   .pending_prechem/            (empty)
 ```
@@ -45,7 +40,7 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/spatialOutput true  # (before /run/initialize)
+/output/speciesMesoSpatial/format h5  # (before /run/initialize)
 /scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 (no dump command)
@@ -55,19 +50,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 <outdir>/
   Manifest.json                (results index)
   EndOfRun_Manifest.json
-  EndOfRun_Species.Txt
-  EndOfRun_Species_nt_species.csv
-  EndOfRun_Reactions.Txt
-  EndOfRun_Reactions_nt_reactions.csv
-  EndOfRun_ReactionsMetadata.csv
-  EndOfRun_PhysicsInteractions.Txt
+  EndOfRun_Species.csv
+  EndOfRun_Reactions.csv
+  EndOfRun_ReactionsCatalog.csv
   EndOfRun_PhysicsInteractions.csv
-  EndOfRun_TrackLengths.Txt
   EndOfRun_TrackLengths.csv
-  EndOfRun_SpeciesMeso.Txt
   EndOfRun_SpeciesMeso.csv
   EndOfRun_SpeciesMesoSpatial.h5
-  EndOfRun_PreChemical_run0_event0.txt
+  EndOfRun_PreChemical_run0_event0.csv
   EndOfRun_...
   .pending_prechem/            (empty)
   .pending_meso_spatial/       (empty)
@@ -91,18 +81,14 @@ Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 1
 <outdir>/
   Manifest.json                (results index)
   EndOfRun_Manifest.json
-  EndOfRun_Species.Txt
-  EndOfRun_Species_nt_species.csv
-  EndOfRun_Reactions.Txt
-  EndOfRun_Reactions_nt_reactions.csv
-  EndOfRun_ReactionsMetadata.csv
-  EndOfRun_PhysicsInteractions.Txt
+  EndOfRun_Species.csv
+  EndOfRun_Reactions.csv
+  EndOfRun_ReactionsCatalog.csv
   EndOfRun_PhysicsInteractions.csv
-  EndOfRun_TrackLengths.Txt
   EndOfRun_TrackLengths.csv
-  EndOfRun_PreChemical_run0_event0.txt
+  EndOfRun_PreChemical_run0_event0.csv
   EndOfRun_...
   .pending_prechem/            (empty)
 ```
 
-`SpeciesMeso.Txt` and `SpeciesMeso.csv` are not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).
+`SpeciesMeso.csv` (and any other `SpeciesMeso.<ext>`) is not written when the mesoscopic stage is off (`/chem/meso/enable false`, or SBS). The manifest says `mesoEnabled: false`, `handOverTime_ns: null`, `chemistryEndTime_ns: 1000` (the end time defaults to 1 us, so the `/scheduler/endTime` line is left out), and `Species.*` / `Reactions.*` cover the whole run. See the [README](../README.md#mesoscopic-stage-on-or-off).

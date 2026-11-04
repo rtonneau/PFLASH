@@ -7,8 +7,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iomanip>
-#include <ostream>
+#include <cstdint>
+#include <string>
 
 const char* TrackLengthTable::EndToString(End end)
 {
@@ -97,36 +97,25 @@ TrackLengthTable::Summary TrackLengthTable::Summarize() const
   return summary;
 }
 
-namespace
+OutputTable TrackLengthTable::ToTable() const
 {
-constexpr int kTablePrecision = 6;
-
-void WriteRows(std::ostream& out, const std::vector<TrackLengthTable::Row>& rows, char separator)
-{
-  const auto flags = out.flags();
-  const auto precision = out.precision();
-  out << std::fixed << std::setprecision(kTablePrecision);
-  for (const auto& row : rows) {
-    out << row.run << separator << row.event << separator << row.primaryLength_nm << separator << row.primaryEkin0_keV << separator
-        << row.primaryEkinEnd_keV << separator << TrackLengthTable::EndToString(row.primaryEnd) << separator
-        << row.secondaryFirstGen_nm << separator << row.nSecondaryFirstGen << separator << row.secondaryAll_nm << separator
-        << row.nSecondaryAll << "\n";
+  using CT = OutputTable::ColumnType;
+  OutputTable table("trackLengths", "TrackLengths: per-event primary and secondary electron track lengths");
+  table.AddColumn("run", "", "Run number", CT::Int64);
+  table.AddColumn("event", "", "Event number within the run", CT::Int64);
+  table.AddColumn("primaryLength_nm", "nm", "Primary track length", CT::Double);
+  table.AddColumn("primaryEkinStart_keV", "keV", "Primary kinetic energy at the start", CT::Double);
+  table.AddColumn("primaryEkinEnd_keV", "keV", "Primary kinetic energy at the end", CT::Double);
+  table.AddColumn("primaryEnd", "", "Why the primary ended: stopped, escaped or killed", CT::String);
+  table.AddColumn("secondaryFirstGenLength_nm", "nm", "Summed length of first-generation secondary electrons", CT::Double);
+  table.AddColumn("nSecondaryFirstGen", "", "Number of first-generation secondary electrons", CT::Int64);
+  table.AddColumn("secondaryAllLength_nm", "nm", "Summed length of secondary electrons, all generations", CT::Double);
+  table.AddColumn("nSecondaryAll", "", "Number of secondary electrons, all generations", CT::Int64);
+  for (const auto& row : Sorted()) {
+    table.AddRow({static_cast<std::int64_t>(row.run), static_cast<std::int64_t>(row.event), row.primaryLength_nm,
+                  row.primaryEkin0_keV, row.primaryEkinEnd_keV, std::string(EndToString(row.primaryEnd)),
+                  row.secondaryFirstGen_nm, static_cast<std::int64_t>(row.nSecondaryFirstGen), row.secondaryAll_nm,
+                  static_cast<std::int64_t>(row.nSecondaryAll)});
   }
-  out.flags(flags);
-  out.precision(precision);
-}
-}  // namespace
-
-void TrackLengthTable::WriteCsv(std::ostream& out) const
-{
-  out << "run,event,primaryLength_nm,primaryEkin0_keV,primaryEkinEnd_keV,primaryEnd,"
-         "secondaryFirstGen_nm,nSecondaryFirstGen,secondaryAll_nm,nSecondaryAll\n";
-  WriteRows(out, Sorted(), ',');
-}
-
-void TrackLengthTable::WriteAscii(std::ostream& out) const
-{
-  out << "# run event primaryLength_nm primaryEkin0_keV primaryEkinEnd_keV primaryEnd "
-         "secondaryFirstGen_nm nSecondaryFirstGen secondaryAll_nm nSecondaryAll\n";
-  WriteRows(out, Sorted(), ' ');
+  return table;
 }

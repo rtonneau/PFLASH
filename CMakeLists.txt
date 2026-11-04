@@ -84,9 +84,9 @@ set(project_include_dirs ${PROJECT_SOURCE_DIR}/header)
 # Exactly one MesoSpatialFile implementation is compiled: the HDF5 one, or the
 # std-only stub that reports the feature as unavailable.
 if(DNACHEM_HAS_HDF5)
-  list(FILTER sources EXCLUDE REGEX "/src/scoring/MesoSpatialFileNoHdf5[.]cc$")
+  list(FILTER sources EXCLUDE REGEX "/src/scoring/(MesoSpatialFile|Hdf5TableFile)NoHdf5[.]cc$")
 else()
-  list(FILTER sources EXCLUDE REGEX "/src/scoring/MesoSpatialFile[.]cc$")
+  list(FILTER sources EXCLUDE REGEX "/src/scoring/(MesoSpatialFile|Hdf5TableFile)[.]cc$")
 endif()
 
 # Tell CMake the name of the executable to produce.
@@ -134,20 +134,20 @@ add_test(NAME CatalogExportTest COMMAND CatalogExportTest)
 
 # Standalone unit test for ReactionCounter (pure accumulation/binning logic,
 # no Geant4 runtime init required).
-add_executable(ReactionCounterTest test/ReactionCounterTest.cc src/scoring/ReactionCounter.cc src/core/OutputDir.cc)
+add_executable(ReactionCounterTest test/ReactionCounterTest.cc src/scoring/ReactionCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_link_libraries(ReactionCounterTest ${Geant4_LIBRARIES})
 target_include_directories(ReactionCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME ReactionCounterTest COMMAND ReactionCounterTest)
 
 # Standalone unit test for PhysicsInteractionCounter (fully generic,
 # portable, no dnachem-min-specific dependency -- no OutputDir.cc needed).
-add_executable(PhysicsInteractionCounterTest test/PhysicsInteractionCounterTest.cc src/scoring/PhysicsInteractionCounter.cc)
+add_executable(PhysicsInteractionCounterTest test/PhysicsInteractionCounterTest.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_link_libraries(PhysicsInteractionCounterTest ${Geant4_LIBRARIES})
 target_include_directories(PhysicsInteractionCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME PhysicsInteractionCounterTest COMMAND PhysicsInteractionCounterTest)
 
 # Standalone unit test for TrackLengthTable (portable, standard library only).
-add_executable(TrackLengthTableTest test/TrackLengthTableTest.cc src/scoring/TrackLengthTable.cc)
+add_executable(TrackLengthTableTest test/TrackLengthTableTest.cc src/scoring/TrackLengthTable.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
 target_include_directories(TrackLengthTableTest PRIVATE ${project_include_dirs})
 add_test(NAME TrackLengthTableTest COMMAND TrackLengthTableTest)
 
@@ -161,7 +161,7 @@ add_test(NAME JsonWriterTest COMMAND JsonWriterTest)
 # bookkeeping logic, no Geant4 kernel dependency -- DumpAndReset's
 # file-writing/species lookup lives in RunAccumulatorMessenger instead,
 # which is not unit-tested, matching this project's existing convention).
-add_executable(RunAccumulatorTest test/RunAccumulatorTest.cc src/scoring/RunAccumulator.cc src/scoring/ReactionCounter.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/MesoSpeciesCounter.cc src/scoring/TrackLengthTable.cc src/scoring/DataNode.cc src/core/OutputDir.cc)
+add_executable(RunAccumulatorTest test/RunAccumulatorTest.cc src/scoring/RunAccumulator.cc src/scoring/ReactionCounter.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/MesoSpeciesCounter.cc src/scoring/TrackLengthTable.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/DataNode.cc src/core/OutputDir.cc)
 target_link_libraries(RunAccumulatorTest ${Geant4_LIBRARIES})
 target_include_directories(RunAccumulatorTest PRIVATE ${project_include_dirs})
 add_test(NAME RunAccumulatorTest COMMAND RunAccumulatorTest)
@@ -172,6 +172,18 @@ add_executable(PreChemicalFilesTest test/PreChemicalFilesTest.cc src/scoring/Pre
 target_link_libraries(PreChemicalFilesTest ${Geant4_LIBRARIES})
 target_include_directories(PreChemicalFilesTest PRIVATE ${project_include_dirs})
 add_test(NAME PreChemicalFilesTest COMMAND PreChemicalFilesTest)
+
+# Standalone unit test for PreChemicalRecorder (rows fed directly; links Geant4
+# for G4VPhysChemIO, needs no Geant4 kernel).
+add_executable(PreChemicalRecorderTest test/PreChemicalRecorderTest.cc src/scoring/PreChemicalRecorder.cc src/scoring/PreChemicalFiles.cc src/scoring/OutputFormats.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc)
+target_link_libraries(PreChemicalRecorderTest ${Geant4_LIBRARIES})
+target_include_directories(PreChemicalRecorderTest PRIVATE ${project_include_dirs})
+add_test(NAME PreChemicalRecorderTest COMMAND PreChemicalRecorderTest)
+
+# Standalone unit test for MesoSpatialRootRows (row expansion; std + OutputTable).
+add_executable(MesoSpatialRootRowsTest test/MesoSpatialRootRowsTest.cc src/scoring/MesoSpatialRootRows.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+target_include_directories(MesoSpatialRootRowsTest PRIVATE ${project_include_dirs})
+add_test(NAME MesoSpatialRootRowsTest COMMAND MesoSpatialRootRowsTest)
 
 # Standalone unit test for ChemistryRegistry (pure name lookup/selection logic,
 # no Geant4 kernel dependency -- it only stores builder function pointers).
@@ -193,9 +205,38 @@ add_executable(MesoSettingsTest test/MesoSettingsTest.cc src/chemistry/MesoSetti
 target_include_directories(MesoSettingsTest PRIVATE ${project_include_dirs})
 add_test(NAME MesoSettingsTest COMMAND MesoSettingsTest)
 
+# Standalone unit test for OutputFormats (output products and their selectable
+# file formats -- pure logic, std only).
+add_executable(OutputFormatsTest test/OutputFormatsTest.cc src/scoring/OutputFormats.cc)
+target_include_directories(OutputFormatsTest PRIVATE ${project_include_dirs})
+add_test(NAME OutputFormatsTest COMMAND OutputFormatsTest)
+
+# Standalone unit test for OutputTable, EventStat, SpeciesSchema and
+# TableWriters (typed table model and its csv/txt serialisers -- std only).
+add_executable(OutputTableTest test/OutputTableTest.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc)
+target_include_directories(OutputTableTest PRIVATE ${project_include_dirs})
+add_test(NAME OutputTableTest COMMAND OutputTableTest)
+
+# Unit test for ProductOutput (Geant4-facing: G4Exception + OutputDir; no kernel).
+set(productOutputSources test/ProductOutputTest.cc src/scoring/ProductOutput.cc src/scoring/OutputFormats.cc
+    src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc
+    src/scoring/RootTableFile.cc src/core/OutputDir.cc)
+if(DNACHEM_HAS_HDF5)
+  list(APPEND productOutputSources src/scoring/Hdf5TableFile.cc)
+else()
+  list(APPEND productOutputSources src/scoring/Hdf5TableFileNoHdf5.cc)
+endif()
+add_executable(ProductOutputTest ${productOutputSources})
+target_link_libraries(ProductOutputTest ${Geant4_LIBRARIES})
+if(DNACHEM_HAS_HDF5)
+  target_link_libraries(ProductOutputTest dnachem_hdf5)
+endif()
+target_include_directories(ProductOutputTest PRIVATE ${project_include_dirs})
+add_test(NAME ProductOutputTest COMMAND ProductOutputTest)
+
 # Standalone unit test for MesoSpeciesCounter (per-time species counts of the
 # mesoscopic stage -- pure logic, std only).
-add_executable(MesoSpeciesCounterTest test/MesoSpeciesCounterTest.cc src/scoring/MesoSpeciesCounter.cc)
+add_executable(MesoSpeciesCounterTest test/MesoSpeciesCounterTest.cc src/scoring/MesoSpeciesCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_include_directories(MesoSpeciesCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME MesoSpeciesCounterTest COMMAND MesoSpeciesCounterTest)
 
@@ -207,12 +248,30 @@ if(DNACHEM_HAS_HDF5)
   target_link_libraries(MesoSpatialFileTest dnachem_hdf5)
   target_include_directories(MesoSpatialFileTest PRIVATE ${project_include_dirs})
   add_test(NAME MesoSpatialFileTest COMMAND MesoSpatialFileTest)
+
+  # Standalone unit test for Hdf5TableFile (HDF5 writer of OutputTables).
+  add_executable(Hdf5TableFileTest test/Hdf5TableFileTest.cc src/scoring/Hdf5TableFile.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+  target_link_libraries(Hdf5TableFileTest dnachem_hdf5)
+  target_include_directories(Hdf5TableFileTest PRIVATE ${project_include_dirs})
+  add_test(NAME Hdf5TableFileTest COMMAND Hdf5TableFileTest)
 else()
   # Standalone unit test for the no-HDF5 stub of MesoSpatialFile (std only).
   add_executable(MesoSpatialFileNoHdf5Test test/MesoSpatialFileNoHdf5Test.cc src/scoring/MesoSpatialFileNoHdf5.cc)
   target_include_directories(MesoSpatialFileNoHdf5Test PRIVATE ${project_include_dirs})
   add_test(NAME MesoSpatialFileNoHdf5Test COMMAND MesoSpatialFileNoHdf5Test)
+
+  # Standalone unit test for the no-HDF5 stub of Hdf5TableFile.
+  add_executable(Hdf5TableFileNoHdf5Test test/Hdf5TableFileNoHdf5Test.cc src/scoring/Hdf5TableFileNoHdf5.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+  target_include_directories(Hdf5TableFileNoHdf5Test PRIVATE ${project_include_dirs})
+  add_test(NAME Hdf5TableFileNoHdf5Test COMMAND Hdf5TableFileNoHdf5Test)
 endif()
+
+# Standalone unit test for RootTableFile (g4tools ROOT writer of OutputTables;
+# links Geant4 for g4tools and zlib, needs no Geant4 kernel).
+add_executable(RootTableFileTest test/RootTableFileTest.cc src/scoring/RootTableFile.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+target_link_libraries(RootTableFileTest ${Geant4_LIBRARIES})
+target_include_directories(RootTableFileTest PRIVATE ${project_include_dirs})
+add_test(NAME RootTableFileTest COMMAND RootTableFileTest)
 
 # Standalone unit test for Tonneau2025Table (Table 2 of Tonneau et al. 2025 as
 # plain data) and the Geant4-free part of Tonneau2025Reactions (routing, types,

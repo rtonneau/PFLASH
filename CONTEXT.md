@@ -132,13 +132,34 @@ The structured description of one **Dump**, written next to the data files it
 describes: what was simulated (beam per run, Chemistry, environment), how (seed,
 threads), the totals (events, energy deposit) and which files the dump produced.
 Every dump has exactly one.
-_Avoid_: "metadata" (already names `ReactionsMetadata.csv`, the reaction-id → label map).
+_Avoid_: "metadata" (the `Reactions` product's reaction-id → label table is the
+**reaction catalogue**).
+
+**Output product**:
+One kind of data a **Dump** writes, with one table schema (columns, units) shared by
+every **Output format** it is written in: `Species`, `SpeciesMeso`, `Reactions`,
+`PhysicsInteractions`, `TrackLengths`, `PreChemical`, `SpeciesMesoSpatial`. Each has
+its own format command (`/output/<product>/format`). The **Manifest** is not an
+output product: it is always JSON.
+_Avoid_: "data type", "output file" (one product can be several files).
+
+**Output format**:
+The encoding an **Output product** is written in: `txt`, `csv`, `h5` or `root`, or
+`none` (not written). A product can be written in several formats at once; a
+product does not accept every format (`SpeciesMesoSpatial`: `h5`/`root` only).
+
+**Default format**:
+The format list (`/output/defaultFormat`) used by every **Output product** that has
+no format command of its own, minus the formats that product does not accept.
+`SpeciesMesoSpatial` never follows it. Built-in value: `csv`.
 
 **Pre-chemical file**:
 The per-event record of what the physical stage handed to the chemical stage: every
 ionised or excited water molecule and every solvated electron, with energy and
-position. One file per event, including an empty one when the event made none. It
-belongs to the **Dump** that covers its run and is listed in that dump's **Manifest**.
+position (the `PreChemical` **Output product**). In `txt`/`csv`, one file per event,
+including an empty one when the event made none; in `h5`/`root`, one file per
+**Dump** holding every event. It belongs to the **Dump** that covers its run and is
+listed in that dump's **Manifest**.
 _Avoid_: "output_event file", "chemistry output" (the chemical stage's own results are
 the species and reaction files).
 

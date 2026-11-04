@@ -1,64 +1,77 @@
 /// \file MesoSpeciesCounter.cc
-/// \brief Accumulate molecule counts at Mesoscopic stage record times.
-/// Standard library only.
-/// Callers coordinate access to shared mutable counters and streams.
+/// \brief Per-event molecule counts at Mesoscopic stage record times.
+/// Standard library and project-portable EventStat/OutputTable only.
+/// Callers coordinate access to shared mutable counters.
 
 #include "scoring/MesoSpeciesCounter.hh"
 
-#include <ostream>
-
 namespace
 {
-/// Enough digits to keep log-grid times (10 per decade) distinct.
-constexpr int kPrecision = 10;
+/// G-value reference energy: molecules per 100 eV.
+constexpr double kGReferenceEnergy_eV = 100.;
 }  // namespace
 
 void MesoSpeciesCounter::Add(double time_ns, const std::string& species, long count)
 {
-  fCounts[time_ns][species] += count;
+  fCurrent[time_ns][species] += count;
+}
+
+void MesoSpeciesCounter::CommitEvent(double edep_eV)
+{
+  for (const auto& [time_ns, bySpecies] : fCurrent) {
+    for (const auto& [species, count] : bySpecies) {
+      Stat& stat = fStats[time_ns][species];
+      stat.count.Add(static_cast<double>(count));
+      stat.g.Add(edep_eV > 0. ? static_cast<double>(count) / edep_eV * kGReferenceEnergy_eV : 0.);
+    }
+  }
+  fCurrent.clear();
+  ++fCommittedEvents;
+}
+
+void MesoSpeciesCounter::DiscardEvent()
+{
+  fCurrent.clear();
 }
 
 void MesoSpeciesCounter::Merge(const MesoSpeciesCounter& other)
 {
-  for (const auto& [time_ns, bySpecies] : other.fCounts) {
-    for (const auto& [species, count] : bySpecies) {
-      fCounts[time_ns][species] += count;
+  // Copy first so a self-merge doubles instead of iterating while inserting.
+  const Stats otherStats = other.fStats;
+  const std::int64_t otherEvents = other.fCommittedEvents;
+  for (const auto& [time_ns, bySpecies] : otherStats) {
+    for (const auto& [species, stat] : bySpecies) {
+      Stat& mine = fStats[time_ns][species];
+      mine.count.Merge(stat.count);
+      mine.g.Merge(stat.g);
     }
   }
+  fCommittedEvents += otherEvents;
 }
 
 void MesoSpeciesCounter::Clear()
 {
-  fCounts.clear();
+  fCurrent.clear();
+  fStats.clear();
+  fCommittedEvents = 0;
 }
 
 bool MesoSpeciesCounter::Empty() const
 {
-  return fCounts.empty();
+  return fStats.empty();
 }
 
-void MesoSpeciesCounter::WriteAscii(std::ostream& out, long events) const
+OutputTable MesoSpeciesCounter::ToTable() const
 {
-  const auto oldPrecision = out.precision(kPrecision);
-  out << "Time is in ns; mean count per event over " << events << " events\n";
-  for (const auto& [time_ns, bySpecies] : fCounts) {
-    out << time_ns << "\n";
-    for (const auto& [species, count] : bySpecies) {
-      const double mean = events > 0 ? static_cast<double>(count) / events : 0.;
-      out << species << " " << mean << "\n";
+  OutputTable table = SpeciesSchema::MakeTable(
+      "speciesMeso", "SpeciesMeso: per-event molecule counts and G-values, Mesoscopic stage");
+  for (const auto& [time_ns, bySpecies] : fStats) {
+    for (const auto& [species, stat] : bySpecies) {
+      table.AddRow({time_ns, species, fCommittedEvents, stat.count.Sum(), stat.count.SumSq(),
+                    stat.count.Mean(fCommittedEvents), stat.count.StdErr(fCommittedEvents),
+                    stat.g.Sum(), stat.g.SumSq(), stat.g.Mean(fCommittedEvents),
+                    stat.g.StdErr(fCommittedEvents)});
     }
   }
-  out.precision(oldPrecision);
-}
-
-void MesoSpeciesCounter::WriteCsv(std::ostream& out) const
-{
-  const auto oldPrecision = out.precision(kPrecision);
-  out << "time_ns,species,count\n";
-  for (const auto& [time_ns, bySpecies] : fCounts) {
-    for (const auto& [species, count] : bySpecies) {
-      out << time_ns << "," << species << "," << count << "\n";
-    }
-  }
-  out.precision(oldPrecision);
+  return table;
 }

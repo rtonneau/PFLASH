@@ -57,7 +57,7 @@ itself.
 
 `src/scoring/MesoSpatialFile.cc` (+ `header/scoring/MesoSpatialFile.hh`) is
 this project's only HDF5 writer, serialising the mesoscopic stage's per-event
-spatial snapshots (`/chem/meso/spatialOutput`) to `SpeciesMesoSpatial.h5`. It
+spatial snapshots (`/output/speciesMesoSpatial/format h5`) to `SpeciesMesoSpatial.h5`. It
 is marked portable (standard library and HDF5 C++ only, no dependency on
 other dnachem-min classes beyond the data it's handed — adjust the include
 path prefix on copy), so it is the template to copy for a new kind of

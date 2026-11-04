@@ -45,7 +45,10 @@ homogeneous water box (no voxelization).
 - **Structured output**: data accumulates across `/run/beamOn` calls and is
   written by a dump, each with a `Manifest.json` (beam, seed, energy deposit,
   Chemistry, environment, files) and a results index.
-- **Optional spatial output**: per-event mesoscopic snapshots in HDF5.
+- **Selectable output formats**: every output product can be written as `txt`,
+  `csv`, `h5` and/or `root` (`/output/<product>/format`, default `csv`), with one
+  table schema per product whatever the format. `root` needs no ROOT install.
+- **Optional spatial output**: per-event mesoscopic snapshots in HDF5 or ROOT.
 - **[Architecture explorer](https://rtonneau.github.io/dnachem-min/explorer/)**:
   module map, run flow, task guides and a macro builder, in one offline HTML page
   (`docs/explorer/index.html`).
@@ -55,7 +58,7 @@ homogeneous water box (no voxelization).
 - Geant4 with DNA models (verified with 11.4.1; older versions are not verified)
 - CMake 3.16+
 - A C++20 compiler (verified with MSVC on Windows; GCC 13.3 on Linux, Ubuntu 24.04 with Geant4 11.4.3; clang not verified)
-- HDF5 with C++ support, optional: needed only for `/chem/meso/spatialOutput` (`SpeciesMesoSpatial.h5`)
+- HDF5 with C++ support, optional: needed only for the `h5` output format
 
 ## Install
 
@@ -73,10 +76,12 @@ macros by filename.
 
 `DNACHEM_WITH_HDF5` is `AUTO` by default: HDF5 is used if CMake finds it. `ON`
 requires it (configure fails otherwise); `OFF` builds without it. The configure
-log says which form it used (`-- HDF5: using ...`). Without HDF5,
-`/chem/meso/spatialOutput true` is a fatal error and `Manifest.json` has
-`"hdf5": false`; everything else works. Note that `find_package(Geant4)` itself
-pulls in HDF5 when Geant4 was built with HDF5 analysis support
+log says which form it used (`-- HDF5: using ...`). Without HDF5, choosing the
+`h5` format for any product (`/output/<product>/format h5`, or in
+`/output/defaultFormat`) is a fatal error and `Manifest.json` has
+`"hdf5": false`; everything else works, including `root`.
+Note that `find_package(Geant4)` itself pulls in HDF5 when Geant4 was built
+with HDF5 analysis support
 (`GEANT4_USE_HDF5=ON`). dnachem-min's own code then no longer needs HDF5, but a
 fully HDF5-free build also needs a Geant4 built without HDF5
 (`GEANT4_USE_HDF5=OFF`, the Geant4 default).
@@ -305,7 +310,8 @@ Chosen before `/run/initialize` ([ADR 0008](docs/adr/0008-selectable-chemistry-m
 
 SBS with an explicit `/chem/meso/enable true` is fatal. The mesoscopic stage is
 tuned with `/chem/meso/handOverTime` (default 5 ns), `/chem/meso/voxelSize`,
-`/chem/meso/timesPerDecade` and `/chem/meso/spatialOutput`. Override the end time
+`/chem/meso/timesPerDecade`; spatial snapshots are chosen with
+`/output/speciesMesoSpatial/format` (see [Output](#output)). Override the end time
 with `/scheduler/endTime <value> <unit>` **after** `/run/initialize`. The modes give
 different yields ([validation](docs/irt-syn-mesoscopic-validation.md)); compare
 them, don't mix them.
@@ -327,19 +333,36 @@ is written by a **dump**: `/run/dumpDataAndReset [prefix]` or
 `/run/dumpDataAndResetToDir <subdir>`; if the macro never dumps, a final flush with
 prefix `EndOfRun_` runs at exit.
 
-| File | Content |
-|---|---|
-| `Manifest.json` | dump metadata; the one in the output root also indexes every dump |
-| `Species.Txt`, `Species_nt_species.csv` | species yields vs. time, particle-based stage |
-| `SpeciesMeso.Txt`, `SpeciesMeso.csv` | mean count per event, mesoscopic stage |
-| `SpeciesMesoSpatial.h5` | per-event mesh snapshots (`/chem/meso/spatialOutput true`) |
-| `Reactions.Txt`, `Reactions_nt_reactions.csv`, `ReactionsMetadata.csv` | reaction firings per time bin, particle-based stage |
-| `PhysicsInteractions.Txt`, `PhysicsInteractions.csv` | counts of G4DNA physics processes |
-| `TrackLengths.Txt`, `TrackLengths.csv` | primary and secondary-electron track lengths per event |
-| `PreChemical_run<R>_event<E>.txt` | pre-chemical species per event |
+Each kind of data is an **output product**, written as `<Product>.<ext>` in
+the formats chosen for it ([ADR 0009](docs/adr/0009-standardized-output-products.md)).
+All format commands are PreInit (before `/run/initialize`) and take one or more of
+`txt`, `csv`, `h5`, `root`, or `none`:
 
-Layouts and examples: [`docs/output/README.md`](docs/output/README.md); HDF5 format:
-[`docs/output/SpeciesMesoSpatial-h5.md`](docs/output/SpeciesMesoSpatial-h5.md).
+```text
+/output/defaultFormat csv h5            # every product without its own command (built-in: csv)
+/output/reactions/format txt root       # one product, overrides the default
+/output/preChemical/format none         # do not write this product
+/output/speciesMesoSpatial/format h5    # h5/root only; off unless set, ignores the default
+```
+
+| Product (`/output/<name>/format`) | Files | Content |
+|---|---|---|
+| `Species` (`species`) | `Species.<ext>` | species count and G value vs. time (sum, mean, std. error per event), particle-based stage |
+| `SpeciesMeso` (`speciesMeso`) | `SpeciesMeso.<ext>` | same per-event statistics, mesoscopic stage |
+| `Reactions` (`reactions`) | `Reactions.<ext>`; `ReactionsCatalog.<ext>` in txt/csv (a second table in h5/root) | reaction firings per time bin, particle-based stage, and the reaction id → label catalogue |
+| `PhysicsInteractions` (`physicsInteractions`) | `PhysicsInteractions.<ext>` | per-event counts of G4DNA physics processes |
+| `TrackLengths` (`trackLengths`) | `TrackLengths.<ext>` | primary and secondary-electron track lengths, one row per event |
+| `PreChemical` (`preChemical`) | `PreChemical_run<R>_event<E>.<ext>` in txt/csv; one `PreChemical.<ext>` per dump in h5/root | pre-chemical species per event |
+| `SpeciesMesoSpatial` (`speciesMesoSpatial`) | `SpeciesMesoSpatial.h5` / `.root` | per-event mesh snapshots (opt-in, can be large) |
+
+Every dump also writes `Manifest.json` (always JSON, not a product): dump
+metadata and the formats used; the one in the output root also indexes every dump.
+With the defaults a dump holds the six table products in `csv` and no spatial file.
+Column names and units: the `sim-output` skill (`.claude/skills/sim-output/SKILL.md`).
+
+Layouts and examples: [`docs/output/README.md`](docs/output/README.md); spatial
+format: [`docs/output/SpeciesMesoSpatial-h5.md`](docs/output/SpeciesMesoSpatial-h5.md);
+h5/root table layout: [`docs/output/tables-h5-root.md`](docs/output/tables-h5-root.md).
 
 ### Reaction time bins
 

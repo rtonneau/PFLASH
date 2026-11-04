@@ -85,10 +85,7 @@ set of time points, and folds the result into a per-event G-value
 
 ## Output
 
-`Species.Txt` (ASCII, via `ScoreSpecies::ASCII()`) and
-`Species_nt_species.csv` (via `ScoreSpecies::OutputAndClear()` →
-`WriteWithAnalysisManager`, columns `speciesID,number,nEvent,speciesName,
-time,sumG,sumG2`) are written by `RunAccumulatorMessenger`'s
+`Species.<ext>` (`ScoreSpecies::ToTable()`, columns `time_ns,species,nEvents,countSum,countSumSq,countMean,countStdErr,gSum,gSumSq,gMean,gStdErr`, written through `ProductOutput` in the formats of `/output/species/format`, default csv) is written by `RunAccumulatorMessenger`'s
 `/run/dumpDataAndReset` handler (`src/scoring/RunAccumulatorMessenger.cc`,
 `WriteSpeciesOutput` helper), which looks the `ScoreSpecies` primitive up directly
 on the `G4MultiFunctionalDetector` rather than through `RunAccumulator`
@@ -120,8 +117,8 @@ scorer instance and no merge step.
 - [`create-a-scorer.md`](create-a-scorer.md) — the generic
   `G4VPrimitiveScorer` mechanics (registration, lifecycle hooks, MT merge)
   this recipe builds on.
-- `docs/output/README.md` and the `sim-output` skill — `Species.Txt` /
-  `Species_nt_species.csv` file formats, dump/prefix rules and the
+- `docs/output/README.md` and the `sim-output` skill — `Species.<ext>`
+  file formats, dump/prefix rules and the
   hand-over-time cutoff.
 - [`mesoscopic-3d-species-counting.md`](mesoscopic-3d-species-counting.md) —
   the counterpart that covers species counts after the hand-over time, on

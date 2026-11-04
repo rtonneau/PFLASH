@@ -3,17 +3,20 @@
 
 Usage: compare_reference.py <reference_dir> <new_dir> [--tol 0.10] [--plot out.png]
 
-Each directory holds Species_nt_species.csv and Manifest.json (a dump of sim).
-A dump whose Manifest.json has "mesoEnabled": true (older dumps: "chemistryModel") also has
-SpeciesMeso.csv: Species_nt_species.csv stops at the hand-over time and the
-mesoscopic output (time_ns,species,count, counts summed over events) covers
-the later times.
+Each directory holds Species.csv and Manifest.json (a dump of sim, standardized
+output products). A dump whose Manifest.json has "mesoEnabled": true (older
+dumps: "chemistryModel") also has SpeciesMeso.csv: Species.csv stops at the
+hand-over time and SpeciesMeso.csv (same columns) covers the later times.
 
-G(t) is in molecules per 100 eV:
-  - Species_nt_species.csv rows: sumG / nEvent (mean of the per-event G, the
-    estimator used by validation/reference/*/README.md);
-  - SpeciesMeso.csv rows: count / (totalEnergyDeposit_eV / 100) (pooled; the
-    file has no per-event variance).
+G(t) is in molecules per 100 eV, the per-event mean:
+  - Species.csv / SpeciesMeso.csv rows: gMean (= gSum / nEvents; the estimator
+    used by validation/reference/*/README.md). gStdErr and countMean/countSum
+    are in the same rows.
+Legacy dumps (before the standardized products) are still read, so the
+committed validation/reference/* directories keep working:
+  - Species_nt_species.csv rows: sumG / nEvent (same estimator);
+  - SpeciesMeso.csv with columns time_ns,species,count: count /
+    (totalEnergyDeposit_eV / 100) (pooled; no per-event variance).
 G is compared at the latest time <= 1 us in each dump (reference: 999.999 ns,
 new model: 1000 ns), for e_aq, OH, H2O2 and H2.
 
@@ -36,6 +39,38 @@ SPECIES = {
 T_LIMIT_NS = 1000.0 * (1.0 + 1e-5)  # 1 us, with margin for 999.999 / 1000 rounding
 
 
+def read_species(path, energy):
+    """Return {speciesName: DataFrame time_ns, G} of the particle-based stage."""
+    new_file = os.path.join(path, "Species.csv")
+    if os.path.exists(new_file):
+        sp = pd.read_csv(new_file, comment="#", encoding="utf-8")
+        g_col = "gMean"
+    else:  # legacy ntuple dump
+        sp = pd.read_csv(os.path.join(path, "Species_nt_species.csv"), comment="#",
+                         header=None, encoding="utf-8",
+                         names=["speciesID", "number", "nEvent", "speciesName",
+                                "time", "sumG", "sumG2"])
+        sp = pd.DataFrame({"time_ns": sp["time"], "species": sp["speciesName"],
+                           "gMean": sp["sumG"] / sp["nEvent"]})
+        g_col = "gMean"
+    series = {}
+    for name, grp in sp.groupby("species"):
+        g = grp.sort_values("time_ns")
+        series[name] = pd.DataFrame({"time_ns": g["time_ns"].to_numpy(),
+                                     "G": g[g_col].to_numpy()})
+    return series
+
+
+def read_meso(path, energy):
+    """Return the DataFrame time_ns, species, G of the mesoscopic stage."""
+    meso = pd.read_csv(os.path.join(path, "SpeciesMeso.csv"), comment="#", encoding="utf-8")
+    if "gMean" in meso.columns:
+        g = meso["gMean"]
+    else:  # legacy: summed counts over events
+        g = meso["count"] / (energy / 100.0)
+    return pd.DataFrame({"time_ns": meso["time_ns"], "species": meso["species"], "G": g})
+
+
 def load_dump(path):
     """Return (manifest, {csvName: DataFrame time_ns, G}, wallTime_s, isNewModel)."""
     with open(os.path.join(path, "Manifest.json"), encoding="utf-8") as f:
@@ -44,15 +79,7 @@ def load_dump(path):
     n_event = int(man["totalEvents"])
     if energy <= 0 or n_event <= 0:
         raise ValueError(f"{path}: no energy deposit or events in Manifest.json")
-    sp = pd.read_csv(os.path.join(path, "Species_nt_species.csv"), comment="#",
-                     header=None, encoding="utf-8",
-                     names=["speciesID", "number", "nEvent", "speciesName",
-                            "time", "sumG", "sumG2"])
-    series = {}
-    for name, grp in sp.groupby("speciesName"):
-        g = grp.sort_values("time")
-        series[name] = pd.DataFrame({"time_ns": g["time"].to_numpy(),
-                                     "G": (g["sumG"] / g["nEvent"]).to_numpy()})
+    series = read_species(path, energy)
     # mesoEnabled (manifest of the selectable-mode build) is false for SBS and
     # IRT_syn-only dumps: no SpeciesMeso.csv. Older dumps have chemistryModel only.
     is_new = bool(man.get("mesoEnabled", "chemistryModel" in man))
@@ -60,13 +87,13 @@ def load_dump(path):
         meso_path = os.path.join(path, "SpeciesMeso.csv")
         if not os.path.exists(meso_path):
             raise ValueError(f"{path}: new-model dump without SpeciesMeso.csv")
-        meso = pd.read_csv(meso_path, encoding="utf-8")
+        meso = read_meso(path, energy)
         hand_over = float(man.get("handOverTime_ns", 0.0))
         for name, grp in meso.groupby("species"):
             g = grp.sort_values("time_ns")
             g = g[g["time_ns"] > hand_over]
             part = pd.DataFrame({"time_ns": g["time_ns"].to_numpy(),
-                                 "G": (g["count"] / (energy / 100.0)).to_numpy()})
+                                 "G": g["G"].to_numpy()})
             old = series.get(name)
             if old is not None:
                 old = old[old["time_ns"] <= hand_over]

@@ -4,7 +4,7 @@
 /// Callers coordinate access to shared mutable tables and streams.
 ///
 /// Self-contained, project-agnostic unit: standard library only, no Geant4
-/// kernel and no other dnachem-min class. Copy-paste portable to another
+/// kernel; its only project dependency is OutputTable.hh. Copy-paste portable to another
 /// Geant4-DNA project (adjust the include path prefix on copy).
 ///
 /// One Row per event. Lengths in nm, energies in keV. Callers fill the rows;
@@ -13,8 +13,9 @@
 #ifndef TrackLengthTable_h
 #define TrackLengthTable_h 1
 
+#include "scoring/OutputTable.hh"
+
 #include <cstddef>
-#include <iosfwd>
 #include <vector>
 
 /// Caller-populated rows; no physical-value validation. Allocations may throw.
@@ -91,11 +92,11 @@ class TrackLengthTable
   /// Empty-table means are zero; one row retains its value. SEM is zero for n < 2.
   Summary Summarize() const;
 
-  /// Header row plus one row per event, sorted by (run, event).
-  void WriteCsv(std::ostream& out) const;
-
-  /// Same columns, whitespace-separated, `#`-commented header.
-  void WriteAscii(std::ostream& out) const;
+  /// The `trackLengths` table, one row per event sorted by (run, event).
+  /// Columns: run, event, primaryLength_nm, primaryEkinStart_keV,
+  /// primaryEkinEnd_keV, primaryEnd (string), secondaryFirstGenLength_nm,
+  /// nSecondaryFirstGen, secondaryAllLength_nm, nSecondaryAll.
+  OutputTable ToTable() const;
 
  private:
   std::vector<Row> Sorted() const;

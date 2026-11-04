@@ -11,6 +11,8 @@
 #include "chemistry/MesoSettings.hh"
 #include "chemistry/ReactionTableDump.hh"
 #include "scoring/MesoSpatialFile.hh"
+#include "scoring/MesoSpatialRootRows.hh"
+#include "scoring/OutputFormats.hh"
 
 #include "G4DNABoundingBox.hh"
 #include "G4DNAEventScheduler.hh"
@@ -130,13 +132,14 @@ public:
   }
 
   /// Record times of this event (sorted ascending); clears earlier records
-  /// and the spatial snapshots. Reads /chem/meso/spatialOutput (PreInit).
+  /// and the spatial snapshots. Spatial snapshots are taken when a format is
+  /// chosen for SpeciesMesoSpatial (/output/speciesMesoSpatial/format).
   void StartRecording(std::vector<G4double> recordTimes)
   {
     fRecordTimes = std::move(recordTimes);
     fNextRecord = 0;
     fRecords.clear();
-    fSpatialOn = MesoSettings::Current().spatialOutput;
+    fSpatialOn = !OutputFormats::Effective(OutputFormats::Product::SpeciesMesoSpatial).empty();
     ClearSpatial();
   }
 
@@ -155,7 +158,7 @@ public:
 
   const std::map<G4double, MeshCounts> &Records() const { return fRecords; }
 
-  /// Spatial snapshots of this event (empty unless /chem/meso/spatialOutput).
+  /// Spatial snapshots of this event (empty unless a SpeciesMesoSpatial format is chosen).
   MesoSpatialFile::EventData &SpatialData() { return fSpatial; }
   void ClearSpatial() { fSpatial = MesoSpatialFile::EventData{}; }
 
@@ -336,7 +339,7 @@ private:
   std::size_t fNextRecord = 0;
   std::map<G4double, MeshCounts> fRecords;
 
-  /// Spatial snapshots (/chem/meso/spatialOutput), one per Record() /
+  /// Spatial snapshots (SpeciesMesoSpatial formats), one per Record() /
   /// FinishRecording() call that passes at least one record time.
   G4bool fSpatialOn = false;
   MesoSpatialFile::EventData fSpatial;
@@ -642,8 +645,9 @@ void TimeStepAction::CompartmentBased()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-// Appends this event's spatial snapshots (/chem/meso/spatialOutput) to the
-// staged SpeciesMesoSpatial.h5 (<outdir>/.pending_meso_spatial/).
+// Writes this event's spatial snapshots in the chosen SpeciesMesoSpatial formats:
+// h5 appends to the staged <outdir>/.pending_meso_spatial/SpeciesMesoSpatial.h5,
+// root adds rows to the process-wide table the Dump writes as SpeciesMesoSpatial.root.
 void TimeStepAction::WriteSpatialSnapshots()
 {
   if (tMeshAction == nullptr) return;
@@ -653,14 +657,24 @@ void TimeStepAction::WriteSpatialSnapshots()
   const G4Event *event = G4EventManager::GetEventManager()->GetConstCurrentEvent();
   data.runId = run != nullptr ? run->GetRunID() : 0;
   data.eventId = event != nullptr ? event->GetEventID() : 0;
-  std::string err;
-  if (!MesoSpatialFile::AppendEvent(MesoSpatialFile::StagedPath(OutputDir::GetDirectory()),
-                                    tMeshAction->SpatialSpecies(), data, err)) {
-    G4Exception("TimeStepAction::WriteSpatialSnapshots", "MesoSpatialWriteFailed",
-                JustWarning,
-                ("Spatial snapshots of run " + std::to_string(data.runId) + ", event " +
-                 std::to_string(data.eventId) + " not written: " + err)
-                  .c_str());
+  for (OutputFormats::Format format :
+       OutputFormats::Effective(OutputFormats::Product::SpeciesMesoSpatial)) {
+    if (format == OutputFormats::Format::H5) {
+      std::string err;
+      if (!MesoSpatialFile::AppendEvent(MesoSpatialFile::StagedPath(OutputDir::GetDirectory()),
+                                        tMeshAction->SpatialSpecies(), data, err)) {
+        G4Exception("TimeStepAction::WriteSpatialSnapshots", "MesoSpatialWriteFailed",
+                    JustWarning,
+                    ("Spatial snapshots of run " + std::to_string(data.runId) + ", event " +
+                     std::to_string(data.eventId) + " not written to h5: " + err)
+                      .c_str());
+      }
+    }
+    else if (format == OutputFormats::Format::Root) {
+      OutputTable rows = MesoSpatialRootRows::MakeTable();
+      MesoSpatialRootRows::ExpandEvent(rows, tMeshAction->SpatialSpecies(), data);
+      MesoSpatialRootRows::AppendStaged(rows);
+    }
   }
   tMeshAction->ClearSpatial();
 }

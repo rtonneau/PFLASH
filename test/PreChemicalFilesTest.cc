@@ -69,6 +69,39 @@ static void TestStagedFileNameFormat()
   assert(PreChemicalFiles::StagedFileName(0, 12) == "PreChemical_run0_event12.txt");
 }
 
+static void TestPerFormatNamesAndOrdering()
+{
+  assert(PreChemicalFiles::StagedFileName(1, 2, "csv") == "PreChemical_run1_event2.csv");
+  assert(PreChemicalFiles::StagedFileName(1, 2, "txt") == PreChemicalFiles::StagedFileName(1, 2));
+  assert(PreChemicalFiles::StagedTableFileName("h5") == "PreChemical.h5");
+  assert(PreChemicalFiles::StagedTableFileName("root") == "PreChemical.root");
+  assert(PreChemicalFiles::IsStagedTableFileName("PreChemical.h5"));
+  assert(PreChemicalFiles::IsStagedTableFileName("PreChemical.root"));
+  assert(!PreChemicalFiles::IsStagedTableFileName("PreChemical.csv"));
+
+  int run = -1, event = -1;
+  std::string ext;
+  assert(PreChemicalFiles::ParseStagedFileName("PreChemical_run3_event4.csv", run, event, ext));
+  assert(run == 3 && event == 4 && ext == "csv");
+  assert(!PreChemicalFiles::ParseStagedFileName("PreChemical_run3_event4.h5", run, event, ext));
+
+  ResetTestRoot();
+  const fs::path staging = TestRoot() / "staging";
+  fs::create_directories(staging);
+  for (const char* name : {"PreChemical.root", "PreChemical_run0_event10.csv", "PreChemical.h5",
+                           "PreChemical_run0_event2.csv", "PreChemical_run0_event2.txt",
+                           "PreChemical_run0_event10.txt"})
+    WriteFile(staging / name, "x");
+  const auto result = PreChemicalFiles::MoveStaged(staging.string(), DumpResolver());
+  const std::vector<std::string> expected = {
+    "p_PreChemical_run0_event2.txt",  "p_PreChemical_run0_event2.csv",
+    "p_PreChemical_run0_event10.txt", "p_PreChemical_run0_event10.csv",
+    "p_PreChemical.h5",               "p_PreChemical.root"};
+  assert(result.moved == expected);
+  assert(result.failures.empty());
+  assert(CountEntries(staging) == 0);
+}
+
 static void TestParseRoundTrip()
 {
   int run = -1;
@@ -180,6 +213,7 @@ int main()
 
   TestStagedFileNameFormat();
   TestParseRoundTrip();
+  TestPerFormatNamesAndOrdering();
   TestStagingDirJoin();
   TestEnsureStagingDirCreates();
   TestMoveStagedOrdersNumerically();

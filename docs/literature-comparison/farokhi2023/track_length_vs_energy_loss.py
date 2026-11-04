@@ -6,10 +6,10 @@ Usage: python track_length_vs_energy_loss.py
 Unlike track_length_let.py (a path-length/energy PROXY derived from
 PreChemical dumps, written before the TrackLengths scorer existed), this
 script reads the real per-event scorer output directly: TrackLengths.csv
-(primaryLength_nm from G4Track::GetTrackLength(), primaryEkin0_keV/
+(primaryLength_nm from G4Track::GetTrackLength(), primaryEkinStart_keV/
 primaryEkinEnd_keV from TrackingAction -- see CLAUDE.md's TrackLengthTable/
 TrackingAction entries). Energy loss per event is
-primaryEkin0_keV - primaryEkinEnd_keV.
+primaryEkinStart_keV - primaryEkinEnd_keV.
 
 Data: <G4_DATA_OUTPUT>/261010_Farokhi2023_proton_{20,40}um_tracklen/o2_0pct
 (50 events/box, 8 threads, same macros as plot_gvalues.py's proton box-size
@@ -65,9 +65,9 @@ def load_track_lengths(run_dir):
         for row in reader:
             rows.append(
                 {
-                    "energy_loss_keV": float(row["primaryEkin0_keV"]) - float(row["primaryEkinEnd_keV"]),
+                    "energy_loss_keV": float(row["primaryEkinStart_keV"]) - float(row["primaryEkinEnd_keV"]),
                     "primary_length_um": float(row["primaryLength_nm"]) / 1000.0,
-                    "secondary_all_um": float(row["secondaryAll_nm"]) / 1000.0,
+                    "secondary_all_um": float(row["secondaryAllLength_nm"]) / 1000.0,
                     "n_secondary_all": int(row["nSecondaryAll"]),
                 }
             )

@@ -7,7 +7,7 @@ Sources (all in the repo, no simulation re-run):
   - Farokhi      : hand-digitized Fig. 5, column Farokhi of the comparison CSV (+-0.1-0.2 reading error)
 
 To rebuild data/meesungnoen_eaq.csv from a sim output directory:
-  python eaq_1ps_gap.py --from-ntuple <dir>/Species_nt_species.csv
+  python eaq_1ps_gap.py --from-ntuple <dir>/Species.csv
 
 Writes eaq_1ps_gap.png and eaq_1ps_gap.md next to itself.
 """
@@ -37,16 +37,14 @@ Boscolo (4.49) comes from a different code and is not a target.
 
 
 def from_ntuple(path):
-    """e_aq mean G and SEM per recorded time (ns -> s) from a Species_nt_species.csv."""
+    """e_aq mean G and SEM per recorded time (ns -> s) from a Species.csv."""
     rows = []
-    for line in open(path):
-        if line.startswith("#") or "e_aq" not in line:
+    for r in csv.DictReader(open(path)):
+        if not r["species"].startswith("e_aq"):
             continue
-        f = line.split(",")
-        n, t_ns, s, s2 = int(f[2]), float(f[4]), float(f[5]), float(f[6])
-        mean = s / n
-        var = (s2 - n * mean * mean) / (n - 1)
-        rows.append((t_ns * 1e-9, mean, math.sqrt(var / n), n))
+        n = int(r["nEvents"])
+        sem = float(r["gStdErr"]) if n > 1 else float("nan")
+        rows.append((float(r["time_ns"]) * 1e-9, float(r["gMean"]), sem, n))
     rows.sort()
     return rows
 

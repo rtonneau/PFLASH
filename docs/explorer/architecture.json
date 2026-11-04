@@ -254,7 +254,7 @@
           "id": "meso-msg",
           "title": "MesoMessenger",
           "role": "Mesoscopic stage commands",
-          "summary": "Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade, spatialOutput).",
+          "summary": "Macro commands /chem/meso/* (enable, handOverTime, voxelSize, timesPerDecade).",
           "files": [
             "src/chemistry/MesoMessenger.cc",
             "header/chemistry/MesoMessenger.hh"
@@ -447,6 +447,97 @@
           ]
         },
         {
+          "id": "meso-spatial-root-rows",
+          "title": "MesoSpatialRootRows",
+          "role": "Spatial snapshots as root rows",
+          "summary": "Expands the mesoscopic spatial snapshots into one row per non-empty cell and species, collected for SpeciesMesoSpatial.root.",
+          "files": [
+            "src/scoring/MesoSpatialRootRows.cc",
+            "header/scoring/MesoSpatialRootRows.hh"
+          ],
+          "symbols": [
+            "MesoSpatialRootRows::ExpandEvent"
+          ]
+        },
+        {
+          "id": "hdf5-table-file",
+          "title": "Hdf5TableFile",
+          "role": "Saves tables as HDF5",
+          "summary": "Portable HDF5 writer for OutputTables: one group per table, one typed dataset per column with unit and description attributes.",
+          "files": [
+            "src/scoring/Hdf5TableFile.cc",
+            "src/scoring/Hdf5TableFileNoHdf5.cc",
+            "header/scoring/Hdf5TableFile.hh"
+          ],
+          "symbols": [
+            "Hdf5TableFile::Write"
+          ]
+        },
+        {
+          "id": "root-table-file",
+          "title": "RootTableFile",
+          "role": "Saves tables as ROOT",
+          "summary": "Portable ROOT writer for OutputTables through g4tools: one TTree ntuple per table, one typed branch per column with the unit in the leaf title.",
+          "files": [
+            "src/scoring/RootTableFile.cc",
+            "header/scoring/RootTableFile.hh"
+          ],
+          "symbols": [
+            "RootTableFile::Write"
+          ]
+        },
+        {
+          "id": "product-output",
+          "title": "ProductOutput",
+          "role": "Writes a product's tables",
+          "summary": "Writes the tables of one Output product in every format chosen for it (csv and txt: one file per table; h5 and root: one file), through OutputDir, and warns instead of failing when a file cannot be written.",
+          "files": [
+            "src/scoring/ProductOutput.cc",
+            "header/scoring/ProductOutput.hh"
+          ],
+          "symbols": [
+            "ProductOutput::Write"
+          ]
+        },
+        {
+          "id": "output-formats",
+          "title": "OutputFormats",
+          "role": "Chooses output file formats",
+          "summary": "Portable registry of the seven Output products, their file stems and the formats (txt, csv, h5, root) chosen per product or by default; /output/defaultFormat and /output/<product>/format set it.",
+          "files": [
+            "src/scoring/OutputFormats.cc",
+            "header/scoring/OutputFormats.hh",
+            "src/scoring/OutputFormatsMessenger.cc",
+            "header/scoring/OutputFormatsMessenger.hh"
+          ],
+          "symbols": [
+            "OutputFormats::Effective",
+            "OutputFormats::SetProduct",
+            "OutputFormatsMessenger"
+          ]
+        },
+        {
+          "id": "output-table",
+          "title": "OutputTable",
+          "role": "Typed table model, csv and txt",
+          "summary": "Portable format-neutral table of typed columns (name, unit, description, type) and rows, EventStat sums for per-event mean and standard error, the shared Species/SpeciesMeso schema, and the csv and txt serialisers. Nothing uses it yet.",
+          "files": [
+            "src/scoring/OutputTable.cc",
+            "header/scoring/OutputTable.hh",
+            "src/scoring/EventStat.cc",
+            "header/scoring/EventStat.hh",
+            "src/scoring/TableWriters.cc",
+            "header/scoring/TableWriters.hh"
+          ],
+          "symbols": [
+            "OutputTable::AddRow",
+            "EventStat::StdErr",
+            "SpeciesSchema::Build",
+            "TableWriters::WriteCsv",
+            "TableWriters::WriteTxt"
+          ]
+        },
+        {
           "id": "track-length",
           "title": "TrackLengthTable",
           "role": "Table of track lengths",
@@ -542,6 +633,19 @@
           ],
           "symbols": [
             "PreChemicalFiles::MoveStaged"
+          ]
+        },
+        {
+          "id": "prechemrecorder",
+          "title": "PreChemicalRecorder",
+          "role": "Records pre-chemical species",
+          "summary": "G4VPhysChemIO that records the species created by the physical stage as a table, one staged file per event or one table per dump.",
+          "files": [
+            "src/scoring/PreChemicalRecorder.cc",
+            "header/scoring/PreChemicalRecorder.hh"
+          ],
+          "symbols": [
+            "PreChemicalRecorder::EndEvent"
           ]
         }
       ],
@@ -699,10 +803,18 @@
             "test/ReactionCounterTest.cc",
             "test/PhysicsInteractionCounterTest.cc",
             "test/MesoSpeciesCounterTest.cc",
+            "test/OutputFormatsTest.cc",
+            "test/OutputTableTest.cc",
             "test/MesoSpatialFileTest.cc",
             "test/MesoSpatialFileNoHdf5Test.cc",
+            "test/MesoSpatialRootRowsTest.cc",
+            "test/Hdf5TableFileTest.cc",
+            "test/Hdf5TableFileNoHdf5Test.cc",
+            "test/RootTableFileTest.cc",
             "test/TrackLengthTableTest.cc",
-            "test/PreChemicalFilesTest.cc"
+            "test/ProductOutputTest.cc",
+            "test/PreChemicalFilesTest.cc",
+            "test/PreChemicalRecorderTest.cc"
           ],
           "symbols": []
         }
@@ -1165,7 +1277,7 @@
       ],
       "outputs": [
         "SpeciesMeso.Txt/.csv (recorded)",
-        "SpeciesMesoSpatial.h5 (staged, with /chem/meso/spatialOutput true)"
+        "SpeciesMesoSpatial.h5 (staged, with /output/speciesMesoSpatial/format h5)"
       ],
       "docs": [
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
@@ -1182,10 +1294,6 @@
         },
         {
           "cmd": "/chem/meso/timesPerDecade",
-          "builder": "timing"
-        },
-        {
-          "cmd": "/chem/meso/spatialOutput",
           "builder": "timing"
         },
         {
@@ -1227,6 +1335,14 @@
       ],
       "commands": [
         {
+          "cmd": "/output/defaultFormat",
+          "builder": "runs"
+        },
+        {
+          "cmd": "/output/speciesMesoSpatial/format",
+          "builder": "runs"
+        },
+        {
           "cmd": "/run/dumpDataAndReset",
           "builder": "runs"
         },
@@ -1246,7 +1362,7 @@
       "modes": {
         "sbs": "No SpeciesMeso files: the mesoscopic stage is off.",
         "irt": "No SpeciesMeso files: the mesoscopic stage is off.",
-        "meso": "Also writes SpeciesMeso.Txt / .csv, and SpeciesMesoSpatial.h5 when /chem/meso/spatialOutput is true."
+        "meso": "Also writes the SpeciesMeso product, and SpeciesMesoSpatial.h5 / .root when /output/speciesMesoSpatial/format asks for them."
       }
     }
   ],
@@ -1399,7 +1515,7 @@
       "id": "decisions",
       "title": "Read the design decisions",
       "audience": "everyone",
-      "summary": "The eight architecture decision records and the project glossary.",
+      "summary": "The nine architecture decision records and the project glossary.",
       "docs": [
         "CONTEXT.md",
         "docs/adr/0001-baseline-acid-base-buffer.md",
@@ -1409,7 +1525,8 @@
         "docs/adr/0005-manifest-per-dump.md",
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
         "docs/adr/0007-extra-molecules-per-chemistry.md",
-        "docs/adr/0008-selectable-chemistry-modes.md"
+        "docs/adr/0008-selectable-chemistry-modes.md",
+        "docs/adr/0009-standardized-output-products.md"
       ],
       "files": []
     }

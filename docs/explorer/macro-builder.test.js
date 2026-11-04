@@ -30,12 +30,12 @@ test('default configuration is valid and produces the exact expected macro', () 
 
 test('ordering: PreInit commands before /run/initialize, the rest after', () => {
   const cfg = P({ logLevel: 'Info', solvation: 'Ritchie1994', endTimeMode: 'custom', handOver: { value: '10', unit: 'ns' },
-    voxel: { value: '10', unit: 'nm' }, timesPerDecade: '5', spatialOutput: true, binsMode: 'fixed', binWidth: { value: '1', unit: 'us' },
+    voxel: { value: '10', unit: 'nm' }, timesPerDecade: '5', defaultFormats: ['csv', 'h5'], binsMode: 'fixed', binWidth: { value: '1', unit: 'us' },
     o2: true, pH: '8', halfBox: { value: '10', unit: 'um' }, outputDirMode: 'custom', outputDir: 'out',
     killerMode: 'custom', runs: [{ events: '3', seeds: '1 2', dump: 'dir', name: 'a' }, { events: '1', seeds: '', dump: 'reset', name: 'p_' }] });
   assert.deepStrictEqual(errs(cfg), []);
   const L = cmds(cfg), init = idx(L, '/run/initialize');
-  ['/dnaLogger/', '/process/dna/', '/chem/select', '/process/chem/', '/chem/meso/', '/chem/reaction/', '/chem/env/', '/run/outputDir']
+  ['/dnaLogger/', '/process/dna/', '/chem/select', '/process/chem/', '/chem/meso/', '/output/', '/chem/reaction/', '/chem/env/', '/run/outputDir']
     .forEach(p => { const i = idx(L, p); assert.ok(i >= 0 && i < init, p + ' must precede /run/initialize'); });
   ['/scheduler/endTime', '/gun/particle', '/gun/energy', '/primaryKiller/eLossMin', '/primaryKiller/eLossMax', '/random/setSeeds', '/run/beamOn']
     .forEach(p => assert.ok(idx(L, p) > init, p + ' must follow /run/initialize'));
@@ -81,7 +81,7 @@ test('step 3 groups: timing and mesoscopic fields are separated', () => {
   assert.deepStrictEqual(step.groups.map(g => g.id), ['time', 'meso']);
   const ids = g => M.FIELDS.filter(f => f.step === 'timing' && f.group === g).map(f => f.id);
   assert.deepStrictEqual(ids('time'), ['endTimeMode', 'endTime', 'binsMode', 'binWidth', 'binList']);
-  assert.deepStrictEqual(ids('meso'), ['handOver', 'voxel', 'timesPerDecade', 'spatialOutput']);
+  assert.deepStrictEqual(ids('meso'), ['handOver', 'voxel', 'timesPerDecade']);
   assert.ok(M.FIELDS.filter(f => f.step === 'timing').every(f => f.group), 'every timing field is in a group');
   assert.strictEqual(M.groupAvailability(D(), step.groups[1]), null);
   assert.strictEqual(M.groupAvailability(P({ model: 'SBS' }), step.groups[1]).kind, 'incompatible');
@@ -97,12 +97,12 @@ test('every Chemistry option links to its Module map entry', () => {
 });
 
 test('mesoscopic settings: inert when the stage is off, reported, never emitted; resolution restores defaults only', () => {
-  const cfg = P({ meso: false, handOver: { value: '20', unit: 'ns' }, spatialOutput: true, pH: '6' });
+  const cfg = P({ meso: false, handOver: { value: '20', unit: 'ns' }, 'formats.speciesMesoSpatial': ['h5'], pH: '6' });
   const issue = M.validate(cfg).filter(i => i.field === 'handOver')[0];
   assert.ok(issue && /mesoscopic stage is off/.test(issue.message));
   assert.strictEqual(issue.severity, 'warning', 'not blocking');
   assert.deepStrictEqual(errs(cfg), []);
-  assert.ok(!cmds(cfg).some(l => /handOverTime|spatialOutput/.test(l)));
+  assert.ok(!cmds(cfg).some(l => /handOverTime|speciesMesoSpatial/.test(l)));
   assert.strictEqual(M.fieldAvailability(cfg, M.FIELD.handOver).kind, 'incompatible');
   const fixed = M.applyPatch(cfg, issue.resolutions[0].patch);
   assert.deepStrictEqual(errs(fixed), []);
@@ -313,20 +313,101 @@ test('generated commands exist in the project or are standard Geant4 commands', 
   const root = path.resolve(__dirname, '..', '..');
   const src = ['src/core/DnaLoggerMessenger.cc', 'src/chemistry/ChemistrySelectMessenger.cc', 'src/chemistry/MesoMessenger.cc',
     'src/geometry/ScavengerMessenger.cc', 'src/core/OutputDirMessenger.cc', 'src/scoring/PrimaryKiller.cc',
-    'src/scoring/RunAccumulatorMessenger.cc', 'src/geometry/DnaChemistryWorld.cc', 'src/chemistry/DnaChemistryList.cc']
+    'src/scoring/RunAccumulatorMessenger.cc', 'src/geometry/DnaChemistryWorld.cc', 'src/chemistry/DnaChemistryList.cc',
+    'src/scoring/OutputFormatsMessenger.cc']
     .map(f => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
   const geant4 = ['/run/initialize', '/run/beamOn', '/run/verbose', '/tracking/verbose', '/random/setSeeds', '/gun/particle', '/gun/energy', '/gun/position',
     '/process/dna/e-SolvationSubType', '/process/chem/TimeStepModel', '/scheduler/endTime'];
   const cfg = P({ logLevel: 'Info', runVerbose: '1', trackingVerbose: '1', solvation: 'Ritchie1994', endTimeMode: 'custom', handOver: { value: '10', unit: 'ns' },
-    voxel: { value: '10', unit: 'nm' }, timesPerDecade: '5', spatialOutput: true, binsMode: 'list', o2: true, pH: '8', halfBox: { value: '10', unit: 'um' },
+    voxel: { value: '10', unit: 'nm' }, timesPerDecade: '5', defaultFormats: ['txt', 'csv', 'h5', 'root'], 'formats.species': ['csv'], 'formats.speciesMesoSpatial': ['h5', 'root'], binsMode: 'list', o2: true, pH: '8', halfBox: { value: '10', unit: 'um' },
     outputDirMode: 'custom', outputDir: 'out', killerMode: 'custom', beamZ: { value: '-1', unit: 'um' }, runs: [{ events: '1', seeds: '1 2', dump: 'dir', name: 'a' }, { events: '1', seeds: '', dump: 'reset', name: '' }] });
   const generated = new Set(cmds(cfg).map(l => l.split(' ')[0]));
   generated.forEach(c => {
     if (geant4.indexOf(c) >= 0) return;
     const parts = c.split('/').filter(Boolean), leaf = parts[parts.length - 1];
+    if (parts[0] === 'output') {   // registered dynamically: /output/defaultFormat and /output/<product>/format
+      const reg = fs.readFileSync(path.join(root, 'src/scoring/OutputFormats.cc'), 'utf8');
+      const ok = parts.length === 2
+        ? leaf === 'defaultFormat' && src.indexOf('"/output/defaultFormat"') >= 0
+        : leaf === 'format' && reg.indexOf('"' + parts[1] + '"') >= 0 && src.indexOf('"/output/" + OutputFormats::CommandName(product) + "/format"') >= 0;
+      assert.ok(ok, 'output command not registered: ' + c);
+      return;
+    }
     assert.ok(src.indexOf('"' + c + '"') >= 0 || src.indexOf('"' + leaf + '"') >= 0, 'command not found in project sources: ' + c);
   });
   assert.ok(generated.size >= 20, 'broad coverage: ' + generated.size);
+});
+
+const fmtCmds = cfg => cmds(cfg).filter(l => l.indexOf('/output/') === 0);
+const hasFmtIssue = (cfg, field, kind) => M.validate(cfg).some(i => i.field === field && i.kind === kind);
+
+test('output formats: the built-in default writes nothing; the field set matches the seven products', () => {
+  assert.deepStrictEqual(fmtCmds(D()), []);
+  assert.deepStrictEqual(M.defaults().defaultFormats, ['csv']);
+  assert.deepStrictEqual(M.PRODUCTS.map(p => p.id), ['species', 'speciesMeso', 'reactions', 'physicsInteractions', 'trackLengths', 'preChemical', 'speciesMesoSpatial']);
+  // The product list and command names are the ones registered in OutputFormats.cc.
+  const reg = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'scoring', 'OutputFormats.cc'), 'utf8');
+  M.PRODUCTS.forEach(p => assert.ok(reg.indexOf('{Product::' + p.stem + ', "' + p.id + '", "' + p.stem + '"}') >= 0, p.id));
+  M.FORMATS.forEach(f => assert.ok(reg.indexOf('return "' + f + '"') >= 0, f));
+  assert.deepStrictEqual(M.FIELD.defaultFormats.options.map(o => o.value), ['txt', 'csv', 'h5', 'root', 'none']);
+  assert.deepStrictEqual(M.FIELD.fmt_species.options.map(o => o.value), ['txt', 'csv', 'h5', 'root', 'none']);
+  assert.deepStrictEqual(M.FIELD.fmt_speciesMesoSpatial.options.map(o => o.value), ['h5', 'root'], 'spatial: h5/root only, no none');
+  assert.strictEqual(M.FIELDS.filter(f => f.id === 'spatialOutput').length, 0, 'spatialOutput is gone');
+});
+
+test('output formats: default and per-product commands, in canonical order, PreInit', () => {
+  const cfg = P({ defaultFormats: ['txt', 'csv', 'h5', 'root'], 'formats.speciesMesoSpatial': ['h5', 'root'], 'formats.reactions': ['none'], 'formats.trackLengths': ['csv', 'root'] });
+  assert.deepStrictEqual(errs(cfg), []);
+  assert.deepStrictEqual(fmtCmds(cfg), ['/output/defaultFormat txt csv h5 root', '/output/reactions/format none',
+    '/output/trackLengths/format csv root', '/output/speciesMesoSpatial/format h5 root']);
+  const L = cmds(cfg);
+  fmtCmds(cfg).forEach(l => assert.ok(L.indexOf(l) < L.indexOf('/run/initialize'), l));
+  assert.deepStrictEqual(fmtCmds(P({ defaultFormats: ['none'] })), ['/output/defaultFormat none']);
+  assert.deepStrictEqual(fmtCmds(P({ defaultFormats: ['csv', 'h5'] })), ['/output/defaultFormat csv h5']);
+  assert.ok(/^txt, csv, h5, root; custom for /.test(M.summary(cfg).filter(r => r[0] === 'Output formats')[0][1]));
+});
+
+test('output formats: checkbox toggling keeps canonical order and none is exclusive', () => {
+  assert.deepStrictEqual(M.toggleFormats(['csv'], 'txt', true), ['txt', 'csv']);
+  assert.deepStrictEqual(M.toggleFormats(['txt', 'csv'], 'csv', false), ['txt']);
+  assert.deepStrictEqual(M.toggleFormats(['txt', 'csv'], 'none', true), ['none']);
+  assert.deepStrictEqual(M.toggleFormats(['none'], 'h5', true), ['h5']);
+  assert.deepStrictEqual(M.toggleFormats(['csv'], 'root', true), ['csv', 'root']);
+});
+
+test('output formats: validation', () => {
+  assert.ok(hasFmtIssue(P({ defaultFormats: [] }), 'defaultFormats', 'incomplete'));
+  assert.strictEqual(errs(P({ defaultFormats: [] })).length, 1);
+  assert.ok(hasFmtIssue(P({ defaultFormats: ['none', 'csv'] }), 'defaultFormats', 'invalid'));
+  assert.ok(hasFmtIssue(P({ 'formats.species': ['none', 'h5'] }), 'fmt_species', 'invalid'));
+  assert.ok(hasFmtIssue(P({ 'formats.speciesMesoSpatial': ['csv'] }), 'fmt_speciesMesoSpatial', 'invalid'), 'spatial rejects csv');
+  assert.ok(hasFmtIssue(P({ 'formats.speciesMesoSpatial': ['txt'] }), 'fmt_speciesMesoSpatial', 'invalid'));
+  assert.deepStrictEqual(errs(P({ 'formats.speciesMesoSpatial': ['h5', 'root'] })), []);
+  // h5 needs HDF5: informational, not blocking.
+  const h5 = P({ 'formats.species': ['h5'] });
+  assert.deepStrictEqual(errs(h5), []);
+  assert.ok(hasFmtIssue(h5, 'fmt_species', 'info'));
+  assert.ok(!M.validate(D()).some(i => /^fmt_|defaultFormats/.test(i.field)));
+});
+
+test('output formats: SpeciesMesoSpatial and SpeciesMeso follow the mesoscopic stage', () => {
+  const off = P({ meso: false, 'formats.speciesMesoSpatial': ['h5'], 'formats.speciesMeso': ['csv'] });
+  assert.deepStrictEqual(errs(off), []);
+  assert.deepStrictEqual(fmtCmds(off), [], 'inert choices are kept but not written');
+  assert.ok(hasFmtIssue(off, 'handOver', 'warning'));
+  assert.ok(hasFmtIssue(off, 'fmt_speciesMeso', 'warning'));
+  assert.strictEqual(M.fieldAvailability(off, M.FIELD.fmt_speciesMesoSpatial).kind, 'incompatible');
+  const fixed = M.applyPatch(off, M.validate(off).filter(i => i.field === 'handOver')[0].resolutions[0].patch);
+  assert.deepStrictEqual(fixed.formats.speciesMesoSpatial, [], 'the discard resolution clears the spatial formats');
+  assert.deepStrictEqual(fmtCmds(P({ model: 'SBS', 'formats.speciesMesoSpatial': ['root'] })), []);
+});
+
+test('output formats: an older saved configuration is normalised', () => {
+  const old = M.normalize({ chemistry: 'BoscoloChem', spatialOutput: true });
+  assert.deepStrictEqual(old.defaultFormats, ['csv']);
+  assert.deepStrictEqual(old.formats, D().formats);
+  assert.deepStrictEqual(M.normalize({ formats: { species: ['h5'] } }).formats.reactions, []);
+  assert.deepStrictEqual(M.normalize({ formats: { species: ['h5'] } }).formats.species, ['h5']);
 });
 
 if (process.exitCode) console.error('MacroBuilder tests FAILED');

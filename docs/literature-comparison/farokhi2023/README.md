@@ -33,7 +33,7 @@ box (`/chem/env/halfBox 10 um`) and 24 events each, run on 2026-10-10 at
 python plot_gvalues.py
 ```
 
-Reads `Species_nt_species.csv` directly (no re-running of the simulation). Writes 6 files
+Reads `Species.csv` (columns `gMean`, `gStdErr`, `nEvents`) directly (no re-running of the simulation). Writes 6 files
 next to itself: `farokhi2023_{proton,electron}_gvalues.png` (G(t) curves, shaded = +-1 SEM,
 overlaid with hand-digitized reference points from the paper's Fig. 2/Fig. 5),
 `farokhi2023_proton_boxsize_gvalues.png` (10x10x10 um^3 solid vs. 20x20x20 um^3 dashed, same
@@ -43,14 +43,13 @@ statistics check), and `statistics_summary.md` (the same check as a table).
 
 ## Statistics: is there enough?
 
-Mean and standard error of the mean (SEM) come from each run's own `sumG`/`sumG2`
-ntuple columns (sum and sum-of-squares of each *event's* own G-value,
-`n_mol / eventEdep_eV * 100`), via the standard Bessel-corrected estimator:
+Mean and standard error of the mean (SEM) come from each run's own `gMean`/`gStdErr`
+`Species.csv` columns (the mean and standard error of each *event's* own G-value,
+`n_mol / eventEdep_eV * 100`, with the Bessel-corrected sample variance):
 
 ```
-mean = sumG / n
-sample variance = (sumG2 - n * mean^2) / (n - 1)
-SEM = sqrt(sample variance / n)
+mean = gMean
+SEM = gStdErr = sqrt(sample variance / nEvents)
 ```
 
 See `statistics_summary.md` for the full table (max relative SEM and fraction of the 61

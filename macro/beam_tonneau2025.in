@@ -13,7 +13,7 @@
 
 # Use a 100 ns Hand-over time for the yield comparison. The hand-over
 # occurs on the first step reaching the threshold; Species uses its own record
-# grid, so this does not guarantee a Species.Txt sample exactly at 100 ns.
+# grid, so this does not guarantee a Species sample exactly at 100 ns.
 /chem/meso/handOverTime 100 ns
 
 # Apply Chemistry/environment PreInit settings before initialization.

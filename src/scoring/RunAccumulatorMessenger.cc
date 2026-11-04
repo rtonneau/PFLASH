@@ -8,8 +8,14 @@
 #include "scoring/RunManifest.hh"
 #include "core/OutputDir.hh"
 #include "core/DnaLogger.hh"
+#include "scoring/Hdf5TableFile.hh"
 #include "scoring/PreChemicalFiles.hh"
+#include "scoring/PreChemicalRecorder.hh"
+#include "scoring/RootTableFile.hh"
+#include "scoring/ProductOutput.hh"
+#include "scoring/OutputFormats.hh"
 #include "scoring/MesoSpatialFile.hh"
+#include "scoring/MesoSpatialRootRows.hh"
 #include "chemistry/ChemUtils.hh"
 #include "chemistry/MesoSettings.hh"
 #include "scoring/ScoreSpecies.hh"
@@ -17,8 +23,8 @@
 #include "G4UIcmdWithAString.hh"
 #include "G4SDManager.hh"
 #include "G4MultiFunctionalDetector.hh"
-#include "G4AnalysisManager.hh"
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -35,14 +41,8 @@ void WriteSpeciesOutput(const G4String &prefix, std::vector<std::string> &files)
         auto *scorer = dynamic_cast<ScoreSpecies *>(mfdet->GetPrimitive(collectionId));
         if (scorer != nullptr)
         {
-            scorer->ASCII();          // Species.Txt (human-readable)
-            scorer->OutputAndClear(); // Species_nt_species(_all).csv, then clears the scorer
-            files.push_back(prefix + "Species.Txt");
-            files.push_back(prefix + "Species_nt_species.csv");
-#ifdef _ScoreSpecies_FOR_ALL_EVENTS
-            // Only written when ScoreSpecies is built with per-event output.
-            files.push_back(prefix + "Species_nt_species_all.csv");
-#endif
+            ProductOutput::Write(OutputFormats::Product::Species, {scorer->ToTable()}, prefix, files);
+            scorer->OutputAndClear(); // clears the scorer for the next dump cycle
         }
     }
 }
@@ -50,20 +50,101 @@ void WriteSpeciesOutput(const G4String &prefix, std::vector<std::string> &files)
 void WriteMesoscopicOutput(const G4String &prefix, std::vector<std::string> &files)
 {
     // Species counts of the mesoscopic stage (hand-over to end time).
-    const MesoSpeciesCounter &mesoSpeciesCounter = RunAccumulator::GetAccumulatedMesoSpeciesCounter();
-    std::ofstream mesoOut(OutputDir::Resolve("SpeciesMeso.Txt"));
-    mesoSpeciesCounter.WriteAscii(mesoOut, RunAccumulator::GetAccumulatedEvents());
-    mesoOut.close();
-    files.push_back(prefix + "SpeciesMeso.Txt");
+    ProductOutput::Write(OutputFormats::Product::SpeciesMeso,
+                         {RunAccumulator::GetAccumulatedMesoSpeciesCounter().ToTable()}, prefix, files);
+}
 
-    std::ofstream mesoCsv(OutputDir::Resolve("SpeciesMeso.csv"));
-    mesoSpeciesCounter.WriteCsv(mesoCsv);
-    mesoCsv.close();
-    files.push_back(prefix + "SpeciesMeso.csv");
+// h5/root PreChemical tables: the rows accumulated by the per-event recorders
+// are written whole into the staging folder (neither writer can append), so
+// MoveStaged publishes them with the per-event txt/csv files. Nothing is
+// staged when neither format is chosen.
+void StagePreChemicalTables()
+{
+    const std::vector<OutputFormats::Format> formats =
+        OutputFormats::Effective(OutputFormats::Product::PreChemical);
+    const OutputTable table = PreChemicalRecorder::TakeStaged();
+    for (OutputFormats::Format format : formats)
+    {
+        if (format != OutputFormats::Format::H5 && format != OutputFormats::Format::Root)
+            continue;
+        std::string err;
+        if (!PreChemicalFiles::EnsureStagingDir(OutputDir::GetDirectory(), err))
+        {
+            G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "PreChemicalStagingDir",
+                        JustWarning, err.c_str());
+            return;
+        }
+        const std::string path =
+            PreChemicalFiles::StagingDir(OutputDir::GetDirectory()) + "/" +
+            PreChemicalFiles::StagedTableFileName(OutputFormats::Extension(format));
+        const bool ok = (format == OutputFormats::Format::H5)
+                            ? Hdf5TableFile::Write(path, {table}, err)
+                            : RootTableFile::Write(path, {table}, err);
+        if (!ok)
+        {
+            const std::string message = "Cannot write " + path + ": " + err;
+            G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "PreChemicalTableFailed",
+                        JustWarning, message.c_str());
+        }
+    }
+}
+
+// Writes the staged SpeciesMesoSpatial.root (rows collected per event) into the
+// staging folder; MoveSpatialOutput publishes it.
+void StageSpatialRoot()
+{
+    const std::vector<OutputFormats::Format> formats =
+        OutputFormats::Effective(OutputFormats::Product::SpeciesMesoSpatial);
+    bool wanted = false;
+    for (OutputFormats::Format format : formats)
+        if (format == OutputFormats::Format::Root) wanted = true;
+    if (!wanted) return;
+    const OutputTable table = MesoSpatialRootRows::TakeStaged();
+    const std::string dir = MesoSpatialFile::StagingDir(OutputDir::GetDirectory());
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+    std::string err;
+    const std::string path = dir + "/" + MesoSpatialRootRows::FileName();
+    if (ec || !RootTableFile::Write(path, {table}, err))
+    {
+        const std::string message = "Cannot write " + path + ": " + (ec ? ec.message() : err);
+        G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "MesoSpatialRootFailed",
+                    JustWarning, message.c_str());
+    }
+}
+
+// Moves the staged SpeciesMesoSpatial.root into the dump, when present.
+void MoveSpatialRoot(const G4String &prefix, std::vector<std::string> &files)
+{
+    const std::string source =
+        MesoSpatialFile::StagingDir(OutputDir::GetDirectory()) + "/" + MesoSpatialRootRows::FileName();
+    std::error_code ec;
+    if (!std::filesystem::exists(source, ec)) return;
+    const std::string target = OutputDir::Resolve(MesoSpatialRootRows::FileName());
+    std::filesystem::remove(target, ec);
+    ec.clear();
+    std::filesystem::rename(source, target, ec);
+    if (ec)
+    {
+        // Different volumes: copy then remove.
+        ec.clear();
+        std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing, ec);
+        if (!ec) std::filesystem::remove(source, ec);
+    }
+    if (ec)
+    {
+        const std::string message = "Cannot move " + source + " to " + target + ": " + ec.message();
+        G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "MesoSpatialRootMoveFailed",
+                    JustWarning, message.c_str());
+        return;
+    }
+    files.push_back(prefix + MesoSpatialRootRows::FileName());
 }
 
 void MoveSpatialOutput(const G4String &prefix, std::vector<std::string> &files)
 {
+    StageSpatialRoot();
+    MoveSpatialRoot(prefix, files);
     bool spatialMoved = false;
     std::string spatialErr;
     if (MesoSpatialFile::MoveStaged(OutputDir::GetDirectory(),
@@ -201,55 +282,17 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     // uses.
     WriteSpeciesOutput(prefix, files);
 
-    // Reactions
-    const ReactionCounter &reactionCounter = RunAccumulator::GetAccumulatedReactionCounter();
-    std::ofstream reactionsOut(OutputDir::Resolve("Reactions.Txt"));
-    reactionCounter.WriteAscii(reactionsOut);
-    reactionsOut.close();
-    files.push_back(prefix + "Reactions.Txt");
-
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
-    analysisManager->SetDefaultFileType("csv");
-    reactionCounter.WriteCsv(analysisManager);
-    files.push_back(prefix + "Reactions_nt_reactions.csv");
-
-    std::ofstream metadataOut(OutputDir::Resolve("ReactionsMetadata.csv"));
-    reactionCounter.WriteMetadata(metadataOut);
-    metadataOut.close();
-    files.push_back(prefix + "ReactionsMetadata.csv");
-
-    // Keep dump cycles independent: CloseFile leaves analysis bookings and
-    // file-manager state available for reuse. Clear removes them before the
-    // next prefix/subdir; Reset retains bookings and the file-manager registry.
-    // G4CsvFileManager::CreateNtupleFile renames an already registered name
-    // with "_bis"; preserving this Clear avoids that observed reuse problem.
-    // Clear also deletes histogram bookings; this project creates none.
-    analysisManager->Clear();
+    // Reactions (+ catalogue of reaction ids)
+    ProductOutput::Write(OutputFormats::Product::Reactions,
+                         RunAccumulator::GetAccumulatedReactionCounter().ToTables(), prefix, files);
 
     // Physics interactions
-    const PhysicsInteractionCounter &interactionCounter =
-        RunAccumulator::GetAccumulatedInteractionCounter();
-    std::ofstream interactionsOut(OutputDir::Resolve("PhysicsInteractions.Txt"));
-    interactionCounter.WriteAscii(interactionsOut);
-    interactionsOut.close();
-    files.push_back(prefix + "PhysicsInteractions.Txt");
-
-    std::ofstream interactionsCsv(OutputDir::Resolve("PhysicsInteractions.csv"));
-    interactionCounter.WriteCsv(interactionsCsv);
-    interactionsCsv.close();
-    files.push_back(prefix + "PhysicsInteractions.csv");
+    ProductOutput::Write(OutputFormats::Product::PhysicsInteractions,
+                         {RunAccumulator::GetAccumulatedInteractionCounter().ToTable()}, prefix, files);
 
     // Per-event primary and secondary e- track lengths (physical stage).
     const TrackLengthTable &trackLengthTable = RunAccumulator::GetAccumulatedTrackLengthTable();
-    std::ofstream trackLengthsOut(OutputDir::Resolve("TrackLengths.Txt"));
-    trackLengthTable.WriteAscii(trackLengthsOut);
-    trackLengthsOut.close();
-    files.push_back(prefix + "TrackLengths.Txt");
-
-    std::ofstream trackLengthsCsv(OutputDir::Resolve("TrackLengths.csv"));
-    trackLengthTable.WriteCsv(trackLengthsCsv);
-    trackLengthsCsv.close();
-    files.push_back(prefix + "TrackLengths.csv");
+    ProductOutput::Write(OutputFormats::Product::TrackLengths, {trackLengthTable.ToTable()}, prefix, files);
 
     // Mesoscopic stage off (/chem/meso/enable false, or SBS): no SpeciesMeso files.
     if (MesoSettings::StageEnabled(MesoSettings::Current(),
@@ -258,8 +301,10 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
       WriteMesoscopicOutput(prefix, files);
     }
 
-    // Pre-chemical files: move the per-event files staged since the last dump
+    // Pre-chemical files: stage the h5/root tables, then move the files staged
+    // since the last dump (per-event txt/csv and the tables)
     // into this dump (target = prefix/subdir applied by OutputDir::Resolve).
+    StagePreChemicalTables();
     const PreChemicalFiles::MoveResult moveResult = PreChemicalFiles::MoveStaged(
         PreChemicalFiles::StagingDir(OutputDir::GetDirectory()),
         [](const std::string &name) { return OutputDir::Resolve(name); });
@@ -273,8 +318,8 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
                      "[RunAccumulatorMessenger] moved " + std::to_string(moveResult.moved.size()) +
                          " pre-chemical file(s) into the dump");
 
-    // Meso spatial snapshots (/chem/meso/spatialOutput): move the staged HDF5
-    // file into this dump (Resolve applies the prefix and subdir).
+    // Meso spatial snapshots (/output/speciesMesoSpatial/format): move the staged h5/root
+    // files into this dump (Resolve applies the prefix and subdir).
     MoveSpatialOutput(prefix, files);
 
     // Energy deposit, beam and everything else that describes this dump.
