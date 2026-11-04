@@ -213,7 +213,10 @@ if(DNACHEM_HAS_HDF5)
 endif()
 install(DIRECTORY macro/ DESTINATION macro
         FILES_MATCHING PATTERN "*.in" PATTERN "*.mac")
-install(FILES packaging/README.txt packaging/check-env.ps1 DESTINATION .)
+install(FILES packaging/README.txt DESTINATION .)
+if(WIN32)
+  install(FILES packaging/check-env.ps1 DESTINATION .)
+endif()
 find_package(Git QUIET)
 install(CODE "
   set(_version unknown)

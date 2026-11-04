@@ -10,7 +10,7 @@ species sit in each occupied cell of Geant4's cell mesh. `SpeciesMeso.*` only
 gives totals; this file lets you compute concentration maps.
 
 The file exists only when a macro sets `/chem/meso/spatialOutput true` (before
-`/run/initialize`; default false). Events append to a staging file
+`/run/initialize`; default false). It needs a `sim` built with HDF5: without it the command is a fatal error and `Manifest.json` has `"hdf5": false`. Events append to a staging file
 `<outdir>/.pending_meso_spatial/SpeciesMesoSpatial.h5`. Every dump moves it to
 the dump target:
 

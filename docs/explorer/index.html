@@ -962,7 +962,7 @@
       tech: '/chem/meso/timesPerDecade <n>, PreInit, >= 1. Written only when changed.', refs: SRC.meso }),
     q('spatialOutput', { step: 'timing', type: 'bool', label: 'Spatial snapshots (HDF5)', required: false, rule: 'mesoParams', group: 'meso', group: 'meso',
       options: [{ value: false, label: 'Off (default)' }, { value: true, label: 'On: write SpeciesMesoSpatial.h5' }],
-      help: 'Saves where the species are on the mesh at every record time. The file can be very large.',
+      help: 'Saves where the species are on the mesh at every record time. Requires sim built with HDF5. The file can be very large.',
       tech: '/chem/meso/spatialOutput true, PreInit. Written only when on.', refs: SRC.meso }),
     q('binsMode', { step: 'timing', group: 'time', type: 'choice', label: 'Reaction-count time bins', required: false,
       options: [

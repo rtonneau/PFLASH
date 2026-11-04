@@ -104,7 +104,7 @@ produces the content.
 | `SpeciesMeso.Txt` | Mean count per event vs. time for the mesoscopic stage (hand-over time to end time, log grid) | `src/scoring/MesoSpeciesCounter.cc` | every dump with the mesoscopic stage on; not written when it is off | about 9 KB at 1 ms end time |
 | `SpeciesMeso.csv` | Rows `time_ns,species,count` (counts summed over events) | `MesoSpeciesCounter.cc` | same as above | about 15 KB at 1 ms end time |
 | `PreChemical_run<R>_event<E>.txt` | Per-event pre-chemical table: parent track, molecule, ionisation/excitation level, energy, positions | `src/actions/EventAction.cc`, moved by `PreChemicalFiles::MoveStaged` | every dump, one file per event | about 150 KB per 10 keV event |
-| `SpeciesMesoSpatial.h5` | Per-event spatial snapshots of the mesoscopic mesh (non-empty cells only) | `src/scoring/MesoSpatialFile.cc` | only with `/chem/meso/spatialOutput true`; one file per dump | about 3 MB per 10 keV event at 1 ms end time (grows with end time) |
+| `SpeciesMesoSpatial.h5` | Per-event spatial snapshots of the mesoscopic mesh (non-empty cells only) | `src/scoring/MesoSpatialFile.cc` | only with `/chem/meso/spatialOutput true` and an HDF5 build (`Manifest.json` `hdf5` key); one file per dump | about 3 MB per 10 keV event at 1 ms end time (grows with end time) |
 
 The Chemistry decides the species columns: `Tonneau2025` adds `HO3`.
 `Reactions.*` cover the particle-based stage only; the mesoscopic stage

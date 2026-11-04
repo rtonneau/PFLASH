@@ -13,7 +13,7 @@ Defined by the `install()`/CPack section of `CMakeLists.txt`:
 | File | Source |
 |---|---|
 | `sim.exe` | the run build (`build/`, RelWithDebInfo) |
-| `hdf5.dll`, `hdf5_cpp.dll` | the vcpkg HDF5 imported targets; they import only the MSVC runtime |
+| `hdf5.dll`, `hdf5_cpp.dll` | the vcpkg HDF5 imported targets; they import only the MSVC runtime. The release zip is built with HDF5 on (`DNACHEM_WITH_HDF5=ON`); a build without HDF5 omits these DLLs |
 | `macro/*.in`, `macro/*.mac` | `macro/` |
 | `README.txt`, `check-env.ps1` | `packaging/` |
 | `VERSION.txt` | written at packaging time: `git describe` and the Geant4 version |
