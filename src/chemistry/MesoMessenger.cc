@@ -5,7 +5,6 @@
 #include "chemistry/MesoMessenger.hh"
 
 #include "chemistry/MesoSettings.hh"
-#include "scoring/MesoSpatialFile.hh"
 
 #include "G4ApplicationState.hh"
 #include "G4SystemOfUnits.hh"
@@ -49,14 +48,6 @@ MesoMessenger::MesoMessenger()
   fpPerDecadeCmd->SetParameterName("timesPerDecade", false);
   fpPerDecadeCmd->AvailableForStates(G4State_PreInit);
 
-  fpSpatialOutputCmd = new G4UIcmdWithABool("/chem/meso/spatialOutput", this);
-  fpSpatialOutputCmd->SetGuidance(
-    "Whether to save spatial species distributions during the mesoscopic stage to an HDF5 file "
-    "(SpeciesMesoSpatial.h5). Note: this generates a heavy output file. Default: false. Issue "
-    "before /run/initialize.");
-  fpSpatialOutputCmd->SetParameterName("spatialOutput", false);
-  fpSpatialOutputCmd->AvailableForStates(G4State_PreInit);
-
   fpEnableCmd = new G4UIcmdWithABool("/chem/meso/enable", this);
   fpEnableCmd->SetGuidance(
     "Whether the particle-based stage hands over to the mesoscopic stage at the hand-over "
@@ -72,7 +63,6 @@ MesoMessenger::~MesoMessenger()
   delete fpHandOverCmd;
   delete fpVoxelCmd;
   delete fpPerDecadeCmd;
-  delete fpSpatialOutputCmd;
   delete fpEnableCmd;
 }
 
@@ -103,15 +93,6 @@ void MesoMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
     }
     settings.timesPerDecade = value;
   }
-  else if (command == fpSpatialOutputCmd) {
-    const G4bool value = fpSpatialOutputCmd->GetNewBoolValue(newValue);
-    if (value && !MesoSpatialFile::Available()) {
-      Fatal("SpatialOutputWithoutHdf5",
-            "/chem/meso/spatialOutput true needs HDF5, but this build has none. Reconfigure "
-            "with -DDNACHEM_WITH_HDF5=ON (HDF5 C++ installed) to write SpeciesMesoSpatial.h5.");
-    }
-    settings.spatialOutput = value;
-  }
   else if (command == fpEnableCmd) {
     // The SBS conflict is checked at /run/initialize (DnaChemistryList), when
     // the time-step model is final whatever the command order.
@@ -131,9 +112,6 @@ G4String MesoMessenger::GetCurrentValue(G4UIcommand* command)
   }
   if (command == fpPerDecadeCmd) {
     return fpPerDecadeCmd->ConvertToString(settings.timesPerDecade);
-  }
-  if (command == fpSpatialOutputCmd) {
-    return fpSpatialOutputCmd->ConvertToString(settings.spatialOutput);
   }
   if (command == fpEnableCmd) {
     return fpEnableCmd->ConvertToString(settings.enabled);

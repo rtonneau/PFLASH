@@ -447,6 +447,19 @@
           ]
         },
         {
+          "id": "meso-spatial-root-rows",
+          "title": "MesoSpatialRootRows",
+          "role": "Spatial snapshots as root rows",
+          "summary": "Expands the mesoscopic spatial snapshots into one row per non-empty cell and species, collected for SpeciesMesoSpatial.root.",
+          "files": [
+            "src/scoring/MesoSpatialRootRows.cc",
+            "header/scoring/MesoSpatialRootRows.hh"
+          ],
+          "symbols": [
+            "MesoSpatialRootRows::ExpandEvent"
+          ]
+        },
+        {
           "id": "hdf5-table-file",
           "title": "Hdf5TableFile",
           "role": "Saves tables as HDF5",
@@ -794,6 +807,7 @@
             "test/OutputTableTest.cc",
             "test/MesoSpatialFileTest.cc",
             "test/MesoSpatialFileNoHdf5Test.cc",
+            "test/MesoSpatialRootRowsTest.cc",
             "test/Hdf5TableFileTest.cc",
             "test/Hdf5TableFileNoHdf5Test.cc",
             "test/RootTableFileTest.cc",
@@ -1263,7 +1277,7 @@
       ],
       "outputs": [
         "SpeciesMeso.Txt/.csv (recorded)",
-        "SpeciesMesoSpatial.h5 (staged, with /chem/meso/spatialOutput true)"
+        "SpeciesMesoSpatial.h5 (staged, with /output/speciesMesoSpatial/format h5)"
       ],
       "docs": [
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",

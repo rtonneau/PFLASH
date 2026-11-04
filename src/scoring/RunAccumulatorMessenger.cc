@@ -15,6 +15,7 @@
 #include "scoring/ProductOutput.hh"
 #include "scoring/OutputFormats.hh"
 #include "scoring/MesoSpatialFile.hh"
+#include "scoring/MesoSpatialRootRows.hh"
 #include "chemistry/ChemUtils.hh"
 #include "chemistry/MesoSettings.hh"
 #include "scoring/ScoreSpecies.hh"
@@ -23,6 +24,7 @@
 #include "G4SDManager.hh"
 #include "G4MultiFunctionalDetector.hh"
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -87,8 +89,62 @@ void StagePreChemicalTables()
     }
 }
 
+// Writes the staged SpeciesMesoSpatial.root (rows collected per event) into the
+// staging folder; MoveSpatialOutput publishes it.
+void StageSpatialRoot()
+{
+    const std::vector<OutputFormats::Format> formats =
+        OutputFormats::Effective(OutputFormats::Product::SpeciesMesoSpatial);
+    bool wanted = false;
+    for (OutputFormats::Format format : formats)
+        if (format == OutputFormats::Format::Root) wanted = true;
+    if (!wanted) return;
+    const OutputTable table = MesoSpatialRootRows::TakeStaged();
+    const std::string dir = MesoSpatialFile::StagingDir(OutputDir::GetDirectory());
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+    std::string err;
+    const std::string path = dir + "/" + MesoSpatialRootRows::FileName();
+    if (ec || !RootTableFile::Write(path, {table}, err))
+    {
+        const std::string message = "Cannot write " + path + ": " + (ec ? ec.message() : err);
+        G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "MesoSpatialRootFailed",
+                    JustWarning, message.c_str());
+    }
+}
+
+// Moves the staged SpeciesMesoSpatial.root into the dump, when present.
+void MoveSpatialRoot(const G4String &prefix, std::vector<std::string> &files)
+{
+    const std::string source =
+        MesoSpatialFile::StagingDir(OutputDir::GetDirectory()) + "/" + MesoSpatialRootRows::FileName();
+    std::error_code ec;
+    if (!std::filesystem::exists(source, ec)) return;
+    const std::string target = OutputDir::Resolve(MesoSpatialRootRows::FileName());
+    std::filesystem::remove(target, ec);
+    ec.clear();
+    std::filesystem::rename(source, target, ec);
+    if (ec)
+    {
+        // Different volumes: copy then remove.
+        ec.clear();
+        std::filesystem::copy_file(source, target, std::filesystem::copy_options::overwrite_existing, ec);
+        if (!ec) std::filesystem::remove(source, ec);
+    }
+    if (ec)
+    {
+        const std::string message = "Cannot move " + source + " to " + target + ": " + ec.message();
+        G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "MesoSpatialRootMoveFailed",
+                    JustWarning, message.c_str());
+        return;
+    }
+    files.push_back(prefix + MesoSpatialRootRows::FileName());
+}
+
 void MoveSpatialOutput(const G4String &prefix, std::vector<std::string> &files)
 {
+    StageSpatialRoot();
+    MoveSpatialRoot(prefix, files);
     bool spatialMoved = false;
     std::string spatialErr;
     if (MesoSpatialFile::MoveStaged(OutputDir::GetDirectory(),
@@ -262,8 +318,8 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
                      "[RunAccumulatorMessenger] moved " + std::to_string(moveResult.moved.size()) +
                          " pre-chemical file(s) into the dump");
 
-    // Meso spatial snapshots (/chem/meso/spatialOutput): move the staged HDF5
-    // file into this dump (Resolve applies the prefix and subdir).
+    // Meso spatial snapshots (/output/speciesMesoSpatial/format): move the staged h5/root
+    // files into this dump (Resolve applies the prefix and subdir).
     MoveSpatialOutput(prefix, files);
 
     // Energy deposit, beam and everything else that describes this dump.

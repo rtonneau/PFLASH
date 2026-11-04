@@ -1,6 +1,6 @@
 # Layout: staging folders
 
-Two hidden folders in the output directory hold files between the end of an event and the next dump: `.pending_prechem/` (one `PreChemical_run<R>_event<E>.txt` per event) and `.pending_meso_spatial/` (`SpeciesMesoSpatial.h5`, only with `/chem/meso/spatialOutput true`). Each dump moves the files out and leaves both folders in place, empty. The output directory is `--dir`, else `<exeDir>/results` (e.g. `build/results`). File meaning: [../README.md](../README.md).
+Two hidden folders in the output directory hold files between the end of an event and the next dump: `.pending_prechem/` (one `PreChemical_run<R>_event<E>.txt` per event) and `.pending_meso_spatial/` (`SpeciesMesoSpatial.h5`, only with `/output/speciesMesoSpatial/format h5`). Each dump moves the files out and leaves both folders in place, empty. The output directory is `--dir`, else `<exeDir>/results` (e.g. `build/results`). File meaning: [../README.md](../README.md).
 
 Each tree below is the listing taken by `/control/shell dir /s /b <outdir>` right after `/run/beamOn 2` (before the dump; the real runs used the default directory, `build
 esults`), then the tree after `/run/dumpDataAndReset`.
@@ -59,7 +59,7 @@ After the dump (a flat dump with an empty prefix: the dump's manifest and the re
 Macro lines that differ per case (the rest is `/gun/particle e-`, `/gun/energy 10 keV`):
 
 ```text
-/chem/meso/spatialOutput true  # (before /run/initialize)
+/output/speciesMesoSpatial/format h5  # (before /run/initialize)
 /scheduler/endTime 1 ms  # (after /run/initialize)
 /run/beamOn 2
 /control/shell dir /s /b <outdir>

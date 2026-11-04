@@ -74,7 +74,7 @@ macros by filename.
 `DNACHEM_WITH_HDF5` is `AUTO` by default: HDF5 is used if CMake finds it. `ON`
 requires it (configure fails otherwise); `OFF` builds without it. The configure
 log says which form it used (`-- HDF5: using ...`). Without HDF5,
-`/chem/meso/spatialOutput true` is a fatal error and `Manifest.json` has
+`/output/speciesMesoSpatial/format h5` is a fatal error and `Manifest.json` has
 `"hdf5": false`; everything else works. Note that `find_package(Geant4)` itself
 pulls in HDF5 when Geant4 was built with HDF5 analysis support
 (`GEANT4_USE_HDF5=ON`). dnachem-min's own code then no longer needs HDF5, but a
@@ -332,7 +332,7 @@ prefix `EndOfRun_` runs at exit.
 | `Manifest.json` | dump metadata; the one in the output root also indexes every dump |
 | `Species.Txt`, `Species_nt_species.csv` | species yields vs. time, particle-based stage |
 | `SpeciesMeso.Txt`, `SpeciesMeso.csv` | mean count per event, mesoscopic stage |
-| `SpeciesMesoSpatial.h5` | per-event mesh snapshots (`/chem/meso/spatialOutput true`) |
+| `SpeciesMesoSpatial.h5` | per-event mesh snapshots (`/output/speciesMesoSpatial/format h5`) |
 | `Reactions.Txt`, `Reactions_nt_reactions.csv`, `ReactionsMetadata.csv` | reaction firings per time bin, particle-based stage |
 | `PhysicsInteractions.Txt`, `PhysicsInteractions.csv` | counts of G4DNA physics processes |
 | `TrackLengths.Txt`, `TrackLengths.csv` | primary and secondary-electron track lengths per event |

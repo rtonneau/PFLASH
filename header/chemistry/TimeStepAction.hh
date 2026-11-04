@@ -94,9 +94,10 @@ private:
   /// then resets the separate scheduler counter for the next event.
   void CollectMesoSpecies();
 
-  /// Appends this event's mesoscopic spatial snapshots to the staged
-  /// SpeciesMesoSpatial.h5 (only when /chem/meso/spatialOutput is on and
-  /// there are records), then clears them. A failure is a JustWarning.
+  /// Writes this event's mesoscopic spatial snapshots in the formats chosen for
+  /// SpeciesMesoSpatial (h5: appended to the staged file; root: rows added to
+  /// the staged table), when there are records, then clears them. A failure is
+  /// a JustWarning.
   void WriteSpatialSnapshots();
 
   ReactionCounter fReactionCounter;

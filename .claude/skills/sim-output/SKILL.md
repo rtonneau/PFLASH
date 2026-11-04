@@ -36,7 +36,7 @@ resets all counters to empty/zero:
   case under SBS (`/process/chem/TimeStepModel SBS`) and with
   `/chem/meso/enable false` under IRT_syn. There `Species.*` covers the whole
   chemistry run.
-- `SpeciesMesoSpatial.h5`: only with `/chem/meso/spatialOutput true` and a sim built with HDF5
+- `SpeciesMesoSpatial.h5`: only with `/output/speciesMesoSpatial/format h5` and a sim built with HDF5
   (PreInit, default false). Spatial snapshots of the mesoscopic mesh, appended
   per event by `TimeStepAction` into the staging folder
   `<outdir>/.pending_meso_spatial/`; every dump (prefix, subfolder and the

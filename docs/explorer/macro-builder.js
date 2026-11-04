@@ -273,7 +273,7 @@
     q('spatialOutput', { step: 'timing', type: 'bool', label: 'Spatial snapshots (HDF5)', required: false, rule: 'mesoParams', group: 'meso', group: 'meso',
       options: [{ value: false, label: 'Off (default)' }, { value: true, label: 'On: write SpeciesMesoSpatial.h5' }],
       help: 'Saves where the species are on the mesh at every record time. Requires sim built with HDF5. The file can be very large.',
-      tech: '/chem/meso/spatialOutput true, PreInit. Written only when on.', refs: SRC.meso }),
+      tech: '/output/speciesMesoSpatial/format h5, PreInit. Written only when on.', refs: SRC.meso }),
     q('binsMode', { step: 'timing', group: 'time', type: 'choice', label: 'Reaction-count time bins', required: false,
       options: [
         { value: 'default', label: 'Built-in table (default)', help: 'A fixed 7-edge table.' },
@@ -586,7 +586,7 @@
       if (!sameQ(cfg.handOver, MESO_DEFAULTS.handOver)) cmd('/chem/meso/handOverTime ' + qty(cfg.handOver), 'handOver');
       if (!sameQ(cfg.voxel, MESO_DEFAULTS.voxel)) cmd('/chem/meso/voxelSize ' + qty(cfg.voxel), 'voxel');
       if (String(cfg.timesPerDecade).trim() !== MESO_DEFAULTS.timesPerDecade) cmd('/chem/meso/timesPerDecade ' + String(cfg.timesPerDecade).trim(), 'timesPerDecade');
-      if (cfg.spatialOutput) { c('Per-event mesh snapshots in SpeciesMesoSpatial.h5 (large file)'); cmd('/chem/meso/spatialOutput true', 'spatialOutput'); }
+      if (cfg.spatialOutput) { c('Per-event mesh snapshots in SpeciesMesoSpatial.h5 (large file)'); cmd('/output/speciesMesoSpatial/format h5', 'spatialOutput'); }
     }
     if (cfg.binsMode === 'fixed') { c('Reaction-count time bins of fixed width'); cmd('/chem/reaction/timeBinsFixed ' + qty(cfg.binWidth), 'binWidth'); }
     if (cfg.binsMode === 'list') {

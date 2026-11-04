@@ -7,8 +7,9 @@
 /process/dna/e-SolvationSubType Ritchie1994
 
 # Write per-event spatial snapshots of the mesoscopic mesh to
-# SpeciesMesoSpatial.h5 (PreInit; default false).
-/chem/meso/spatialOutput true
+# SpeciesMesoSpatial.h5 (default: no spatial output). Use `h5 root` to also
+# write SpeciesMesoSpatial.root.
+/output/speciesMesoSpatial/format h5
 
 /run/initialize
 

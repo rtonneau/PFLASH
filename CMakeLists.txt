@@ -180,6 +180,11 @@ target_link_libraries(PreChemicalRecorderTest ${Geant4_LIBRARIES})
 target_include_directories(PreChemicalRecorderTest PRIVATE ${project_include_dirs})
 add_test(NAME PreChemicalRecorderTest COMMAND PreChemicalRecorderTest)
 
+# Standalone unit test for MesoSpatialRootRows (row expansion; std + OutputTable).
+add_executable(MesoSpatialRootRowsTest test/MesoSpatialRootRowsTest.cc src/scoring/MesoSpatialRootRows.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+target_include_directories(MesoSpatialRootRowsTest PRIVATE ${project_include_dirs})
+add_test(NAME MesoSpatialRootRowsTest COMMAND MesoSpatialRootRowsTest)
+
 # Standalone unit test for ChemistryRegistry (pure name lookup/selection logic,
 # no Geant4 kernel dependency -- it only stores builder function pointers).
 add_executable(ChemistryRegistryTest test/ChemistryRegistryTest.cc src/chemistry/ChemistryRegistry.cc)

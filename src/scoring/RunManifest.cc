@@ -154,7 +154,7 @@ namespace
     manifest.Add("mesoPixels", mesoPixels);
     manifest.Add("mesoTimesPerDecade",
                  mesoOn ? DataNode(MesoSettings::Current().timesPerDecade) : DataNode());
-    manifest.Add("mesoSpatialOutput", mesoOn && MesoSettings::Current().spatialOutput);
+    manifest.Add("mesoSpatialOutput", mesoOn && !OutputFormats::Effective(OutputFormats::Product::SpeciesMesoSpatial).empty());
   }
 
   void AppendOutputFields(DataNode &manifest, const std::string &outputDir, const std::error_code &ec,

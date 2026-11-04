@@ -67,7 +67,6 @@ void TestInvalid()
 void TestDefaults()
 {
   const auto& settings = MesoSettings::Current();
-  assert(settings.spatialOutput == false);
   assert(settings.enabled == true);
   assert(settings.enabledExplicitly == false);
 }
