@@ -8,7 +8,10 @@
 #include "scoring/RunManifest.hh"
 #include "core/OutputDir.hh"
 #include "core/DnaLogger.hh"
+#include "scoring/Hdf5TableFile.hh"
 #include "scoring/PreChemicalFiles.hh"
+#include "scoring/PreChemicalRecorder.hh"
+#include "scoring/RootTableFile.hh"
 #include "scoring/ProductOutput.hh"
 #include "scoring/OutputFormats.hh"
 #include "scoring/MesoSpatialFile.hh"
@@ -47,6 +50,41 @@ void WriteMesoscopicOutput(const G4String &prefix, std::vector<std::string> &fil
     // Species counts of the mesoscopic stage (hand-over to end time).
     ProductOutput::Write(OutputFormats::Product::SpeciesMeso,
                          {RunAccumulator::GetAccumulatedMesoSpeciesCounter().ToTable()}, prefix, files);
+}
+
+// h5/root PreChemical tables: the rows accumulated by the per-event recorders
+// are written whole into the staging folder (neither writer can append), so
+// MoveStaged publishes them with the per-event txt/csv files. Nothing is
+// staged when neither format is chosen.
+void StagePreChemicalTables()
+{
+    const std::vector<OutputFormats::Format> formats =
+        OutputFormats::Effective(OutputFormats::Product::PreChemical);
+    const OutputTable table = PreChemicalRecorder::TakeStaged();
+    for (OutputFormats::Format format : formats)
+    {
+        if (format != OutputFormats::Format::H5 && format != OutputFormats::Format::Root)
+            continue;
+        std::string err;
+        if (!PreChemicalFiles::EnsureStagingDir(OutputDir::GetDirectory(), err))
+        {
+            G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "PreChemicalStagingDir",
+                        JustWarning, err.c_str());
+            return;
+        }
+        const std::string path =
+            PreChemicalFiles::StagingDir(OutputDir::GetDirectory()) + "/" +
+            PreChemicalFiles::StagedTableFileName(OutputFormats::Extension(format));
+        const bool ok = (format == OutputFormats::Format::H5)
+                            ? Hdf5TableFile::Write(path, {table}, err)
+                            : RootTableFile::Write(path, {table}, err);
+        if (!ok)
+        {
+            const std::string message = "Cannot write " + path + ": " + err;
+            G4Exception("RunAccumulatorMessenger::WriteAllAndReset", "PreChemicalTableFailed",
+                        JustWarning, message.c_str());
+        }
+    }
 }
 
 void MoveSpatialOutput(const G4String &prefix, std::vector<std::string> &files)
@@ -207,8 +245,10 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
       WriteMesoscopicOutput(prefix, files);
     }
 
-    // Pre-chemical files: move the per-event files staged since the last dump
+    // Pre-chemical files: stage the h5/root tables, then move the files staged
+    // since the last dump (per-event txt/csv and the tables)
     // into this dump (target = prefix/subdir applied by OutputDir::Resolve).
+    StagePreChemicalTables();
     const PreChemicalFiles::MoveResult moveResult = PreChemicalFiles::MoveStaged(
         PreChemicalFiles::StagingDir(OutputDir::GetDirectory()),
         [](const std::string &name) { return OutputDir::Resolve(name); });

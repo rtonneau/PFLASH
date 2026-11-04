@@ -621,6 +621,19 @@
           "symbols": [
             "PreChemicalFiles::MoveStaged"
           ]
+        },
+        {
+          "id": "prechemrecorder",
+          "title": "PreChemicalRecorder",
+          "role": "Records pre-chemical species",
+          "summary": "G4VPhysChemIO that records the species created by the physical stage as a table, one staged file per event or one table per dump.",
+          "files": [
+            "src/scoring/PreChemicalRecorder.cc",
+            "header/scoring/PreChemicalRecorder.hh"
+          ],
+          "symbols": [
+            "PreChemicalRecorder::EndEvent"
+          ]
         }
       ],
       "otherFiles": []
@@ -786,7 +799,8 @@
             "test/RootTableFileTest.cc",
             "test/TrackLengthTableTest.cc",
             "test/ProductOutputTest.cc",
-            "test/PreChemicalFilesTest.cc"
+            "test/PreChemicalFilesTest.cc",
+            "test/PreChemicalRecorderTest.cc"
           ],
           "symbols": []
         }

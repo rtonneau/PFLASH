@@ -173,6 +173,13 @@ target_link_libraries(PreChemicalFilesTest ${Geant4_LIBRARIES})
 target_include_directories(PreChemicalFilesTest PRIVATE ${project_include_dirs})
 add_test(NAME PreChemicalFilesTest COMMAND PreChemicalFilesTest)
 
+# Standalone unit test for PreChemicalRecorder (rows fed directly; links Geant4
+# for G4VPhysChemIO, needs no Geant4 kernel).
+add_executable(PreChemicalRecorderTest test/PreChemicalRecorderTest.cc src/scoring/PreChemicalRecorder.cc src/scoring/PreChemicalFiles.cc src/scoring/OutputFormats.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc src/scoring/TableWriters.cc)
+target_link_libraries(PreChemicalRecorderTest ${Geant4_LIBRARIES})
+target_include_directories(PreChemicalRecorderTest PRIVATE ${project_include_dirs})
+add_test(NAME PreChemicalRecorderTest COMMAND PreChemicalRecorderTest)
+
 # Standalone unit test for ChemistryRegistry (pure name lookup/selection logic,
 # no Geant4 kernel dependency -- it only stores builder function pointers).
 add_executable(ChemistryRegistryTest test/ChemistryRegistryTest.cc src/chemistry/ChemistryRegistry.cc)

@@ -9,6 +9,7 @@
 #include "scoring/PreChemicalFiles.hh"
 
 #include <algorithm>
+#include <climits>
 #include <filesystem>
 #include <tuple>
 
@@ -18,12 +19,22 @@ namespace
 {
   const std::string kPrefix = "PreChemical_run";
   const std::string kMiddle = "_event";
-  const std::string kSuffix = ".txt";
+  const std::string kTablePrefix = "PreChemical.";
+
+  // Order of the extensions in a dump: per-event txt, csv, then the tables.
+  int ExtensionRank(const std::string& extension)
+  {
+    if (extension == "txt") return 0;
+    if (extension == "csv") return 1;
+    if (extension == "h5") return 2;
+    return 3; // root
+  }
 
   struct Entry
   {
     int run;
     int event;
+    int rank;
     std::string name;
   };
   void MoveEntries(const std::vector<Entry>& entries, const std::string& stagingDir,
@@ -64,14 +75,38 @@ namespace
 
 std::string PreChemicalFiles::StagedFileName(int runId, int eventId)
 {
-  return kPrefix + std::to_string(runId) + kMiddle + std::to_string(eventId) + kSuffix;
+  return StagedFileName(runId, eventId, "txt");
+}
+
+std::string PreChemicalFiles::StagedFileName(int runId, int eventId, const std::string& extension)
+{
+  return kPrefix + std::to_string(runId) + kMiddle + std::to_string(eventId) + "." + extension;
+}
+
+std::string PreChemicalFiles::StagedTableFileName(const std::string& extension)
+{
+  return kTablePrefix + extension;
+}
+
+bool PreChemicalFiles::IsStagedTableFileName(const std::string& name)
+{
+  return name == StagedTableFileName("h5") || name == StagedTableFileName("root");
 }
 
 bool PreChemicalFiles::ParseStagedFileName(const std::string& name, int& runId, int& eventId)
 {
+  std::string extension;
+  return ParseStagedFileName(name, runId, eventId, extension);
+}
+
+bool PreChemicalFiles::ParseStagedFileName(const std::string& name, int& runId, int& eventId,
+                                           std::string& extension)
+{
+  const std::string suffix = (name.size() >= 4) ? name.substr(name.size() - 4) : std::string();
+  if (suffix != ".txt" && suffix != ".csv") return false;
+  const std::string kSuffix = suffix;
   if (name.size() <= kPrefix.size() + kMiddle.size() + kSuffix.size()) return false;
   if (name.compare(0, kPrefix.size(), kPrefix) != 0) return false;
-  if (name.compare(name.size() - kSuffix.size(), kSuffix.size(), kSuffix) != 0) return false;
 
   const std::string body =
     name.substr(kPrefix.size(), name.size() - kPrefix.size() - kSuffix.size());
@@ -84,6 +119,7 @@ bool PreChemicalFiles::ParseStagedFileName(const std::string& name, int& runId, 
   if (!ParseDigits(body.substr(pos + kMiddle.size()), parsedEventId)) return false;
   runId = parsedRunId;
   eventId = parsedEventId;
+  extension = kSuffix.substr(1);
   return true;
 }
 
@@ -126,15 +162,21 @@ PreChemicalFiles::MoveResult PreChemicalFiles::MoveStaged(
     const std::string name = it->path().filename().string();
     int parsedRunId = 0;
     int parsedEventId = 0;
-    if (!ParseStagedFileName(name, parsedRunId, parsedEventId)) continue;
-    entries.push_back({parsedRunId, parsedEventId, name});
+    std::string extension;
+    if (ParseStagedFileName(name, parsedRunId, parsedEventId, extension)) {
+      entries.push_back({parsedRunId, parsedEventId, ExtensionRank(extension), name});
+    }
+    else if (IsStagedTableFileName(name)) {
+      // Tables sort after every per-event file: run/event beyond any real ID.
+      entries.push_back({INT_MAX, 0, ExtensionRank(name.substr(kTablePrefix.size())), name});
+    }
   }
   if (ec) {
     result.failures.push_back("Cannot scan staging folder '" + stagingDir + "': " + ec.message());
   }
 
   std::sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) {
-    return std::tie(a.run, a.event) < std::tie(b.run, b.event);
+    return std::tie(a.run, a.event, a.rank) < std::tie(b.run, b.event, b.rank);
   });
 
   MoveEntries(entries, stagingDir, resolveTarget, result);
