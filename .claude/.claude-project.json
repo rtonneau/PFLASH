@@ -1,7 +1,7 @@
 {
-  "geant4SourcePath": "${DEV_DIR}/GEANT4/geant4-v11.4.1-source/geant4-v11.4.1",
+  "geant4SourcePath": "${DEV_DIR}/GEANT4/geant4-v11.4.3-source",
   "geant4InstallPath": "${G4_ROOT}",
-  "geant4Version": "11.4.1",
+  "geant4Version": "11.4.3",
 
   "build": {
     "system": "cmake",

@@ -1,7 +1,7 @@
 {
   "permissions": {
     "deny": [
-      "Edit(//**/geant4-v11.4.1-source/**)"
+      "Edit(//**/geant4-v*-source/**)"
     ]
   }
 }
