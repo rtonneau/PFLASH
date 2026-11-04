@@ -5,6 +5,7 @@
 #include "actions/EventAction.hh"
 #include "actions/SteppingAction.hh"
 #include "actions/TrackingAction.hh"
+#include "chemistry/TimeStepAction.hh"
 #include "core/DnaLogger.hh"
 #include "core/OutputDir.hh"
 #include "scoring/PreChemicalFiles.hh"
@@ -12,6 +13,7 @@
 #include "G4DNAChemistryManager.hh"
 #include "G4PhysChemIO.hh"
 #include "G4RunManager.hh"
+#include "G4Scheduler.hh"
 #include "G4Run.hh"
 
 #include <memory>
@@ -34,6 +36,15 @@ PhysicsInteractionCounter *ThreadInteractionCounter()
         G4RunManager::GetRunManager()->GetUserSteppingAction()));
     return (steppingAction != nullptr) ? &steppingAction->GetInteractionCounter() : nullptr;
 }
+
+// This thread's reaction counter (the chemistry TimeStepAction's), or nullptr
+// where none is registered (same lookup as Run::Run).
+ReactionCounter *ThreadReactionCounter()
+{
+    auto *timeStepAction =
+        dynamic_cast<TimeStepAction *>(G4Scheduler::Instance()->GetUserTimeStepAction());
+    return (timeStepAction != nullptr) ? &timeStepAction->GetReactionCounter() : nullptr;
+}
 }  // namespace
 
 EventAction::EventAction() = default;
@@ -50,6 +61,8 @@ void EventAction::BeginOfEventAction(const G4Event *event)
         trackingAction->ResetEvent();
     if (auto *interactions = ThreadInteractionCounter())
         interactions->DiscardEvent();
+    if (auto *reactions = ThreadReactionCounter())
+        reactions->DiscardEvent();
     if (G4DNAChemistryManager::GetInstanceIfExists() != nullptr)
     {
         // One pre-chemical file per event, staged until the next dump (ADR 0005
@@ -111,5 +124,15 @@ void EventAction::EndOfEventAction(const G4Event *event)
             interactions->CommitEvent();
         else
             interactions->DiscardEvent();
+    }
+
+    // And for the per-event reaction-firing counts (the chemistry stage runs
+    // inside the event, so the whole event is recorded by now).
+    if (auto *reactions = ThreadReactionCounter())
+    {
+        if (!event->IsAborted())
+            reactions->CommitEvent();
+        else
+            reactions->DiscardEvent();
     }
 }

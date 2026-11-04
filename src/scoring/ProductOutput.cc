@@ -22,6 +22,22 @@ namespace
     return text;
   }
 
+  // File-name suffix of a further table: its capitalised name, minus the
+  // product's singular when the table is named after it (table
+  // "reactionCatalog" of product "Reactions" -> "Catalog", so the file is
+  // ReactionsCatalog.csv, not ReactionsReactionCatalog.csv).
+  std::string TableSuffix(const std::string &stem, const std::string &tableName)
+  {
+    const std::string suffix = Capitalised(tableName);
+    if (stem.size() > 1 && stem.back() == 's')
+    {
+      const std::string singular = stem.substr(0, stem.size() - 1);
+      if (suffix.size() > singular.size() && suffix.compare(0, singular.size(), singular) == 0)
+        return suffix.substr(singular.size());
+    }
+    return suffix;
+  }
+
   void Warn(const std::string &fileName, const std::string &why)
   {
     const std::string message = "Cannot write " + fileName + ": " + why;
@@ -84,7 +100,7 @@ void ProductOutput::Write(OutputFormats::Product product, const std::vector<Outp
     for (std::size_t i = 0; i < tables.size(); ++i)
     {
       const std::string name =
-          stem + (i == 0 ? "" : Capitalised(tables[i].Name())) + "." + extension;
+          stem + (i == 0 ? "" : TableSuffix(stem, tables[i].Name())) + "." + extension;
       WriteStreamFile(name, prefix, files, format, tables[i]);
     }
   }

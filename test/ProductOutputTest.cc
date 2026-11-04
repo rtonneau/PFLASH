@@ -68,6 +68,14 @@ int main()
     assert(fs::exists(root / "sub" / name));
   }
 
+  // A table named after the product's singular ("reactionCatalog") gives
+  // ReactionsCatalog, not ReactionsReactionCatalog.
+  files.clear();
+  ProductOutput::Write(Product::Reactions, {MakeTable("reactions"), MakeTable("reactionCatalog")}, "p_", files);
+  assert(files.size() == 4);
+  assert(Has(files, "p_ReactionsCatalog.csv") && Has(files, "p_ReactionsCatalog.txt"));
+  assert(!fs::exists(root / "sub" / "p_ReactionsReactionCatalog.csv"));
+
   // Default: csv only, no prefix, no subdir.
   OutputFormats::ResetForTest();
   OutputDir::SetPrefix("");

@@ -134,7 +134,7 @@ add_test(NAME CatalogExportTest COMMAND CatalogExportTest)
 
 # Standalone unit test for ReactionCounter (pure accumulation/binning logic,
 # no Geant4 runtime init required).
-add_executable(ReactionCounterTest test/ReactionCounterTest.cc src/scoring/ReactionCounter.cc src/core/OutputDir.cc)
+add_executable(ReactionCounterTest test/ReactionCounterTest.cc src/scoring/ReactionCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_link_libraries(ReactionCounterTest ${Geant4_LIBRARIES})
 target_include_directories(ReactionCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME ReactionCounterTest COMMAND ReactionCounterTest)

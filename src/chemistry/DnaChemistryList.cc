@@ -170,7 +170,7 @@ DnaChemistryList::DnaChemistryList()
 
   auto& timeBinsFixedCmd = fMessenger->DeclareMethodWithUnit(
     "timeBinsFixed", "picosecond", &DnaChemistryList::SetReactionTimeBinsFixed,
-    "Bin the reaction-count output (Reactions.Txt / Reactions_nt_reactions.csv) at this fixed "
+    "Bin the reaction-count output (Reactions.csv + ReactionsCatalog.csv by default) at this fixed "
     "time step, up to the chemistry scheduler's end time. Mutually exclusive with timeBinsList "
     "(issuing both is a fatal configuration error). Neither issued -> a built-in 7-edge default "
     "table is used.");

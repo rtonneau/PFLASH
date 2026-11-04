@@ -70,6 +70,7 @@ static void TestAccumulateMergesReactionCounts()
 
   ReactionCounter reactions;
   reactions.Record("H + H -> H2", 1 * CLHEP::picosecond);
+  reactions.CommitEvent();
   PhysicsInteractionCounter interactions;
   MesoSpeciesCounter meso;
   TrackLengthTable trackLengths;
@@ -78,7 +79,7 @@ static void TestAccumulateMergesReactionCounts()
   RunAccumulator::Accumulate(0., 0, reactions, interactions, meso, trackLengths);
 
   assert(RunAccumulator::GetAccumulatedReactionCounter()
-             .GetCounts().at(1 * CLHEP::picosecond).at("H + H -> H2") == 2);
+             .GetStats().at(1 * CLHEP::picosecond).at("H + H -> H2").Sum() == 2);
 
   RunAccumulator::ClearAccumulated();
 }
@@ -109,6 +110,7 @@ static void TestAccumulateDoesNotModifyItsInputs()
 
   ReactionCounter reactions;
   reactions.Record("H + H -> H2", 1 * CLHEP::picosecond);
+  reactions.CommitEvent();
   PhysicsInteractionCounter interactions;
   interactions.Record("e-_G4DNAIonisation");
   interactions.CommitEvent();
@@ -117,7 +119,7 @@ static void TestAccumulateDoesNotModifyItsInputs()
 
   RunAccumulator::Accumulate(0., 0, reactions, interactions, meso, trackLengths);
 
-  assert(reactions.GetCounts().at(1 * CLHEP::picosecond).at("H + H -> H2") == 1);
+  assert(reactions.GetStats().at(1 * CLHEP::picosecond).at("H + H -> H2").Sum() == 1);
   assert(interactions.GetStats().at("e-_G4DNAIonisation").Sum() == 1);
 
   RunAccumulator::ClearAccumulated();
@@ -185,6 +187,7 @@ static void TestClearAccumulatedResetsEverything()
 {
   ReactionCounter reactions;
   reactions.Record("H + H -> H2", 1 * CLHEP::picosecond);
+  reactions.CommitEvent();
   PhysicsInteractionCounter interactions;
   interactions.Record("e-_G4DNAIonisation");
   interactions.CommitEvent();
@@ -201,7 +204,7 @@ static void TestClearAccumulatedResetsEverything()
   assert(!RunAccumulator::HasPendingData());
   assert(RunAccumulator::GetAccumulatedEnergy() == 0.);
   assert(RunAccumulator::GetAccumulatedEvents() == 0);
-  assert(RunAccumulator::GetAccumulatedReactionCounter().GetCounts().empty());
+  assert(RunAccumulator::GetAccumulatedReactionCounter().GetStats().empty());
   assert(RunAccumulator::GetAccumulatedInteractionCounter().GetStats().empty());
   assert(RunAccumulator::GetAccumulatedMesoSpeciesCounter().Empty());
   assert(RunAccumulator::GetAccumulatedTrackLengthTable().Empty());

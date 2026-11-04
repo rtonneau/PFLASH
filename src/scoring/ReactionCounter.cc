@@ -1,19 +1,18 @@
 /// \file ReactionCounter.cc
-/// \brief Count reaction labels in configurable time bins.
-/// Geant4 types; CSV output also uses analysis services and OutputDir.
+/// \brief Per-event reaction-firing counts in configurable time bins.
+/// Geant4 types and the portable EventStat / OutputTable; no kernel services.
 /// Bin configuration is locked; callers coordinate shared counter mutation.
 
 #include "scoring/ReactionCounter.hh"
 
-#include "core/OutputDir.hh"
-
-#include "G4AnalysisManager.hh"
 #include "G4SystemOfUnits.hh"
 
 #include <algorithm>
 #include <mutex>
-#include <ostream>
+#include <map>
 #include <sstream>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -33,9 +32,8 @@ std::vector<G4double> gTimeBins = kDefaultTimeBins;
 // Deliberately not G4UnitDefinition::GetValueOf(): that call reaches into
 // the precompiled Geant4 DLL and is unsafe from this plain-logic Debug test
 // binary (observed to corrupt memory when the installed Geant4 libraries
-// are a different build type). Keep this parser independent of kernel services;
-// WriteCsv separately uses the analysis manager. Names/symbols mirror Geant4's
-// Time category.
+// are a different build type). Keep this parser independent of kernel services.
+// Names/symbols mirror Geant4's Time category.
 G4bool TimeUnitValue(const G4String& unit, G4double& valueOut)
 {
   static const std::map<G4String, G4double> kTimeUnits = {
@@ -126,39 +124,63 @@ G4double ReactionCounter::BinFor(G4double time)
   return gTimeBins.back();
 }
 
+G4double ReactionCounter::LowerEdgeFor(G4double upperEdge)
+{
+  std::lock_guard<std::mutex> lock(gTimeBinsMutex);
+  G4double lower = 0.;
+  for (G4double edge : gTimeBins) {
+    if (edge < upperEdge) {
+      lower = edge;
+    }
+  }
+  return lower;
+}
+
 void ReactionCounter::Record(const G4String& reactionLabel, G4double time)
 {
-  ++fCounts[BinFor(time)][reactionLabel];
+  ++fCurrent[BinFor(time)][reactionLabel];
+}
+
+void ReactionCounter::CommitEvent()
+{
+  for (const auto& [bin, reactions] : fCurrent) {
+    for (const auto& [label, count] : reactions) {
+      fStats[bin][label].Add(static_cast<double>(count));
+    }
+  }
+  fCurrent.clear();
+  ++fCommittedEvents;
+}
+
+void ReactionCounter::DiscardEvent()
+{
+  fCurrent.clear();
 }
 
 void ReactionCounter::Merge(const ReactionCounter& other)
 {
-  for (const auto& [bin, reactions] : other.fCounts) {
-    for (const auto& [label, count] : reactions) {
-      fCounts[bin][label] += count;
+  // Copy first so a self-merge doubles instead of iterating while inserting.
+  const Stats otherStats = other.fStats;
+  const std::int64_t otherEvents = other.fCommittedEvents;
+  for (const auto& [bin, reactions] : otherStats) {
+    for (const auto& [label, stat] : reactions) {
+      fStats[bin][label].Merge(stat);
     }
   }
+  fCommittedEvents += otherEvents;
 }
 
 void ReactionCounter::Clear()
 {
-  fCounts.clear();
-}
-
-void ReactionCounter::WriteAscii(std::ostream& out) const
-{
-  for (const auto& [bin, reactions] : fCounts) {
-    out << bin << "\n";
-    for (const auto& [label, count] : reactions) {
-      out << label << "    count = " << count << "\n";
-    }
-  }
+  fCurrent.clear();
+  fStats.clear();
+  fCommittedEvents = 0;
 }
 
 std::map<G4String, G4int> ReactionCounter::BuildReactionIdMap() const
 {
   std::map<G4String, G4int> idMap;
-  for (const auto& [bin, reactions] : fCounts) {
+  for (const auto& [bin, reactions] : fStats) {
     for (const auto& entry : reactions) {
       idMap.emplace(entry.first, 0);
     }
@@ -170,35 +192,39 @@ std::map<G4String, G4int> ReactionCounter::BuildReactionIdMap() const
   return idMap;
 }
 
-void ReactionCounter::WriteCsv(G4VAnalysisManager* analysisManager) const
+std::vector<OutputTable> ReactionCounter::ToTables() const
 {
+  using CT = OutputTable::ColumnType;
   const std::map<G4String, G4int> idMap = BuildReactionIdMap();
 
-  analysisManager->OpenFile(OutputDir::Resolve("Reactions"));
-
-  G4int ntupleId = analysisManager->CreateNtuple("reactions", "reactions");
-  analysisManager->CreateNtupleIColumn(ntupleId, "reactionId");
-  analysisManager->CreateNtupleDColumn(ntupleId, "time");
-  analysisManager->CreateNtupleIColumn(ntupleId, "count");
-  analysisManager->FinishNtuple(ntupleId);
-
-  for (const auto& [bin, reactions] : fCounts) {
-    for (const auto& [label, count] : reactions) {
-      analysisManager->FillNtupleIColumn(ntupleId, 0, idMap.at(label));
-      analysisManager->FillNtupleDColumn(ntupleId, 1, bin);
-      analysisManager->FillNtupleIColumn(ntupleId, 2, count);
-      analysisManager->AddNtupleRow(ntupleId);
+  OutputTable reactions("reactions",
+                        "Reactions: per-event firing counts of bimolecular reactions per time bin");
+  reactions.AddColumn("reactionId", "", "Reaction id; see the reaction catalogue", CT::Int64);
+  reactions.AddColumn("binStart_ns", "ns", "Lower edge of the time bin (0 for the first bin)",
+                      CT::Double);
+  reactions.AddColumn("binEnd_ns", "ns", "Upper edge of the time bin", CT::Double);
+  reactions.AddColumn("nEvents", "", "Events in the dump (zeros included)", CT::Int64);
+  reactions.AddColumn("countSum", "", "Sum over events of the firing count", CT::Double);
+  reactions.AddColumn("countSumSq", "", "Sum over events of the squared firing count", CT::Double);
+  reactions.AddColumn("countMean", "", "Mean firing count per event", CT::Double);
+  reactions.AddColumn("countStdErr", "", "Standard error of the mean firing count per event",
+                      CT::Double);
+  for (const auto& [bin, perReaction] : fStats) {
+    const double binStart_ns = LowerEdgeFor(bin) / CLHEP::nanosecond;
+    const double binEnd_ns = bin / CLHEP::nanosecond;
+    for (const auto& [label, stat] : perReaction) {
+      reactions.AddRow({static_cast<std::int64_t>(idMap.at(label)), binStart_ns, binEnd_ns,
+                        fCommittedEvents, stat.Sum(), stat.SumSq(), stat.Mean(fCommittedEvents),
+                        stat.StdErr(fCommittedEvents)});
     }
   }
 
-  analysisManager->Write();
-  analysisManager->CloseFile();
-}
-
-void ReactionCounter::WriteMetadata(std::ostream& out) const
-{
-  out << "reactionId,reaction\n";
-  for (const auto& [label, id] : BuildReactionIdMap()) {
-    out << id << "," << label << "\n";
+  OutputTable catalog("reactionCatalog", "ReactionsCatalog: reaction id to reaction label");
+  catalog.AddColumn("reactionId", "", "Reaction id used by the reactions table", CT::Int64);
+  catalog.AddColumn("reaction", "", "Reaction label (A + B -> C + D)", CT::String);
+  for (const auto& [label, id] : idMap) {
+    catalog.AddRow({static_cast<std::int64_t>(id), std::string(label)});
   }
+
+  return {std::move(reactions), std::move(catalog)};
 }

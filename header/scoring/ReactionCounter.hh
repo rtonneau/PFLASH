@@ -1,26 +1,28 @@
 /// \file ReactionCounter.hh
-/// \brief Count reaction labels in configurable time bins.
-/// Geant4 types; CSV output also uses analysis services and OutputDir.
+/// \brief Per-event reaction-firing counts in configurable time bins.
+/// Geant4 types and the portable EventStat / OutputTable; no kernel services.
 /// Bin configuration is locked; callers coordinate shared counter mutation.
 ///
-/// Accumulates per-time-bin firing counts of bimolecular reactions, keyed by
+/// Counts firings of bimolecular reactions per (time bin, reaction), keyed by
 /// the same "A + B -> C + D" label ReactionTableDump uses for the static
 /// reaction table, so the two outputs cross-reference directly. Callers resolve
-/// labels and feed Record(); only the CSV writer requires analysis services.
+/// labels and feed Record(). Record() fills the current event; CommitEvent()
+/// folds it into one EventStat per (bin, reaction) and counts the event, so a
+/// (bin, reaction) that did not fire in an event contributes 0 to that event.
+/// Not thread safe per instance: one instance per thread, merged afterwards.
 
 #ifndef ReactionCounter_h
 #define ReactionCounter_h 1
 
 #include "globals.hh"
+#include "scoring/EventStat.hh"
+#include "scoring/OutputTable.hh"
 
-#include <iosfwd>
+#include <cstdint>
 #include <map>
 #include <vector>
 
-class G4VAnalysisManager;
-
-/// Mutable count table; allocations may throw. Stream writers use stream flags
-/// or enabled stream exceptions, without a separate success return.
+/// Mutable count table; allocations may throw.
 class ReactionCounter
 {
  public:
@@ -52,46 +54,58 @@ class ReactionCounter
   static G4bool ParseBinEdgesList(const G4String& text, std::vector<G4double>& edgesOut,
                                    G4String& error);
 
-  /// Increment reactionLabel in BinFor(time); time uses Geant4 internal units.
+  /// Upper edge of the bin below `upperEdge` (the largest configured edge
+  /// strictly smaller than it), or 0 for the first bin. Internal time units.
+  static G4double LowerEdgeFor(G4double upperEdge);
+
+  /// Increment reactionLabel by one in BinFor(time) of the current event;
+  /// time uses Geant4 internal units.
   void Record(const G4String& reactionLabel, G4double time);
 
-  /// Add other's counts; a distinct source is unchanged. Self-merge doubles counts.
+  /// Fold the current event into the per-(bin, reaction) stats, count it,
+  /// start a new event.
+  void CommitEvent();
+
+  /// Drop the current event's counts without counting it.
+  void DiscardEvent();
+
+  /// Add other's committed stats and event count (its uncommitted event is
+  /// ignored). Self-merge doubles the totals.
   void Merge(const ReactionCounter& other);
 
-  /// Remove all recorded counts; leave configuration unchanged.
+  /// Remove all recorded data, committed or not; leave configuration unchanged.
   void Clear();
 
-  /// Writes one "<label>    count = N" line per (bin, reaction), grouped by
-  /// bin -- mirrors Species.Txt's per-time-block layout.
-  void WriteAscii(std::ostream& out) const;
+  using BinStats = std::map<G4String, EventStat>;
+  using Stats = std::map<G4double, BinStats>;
+  /// Borrow the committed stats, keyed by bin upper edge (internal time units)
+  /// then reaction label; callers must coordinate concurrent mutation.
+  const Stats& GetStats() const { return fStats; }
 
-  /// Writes one ntuple row per (bin, reaction) via the given analysis
-  /// manager, opened as its own "Reactions" file (mirrors ScoreSpecies's
-  /// WriteWithAnalysisManager, kept separate to avoid ntuple-ID collisions
-  /// with the species ntuple). Requires a non-null initialized manager and
-  /// caller coordination of its file cycle. Geant4 reports analysis failures;
-  /// this function does not return or check success.
-  void WriteCsv(G4VAnalysisManager* analysisManager) const;
+  /// Number of committed events (the n of Mean/StdErr).
+  std::int64_t CommittedEvents() const { return fCommittedEvents; }
 
-  using BinCounts = std::map<G4String, G4int>;
-  using Counts = std::map<G4double, BinCounts>;
-  /// Borrow the stored counts; callers must coordinate concurrent mutation.
-  const Counts& GetCounts() const { return fCounts; }
-
-  /// Assigns each distinct reaction label recorded so far a 0-based
-  /// id, in ascending alphabetical order -- shared by WriteCsv() (which
-  /// writes the id) and WriteMetadata() (which writes the id -> label
-  /// mapping), so a run's two output files cross-reference by id instead of
-  /// repeating the full label on every row. IDs depend on the labels present
-  /// in this counter and need not match a later dump; use its metadata.
+  /// Assigns each distinct reaction label committed so far a 0-based id, in
+  /// ascending alphabetical order -- shared by both tables of ToTables(), so
+  /// they cross-reference by id instead of repeating the full label on every
+  /// row. IDs depend on the labels present in this counter and need not match
+  /// a later dump; use that dump's catalogue.
   std::map<G4String, G4int> BuildReactionIdMap() const;
 
-  /// Writes one "<reactionId>,<reaction>" CSV line per distinct reaction
-  /// (plus a header row), using the same id assignment as WriteCsv().
-  void WriteMetadata(std::ostream& out) const;
+  /// Two tables. "reactions": reactionId, binStart_ns, binEnd_ns, nEvents,
+  /// countSum, countSumSq, countMean, countStdErr; one row per (bin,
+  /// reaction), ordered by bin then reaction. binEnd_ns is the bin key
+  /// BinFor() returns, binStart_ns the previous edge (0 for the first bin);
+  /// nEvents is the committed-event count (zero-filled). "reactionCatalog":
+  /// reactionId, reaction; one row per id.
+  std::vector<OutputTable> ToTables() const;
 
  private:
-  Counts fCounts;
+  using BinCounts = std::map<G4String, G4int>;
+  using Counts = std::map<G4double, BinCounts>;
+  Counts fCurrent;
+  Stats fStats;
+  std::int64_t fCommittedEvents = 0;
 };
 
 #endif  // ReactionCounter_h

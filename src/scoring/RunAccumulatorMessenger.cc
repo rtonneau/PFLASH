@@ -203,30 +203,19 @@ void RunAccumulatorMessenger::WriteAllAndReset(const G4String &prefix, const G4S
     // uses.
     WriteSpeciesOutput(prefix, files);
 
-    // Reactions
-    const ReactionCounter &reactionCounter = RunAccumulator::GetAccumulatedReactionCounter();
-    std::ofstream reactionsOut(OutputDir::Resolve("Reactions.Txt"));
-    reactionCounter.WriteAscii(reactionsOut);
-    reactionsOut.close();
-    files.push_back(prefix + "Reactions.Txt");
-
-    G4AnalysisManager *analysisManager = G4AnalysisManager::Instance();
-    analysisManager->SetDefaultFileType("csv");
-    reactionCounter.WriteCsv(analysisManager);
-    files.push_back(prefix + "Reactions_nt_reactions.csv");
-
-    std::ofstream metadataOut(OutputDir::Resolve("ReactionsMetadata.csv"));
-    reactionCounter.WriteMetadata(metadataOut);
-    metadataOut.close();
-    files.push_back(prefix + "ReactionsMetadata.csv");
-
     // Keep dump cycles independent: CloseFile leaves analysis bookings and
     // file-manager state available for reuse. Clear removes them before the
     // next prefix/subdir; Reset retains bookings and the file-manager registry.
     // G4CsvFileManager::CreateNtupleFile renames an already registered name
     // with "_bis"; preserving this Clear avoids that observed reuse problem.
     // Clear also deletes histogram bookings; this project creates none.
-    analysisManager->Clear();
+    // Still needed for Species (written through the analysis manager above)
+    // until it moves to ProductOutput.
+    G4AnalysisManager::Instance()->Clear();
+
+    // Reactions (+ catalogue of reaction ids)
+    ProductOutput::Write(OutputFormats::Product::Reactions,
+                         RunAccumulator::GetAccumulatedReactionCounter().ToTables(), prefix, files);
 
     // Physics interactions
     ProductOutput::Write(OutputFormats::Product::PhysicsInteractions,
