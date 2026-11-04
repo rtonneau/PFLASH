@@ -439,6 +439,7 @@
           "summary": "HDF5 writer for per-event spatial snapshots of the mesoscopic mesh.",
           "files": [
             "src/scoring/MesoSpatialFile.cc",
+            "src/scoring/MesoSpatialFileNoHdf5.cc",
             "header/scoring/MesoSpatialFile.hh"
           ],
           "symbols": [
@@ -699,6 +700,7 @@
             "test/PhysicsInteractionCounterTest.cc",
             "test/MesoSpeciesCounterTest.cc",
             "test/MesoSpatialFileTest.cc",
+            "test/MesoSpatialFileNoHdf5Test.cc",
             "test/TrackLengthTableTest.cc",
             "test/PreChemicalFilesTest.cc"
           ],

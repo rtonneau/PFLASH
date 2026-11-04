@@ -166,6 +166,11 @@ namespace
   }
 }
 
+bool MesoSpatialFile::Available()
+{
+  return true;
+}
+
 std::string MesoSpatialFile::FileName()
 {
   return "SpeciesMesoSpatial.h5";

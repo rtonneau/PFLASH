@@ -36,7 +36,7 @@ resets all counters to empty/zero:
   case under SBS (`/process/chem/TimeStepModel SBS`) and with
   `/chem/meso/enable false` under IRT_syn. There `Species.*` covers the whole
   chemistry run.
-- `SpeciesMesoSpatial.h5`: only with `/chem/meso/spatialOutput true`
+- `SpeciesMesoSpatial.h5`: only with `/chem/meso/spatialOutput true` and a sim built with HDF5
   (PreInit, default false). Spatial snapshots of the mesoscopic mesh, appended
   per event by `TimeStepAction` into the staging folder
   `<outdir>/.pending_meso_spatial/`; every dump (prefix, subfolder and the
@@ -79,7 +79,8 @@ resets all counters to empty/zero:
   `elapsedSincePreviousDump_s` (previous dump or process start → dump),
   `geant4Version`, `macro`, `chemistry`, `scavengers` (`species`, `molarity_M`), `pH`,
   `chemistryEndTime_ns` (1e9 for the 1 s end time with meso; 1000 for the 1 us
-  default without it), `timeStepModel` (`"IRT_syn"` or `"SBS"`), `mesoEnabled`
+  default without it), `timeStepModel` (`"IRT_syn"` or `"SBS"`), `hdf5`
+  (bool; false = built without HDF5, no `SpeciesMesoSpatial.h5`), `mesoEnabled`
   (bool; false = no `SpeciesMeso*` files), `chemistryModel` (`"IRT_syn+mesoscopic"`,
   `"IRT_syn"` or `"SBS"`), `handOverTime_ns` (null without the mesoscopic stage), `voxelSize_nm` (requested cell
   size), `mesoPixels` (initial mesh pixels per side, capped at 65536, so on the

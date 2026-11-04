@@ -54,6 +54,10 @@ namespace MesoSpatialFile
   /// Path of the format description, written as the root attribute formatDoc.
   constexpr const char* kFormatDoc = "docs/output/SpeciesMesoSpatial-h5.md";
 
+  /// True when this build can write the HDF5 file (MesoSpatialFile.cc); false in
+  /// the no-HDF5 stub (MesoSpatialFileNoHdf5.cc).
+  bool Available();
+
   /// "SpeciesMesoSpatial.h5"
   std::string FileName();
 

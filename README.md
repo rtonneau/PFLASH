@@ -52,8 +52,8 @@ box (no voxelization).
 
 - Geant4 with DNA models (verified with 11.4.1; older versions are not verified)
 - CMake 3.16+
-- A C++20 compiler (verified with MSVC on Windows)
-- HDF5 with C++ support
+- A C++20 compiler (verified with MSVC on Windows; gcc or clang on Linux, not yet verified)
+- HDF5 with C++ support, optional: needed only for `/chem/meso/spatialOutput` (`SpeciesMesoSpatial.h5`)
 
 ## Build
 
@@ -62,6 +62,24 @@ verification checklist) is in [`.claude/geant4-instructions.md`](.claude/geant4-
 In short: `build/` is a RelWithDebInfo tree used to run `sim`; `build-ninja/` is a
 Debug tree used to run the unit tests with CTest. The build copies `macro/` next to
 the executable.
+
+### Linux (not yet verified)
+
+```bash
+source /path/to/geant4-install/bin/geant4.sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo [-DDNACHEM_WITH_HDF5=OFF|ON]
+cmake --build build -j
+cd build && ./sim beam.in
+ctest --test-dir build
+```
+
+`DNACHEM_WITH_HDF5` is `AUTO` by default: HDF5 is used if CMake finds it. `ON`
+requires it (configure fails otherwise); `OFF` builds without it. Without HDF5,
+`/chem/meso/spatialOutput true` is a fatal error and `Manifest.json` has
+`"hdf5": false`. Note that `find_package(Geant4)` itself pulls in HDF5 when Geant4
+was built with HDF5 analysis support (`GEANT4_USE_HDF5=ON`). dnachem-min's own code
+then no longer needs HDF5, but a fully HDF5-free build also needs a Geant4 built
+without HDF5 (`GEANT4_USE_HDF5=OFF`, the Geant4 default).
 
 ## Quick start
 
