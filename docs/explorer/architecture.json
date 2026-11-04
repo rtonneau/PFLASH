@@ -461,6 +461,19 @@
           ]
         },
         {
+          "id": "root-table-file",
+          "title": "RootTableFile",
+          "role": "Saves tables as ROOT",
+          "summary": "Portable ROOT writer for OutputTables through g4tools: one TTree ntuple per table, one typed branch per column with the unit in the leaf title.",
+          "files": [
+            "src/scoring/RootTableFile.cc",
+            "header/scoring/RootTableFile.hh"
+          ],
+          "symbols": [
+            "RootTableFile::Write"
+          ]
+        },
+        {
           "id": "output-formats",
           "title": "OutputFormats",
           "role": "Chooses output file formats",
@@ -757,6 +770,7 @@
             "test/MesoSpatialFileNoHdf5Test.cc",
             "test/Hdf5TableFileTest.cc",
             "test/Hdf5TableFileNoHdf5Test.cc",
+            "test/RootTableFileTest.cc",
             "test/TrackLengthTableTest.cc",
             "test/PreChemicalFilesTest.cc"
           ],

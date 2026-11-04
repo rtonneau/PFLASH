@@ -237,6 +237,13 @@ else()
   add_test(NAME Hdf5TableFileNoHdf5Test COMMAND Hdf5TableFileNoHdf5Test)
 endif()
 
+# Standalone unit test for RootTableFile (g4tools ROOT writer of OutputTables;
+# links Geant4 for g4tools and zlib, needs no Geant4 kernel).
+add_executable(RootTableFileTest test/RootTableFileTest.cc src/scoring/RootTableFile.cc src/scoring/OutputTable.cc src/scoring/EventStat.cc)
+target_link_libraries(RootTableFileTest ${Geant4_LIBRARIES})
+target_include_directories(RootTableFileTest PRIVATE ${project_include_dirs})
+add_test(NAME RootTableFileTest COMMAND RootTableFileTest)
+
 # Standalone unit test for Tonneau2025Table (Table 2 of Tonneau et al. 2025 as
 # plain data) and the Geant4-free part of Tonneau2025Reactions (routing, types,
 # bulk-reaction list). Links Geant4 but needs no Geant4 kernel.
