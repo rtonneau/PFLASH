@@ -5,6 +5,7 @@
 #include "chemistry/MesoMessenger.hh"
 
 #include "chemistry/MesoSettings.hh"
+#include "scoring/MesoSpatialFile.hh"
 
 #include "G4ApplicationState.hh"
 #include "G4SystemOfUnits.hh"
@@ -103,7 +104,13 @@ void MesoMessenger::SetNewValue(G4UIcommand* command, G4String newValue)
     settings.timesPerDecade = value;
   }
   else if (command == fpSpatialOutputCmd) {
-    settings.spatialOutput = fpSpatialOutputCmd->GetNewBoolValue(newValue);
+    const G4bool value = fpSpatialOutputCmd->GetNewBoolValue(newValue);
+    if (value && !MesoSpatialFile::Available()) {
+      Fatal("SpatialOutputWithoutHdf5",
+            "/chem/meso/spatialOutput true needs HDF5, but this build has none. Reconfigure "
+            "with -DDNACHEM_WITH_HDF5=ON (HDF5 C++ installed) to write SpeciesMesoSpatial.h5.");
+    }
+    settings.spatialOutput = value;
   }
   else if (command == fpEnableCmd) {
     // The SBS conflict is checked at /run/initialize (DnaChemistryList), when

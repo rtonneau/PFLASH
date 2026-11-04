@@ -14,6 +14,7 @@
 #include "geometry/DnaChemistryWorld.hh"
 #include "scoring/DataNode.hh"
 #include "scoring/JsonWriter.hh"
+#include "scoring/MesoSpatialFile.hh"
 #include "scoring/ResultsIndex.hh"
 #include "scoring/RunAccumulator.hh"
 #include "scoring/TrackLengthTable.hh"
@@ -254,6 +255,7 @@ void RunManifest::Write(const G4String &prefix, const G4String &subdir,
   manifest.Add("elapsedSinceStart_s", elapsedSinceStart_s);
   manifest.Add("elapsedSincePreviousDump_s", elapsedSincePreviousDump_s);
   manifest.Add("geant4Version", Geant4Version());
+  manifest.Add("hdf5", MesoSpatialFile::Available());
   manifest.Add("macro", std::string(gMacroName));
   AppendChemistryFields(manifest, chemistry, scavengers, chemistryWorld, mesoOn, sbs, mesoPixels);
   manifest.Add("runMode", (mtRunManager != nullptr) ? "MT" : "Serial");
