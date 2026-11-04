@@ -35,6 +35,39 @@ else()
   set(DNACHEM_HAS_HDF5 FALSE)
 endif()
 
+# One link target for HDF5 C + C++, whatever form find_package(HDF5) produced:
+# 1. HDF5's own CMake package config (vcpkg): hdf5::hdf5-shared / hdf5::hdf5_cpp-shared;
+# 2. CMake's FindHDF5 module (distro packages, CMake >= 3.19): hdf5::hdf5 / hdf5::hdf5_cpp;
+# 3. FindHDF5 variables (older CMake): HDF5_LIBRARIES, HDF5_INCLUDE_DIRS, HDF5_DEFINITIONS.
+# _dnachemHdf5Dlls lists the shared libraries bundled in the Windows release zip (form 1 only).
+set(_dnachemHdf5Dlls "")
+if(DNACHEM_HAS_HDF5)
+  add_library(dnachem_hdf5 INTERFACE)
+  if(TARGET hdf5::hdf5-shared AND TARGET hdf5::hdf5_cpp-shared)
+    target_link_libraries(dnachem_hdf5 INTERFACE hdf5::hdf5_cpp-shared hdf5::hdf5-shared)
+    set(_dnachemHdf5Dlls $<TARGET_FILE:hdf5::hdf5-shared> $<TARGET_FILE:hdf5::hdf5_cpp-shared>)
+    message(STATUS "HDF5: using the HDF5 package config targets (hdf5::hdf5-shared, hdf5::hdf5_cpp-shared)")
+  elseif(TARGET hdf5::hdf5 AND TARGET hdf5::hdf5_cpp)
+    target_link_libraries(dnachem_hdf5 INTERFACE hdf5::hdf5_cpp hdf5::hdf5)
+    message(STATUS "HDF5: using the FindHDF5 targets (hdf5::hdf5, hdf5::hdf5_cpp)")
+  elseif(HDF5_LIBRARIES AND HDF5_INCLUDE_DIRS)
+    # FindHDF5 lists the C++ library before the C one in HDF5_LIBRARIES.
+    target_link_libraries(dnachem_hdf5 INTERFACE ${HDF5_LIBRARIES})
+    target_include_directories(dnachem_hdf5 INTERFACE ${HDF5_INCLUDE_DIRS})
+    if(HDF5_DEFINITIONS)
+      target_compile_options(dnachem_hdf5 INTERFACE ${HDF5_DEFINITIONS})
+    endif()
+    message(STATUS "HDF5: using the FindHDF5 variables (HDF5_LIBRARIES)")
+  else()
+    set(_dnachemHdf5Msg "HDF5 was found but provides no usable C + C++ link target (no hdf5::hdf5-shared/hdf5::hdf5_cpp-shared, no hdf5::hdf5/hdf5::hdf5_cpp, HDF5_LIBRARIES='${HDF5_LIBRARIES}', HDF5_INCLUDE_DIRS='${HDF5_INCLUDE_DIRS}')")
+    if(_dnachemWithHdf5 STREQUAL "ON")
+      message(FATAL_ERROR "${_dnachemHdf5Msg}")
+    endif()
+    message(STATUS "${_dnachemHdf5Msg}: building without HDF5 (SpeciesMesoSpatial.h5 unavailable)")
+    set(DNACHEM_HAS_HDF5 FALSE)
+  endif()
+endif()
+
 #Look for toml++ library (installed by vcpkg)
 #find_package(tomlplusplus CONFIG REQUIRED)
 
@@ -63,7 +96,7 @@ add_executable(sim sim.cc ${sources} ${headers})
 # Still need to link all Geant4 lib
 target_link_libraries(sim ${Geant4_LIBRARIES})
 if(DNACHEM_HAS_HDF5)
-  target_link_libraries(sim hdf5::hdf5-shared hdf5::hdf5_cpp-shared)
+  target_link_libraries(sim dnachem_hdf5)
   target_compile_definitions(sim PRIVATE DNACHEM_HAS_HDF5=1)
 else()
   target_compile_definitions(sim PRIVATE DNACHEM_HAS_HDF5=0)
@@ -171,7 +204,7 @@ add_test(NAME MesoSpeciesCounterTest COMMAND MesoSpeciesCounterTest)
 # Added only when HDF5 is on; without it the stub is tested instead.
 if(DNACHEM_HAS_HDF5)
   add_executable(MesoSpatialFileTest test/MesoSpatialFileTest.cc src/scoring/MesoSpatialFile.cc)
-  target_link_libraries(MesoSpatialFileTest hdf5::hdf5-shared hdf5::hdf5_cpp-shared)
+  target_link_libraries(MesoSpatialFileTest dnachem_hdf5)
   target_include_directories(MesoSpatialFileTest PRIVATE ${project_include_dirs})
   add_test(NAME MesoSpatialFileTest COMMAND MesoSpatialFileTest)
 else()
@@ -207,9 +240,9 @@ add_custom_command(
 # install provides them (sim.exe loads the G4*.dll by name, so it must be the
 # same Geant4 version and build options, see packaging/README.txt).
 install(TARGETS sim RUNTIME DESTINATION .)
-if(DNACHEM_HAS_HDF5)
-  install(FILES $<TARGET_FILE:hdf5::hdf5-shared> $<TARGET_FILE:hdf5::hdf5_cpp-shared>
-          DESTINATION .)
+# On Linux the HDF5 shared libraries come from the system package and are not bundled.
+if(WIN32 AND _dnachemHdf5Dlls)
+  install(FILES ${_dnachemHdf5Dlls} DESTINATION .)
 endif()
 install(DIRECTORY macro/ DESTINATION macro
         FILES_MATCHING PATTERN "*.in" PATTERN "*.mac")
