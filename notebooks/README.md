@@ -1,9 +1,29 @@
 # Demonstration data for dnachem-min notebooks
 
-These two small, seeded runs provide input for the
-[vertical-slice notebook](vertical_slice.ipynb). They are workflow examples,
-not converged radiolysis results. Keep generated output outside Git and set
-notebook input paths to your own output directories.
+These two small, seeded runs provide input for the notebook series below.
+They are workflow examples, not converged radiolysis results. Keep generated
+output outside Git and set notebook input paths to your own output directories.
+
+## Notebook series
+
+Open them in order; each reads the same two dumps and has a configuration cell
+with the input paths.
+
+| Notebook | Content | Input |
+|---|---|---|
+| `00_discovery_provenance` | Find dumps, read manifests, check files | both dumps |
+| `01_physical_interactions_tracks` | Physical interaction counts, track lengths | IRT dump |
+| `02_prechemical_records` | Pre-chemical records and positions | IRT dump |
+| `03_chemical_species_reactions` | Species, G-values, reactions | IRT dump |
+| `04_meso_spatial_snapshots` | Mesoscopic snapshots and CSV export (optional) | meso dump |
+
+Notebook 04 is optional: without `SpeciesMeso*` or `SpeciesMesoSpatial.h5` it
+explains what is missing and skips. It exports one snapshot CSV to
+`.scratch/notebook-exports/04_meso_spatial/` (configurable, git-ignored). The
+03 standard errors use `assume_valid_event_g=True`; with 2 events they are not
+meaningful. `vertical_slice.ipynb` is historical, the first exploratory pass
+with its own small readers. It is kept for reference and superseded by the
+series.
 
 ## Reproduce the runs
 
@@ -106,8 +126,10 @@ python -m pip install ipykernel matplotlib
 python -m ipykernel install --user --name GEANT4 --display-name 'Python (GEANT4)'
 ```
 
-In Jupyter, select the registered `Python (GEANT4)` kernel. The checked
-server's default `python3` kernel also used that environment's interpreter.
+In Jupyter, select the registered `Python (GEANT4)` kernel. In the 2026-11-03
+check, the server's default `python3` kernel also used that environment's
+interpreter; on the machine used on 2026-11-04 it was the base Anaconda
+interpreter instead (see the execution record), so check rather than assume.
 In a cell, check the imports before opening a dump:
 
 ```python
@@ -116,23 +138,24 @@ from g4utils.DnaChem import Dump, Simulation, load_species, load_reactions
 from g4utils.HDF5 import SpeciesMesoSpatialFile
 ```
 
-Open `vertical_slice.ipynb`, edit `IRT_DUMP` and `MESO_DUMP` in its
-configuration cell, then choose **Restart Kernel and Run All Cells**. Check
+Open a notebook, edit the dump paths (`IRT_DUMP`, `MESO_DUMP`) in its
+configuration cell, then choose **Restart Kernel and Run All Cells**. Saved
+notebooks carry an empty kernelspec: select `Python (GEANT4)` (or any kernel
+with G4Utils) when opening. Check
 the printed kernel executable against your intended environment. The default
 paths require `DEV_DIR`; missing required inputs raise errors with regeneration
 guidance. Missing optional mesoscopic aggregate or spatial output is explained
 and skipped. Relative input paths resolve from the kernel's working directory.
 
-G4Utils currently reads manifests, species/reaction ntuples and mesoscopic
-spatial HDF5. Its `Dump.has_meso` concerns the **spatial HDF5 file**, not
-`SpeciesMeso.csv`. Physical-interaction, track-length, pre-chemical and
-aggregate mesoscopic readers are not yet part of that API; this notebook keeps
-small direct readers visible. See `PLAN.md` for the later report and library work.
+The series uses the validated G4Utils readers for manifests, species,
+reactions, physical interactions, track lengths, pre-chemical records and
+mesoscopic data. Its `Dump.has_meso` concerns the **spatial HDF5 file**, not
+`SpeciesMeso.csv`. See `PLAN.md` and `G4UTILS_REPORT.md` for background.
 
 ## Checked reproduction and limits
 
 On 2026-11-03, the regenerated manifests report runtime tag
-`geant4-11-04-patch-03` (11.4.3), `PureWater`, Serial `IRT_syn`, no added
+`geant4-11-04-patch-01` (11.4.1), `PureWater`, Serial `IRT_syn`, no added
 scavenger, 10 keV electrons, 2 events, and 20,000 eV deposited energy. The
 IRT-only run uses seeds `12345 67890`, disables meso, and runs to 1000 ns. The
 separate mesoscopic run uses seeds `23456 78901`, hands over at 5 ns, and runs
@@ -140,12 +163,18 @@ to 1,000,000 ns. These are distinct seeded simulations, not a continuous
 trajectory. The existing `RelWithDebInfo` executable was used; its exact source
 revision is not established by the run records.
 
-The `vertical_slice.ipynb` notebook was executed through Jupyter MCP in a fresh
-isolated GEANT4 kernel on 2026-11-03. All 10 code cells completed; four plots were
-reviewed, raw CSV values and optional missing-file handling were checked. All
-required files were present and nonempty: 12 for IRT and 15 for mesoscopic
-output. G4Utils editable metadata points to `D:\DEV\PYTHON\G4Utils` at source
-revision `a45629041f1d47b1e2d7b9b367aa0a95443a732f`.
+## Execution record
+
+On 2026-11-04 notebooks 00 to 04 (4, 3, 5, 4 and 4 code cells) were each run
+in a fresh kernel through Jupyter MCP with 0 errors, and tables and plots were
+reviewed. Jupyter MCP could not select a kernelspec, so they ran on the base
+Anaconda kernel importing the editable G4Utils checkout at
+`C:\DEV\python\G4Utils` (revision
+`2fbccb4bf2baca34bb2f4ba3a4dee7f2fa68b1ec`). Limitations found: the saved
+kernelspec is empty; 2 events make the notebook 03 uncertainties meaningless;
+notebook 04 writes one export file outside the tracked tree. The earlier
+`vertical_slice.ipynb` run (2026-11-03, G4Utils `a45629041f1d`) used 12 required
+files for IRT and 15 for mesoscopic output.
 
 Both simulation commands completed with exit code 0; their logs contain dump
 and completion markers and no fatal exception. The mesoscopic output includes

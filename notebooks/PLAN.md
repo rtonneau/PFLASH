@@ -98,17 +98,17 @@ restarting; an editable checkout switched back to unmerged main lacks the APIs.
 
 ## 5. Complete the notebook series
 
-- [ ] Replace exploratory parsing and reusable calculations with the validated
+- [x] Replace exploratory parsing and reusable calculations with the validated
   G4Utils interfaces. Organize the material into:
   - `00` — simulation discovery and provenance;
   - `01` — physical interactions and track lengths;
   - `02` — physico-chemical records and spatial positions;
   - `03` — chemical species, yields and reactions;
   - `04` — optional mesoscopic spatial snapshots and export.
-- [ ] Document inputs, setup, reproduction commands, navigation and expected
+- [x] Document inputs, setup, reproduction commands, navigation and expected
   output in a notebooks README. Keep paths configurable and optional analyses
   clearly marked.
-- [ ] Execute each notebook from a fresh kernel against the documented data;
+- [x] Execute each notebook from a fresh kernel against the documented data;
   inspect tables and plots, verify labels and units, and record the outcome and
   limitations. Check that missing optional data gives actionable guidance.
 
