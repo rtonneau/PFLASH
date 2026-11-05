@@ -65,7 +65,8 @@
       ] },
     { id: 'environment', short: 'Environment', title: 'Water environment', intro: 'The water box and what is dissolved in it.' },
     { id: 'beam', short: 'Beam', title: 'Beam', intro: 'The particle shot into the water and when its track is cut short.' },
-    { id: 'runs', short: 'Runs', title: 'Runs and output', intro: 'How many events to simulate, the random seeds, when results are written and in which file formats.' },
+    { id: 'runs', short: 'Runs', title: 'Runs', intro: 'How many events to simulate, the random seeds and when results are written.' },
+    { id: 'output', short: 'Output', title: 'Output files', intro: 'Where the results go, which products are written and in which file formats. Files appear when a dump runs.' },
     { id: 'review', short: 'Review', title: 'Review and export', intro: 'Check the configuration and save the macro.' }
   ];
 
@@ -135,6 +136,53 @@
     return String(path).split('.').reduce(function (o, k) { return o === undefined || o === null ? undefined : o[k]; }, cfg);
   }
   // Returns a new configuration; only the listed paths change.
+  // ---- one product's output choice, derived from formats.<id>; no extra saved state ----
+  // [] follows the default (SpeciesMesoSpatial: no file), ['none'] is no file, a list is its own formats.
+  const PRODUCT_MODES = { default: 'Default formats', own: 'Own formats', none: 'No file' };
+  function productById(id) { return PRODUCTS.filter(function (p) { return p.id === id; })[0]; }
+  function acceptedFormats(id) { return productById(id).spatial ? ['h5', 'root'] : FORMATS; }
+  function productModes(id) { return productById(id).spatial ? ['own', 'none'] : ['default', 'own', 'none']; }
+  function productMode(cfg, id) {
+    const list = cfg.formats[id];
+    if (list.indexOf('none') >= 0) return 'none';
+    if (list.length) return 'own';
+    return productById(id).spatial ? 'none' : 'default';
+  }
+  // OutputFormats::Effective: own list, else the default without the formats the product does not accept.
+  function effectiveFormats(cfg, id) {
+    const own = cfg.formats[id];
+    if (own.length) return own.filter(function (f) { return f !== 'none'; });
+    if (productById(id).spatial) return [];
+    return cfg.defaultFormats.filter(function (f) { return f !== 'none' && acceptedFormats(id).indexOf(f) >= 0; });
+  }
+  function noFileList(id) { return productById(id).spatial ? [] : ['none']; }
+  function productPatch(id, list) { const o = {}; o['formats.' + id] = list; return o; }
+  function setProductMode(cfg, id, mode) {
+    if (mode === 'default') return productPatch(id, []);
+    if (mode === 'none') return productPatch(id, noFileList(id));
+    if (productMode(cfg, id) === 'own') return productPatch(id, cfg.formats[id]);
+    const seed = effectiveFormats(cfg, id);
+    return productPatch(id, seed.length ? seed : [productById(id).spatial ? 'h5' : 'csv']);
+  }
+  // Unticking the last format means no file; it never falls back to the default.
+  function toggleProductFormat(cfg, id, format, on) {
+    const list = toggleFormats(effectiveFormats(cfg, id), format, on);
+    return productPatch(id, list.length ? list : noFileList(id));
+  }
+  // The files one dump gets for a product (docs/output/README.md, without a dump prefix).
+  function outputFiles(cfg, id) {
+    const p = productById(id);
+    if ((p.meso || p.spatial) && !mesoOn(cfg)) return [];
+    const files = [];
+    effectiveFormats(cfg, id).forEach(function (f) {
+      const table = f === 'txt' || f === 'csv';
+      if (p.id === 'preChemical' && table) files.push('PreChemical_run<R>_event<E>.' + f);
+      else files.push(p.stem + '.' + f);
+      if (p.id === 'reactions' && table) files.push('ReactionsCatalog.' + f);
+    });
+    return files;
+  }
+
   function applyPatch(cfg, patch) {
     const out = clone(cfg);
     Object.keys(patch).forEach(function (path) {
@@ -347,26 +395,29 @@
     q('runs', { step: 'runs', type: 'runs', label: 'Sub-runs', required: true,
       help: 'Each sub-run simulates some events. Results accumulate across sub-runs until a dump writes and resets them.',
       tech: '/random/setSeeds, /run/beamOn <events>, then /run/dumpDataAndReset [prefix] or /run/dumpDataAndResetToDir <subfolder>.', refs: SRC.runs }),
-    q('outputDirMode', { step: 'runs', type: 'choice', label: 'Output folder', required: false,
+    q('outputDirMode', { step: 'output', type: 'choice', label: 'Output folder', required: false,
       options: [
         { value: 'default', label: 'Default (<build>/results, or --dir)', help: 'Recommended: choose the folder at launch with --dir.' },
         { value: 'custom', label: 'Fixed in the macro' }
       ],
       help: 'Where all output files go.',
       tech: '/run/outputDir <path>, PreInit. Launching with a different --dir is then fatal (ConflictingOutputDir).', refs: SRC.outputDir }),
-    q('outputDir', { step: 'runs', type: 'text', label: 'Output folder path', required: true, showIf: function (c) { return c.outputDirMode === 'custom'; },
+    q('outputDir', { step: 'output', type: 'text', label: 'Output folder path', required: true, showIf: function (c) { return c.outputDirMode === 'custom'; },
       help: 'Its parent folder must already exist. No spaces or "#".', placeholder: 'results_o2' }),
-    q('defaultFormats', { step: 'runs', type: 'multi', label: 'Default output formats', required: true,
+    q('defaultFormats', { step: 'output', type: 'multi', label: 'Default output formats', required: true,
       options: FORMATS.map(function (f) { return { value: f, label: f + (f === 'csv' ? ' (default)' : '') }; }).concat([{ value: 'none', label: 'none', help: 'No file for products that follow the default.' }]),
       help: 'File formats for every product that has no choice of its own below. Several can be checked: each product is then written once per format. h5 and root hold all tables of a product in one file.',
       tech: '/output/defaultFormat <formats...>, PreInit. Space-separated txt, csv, h5, root, or none (cannot be combined). Built-in default csv, so nothing is written when csv alone is checked. h5 needs a sim built with HDF5.', refs: SRC.formats })
   ].concat(PRODUCTS.map(function (p) {
-    return q('fmt_' + p.id, Object.assign({ path: 'formats.' + p.id, step: 'runs', type: 'multi', label: p.stem + ' formats', required: false,
+    return q('fmt_' + p.id, Object.assign({ path: 'formats.' + p.id, step: 'output', type: 'multi', inTable: true, label: p.stem + ' formats', required: false,
       options: (p.spatial ? ['h5', 'root'] : FORMATS).map(function (f) { return { value: f, label: f }; }).concat(p.spatial ? [] : [{ value: 'none', label: 'none', help: 'No ' + p.stem + ' file.' }]),
-      help: (p.spatial ? 'Nothing checked: no ' + p.stem + ' file (it never follows the default). ' : 'Nothing checked: follows the default formats. ') + 'Contents: ' + p.what + '.',
+      help: p.what.charAt(0).toUpperCase() + p.what.slice(1) + '.',
       tech: '/output/' + p.id + '/format <formats...>, PreInit; replaces the default for this product. ' + (p.spatial ? 'Accepts h5 and root only; written only when checked, and only with the mesoscopic stage.' : 'Written only when something is checked.'), refs: SRC.formats },
       p.spatial ? { rule: 'mesoParams' } : {}));
   }));
+  FIELDS.push(q('products', { path: 'formats', step: 'output', type: 'products', label: 'Products to write', required: false,
+    help: 'For each product, follow the default formats, choose its own, or write no file. "You get" shows the resulting files.',
+    tech: '/output/<product>/format <formats...>, PreInit; replaces the default for that product, and none means no file. Nothing is written for a product set to Default formats. A sim built without HDF5 drops h5 from the default list; an explicit h5 is fatal. The txt and csv files of a dump hold one table each; an h5 or root file holds all tables of its product.', refs: SRC.formats }));
   const FIELD = {};
   FIELDS.forEach(function (f) { FIELD[f.id] = f; });
 
@@ -577,6 +628,9 @@
           [{ label: 'Clear the ' + p.stem + ' formats', patch: (function () { const o = {}; o['formats.' + p.id] = []; return o; })() }]);
       }
     });
+    if (cfg.defaultFormats.length && PRODUCTS.every(function (p) { return !outputFiles(cfg, p.id).length; })) {
+      add('defaultFormats', 'warning', 'No product writes a file: a dump writes only Manifest.json.');
+    }
     if (usesH5.length) {
       add(usesH5.indexOf('the default') >= 0 ? 'defaultFormats' : 'fmt_' + PRODUCTS.filter(function (p) { return usesH5.indexOf(p.stem) >= 0; })[0].id, 'info',
         'h5 is used for ' + usesH5.join(', ') + '. It needs a sim built with HDF5 (-DDNACHEM_WITH_HDF5=ON); otherwise the command is fatal at the start of the run.');
@@ -720,7 +774,12 @@
       ['Beam', cfg.particle + ', ' + cfg.energy.value + ' ' + cfg.energy.unit + ', from z = ' + cfg.beamZ.value + ' ' + cfg.beamZ.unit +
         (cfg.particle === 'e-' ? ', energy cuts ' + ({ default: 'default', custom: 'custom', off: 'off' })[cfg.killerMode] : '')],
       ['Output formats', cfg.defaultFormats.join(', ') + (cfg.defaultFormats.join(' ') === 'csv' ? ' (default)' : '') +
-        (PRODUCTS.some(function (p) { return cfg.formats[p.id].length; }) ? '; custom for ' + PRODUCTS.filter(function (p) { return cfg.formats[p.id].length; }).map(function (p) { return p.stem; }).join(', ') : '')],
+        (function () {
+          const own = PRODUCTS.filter(function (p) { return productMode(cfg, p.id) === 'own'; });
+          const off = PRODUCTS.filter(function (p) { return !p.spatial && productMode(cfg, p.id) === 'none'; });
+          return (own.length ? '; own formats for ' + own.map(function (p) { return p.stem + ' (' + cfg.formats[p.id].join(', ') + ')'; }).join(', ') : '') +
+            (off.length ? '; no file for ' + off.map(function (p) { return p.stem; }).join(', ') : '');
+        })()],
       ['Runs', cfg.runs.length + ' sub-run' + (cfg.runs.length === 1 ? '' : 's') + ', ' + events + ' event' + (events === 1 ? '' : 's') + ', ' + dumps + ' dump' + (dumps === 1 ? '' : 's')]
     ];
   }
@@ -736,7 +795,9 @@
   }
 
   return {
-    FORMATS: FORMATS, PRODUCTS: PRODUCTS, toggleFormats: toggleFormats,
+    FORMATS: FORMATS, PRODUCTS: PRODUCTS, toggleFormats: toggleFormats, PRODUCT_MODES: PRODUCT_MODES,
+    acceptedFormats: acceptedFormats, productModes: productModes, productMode: productMode, effectiveFormats: effectiveFormats,
+    setProductMode: setProductMode, toggleProductFormat: toggleProductFormat, outputFiles: outputFiles,
     STEPS: STEPS, FIELDS: FIELDS, FIELD: FIELD, UNITS: UNITS, O2_UNITS: O2_UNITS, CHEMISTRIES: CHEMISTRIES, RULES: RULES,
     groupAvailability: groupAvailability, displayValue: displayValue,
     defaults: defaults, normalize: normalize, applyPatch: applyPatch, get: get, validate: validate, errors: errors,

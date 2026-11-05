@@ -338,6 +338,65 @@ test('generated commands exist in the project or are standard Geant4 commands', 
   assert.ok(generated.size >= 20, 'broad coverage: ' + generated.size);
 });
 
+test('output step: sits before review and holds the folder, the default and every product', () => {
+  assert.deepStrictEqual(M.STEPS.map(s => s.id).slice(-3), ['runs', 'output', 'review']);
+  ['outputDirMode', 'outputDir', 'defaultFormats', 'products'].concat(M.PRODUCTS.map(p => 'fmt_' + p.id))
+    .forEach(f => assert.strictEqual(M.FIELD[f].step, 'output', f));
+  assert.strictEqual(M.FIELD.runs.step, 'runs');
+});
+test('output step: a product mode round-trips through the stored list', () => {
+  const set = (c, id, m) => M.applyPatch(c, M.setProductMode(c, id, m));
+  let c = D();
+  assert.strictEqual(M.productMode(c, 'species'), 'default');
+  c = set(c, 'species', 'own');
+  assert.deepStrictEqual(c.formats.species, ['csv']);
+  assert.strictEqual(M.productMode(c, 'species'), 'own');
+  c = set(c, 'species', 'none');
+  assert.deepStrictEqual(c.formats.species, ['none']);
+  assert.strictEqual(M.productMode(c, 'species'), 'none');
+  c = set(c, 'species', 'default');
+  assert.deepStrictEqual(c.formats.species, []);
+  let s = D();
+  assert.strictEqual(M.productMode(s, 'speciesMesoSpatial'), 'none');
+  assert.deepStrictEqual(M.productModes('speciesMesoSpatial'), ['own', 'none']);
+  s = set(s, 'speciesMesoSpatial', 'own');
+  assert.deepStrictEqual(s.formats.speciesMesoSpatial, ['h5']);
+});
+test('output step: unticking the last format means no file, never the default', () => {
+  const tog = (c, id, f, on) => M.applyPatch(c, M.toggleProductFormat(c, id, f, on));
+  let c = M.applyPatch(D(), { 'formats.species': ['csv'] });
+  c = tog(c, 'species', 'h5', true);
+  assert.deepStrictEqual(c.formats.species.slice().sort(), ['csv', 'h5']);
+  c = tog(tog(c, 'species', 'h5', false), 'species', 'csv', false);
+  assert.deepStrictEqual(c.formats.species, ['none']);
+  const s = tog(M.applyPatch(D(), { 'formats.speciesMesoSpatial': ['root'] }), 'speciesMesoSpatial', 'root', false);
+  assert.deepStrictEqual(s.formats.speciesMesoSpatial, []);
+});
+test('output step: effective formats follow OutputFormats::Effective', () => {
+  const c = M.applyPatch(D(), { defaultFormats: ['txt', 'h5'], 'formats.species': ['root'], 'formats.reactions': ['none'] });
+  assert.deepStrictEqual(M.effectiveFormats(c, 'species'), ['root']);
+  assert.deepStrictEqual(M.effectiveFormats(c, 'reactions'), []);
+  assert.deepStrictEqual(M.effectiveFormats(c, 'trackLengths'), ['txt', 'h5']);
+  assert.deepStrictEqual(M.effectiveFormats(c, 'speciesMesoSpatial'), []);
+  assert.deepStrictEqual(M.effectiveFormats(M.applyPatch(D(), { defaultFormats: ['none'] }), 'species'), []);
+});
+test('output step: the files shown name the real outputs', () => {
+  const c = M.applyPatch(D(), { defaultFormats: ['csv', 'h5'] });
+  assert.deepStrictEqual(M.outputFiles(c, 'reactions'), ['Reactions.csv', 'ReactionsCatalog.csv', 'Reactions.h5']);
+  assert.deepStrictEqual(M.outputFiles(c, 'preChemical'), ['PreChemical_run<R>_event<E>.csv', 'PreChemical.h5']);
+  const off = M.applyPatch(D(), { meso: false, 'formats.speciesMeso': ['csv'] });
+  assert.deepStrictEqual(M.outputFiles(off, 'speciesMeso'), []);
+  assert.deepStrictEqual(M.outputFiles(off, 'species'), ['Species.csv']);
+});
+test('output step: writing nothing warns, and modes write the expected commands', () => {
+  const none = M.applyPatch(D(), { defaultFormats: ['none'] });
+  assert.ok(M.validate(none).some(i => i.field === 'defaultFormats' && i.severity === 'warning' && /only Manifest/.test(i.message)));
+  assert.ok(!M.validate(D()).some(i => /only Manifest/.test(i.message)));
+  const c = M.applyPatch(D(), M.setProductMode(D(), 'reactions', 'none'));
+  assert.deepStrictEqual(cmds(c).filter(l => l.indexOf('/output/') === 0), ['/output/reactions/format none']);
+  assert.deepStrictEqual(M.normalize(JSON.parse(JSON.stringify(c))).formats, c.formats);
+});
+
 const fmtCmds = cfg => cmds(cfg).filter(l => l.indexOf('/output/') === 0);
 const hasFmtIssue = (cfg, field, kind) => M.validate(cfg).some(i => i.field === field && i.kind === kind);
 
@@ -364,7 +423,7 @@ test('output formats: default and per-product commands, in canonical order, PreI
   fmtCmds(cfg).forEach(l => assert.ok(L.indexOf(l) < L.indexOf('/run/initialize'), l));
   assert.deepStrictEqual(fmtCmds(P({ defaultFormats: ['none'] })), ['/output/defaultFormat none']);
   assert.deepStrictEqual(fmtCmds(P({ defaultFormats: ['csv', 'h5'] })), ['/output/defaultFormat csv h5']);
-  assert.ok(/^txt, csv, h5, root; custom for /.test(M.summary(cfg).filter(r => r[0] === 'Output formats')[0][1]));
+  assert.ok(/^txt, csv, h5, root; own formats for /.test(M.summary(cfg).filter(r => r[0] === 'Output formats')[0][1]));
 });
 
 test('output formats: checkbox toggling keeps canonical order and none is exclusive', () => {

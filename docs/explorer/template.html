@@ -408,6 +408,22 @@
   .b-tech > summary { cursor:pointer; color:var(--accent); font-weight:600; min-height:28px; }
   .b-tech p { margin:6px 0; }
   .b-tech ul { margin:4px 0 0; padding-left:18px; }
+  .b-products { width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; }
+  .b-products th, .b-products td { padding:7px 6px; border-top:1px solid var(--line); text-align:left; vertical-align:top; }
+  .b-products thead th { border-top:0; font-size:12px; color:var(--muted); }
+  .b-products .fmt { text-align:center; width:38px; }
+  .b-products tbody th { font-weight:600; min-width:150px; }
+  .b-products tbody th small { display:block; font-weight:400; color:var(--muted); }
+  .b-products .files code { display:block; overflow-wrap:anywhere; }
+  .b-products .nofile { color:var(--muted); }
+  @media (max-width:760px) {
+    .b-products thead { display:none; }
+    .b-products, .b-products tbody, .b-products tr, .b-products th, .b-products td { display:block; width:auto; border:0; }
+    .b-products tr.b-product { border-top:1px solid var(--line); padding:6px 0; }
+    .b-products td.fmt { display:inline-block; }
+    .b-products td.fmt::before { content:attr(data-format) " "; }
+    .b-products td.files::before { content:"You get: "; font-weight:600; }
+  }
   .b-run { margin:0 0 10px; padding:10px 12px; border:1px solid var(--line); border-radius:7px; }
   .b-run > legend { font-weight:600; padding:0 4px; }
   .b-run .row { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; margin:4px 0; }
@@ -772,7 +788,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   const VIEW_ICONS = { map:'map', flow:'flow', tasks:'book', builder:'terminal' };
   const LANE_ICONS = { app:'play', actions:'flow', physics:'bolt', geometry:'box', chemistry:'flask', scoring:'chart', core:'sliders', macro:'terminal', test:'shield' };
   const PHASE_ICONS = { setup:'sliders', physical:'bolt', prechem:'flask', hetero:'atom', meso:'grid', output:'file' };
-  const STEP_ICONS = { basics:'file', chemistry:'flask', timing:'clock', environment:'box', beam:'bolt', runs:'play', review:'shield' };
+  const STEP_ICONS = { basics:'file', chemistry:'flask', timing:'clock', environment:'box', beam:'bolt', runs:'play', output:'file', review:'shield' };
   document.getElementById('brand-mark').appendChild(icon('atom'));
   document.getElementById('repo-link').appendChild(icon('external'));
   function onActivate(node, fn) {
@@ -2075,7 +2091,9 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   let bChemTableOpen = false;
   function renderField(f, groupExplained) {
     if (!MB.visible(bcfg, f)) return null;
+    if (f.inTable) return null;
     if (f.type === 'runs') return renderRuns(f);
+    if (f.type === 'products') return renderProducts(f);
     const avail = MB.fieldAvailability(bcfg, f);
     const own = issuesFor(f.id);
     const err = own.some(function (i) { return i.severity === 'error'; });
@@ -2148,6 +2166,44 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     }
     const list = issueList(own, false);
     if (list) wrap.appendChild(list);
+    const tech = techDetails(f);
+    if (tech) wrap.appendChild(tech);
+    return wrap;
+  }
+
+  // One row per Output product: every rule (modes, effective formats, files) is in the model.
+  function renderProducts(f) {
+    const wrap = el('div', { class: 'b-field' },
+      [el('div', { class: 'b-label' }, [f.label, tagFor(f)]), el('p', { class: 'b-help', text: f.help })]);
+    const head = el('tr', {}, [el('th', { scope: 'col', text: 'Product' }), el('th', { scope: 'col', text: 'Write' })]
+      .concat(MB.FORMATS.map(function (x) { return el('th', { scope: 'col', class: 'fmt', text: x }); }))
+      .concat([el('th', { scope: 'col', text: 'You get' })]));
+    const body = el('tbody');
+    MB.PRODUCTS.forEach(function (p) {
+      const field = MB.FIELD['fmt_' + p.id], mode = MB.productMode(bcfg, p.id);
+      const own = issuesFor(field.id), err = own.some(function (i) { return i.severity === 'error'; });
+      const select = el('select', { 'data-bkey': 'opt:' + field.id + ':mode', 'aria-label': 'Write ' + p.stem },
+        MB.productModes(p.id).map(function (m) { return el('option', { value: m, text: MB.PRODUCT_MODES[m] }); }));
+      select.value = mode;
+      select.addEventListener('change', function () { patch(MB.setProductMode(bcfg, p.id, select.value), 'opt:' + field.id + ':mode'); });
+      const shown = MB.effectiveFormats(bcfg, p.id), accepted = MB.acceptedFormats(p.id);
+      const cells = MB.FORMATS.map(function (x) {
+        if (accepted.indexOf(x) < 0) return el('td', { class: 'fmt', 'data-format': x, text: '\u2013' });
+        const box = el('input', { type: 'checkbox', 'data-bkey': 'opt:' + field.id + ':' + x, 'aria-label': p.stem + ' as ' + x });
+        box.checked = shown.indexOf(x) >= 0;
+        box.disabled = mode !== 'own';
+        box.addEventListener('change', function () { patch(MB.toggleProductFormat(bcfg, p.id, x, box.checked), 'opt:' + field.id + ':' + x); });
+        return el('td', { class: 'fmt', 'data-format': x }, [box]);
+      });
+      const files = MB.outputFiles(bcfg, p.id);
+      const offStage = (p.meso || p.spatial) && !MB.mesoOn(bcfg);
+      const got = el('td', { class: 'files' }, files.length ? files.map(function (n) { return el('code', { text: n }); }) :
+        [el('span', { class: 'nofile', text: offStage ? 'Not written: no mesoscopic stage' : 'No file' })]);
+      body.appendChild(el('tr', { class: 'b-product' + (err ? ' has-error' : ''), 'data-bfield': field.id },
+        [el('th', { scope: 'row' }, [p.stem, el('small', { text: field.help })]), el('td', {}, [select])].concat(cells).concat([got])));
+      if (own.length) body.appendChild(el('tr', {}, [el('td', { colspan: String(MB.FORMATS.length + 3) }, [issueList(own, false)])]));
+    });
+    wrap.appendChild(el('table', { class: 'b-products' }, [el('thead', {}, [head]), body]));
     const tech = techDetails(f);
     if (tech) wrap.appendChild(tech);
     return wrap;
