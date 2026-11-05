@@ -22,3 +22,19 @@ nonduplicable (lines 978-986); `G4DNAScavengerProcess.cc:54` assigns that subtyp
 This is not a claim about every possible direct process-manager registration.
 The project continues grouping bulk reactions into one scavenger process per
 molecule. The decision and reaction content are unchanged.
+
+## Addendum (2026-11-05): `O2` products under IRT_syn
+
+While a bulk O2 concentration is set, an `O2` product of a reaction between two
+tracked molecules also joins the bulk pool under IRT_syn, in Serial and MT alike:
+`G4DNAMakeReaction::MakeReaction` sends any product held by the scavenger material
+to the pool, as in the UHDR example. So `Species.*` has no `O_2^0` row in that
+configuration; SBS keeps the tracked `O2` described above, and its row. Pure water
+keeps the row in every mode, because `O2` is not in the material there.
+
+`G4DNAMakeReaction` caches the material in its constructor, so the material must be
+installed before the time-step model is built. A worker builds the model inside
+`G4DNAChemistryManager::Initialize()`, Serial at the first event. The material used
+to be installed after `Initialize()`, which left workers with a null pointer: MT kept
+this `O2` tracked until the hand-over, while Serial did not. It also skipped
+`SetEquilibrium`, which no Chemistry here depends on (none uses reaction types 6-8).

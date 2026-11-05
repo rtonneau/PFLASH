@@ -442,24 +442,36 @@ void DnaChemistryList::ConstructProcess()
   RegisterBulkReactionProcesses(*chemWorld->GetChemistryBoundary(),
                                 SelectedChemistry("ConstructProcess")->buildBulkReactions());
 
-  // Triggers InitializeMaster() -> ConstructReactionTable() ->
-  // DnaChemistryWorld::ConstructChemistryComponents(): the bulk composition is
-  // populated after this call returns.
-  G4DNAChemistryManager::Instance()->Initialize();
-
-  // Install the bulk-scavenger material now that the composition is known, and
-  // before G4DNAScavengerProcess::BuildPhysicsTable() queries the scheduler.
-  // Runs once (serial) or per worker thread (MT); the scheduler is thread-local.
+  // Install the bulk-scavenger material before
+  // G4DNAScavengerProcess::BuildPhysicsTable() queries the scheduler. Runs once
+  // (serial) or per worker thread (MT); the scheduler is thread-local.
   // Unconditional: the bulk-reaction scavenger processes registered above
   // are always active, so this material must always be installed -- without
   // it, G4DNAScavengerProcess::PostStepGetPhysicalInteractionLength would
   // dereference a null fpScavengerMaterial on the first step of any species
   // with a registered reaction.
-  if (G4Scheduler::Instance()->GetScavengerMaterial() == nullptr) {
+  const auto installBulkMaterial = [chemWorld]() {
+    if (G4Scheduler::Instance()->GetScavengerMaterial() != nullptr) return;
     auto scavenger = std::make_unique<G4DNAScavengerMaterial>(chemWorld);
     scavenger->SetCounterAgainstTime();
     G4Scheduler::Instance()->SetScavengerMaterial(std::move(scavenger));
+  };
+
+  // On a worker, Initialize() below builds the time-step model at once, and
+  // G4DNAMakeReaction caches the scheduler's material in its constructor: it
+  // must already be installed, or IRT_syn keeps scavenger-species products
+  // tracked on workers only (ADR 0004 addendum). The master has already
+  // populated the bulk composition by then.
+  if (G4Threading::IsWorkerThread()) {
+    installBulkMaterial();
   }
+
+  // Master or Serial: triggers InitializeMaster() -> ConstructReactionTable() ->
+  // DnaChemistryWorld::ConstructChemistryComponents(), so the composition is
+  // known only after this call returns. In Serial the model is built later, at
+  // the first event.
+  G4DNAChemistryManager::Instance()->Initialize();
+  installBulkMaterial();
 
   // The initial mesh pixel count is capped (ADR 0006): say so once, from the
   // master, with the cell size the cap leaves (only when there is a mesh).

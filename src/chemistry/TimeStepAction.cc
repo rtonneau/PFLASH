@@ -507,6 +507,9 @@ void TimeStepAction::MergeScavengerSpeciesIntoBulk(G4double globalTime)
   // does for a scavenger-species product (ADR 0004), and kill them before
   // Voxelizing, whose CleanAllReaction() then drops their pending reactions
   // too, so no live track survives the hand-over.
+  // Kept as a guard: with the material installed before the time-step model is
+  // built, G4DNAMakeReaction already sends such products to the pool (ADR 0004
+  // addendum), and test runs merge nothing here, Serial or MT.
   auto *scavenger =
     dynamic_cast<G4DNAScavengerMaterial *>(G4Scheduler::Instance()->GetScavengerMaterial());
   if (scavenger == nullptr) return;
