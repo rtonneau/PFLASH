@@ -2,7 +2,7 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org/).
 
-## Unreleased
+## 1.3.1 (2026-11-05)
 
 - Releases now also carry a prebuilt Linux x86-64 package (`dnachem-min-linux-x64.tar.gz`; Geant4 and HDF5 are not bundled). The README now opens with a glossary and the explorer links, with Quick start before Installation.
 
