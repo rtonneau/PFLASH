@@ -1,6 +1,6 @@
-# Prebuilt release (Windows x64)
+# Prebuilt release (Windows x64 and Linux x86-64)
 
-Each GitHub Release carries `dnachem-min-win64.zip`, so that someone with a
+Each GitHub Release carries `dnachem-min-win64.zip` and `dnachem-min-linux-x64.tar.gz`, so that someone with a
 Geant4 install but no build setup can run a macro from the explorer's Macro
 builder. The Macro builder links to
 `https://github.com/rtonneau/dnachem-min/releases/latest/download/dnachem-min-win64.zip`;
@@ -50,3 +50,22 @@ gh release create v1.1.0 build/dnachem-min-win64.zip --title "dnachem-min v1.1.0
 Keep the asset name `dnachem-min-win64.zip` (the explorer link depends on it).
 A macro from the Macro builder can use commands an older `sim.exe` lacks, so
 publish a new release when macro commands change.
+
+## Linux package
+
+`dnachem-min-linux-x64.tar.gz` holds `sim`, `macro/`, `VERSION.txt` and
+`README.txt` (from `packaging/README-linux.txt`). HDF5 is not bundled (system
+`libhdf5`), nor is Geant4. Built on Ubuntu 24.04 (WSL), so it needs glibc 2.39.
+In the Linux checkout, with `geant4.sh` sourced, on the tagged commit:
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDNACHEM_WITH_HDF5=ON
+cmake --build build --target sim
+cd build && cpack          # -> build/dnachem-min-linux-x64.tar.gz
+```
+
+Smoke-test like the Windows zip (`./sim example_irt.in`), then upload both:
+
+```bash
+gh release upload v1.3.1 build/dnachem-min-linux-x64.tar.gz --clobber
+```
