@@ -433,7 +433,7 @@ The default is `Error`. Use `Info` or `Debug` for progress and diagnostics.
 
 Unit tests (`test/*Test.cc`, plain `assert` + CTest) are built and run from
 the Debug test tree (`build-ninja/` on Windows, `build-debug/` on Linux, see
-[Install](#install)); see section 5 of
+[Install](#installation)); see section 5 of
 [`.claude/geant4-instructions.md`](.claude/geant4-instructions.md). On GitHub, the
 `docs-checks` workflow validates the architecture explorer and the macro-builder
 model (there is no Geant4 build in CI).
