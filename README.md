@@ -456,10 +456,6 @@ model (there is no Geant4 build in CI).
 
 ## Citing
 
-If you use dnachem-min, please cite:
-
-- R. Tonneau et al., Phys. Med. Biol. 70 (2025) 235021.
-
 Geant4-DNA asks users to cite the collaboration publications:
 
 - S. Incerti et al., Med. Phys. 45 (2018) e722–e739.
