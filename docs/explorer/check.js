@@ -120,6 +120,14 @@ if (modeStep) {
     if (typeof s.modes[k] !== 'string' || !s.modes[k].trim()) problems.push('flow ' + s.id + ': empty note for mode "' + k + '"');
   }
 });
+// A scoring or output node without a connection is missing from the Module map's picture of a dump.
+const connectedNodes = new Set((data.edges || []).flatMap(e => [e.from, e.to]));
+for (const lane of data.lanes || []) {
+  if (lane.id !== 'scoring') continue;
+  for (const n of lane.nodes || []) {
+    if (!connectedNodes.has(n.id)) problems.push('node ' + n.id + ' (scoring lane) has no connection in edges');
+  }
+}
 // Phases, catalogue references, commands and parts of the run flow.
 const PHASE_IDS = ['setup', 'physical', 'prechem', 'hetero', 'meso', 'output'];
 if (JSON.stringify((data.phases || []).map(p => p.id)) !== JSON.stringify(PHASE_IDS)) {

@@ -383,7 +383,7 @@
           "id": "score-species",
           "title": "ScoreSpecies",
           "role": "Counts molecules over time",
-          "summary": "A Geant4 primitive scorer that follows the tracked molecules over time; it is the source of the Species files.",
+          "summary": "A Geant4 primitive scorer that follows the tracked molecules over time; its table is the Species product.",
           "files": [
             "src/scoring/ScoreSpecies.cc",
             "header/scoring/ScoreSpecies.hh"
@@ -396,7 +396,7 @@
           "id": "reaction-counter",
           "title": "ReactionCounter",
           "role": "Counts reactions per time bin",
-          "summary": "Counts how many times each reaction fires in each time bin (particle-based stage only).",
+          "summary": "Counts how many times each reaction fires in each time bin (particle-based stage only); its tables are the Reactions product and ReactionsCatalog.",
           "files": [
             "src/scoring/ReactionCounter.cc",
             "header/scoring/ReactionCounter.hh"
@@ -410,7 +410,7 @@
           "id": "phys-counter",
           "title": "PhysicsInteractionCounter",
           "role": "Stores interaction tallies",
-          "summary": "Generic string-frequency counter used for physical-interaction counts.",
+          "summary": "Counts each discrete G4DNA physical interaction per event; its table is the PhysicsInteractions product.",
           "files": [
             "src/scoring/PhysicsInteractionCounter.cc",
             "header/scoring/PhysicsInteractionCounter.hh"
@@ -423,7 +423,7 @@
           "id": "meso-counter",
           "title": "MesoSpeciesCounter",
           "role": "Counts molecules after hand-over",
-          "summary": "Mean species count per event versus time in the mesoscopic stage.",
+          "summary": "Per-event species counts and G values (sum, mean, standard error) versus time in the mesoscopic stage; its table is the SpeciesMeso product.",
           "files": [
             "src/scoring/MesoSpeciesCounter.cc",
             "header/scoring/MesoSpeciesCounter.hh"
@@ -435,8 +435,8 @@
         {
           "id": "meso-spatial",
           "title": "MesoSpatialFile",
-          "role": "Saves mesh snapshots (HDF5)",
-          "summary": "HDF5 writer for per-event spatial snapshots of the mesoscopic mesh.",
+          "role": "Saves mesh snapshots (h5)",
+          "summary": "HDF5 writer for per-event spatial snapshots of the mesoscopic mesh: staged during the events, moved into the dump. The root variant goes through the spatial root rows.",
           "files": [
             "src/scoring/MesoSpatialFile.cc",
             "src/scoring/MesoSpatialFileNoHdf5.cc",
@@ -520,7 +520,7 @@
           "id": "output-table",
           "title": "OutputTable",
           "role": "Typed table model, csv and txt",
-          "summary": "Portable format-neutral table of typed columns (name, unit, description, type) and rows, EventStat sums for per-event mean and standard error, the shared Species/SpeciesMeso schema, and the csv and txt serialisers. Nothing uses it yet.",
+          "summary": "Portable format-neutral table of typed columns (name, unit, description, type) and rows, EventStat sums for per-event mean and standard error, the shared Species/SpeciesMeso schema, and the csv and txt serialisers. Every counter fills one; ProductOutput and the h5 and root writers read it.",
           "files": [
             "src/scoring/OutputTable.cc",
             "header/scoring/OutputTable.hh",
@@ -541,7 +541,7 @@
           "id": "track-length",
           "title": "TrackLengthTable",
           "role": "Table of track lengths",
-          "summary": "One row per event with the primary track length, end reason and secondary-electron lengths.",
+          "summary": "One row per event with the primary track length, end reason and secondary-electron lengths; its table is the TrackLengths product.",
           "files": [
             "src/scoring/TrackLengthTable.cc",
             "header/scoring/TrackLengthTable.hh"
@@ -580,7 +580,7 @@
           "id": "dump-msg",
           "title": "RunAccumulatorMessenger",
           "role": "Writes results on request",
-          "summary": "Provides /run/dumpDataAndReset and the exit-time safety-net flush.",
+          "summary": "Provides /run/dumpDataAndReset, /run/dumpDataAndResetToDir and the exit-time safety-net flush. A dump writes each Output product in its chosen formats, publishes the staged files, then writes the manifest.",
           "files": [
             "src/scoring/RunAccumulatorMessenger.cc",
             "header/scoring/RunAccumulatorMessenger.hh"
@@ -594,7 +594,7 @@
           "id": "manifest",
           "title": "RunManifest",
           "role": "Describes each dump (Manifest.json)",
-          "summary": "Builds Manifest.json for each dump (beam, seed, chemistry, environment, files).",
+          "summary": "Builds Manifest.json for each dump (beam, seed, chemistry, environment, output formats, files) and the results index listing every dump.",
           "files": [
             "src/scoring/RunManifest.cc",
             "header/scoring/RunManifest.hh",
@@ -626,7 +626,7 @@
           "id": "prechem",
           "title": "PreChemicalFiles",
           "role": "Collects pre-chemical files",
-          "summary": "Moves the staged per-event pre-chemical files into a dump.",
+          "summary": "Moves the staged pre-chemical files into a dump: per-event txt and csv files, and the h5 and root tables written at the dump.",
           "files": [
             "src/scoring/PreChemicalFiles.cc",
             "header/scoring/PreChemicalFiles.hh"
@@ -970,6 +970,162 @@
     {
       "from": "detector",
       "to": "score-species"
+    },
+    {
+      "from": "dump-msg",
+      "to": "product-output"
+    },
+    {
+      "from": "dump-msg",
+      "to": "output-formats"
+    },
+    {
+      "from": "dump-msg",
+      "to": "score-species"
+    },
+    {
+      "from": "dump-msg",
+      "to": "prechemrecorder"
+    },
+    {
+      "from": "dump-msg",
+      "to": "meso-spatial-root-rows"
+    },
+    {
+      "from": "dump-msg",
+      "to": "hdf5-table-file"
+    },
+    {
+      "from": "dump-msg",
+      "to": "root-table-file"
+    },
+    {
+      "from": "dump-msg",
+      "to": "meso-spatial"
+    },
+    {
+      "from": "product-output",
+      "to": "output-formats"
+    },
+    {
+      "from": "product-output",
+      "to": "output-table"
+    },
+    {
+      "from": "product-output",
+      "to": "hdf5-table-file"
+    },
+    {
+      "from": "product-output",
+      "to": "root-table-file"
+    },
+    {
+      "from": "product-output",
+      "to": "outputdir"
+    },
+    {
+      "from": "hdf5-table-file",
+      "to": "output-table"
+    },
+    {
+      "from": "root-table-file",
+      "to": "output-table"
+    },
+    {
+      "from": "score-species",
+      "to": "output-table"
+    },
+    {
+      "from": "meso-counter",
+      "to": "output-table"
+    },
+    {
+      "from": "reaction-counter",
+      "to": "output-table"
+    },
+    {
+      "from": "phys-counter",
+      "to": "output-table"
+    },
+    {
+      "from": "track-length",
+      "to": "output-table"
+    },
+    {
+      "from": "prechemrecorder",
+      "to": "output-table"
+    },
+    {
+      "from": "prechemrecorder",
+      "to": "output-formats"
+    },
+    {
+      "from": "prechemrecorder",
+      "to": "prechem"
+    },
+    {
+      "from": "meso-spatial-root-rows",
+      "to": "output-table"
+    },
+    {
+      "from": "meso-spatial-root-rows",
+      "to": "meso-spatial"
+    },
+    {
+      "from": "event-action",
+      "to": "prechemrecorder"
+    },
+    {
+      "from": "event-action",
+      "to": "output-formats"
+    },
+    {
+      "from": "time-step",
+      "to": "meso-spatial-root-rows"
+    },
+    {
+      "from": "time-step",
+      "to": "output-formats"
+    },
+    {
+      "from": "manifest",
+      "to": "output-formats"
+    },
+    {
+      "from": "manifest",
+      "to": "meso-spatial"
+    },
+    {
+      "from": "manifest",
+      "to": "accumulator"
+    },
+    {
+      "from": "manifest",
+      "to": "outputdir"
+    },
+    {
+      "from": "output-formats",
+      "to": "meso-spatial"
+    },
+    {
+      "from": "sim",
+      "to": "output-formats"
+    },
+    {
+      "from": "accumulator",
+      "to": "reaction-counter"
+    },
+    {
+      "from": "accumulator",
+      "to": "phys-counter"
+    },
+    {
+      "from": "accumulator",
+      "to": "meso-counter"
+    },
+    {
+      "from": "accumulator",
+      "to": "track-length"
     }
   ],
   "phases": [
@@ -1029,7 +1185,7 @@
       "commands": [
         {
           "cmd": "/run/outputDir",
-          "builder": "runs"
+          "builder": "output"
         },
         {
           "cmd": "/run/initialize"
@@ -1112,7 +1268,7 @@
         "src/actions/SteppingAction.cc"
       ],
       "outputs": [
-        "PhysicsInteractions.Txt/.csv (recorded)"
+        "PhysicsInteractions.<ext> (recorded)"
       ],
       "docs": [
         "docs/output/README.md"
@@ -1159,7 +1315,7 @@
         "src/scoring/TrackLengthTable.cc"
       ],
       "outputs": [
-        "TrackLengths.Txt/.csv (recorded)"
+        "TrackLengths.<ext> (recorded)"
       ],
       "docs": [
         "docs/output/README.md"
@@ -1174,16 +1330,18 @@
     {
       "id": "prechem",
       "title": "5. Physico-chemical stage",
-      "summary": "During the physical stage, each ionisation, excitation or dissociative attachment creates a water molecule track as it happens (G4DNAChemistryManager::CreateWaterMolecule, time-stamped 1 ps) and writes its line to the per-event pre-chemical file (staged); the electron solvation model adds each solvated electron the same way (CreateSolvatedElectron). When the physical stage has no tracks left, StackingAction starts the event's chemistry, and the water molecules then dissociate into the initial species.",
+      "summary": "During the physical stage, each ionisation, excitation or dissociative attachment creates a water molecule track as it happens (G4DNAChemistryManager::CreateWaterMolecule, time-stamped 1 ps) and records its row for the PreChemical product (staged); the electron solvation model adds each solvated electron the same way (CreateSolvatedElectron). When the physical stage has no tracks left, StackingAction starts the event's chemistry, and the water molecules then dissociate into the initial species.",
       "phase": "prechem",
       "catalog": "prechem",
       "files": [
         "src/actions/StackingAction.cc",
         "src/actions/EventAction.cc",
-        "src/chemistry/DnaChemistryList.cc"
+        "src/chemistry/DnaChemistryList.cc",
+        "src/scoring/PreChemicalRecorder.cc"
       ],
       "outputs": [
-        "PreChemical_run<R>_event<E>.txt (staged)"
+        "PreChemical_run<R>_event<E>.<txt|csv> (staged per event)",
+        "PreChemical.<h5|root> (staged, one per dump)"
       ],
       "docs": [
         "docs/output/README.md"
@@ -1197,6 +1355,7 @@
       "parts": [
         "stacking-action",
         "event-action",
+        "prechemrecorder",
         "prechem",
         "chem-list"
       ],
@@ -1265,7 +1424,7 @@
     {
       "id": "meso",
       "title": "7. Hand-over and mesoscopic stage",
-      "summary": "Only with IRT_syn and the mesoscopic stage enabled: the remaining molecules are passed to counts per cell on a mesh and advanced to the end time (default 1 s). Mean counts are recorded on a logarithmic time grid; optional per-event spatial snapshots.",
+      "summary": "Only with IRT_syn and the mesoscopic stage enabled: the remaining molecules are passed to counts per cell on a mesh and advanced to the end time (default 1 s). Per-event counts and G values are recorded on a logarithmic time grid; optional per-event spatial snapshots.",
       "phase": "meso",
       "condition": "Only in IRT_syn + mesoscopic mode (the default)",
       "catalog": "reactions",
@@ -1273,11 +1432,13 @@
         "src/chemistry/TimeStepAction.cc",
         "src/chemistry/MesoSettings.cc",
         "src/scoring/MesoSpeciesCounter.cc",
-        "src/scoring/MesoSpatialFile.cc"
+        "src/scoring/MesoSpatialFile.cc",
+        "src/scoring/MesoSpatialRootRows.cc"
       ],
       "outputs": [
-        "SpeciesMeso.Txt/.csv (recorded)",
-        "SpeciesMesoSpatial.h5 (staged, with /output/speciesMesoSpatial/format h5)"
+        "SpeciesMeso.<ext> (recorded)",
+        "SpeciesMesoSpatial.h5 (staged, with /output/speciesMesoSpatial/format h5)",
+        "SpeciesMesoSpatial.root (written at dump, with /output/speciesMesoSpatial/format root)"
       ],
       "docs": [
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
@@ -1306,7 +1467,8 @@
         "meso-settings",
         "meso-msg",
         "meso-counter",
-        "meso-spatial"
+        "meso-spatial",
+        "meso-spatial-root-rows"
       ],
       "review": true,
       "overview": "Pass remaining molecules to counts per cell and advance to the end time.",
@@ -1317,30 +1479,34 @@
     {
       "id": "dump",
       "title": "8. Dump and manifest",
-      "summary": "Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) publishes what the earlier phases recorded or staged, together with Manifest.json, which records what produced them.",
+      "summary": "Data accumulates over /run/beamOn calls. A /run/dumpDataAndReset command (or the exit-time safety net) writes each Output product as <Product>.<ext> in the formats chosen for it, publishes what the earlier phases staged, together with Manifest.json, which records what produced them.",
       "phase": "output",
       "files": [
         "src/scoring/RunAccumulatorMessenger.cc",
         "src/scoring/RunManifest.cc",
-        "src/core/OutputDir.cc"
+        "src/core/OutputDir.cc",
+        "src/scoring/ProductOutput.cc",
+        "src/scoring/OutputFormats.cc"
       ],
       "outputs": [
+        "<Product>.<ext> for each Output product (written at dump)",
+        "staged files published into the dump folder",
         "Manifest.json (written at dump)",
-        "recorded and staged files published into the dump folder",
         "results index (Manifest.json in the output folder)"
       ],
       "docs": [
         "docs/output/README.md",
-        "docs/adr/0005-manifest-per-dump.md"
+        "docs/adr/0005-manifest-per-dump.md",
+        "docs/adr/0009-standardized-output-products.md"
       ],
       "commands": [
         {
           "cmd": "/output/defaultFormat",
-          "builder": "runs"
+          "builder": "output"
         },
         {
-          "cmd": "/output/speciesMesoSpatial/format",
-          "builder": "runs"
+          "cmd": "/output/<product>/format",
+          "builder": "output"
         },
         {
           "cmd": "/run/dumpDataAndReset",
@@ -1354,6 +1520,11 @@
       "parts": [
         "dump-msg",
         "accumulator",
+        "product-output",
+        "output-formats",
+        "output-table",
+        "hdf5-table-file",
+        "root-table-file",
         "manifest",
         "json",
         "outputdir"
@@ -1390,7 +1561,8 @@
       "docs": [
         "docs/output/README.md",
         ".claude/skills/sim-output/SKILL.md",
-        "docs/output/SpeciesMesoSpatial-h5.md"
+        "docs/output/SpeciesMesoSpatial-h5.md",
+        "docs/output/tables-h5-root.md"
       ],
       "files": []
     },
@@ -1503,12 +1675,15 @@
       "id": "hdf5",
       "title": "Export data as HDF5",
       "audience": "developer",
-      "summary": "Write per-event structured binary output.",
+      "summary": "Write per-event structured binary output; the table products go through ProductOutput and the h5 and root table writers.",
       "docs": [
         "docs/recipes/export-data-as-hdf5.md"
       ],
       "files": [
-        "src/scoring/MesoSpatialFile.cc"
+        "src/scoring/MesoSpatialFile.cc",
+        "src/scoring/ProductOutput.cc",
+        "src/scoring/Hdf5TableFile.cc",
+        "src/scoring/RootTableFile.cc"
       ]
     },
     {
