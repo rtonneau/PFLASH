@@ -874,7 +874,13 @@
   // Unticking the last format means no file; it never falls back to the default.
   function toggleProductFormat(cfg, id, format, on) {
     const list = toggleFormats(effectiveFormats(cfg, id), format, on);
-    return productPatch(id, list.length ? list : noFileList(id));
+    if (!list.length) return productPatch(id, noFileList(id));
+    // Back to exactly the default formats: follow the default again (no per-product command).
+    if (!productById(id).spatial) {
+      const def = cfg.defaultFormats.filter(function (f) { return f !== 'none' && acceptedFormats(id).indexOf(f) >= 0; });
+      if (def.length === list.length && def.every(function (f) { return list.indexOf(f) >= 0; })) return productPatch(id, []);
+    }
+    return productPatch(id, list);
   }
   // The files one dump gets for a product (docs/output/README.md, without a dump prefix).
   function outputFiles(cfg, id) {
@@ -3103,23 +3109,18 @@ const PHYSICS = {"geant4Version":"11.4.1","physicsConstructor":"G4EmDNAPhysics_o
   function renderProducts(f) {
     const wrap = el('div', { class: 'b-field' },
       [el('div', { class: 'b-label' }, [f.label, tagFor(f)]), el('p', { class: 'b-help', text: f.help })]);
-    const head = el('tr', {}, [el('th', { scope: 'col', text: 'Product' }), el('th', { scope: 'col', text: 'Write' })]
+    const head = el('tr', {}, [el('th', { scope: 'col', text: 'Product' })]
       .concat(MB.FORMATS.map(function (x) { return el('th', { scope: 'col', class: 'fmt', text: x }); }))
       .concat([el('th', { scope: 'col', text: 'You get' })]));
     const body = el('tbody');
     MB.PRODUCTS.forEach(function (p) {
       const field = MB.FIELD['fmt_' + p.id], mode = MB.productMode(bcfg, p.id);
       const own = issuesFor(field.id), err = own.some(function (i) { return i.severity === 'error'; });
-      const select = el('select', { 'data-bkey': 'opt:' + field.id + ':mode', 'aria-label': 'Write ' + p.stem },
-        MB.productModes(p.id).map(function (m) { return el('option', { value: m, text: MB.PRODUCT_MODES[m] }); }));
-      select.value = mode;
-      select.addEventListener('change', function () { patch(MB.setProductMode(bcfg, p.id, select.value), 'opt:' + field.id + ':mode'); });
       const shown = MB.effectiveFormats(bcfg, p.id), accepted = MB.acceptedFormats(p.id);
       const cells = MB.FORMATS.map(function (x) {
         if (accepted.indexOf(x) < 0) return el('td', { class: 'fmt', 'data-format': x, text: '\u2013' });
         const box = el('input', { type: 'checkbox', 'data-bkey': 'opt:' + field.id + ':' + x, 'aria-label': p.stem + ' as ' + x });
         box.checked = shown.indexOf(x) >= 0;
-        box.disabled = mode !== 'own';
         box.addEventListener('change', function () { patch(MB.toggleProductFormat(bcfg, p.id, x, box.checked), 'opt:' + field.id + ':' + x); });
         return el('td', { class: 'fmt', 'data-format': x }, [box]);
       });
@@ -3128,8 +3129,8 @@ const PHYSICS = {"geant4Version":"11.4.1","physicsConstructor":"G4EmDNAPhysics_o
       const got = el('td', { class: 'files' }, files.length ? files.map(function (n) { return el('code', { text: n }); }) :
         [el('span', { class: 'nofile', text: offStage ? 'Not written: no mesoscopic stage' : 'No file' })]);
       body.appendChild(el('tr', { class: 'b-product' + (err ? ' has-error' : ''), 'data-bfield': field.id },
-        [el('th', { scope: 'row' }, [p.stem, el('small', { text: field.help })]), el('td', {}, [select])].concat(cells).concat([got])));
-      if (own.length) body.appendChild(el('tr', {}, [el('td', { colspan: String(MB.FORMATS.length + 3) }, [issueList(own, false)])]));
+        [el('th', { scope: 'row' }, [p.stem, el('small', { text: field.help })])].concat(cells).concat([got])));
+      if (own.length) body.appendChild(el('tr', {}, [el('td', { colspan: String(MB.FORMATS.length + 2) }, [issueList(own, false)])]));
     });
     wrap.appendChild(el('table', { class: 'b-products' }, [el('thead', {}, [head]), body]));
     const tech = techDetails(f);

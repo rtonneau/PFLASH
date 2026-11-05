@@ -167,7 +167,13 @@
   // Unticking the last format means no file; it never falls back to the default.
   function toggleProductFormat(cfg, id, format, on) {
     const list = toggleFormats(effectiveFormats(cfg, id), format, on);
-    return productPatch(id, list.length ? list : noFileList(id));
+    if (!list.length) return productPatch(id, noFileList(id));
+    // Back to exactly the default formats: follow the default again (no per-product command).
+    if (!productById(id).spatial) {
+      const def = cfg.defaultFormats.filter(function (f) { return f !== 'none' && acceptedFormats(id).indexOf(f) >= 0; });
+      if (def.length === list.length && def.every(function (f) { return list.indexOf(f) >= 0; })) return productPatch(id, []);
+    }
+    return productPatch(id, list);
   }
   // The files one dump gets for a product (docs/output/README.md, without a dump prefix).
   function outputFiles(cfg, id) {
