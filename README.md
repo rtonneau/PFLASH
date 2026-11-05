@@ -28,7 +28,15 @@ physics, chemistry and scoring for conventional-dose-rate (CDR) studies.
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/rtonneau/dnachem-min">
 </p>
 
+> **Explore online (GitHub Pages)**
+> - [Architecture explorer](https://rtonneau.github.io/dnachem-min/explorer/): module map, run flow, task guides, reaction catalogue.
+> - [Macro builder](https://rtonneau.github.io/dnachem-min/explorer/#builder): write a macro without memorising commands.
+> - [Prebuilt Windows package](https://github.com/rtonneau/dnachem-min/releases/latest): `sim.exe` + `macro/` (you supply Geant4).
+> - Source of these pages: [`docs/explorer/`](docs/explorer/).
+
 ---
+
+## What it is
 
 This is the conventional-dose-rate (CDR) base case only. Ultra-high-dose-rate
 (UHDR) studies are meant to be built on top of it later: there is no
@@ -53,14 +61,73 @@ homogeneous water box (no voxelization).
   module map, run flow, task guides and a macro builder, in one offline HTML page
   (`docs/explorer/index.html`).
 
-## Requirements
+## Glossary
+
+Full definitions: [`CONTEXT.md`](CONTEXT.md).
+
+| Term | Meaning | See |
+|---|---|---|
+| **CDR / UHDR** | Conventional / ultra-high dose rate. This project is the CDR base case; UHDR is future work. | [What it is](#what-it-is) |
+| **Chemistry** | A named, selectable reaction network (`PureWater`, `BoscoloChem`, `Tonneau2025`, `Farokhi2023`). | [Choosing a Chemistry](#choosing-a-chemistry) |
+| **Chemistry mode** | How an event's chemistry runs: SBS, IRT_syn, or IRT_syn + mesoscopic (default). | [Chemistry modes](#chemistry-modes) |
+| **SBS / IRT_syn** | Step-by-step and synchronous independent-reaction-times schemes for the particle-based stage. | [Chemistry modes](#chemistry-modes) |
+| **Particle-based stage** | Chemistry where each molecule is an individual particle, up to the hand-over time. | [Chemistry modes](#chemistry-modes) |
+| **Mesoscopic stage** | Chemistry on molecule counts per cell of a mesh, after the hand-over; reaches up to seconds. | [Chemistry modes](#chemistry-modes) |
+| **Hand-over time** | Moment the particle-based stage gives way to the mesoscopic stage (default 5 ns). | [Chemistry modes](#chemistry-modes) |
+| **Scavenger** | Dissolved species such as O2, set with `/chem/env/scavenger`. | [Environment](#environment) |
+| **Bulk reaction** | Reaction of a tracked molecule with a bulk species (acid-base buffer, scavenger). | [Environment](#environment) |
+| **Extra molecule** | Molecule that exists only under one Chemistry (HO3 under `Tonneau2025`). | [Choosing a Chemistry](#choosing-a-chemistry) |
+| **Dump** | One flush of accumulated results to files, then a reset. | [Output](#output) |
+| **Output product / format** | A kind of result (`Species`, `Reactions`, ...) and its encoding (`txt`, `csv`, `h5`, `root`). | [Output](#output) |
+| **Manifest** | `Manifest.json` describing one dump. | [Output](#output) |
+| **Spatial snapshot** | Opt-in per-event picture of the mesoscopic mesh. | [Output](#output) |
+
+## Contents
+
+[Quick start](#quick-start) · [Installation](#installation) · [Chemistry](#chemistry) · [Output](#output) · [Reaction time bins](#reaction-time-bins) · [Logging](#logging) · [Development](#development) · [Citing](#citing)
+
+## Quick start
+
+Needs a built `sim` (see [Installation](#installation)) or the prebuilt Windows package.
+
+From the run build directory, pass the macro **filename only**. `sim` looks for it
+as given, then in `<exeDir>/`, then in `<exeDir>/macro/`.
+
+```bash
+./sim example_meso.in   # IRT_syn + mesoscopic stage (default mode, smoke-sized)
+./sim example_irt.in    # IRT_syn only
+./sim example_sbs.in    # SBS
+./sim beam.in           # pure water, default Chemistry
+./sim beam_o2.in        # dissolved O2 at 21 %
+```
+
+The three `example_*.in` macros differ only in the chemistry mode: 10 keV e-,
+dissolved O2 at 21 %, two sub-runs of 2 events dumped to `results/sub_01/` and
+`results/sub_02/`.
+
+```bash
+./sim beam.in --threads 4       # multithreaded (default: Serial)
+./sim beam.in --dir runs/001    # write all output into runs/001
+```
+
+`/run/outputDir <path>` (before `/run/initialize`) is the macro counterpart of
+`--dir`; setting two different paths is a fatal error. Without either, output goes
+to `<exeDir>/results`.
+
+To write a macro without memorising commands, use the
+[macro builder](https://rtonneau.github.io/dnachem-min/explorer/#builder).
+
+## Installation
+
+Skip this if you use the prebuilt Windows package (see Windows below).
+
+### Requirements
 
 - Geant4 with DNA models (verified with 11.4.3; older versions are not verified)
 - CMake 3.16+
 - A C++20 compiler (verified with MSVC on Windows; GCC 13.3 on Linux, Ubuntu 24.04 with Geant4 11.4.3; clang not verified)
 - HDF5 with C++ support, optional: needed only for the `h5` output format
 
-## Install
 
 There are two build trees, on both platforms, on purpose:
 
@@ -87,6 +154,8 @@ fully HDF5-free build also needs a Geant4 built without HDF5
 (`GEANT4_USE_HDF5=OFF`, the Geant4 default).
 
 ### Windows (verified: Windows 11, MSVC, Geant4 11.4.3, vcpkg HDF5 1.14.6)
+
+<details><summary>Windows steps</summary>
 
 No build setup? A prebuilt `dnachem-min-win64.zip` (`sim.exe`, the HDF5 DLLs and
 `macro/`) is attached to each [GitHub Release](https://github.com/rtonneau/dnachem-min/releases/latest).
@@ -176,7 +245,11 @@ when `node` is on `PATH`; `CatalogExportCheck` uses `build\sim.exe`, so build th
 run tree first. More detail (background runs, verification checklist):
 [`.claude/geant4-instructions.md`](.claude/geant4-instructions.md).
 
+</details>
+
 ### Linux (verified: Ubuntu 24.04 (WSL 2), GCC 13.3, Geant4 11.4.3, HDF5 1.10.10)
+
+<details><summary>Linux and WSL steps</summary>
 
 **1. Packages** (Ubuntu/Debian; `libhdf5-dev` only for HDF5 support, it
 provides the C++ library too):
@@ -245,34 +318,7 @@ HDF5 (e.g. vcpkg's), which fails to compile (`ssize_t` conflict in
 Linux file system (e.g. `~/dnachem-min`), not under `/mnt/c`: builds there are
 much slower.
 
-## Quick start
-
-From the run build directory, pass the macro **filename only**. `sim` looks for it
-as given, then in `<exeDir>/`, then in `<exeDir>/macro/`.
-
-```bash
-./sim example_meso.in   # IRT_syn + mesoscopic stage (default mode, smoke-sized)
-./sim example_irt.in    # IRT_syn only
-./sim example_sbs.in    # SBS
-./sim beam.in           # pure water, default Chemistry
-./sim beam_o2.in        # dissolved O2 at 21 %
-```
-
-The three `example_*.in` macros differ only in the chemistry mode: 10 keV e-,
-dissolved O2 at 21 %, two sub-runs of 2 events dumped to `results/sub_01/` and
-`results/sub_02/`.
-
-```bash
-./sim beam.in --threads 4       # multithreaded (default: Serial)
-./sim beam.in --dir runs/001    # write all output into runs/001
-```
-
-`/run/outputDir <path>` (before `/run/initialize`) is the macro counterpart of
-`--dir`; setting two different paths is a fatal error. Without either, output goes
-to `<exeDir>/results`.
-
-To write a macro without memorising commands, use the
-[macro builder](https://rtonneau.github.io/dnachem-min/explorer/#builder).
+</details>
 
 ## Chemistry
 
@@ -381,8 +427,9 @@ Default edges: 1, 10, 100, 1000, 10000, 100000, 999999 ps. Example:
 ```
 
 The default is `Error`. Use `Info` or `Debug` for progress and diagnostics.
+## Development
 
-## Testing
+### Testing
 
 Unit tests (`test/*Test.cc`, plain `assert` + CTest) are built and run from
 the Debug test tree (`build-ninja/` on Windows, `build-debug/` on Linux, see
@@ -391,7 +438,7 @@ the Debug test tree (`build-ninja/` on Windows, `build-debug/` on Linux, see
 `docs-checks` workflow validates the architecture explorer and the macro-builder
 model (there is no Geant4 build in CI).
 
-## Repository layout
+### Repository layout
 
 | Path | Content |
 |---|---|
@@ -399,7 +446,7 @@ model (there is no Geant4 build in CI).
 | `src/`, `header/` | code in clusters: `core/`, `actions/`, `geometry/`, `physics/`, `chemistry/` (+ `chemistry/catalog/` for Chemistries), `scoring/`; includes rooted at `header/` |
 | `macro/` | example and study macros |
 | `test/` | unit tests (no Geant4 kernel) |
-| `docs/explorer/` | architecture explorer and macro builder |
+| `docs/explorer/` | architecture explorer and macro builder ([online](https://rtonneau.github.io/dnachem-min/explorer/)) |
 | `docs/recipes/` | how-to guides for recurring development tasks |
 | `docs/adr/` | architecture decision records |
 | `docs/output/` | output layouts and formats |
