@@ -2,6 +2,16 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org/).
 
+## 1.3.0 (2026-11-05)
+
+- Add seeded demonstration macros and setup instructions for notebook analysis, including mesoscopic spatial output.
+- Add an executed vertical-slice notebook for inspecting physical interactions, pre-chemical records, particle-stage species and reactions, and mesoscopic counts from configurable dumps.
+- Document regenerated Geant4 patch-03 data, the GEANT4 Python environment, normalization checks, and notebook reproduction steps.
+- Add a G4Utils work report documenting notebook-driven discovery, reader, and G-value improvements.
+- Linux: building with HDF5 (`DNACHEM_WITH_HDF5=ON`, or `AUTO` when HDF5 is found) no longer fails at configure with `No target "hdf5::hdf5-shared"`; distro HDF5 found by CMake's FindHDF5 is now supported.
+- README: corrected Linux build, run and test commands (separate Debug tree for the tests), package list and a WSL note.
+- Fix Serial and MT running different chemistry with `/chem/env/scavenger O2` under IRT_syn: on MT workers, `O2` produced by two tracked molecules stayed tracked instead of joining the bulk pool. `Species.*` now has no `O_2^0` row in either mode, and MT results with O2 set change statistically. SBS and pure water keep the row.
+
 ## 1.2.0 (2026-11-03)
 
 - Add a `Farokhi2023` chemistry (`/chem/select Farokhi2023`) reproducing the FLASH oxygen-depletion radiolysis network of Farokhi et al. 2023 (Radiat. Phys. Chem. 212, 111184).
