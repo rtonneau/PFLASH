@@ -16,7 +16,7 @@ physics, chemistry and scoring for conventional-dose-rate (CDR) studies.
   <a href="https://github.com/rtonneau/dnachem-min/tags"><img alt="Release" src="https://img.shields.io/github/v/tag/rtonneau/dnachem-min?sort=semver&label=release"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"></a>
   <br>
-  <a href="https://geant4.web.cern.ch/"><img alt="Geant4-DNA 11.4.1" src="https://img.shields.io/badge/Geant4--DNA-11.4.1-1f6feb"></a>
+  <a href="https://geant4.web.cern.ch/"><img alt="Geant4-DNA 11.4.3" src="https://img.shields.io/badge/Geant4--DNA-11.4.3-1f6feb"></a>
   <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white">
   <img alt="CMake 3.16+" src="https://img.shields.io/badge/CMake-3.16%2B-064F8C?logo=cmake&logoColor=white">
   <img alt="HDF5 C++" src="https://img.shields.io/badge/HDF5-C%2B%2B-2e6db4">
@@ -55,7 +55,7 @@ homogeneous water box (no voxelization).
 
 ## Requirements
 
-- Geant4 with DNA models (verified with 11.4.1; older versions are not verified)
+- Geant4 with DNA models (verified with 11.4.3; older versions are not verified)
 - CMake 3.16+
 - A C++20 compiler (verified with MSVC on Windows; GCC 13.3 on Linux, Ubuntu 24.04 with Geant4 11.4.3; clang not verified)
 - HDF5 with C++ support, optional: needed only for the `h5` output format
@@ -86,7 +86,7 @@ with HDF5 analysis support
 fully HDF5-free build also needs a Geant4 built without HDF5
 (`GEANT4_USE_HDF5=OFF`, the Geant4 default).
 
-### Windows (verified: Windows 11, MSVC, Geant4 11.4.1, vcpkg HDF5 1.14.6)
+### Windows (verified: Windows 11, MSVC, Geant4 11.4.3, vcpkg HDF5 1.14.6)
 
 No build setup? A prebuilt `dnachem-min-win64.zip` (`sim.exe`, the HDF5 DLLs and
 `macro/`) is attached to each [GitHub Release](https://github.com/rtonneau/dnachem-min/releases/latest).
@@ -102,8 +102,8 @@ libraries, multithreading and the datasets, for example (from the
 *x64 Native Tools Command Prompt*, paths to adapt):
 
 ```bat
-cmake -S geant4-v11.4.1 -B geant4-build -G Ninja -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX=C:/path/to/geant4-v11.4.1-install ^
+cmake -S geant4-v11.4.3 -B geant4-build -G Ninja -DCMAKE_BUILD_TYPE=Release ^
+      -DCMAKE_INSTALL_PREFIX=C:/path/to/geant4-v11.4.3-install ^
       -DGEANT4_BUILD_MULTITHREADED=ON -DGEANT4_INSTALL_DATA=ON
 cmake --build geant4-build
 cmake --install geant4-build
@@ -139,13 +139,13 @@ Then, from the repository root (`[-DDNACHEM_WITH_HDF5=OFF|ON]` is optional):
 ```powershell
 # run tree
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-      -DGeant4_DIR=C:/path/to/geant4-v11.4.1-install/lib/cmake/Geant4 `
+      -DGeant4_DIR=C:/path/to/geant4-v11.4.3-install/lib/cmake/Geant4 `
       -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build --target sim
 
 # test tree
 cmake -S . -B build-ninja -G Ninja -DCMAKE_BUILD_TYPE=Debug `
-      -DGeant4_DIR=C:/path/to/geant4-v11.4.1-install/lib/cmake/Geant4 `
+      -DGeant4_DIR=C:/path/to/geant4-v11.4.3-install/lib/cmake/Geant4 `
       -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build build-ninja
 ```
@@ -154,7 +154,7 @@ cmake --build build-ninja
 (and Qt's, if Geant4 uses Qt) on `PATH`:
 
 ```powershell
-$env:PATH = "C:/path/to/geant4-v11.4.1-install/bin;$env:PATH"
+$env:PATH = "C:/path/to/geant4-v11.4.3-install/bin;$env:PATH"
 cd build
 .\sim.exe example_irt.in
 ```

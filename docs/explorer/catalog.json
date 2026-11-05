@@ -1,10 +1,10 @@
 {
  "generatedBy": "docs/explorer/export-catalog.js",
- "geant4Version": "11.4.1",
+ "geant4Version": "11.4.3",
  "chemistries": {
   "PureWater": {
    "timeStepModel": "IRT_syn",
-   "geant4Version": "11.4.1",
+   "geant4Version": "11.4.3",
    "molecules": [
     {
      "name": "H",
@@ -1639,7 +1639,7 @@
   },
   "BoscoloChem": {
    "timeStepModel": "IRT_syn",
-   "geant4Version": "11.4.1",
+   "geant4Version": "11.4.3",
    "molecules": [
     {
      "name": "H",
@@ -2550,7 +2550,7 @@
   },
   "Tonneau2025": {
    "timeStepModel": "IRT_syn",
-   "geant4Version": "11.4.1",
+   "geant4Version": "11.4.3",
    "molecules": [
     {
      "name": "H",
@@ -4458,7 +4458,7 @@
   },
   "Farokhi2023": {
    "timeStepModel": "IRT_syn",
-   "geant4Version": "11.4.1",
+   "geant4Version": "11.4.3",
    "molecules": [
     {
      "name": "H",
