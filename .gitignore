@@ -1,12 +1,10 @@
 
 **/build/
 /build-ninja/*
-!/build-ninja/update-compile-cmd.ps1
 compile_commands.json
 .vscode/
 # Prerequisites
 *.d
-hook-posttooluse.log
 
 # Compiled Object files
 *.slo
@@ -47,19 +45,12 @@ hook-posttooluse.log
 # debug information files
 *.dwo
 
-# Ignore everything in build-ninja
-/build-ninja/**
-
-# But keep this one file tracked
-!/build-ninja/update-compile-cmd.ps1
-
 /.scratch/**
 .scratch/
 
 # Claude Code: per-machine and generated files (see dotfiles/scripts/init-claude-project.ps1)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
-.claude/hooks/*.log
 
 # Python bytecode (analysis scripts)
 __pycache__/

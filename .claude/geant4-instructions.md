@@ -157,6 +157,7 @@ try {
 ## 6. Housekeeping
 
 - Build dirs are git-ignored; do not commit smoke output.
-- A post-edit hook may re-run configure in `build.compileCommands.dir` to
-  refresh `compile_commands.json` after each C++ edit; clangd diagnostics can
-  lag one edit behind (stale "undeclared identifier" right after a header edit).
+- clangd reads `compile_commands.json` from `build.compileCommands.dir`
+  (`.clangd`); CMake exports it and every configure/build of that dir
+  refreshes it. A new source file is unknown to clangd until the next
+  configure there.

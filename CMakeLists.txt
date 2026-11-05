@@ -6,6 +6,9 @@ project(Simulation)
 
 set(CMAKE_CXX_STANDARD 20)
 
+# compile_commands.json for clangd (read from build-ninja/, see .clangd)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Look for geant4 paths (normaly sets by sourcing: ~/software/geant4/geant4-v*.*.*-install/share/Geant4/geant4make/geant4make.sh
 find_package(Geant4 REQUIRED ui_all vis_all)
 

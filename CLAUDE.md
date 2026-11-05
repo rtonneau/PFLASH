@@ -10,7 +10,7 @@ The geometry is one homogeneous water box. Do not introduce voxelization or G4Vo
 
 ## Build and Run
 
-Requirements: Geant4 with DNA models (verified here with 11.4.1; older versions are not verified), CMake 3.16+, a C++20 compiler, and HDF5 with C++ support (optional: `-DDNACHEM_WITH_HDF5=AUTO|ON|OFF`, default AUTO; needed only for `SpeciesMesoSpatial.h5`).
+Requirements: Geant4 with DNA models (verified here with 11.4.3; older versions are not verified), CMake 3.16+, a C++20 compiler, and HDF5 with C++ support (optional: `-DDNACHEM_WITH_HDF5=AUTO|ON|OFF`, default AUTO; needed only for `SpeciesMesoSpatial.h5`).
 
 How to build, run and test (MSVC environment, the `build/` vs `build-ninja/` split, background runs, verification checklist) is in `.claude/geant4-instructions.md`; the values it uses are the `build`, `run` and `test` sections of `.claude/.claude-project.json`. Follow it instead of re-deriving the procedure.
 
