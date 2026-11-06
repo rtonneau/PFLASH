@@ -57,3 +57,7 @@ __pycache__/
 
 # Jupyter autosave checkpoints
 .ipynb_checkpoints/
+
+# Local agent workflow state and usage reports
+/.work/
+/report

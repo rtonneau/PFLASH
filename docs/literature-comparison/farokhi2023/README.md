@@ -205,6 +205,6 @@ was last generated; rerun the script once it finishes to pick it up.
   of whatever the paper's own figures already carry.
 
 This directory supersedes the earlier session-local indicative check for Farokhi2023
-(`.work/sessions/2026-10-09__farokhi2023-flash-oxygen-depletion-chemistry-layout-90-mev/analysis/`),
+(archived in the dnachem-min seed history),
 which used smaller smoke-test runs (20/50 events, 3-4 points/decade) without SEM or a
 statistics check.
