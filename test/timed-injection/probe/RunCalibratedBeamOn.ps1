@@ -23,28 +23,8 @@ $env:PATH="$InstallPrefix/bin;$env:DEV_DIR/vcpkg/installed/x64-windows/bin;$env:
 . "$PSScriptRoot/CalibratedLedger.ps1"
 # Reserve observed historical numeric tokens, including intentionally paired reuse,
 # once per seed value. Keep every source hash so this conservative inventory is reproducible.
-$oldRoots=@(Get-ChildItem "$repo/.scratch/tests" -Directory | Where-Object {$_.Name -ne '2026-11-08__beam-on-fresh-source-calibration'})
-function Get-PriorEvidence($directory){
- # Prune runtime/source/build trees before recursion; those are not evidence.
- if((Test-Path "$directory/CMakeCache.txt") -or (Test-Path "$directory/lib/cmake/Geant4") -or (Test-Path "$directory/source/processes") -or ([IO.Path]::GetFileName($directory) -in '.git','CMakeFiles','vcpkg_installed')){return}
- foreach($item in Get-ChildItem -LiteralPath $directory){
-  if($item.PSIsContainer){Get-PriorEvidence $item.FullName}
-  elseif($item.Extension -in '.args','.history','.calibration' -or $item.Name -in 'histories.csv','runs.csv','results.csv' -or $item.Name -match '^(protocol-at-run|seed|capture-ledger)'){$item}
- }
-}
-$priorFiles=@($oldRoots | ForEach-Object {Get-PriorEvidence $_.FullName})
-$controls="$repo/.scratch/tests/2026-11-08__beam-on-fresh-source-calibration/03-native-controls"
-if(Test-Path $controls){$priorFiles+=@(Get-ChildItem $controls -File | Where-Object {$_.Extension -in '.args','.history'})}
-# A separately authorized later study must reserve this session's earlier
-# assignments too, including attempted and never-executed slots. The active
-# output has no registry yet and must never inventory itself.
-$sessionRoot=Split-Path -Parent $controls
-foreach($earlier in Get-ChildItem -LiteralPath $sessionRoot -Directory){
- if($earlier.FullName -ne $OutDir -and (Test-Path -LiteralPath "$($earlier.FullName)/streams.tsv")){
-  $priorFiles+=@(Get-Item -LiteralPath "$($earlier.FullName)/streams.tsv")
-  $priorFiles+=@(Get-PriorEvidence $earlier.FullName)
- }
-}
+. "$PSScriptRoot/CalibratedPriorEvidence.ps1"
+$priorFiles=@(Get-CalibratedPriorEvidence -Root "$repo/.scratch/tests" -ActiveOutput $OutDir)
 $priorFiles=@($priorFiles | Sort-Object FullName -Unique)
 if(!$priorFiles.Count){throw 'Missing prior seed evidence.'}
 $priorFiles | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/prior-input-hashes.csv" -NoTypeInformation
