@@ -56,9 +56,23 @@ foreach($file in $priorFiles){
 @($reserved | Sort-Object) | Set-Content "$OutDir/prior-seeds.txt"
 & $checker plan $OutDir "$OutDir/prior-seeds.txt" | Set-Content "$OutDir/plan.log"
 if($LASTEXITCODE -ne 0){throw 'Manifest freeze failed.'}
+# Fail closed before any scientific launch: verify the actual frozen registry.
+$freshStreams=@(Import-Csv "$OutDir/streams.tsv" -Delimiter "`t")
+$freshSeeds=[Collections.Generic.HashSet[long]]::new()
+foreach($stream in $freshStreams){
+ $seed=[long]$stream.seed
+ if($reserved.Contains($seed) -or !$freshSeeds.Add($seed)){throw 'Frozen seed registry overlaps prior assignments or itself.'}
+}
+if($freshSeeds.Count -ne 14594){throw 'Unexpected frozen stream count.'}
+foreach($seed in 900000001L..900000006L){
+ if(!$reserved.Contains($seed) -or $freshSeeds.Contains($seed)){throw 'Control seed reservation failed.'}
+}
+$declaration=Get-Item "$repo/.claude/plans/beam-on-fresh-source-calibration-new-study.md"
+Copy-Item -LiteralPath $declaration.FullName -Destination "$OutDir/new-study-declaration.md"
 Copy-Item "$PSScriptRoot/CalibratedBeamOnProtocol.md" "$OutDir/protocol-at-run.md"
 $inputs=@($exePaths | Get-Item)+@(Get-ChildItem "$InstallPrefix/bin/G4*.dll")+@(Get-ChildItem "$PSScriptRoot/*" -File | Where-Object {$_.Extension -in '.cc','.hh','.ps1','.in','.md' -or $_.Name -eq 'CMakeLists.txt'})
 $inputs+=@(Get-ChildItem "$repo/src","$repo/header" -Recurse -File)+@(Get-Item "$repo/.claude/.claude-project.json","$repo/test/molecular-finder/JobLauncher.cc")
+$inputs+=@($declaration)
 $inputs | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/hashes-before.csv" -NoTypeInformation
 New-Item -ItemType Directory "$OutDir/input-bytes" | Out-Null
 $snapshotRows=[Collections.Generic.List[object]]::new(); $inputIndex=0
@@ -68,6 +82,7 @@ foreach($inputFile in $inputs){
 }
 $snapshotRows | Export-Csv "$OutDir/input-snapshots.csv" -NoTypeInformation
 $frozen=@(Get-Item "$OutDir/streams.tsv","$OutDir/prior-seeds.txt","$OutDir/prior-input-hashes.csv","$OutDir/protocol-at-run.md")
+$frozen+=@(Get-Item "$OutDir/new-study-declaration.md")
 foreach($condition in 'water','oxygen'){$frozen+=@(Get-Item "$OutDir/$condition/planned-ledger.txt","$OutDir/$condition/captures.tsv","$OutDir/$condition/pairs.tsv","$OutDir/$condition/paired-index.txt","$OutDir/$condition/capture-index.txt","$OutDir/$condition/analysis-input.txt")}
 $frozen | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/manifest-hashes.csv" -NoTypeInformation
 $state=@{Root=$OutDir;Install=$InstallPrefix;Clock=[Diagnostics.Stopwatch]::new();Counts=@{capture=0;history=0;schedule=0;analysis=0};Jobs=[ordered]@{};Failures=@{};Stopped=$false;StopReason=''}
