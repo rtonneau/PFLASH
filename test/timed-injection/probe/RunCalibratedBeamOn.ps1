@@ -34,6 +34,17 @@ function Get-PriorEvidence($directory){
 $priorFiles=@($oldRoots | ForEach-Object {Get-PriorEvidence $_.FullName})
 $controls="$repo/.scratch/tests/2026-11-08__beam-on-fresh-source-calibration/03-native-controls"
 if(Test-Path $controls){$priorFiles+=@(Get-ChildItem $controls -File | Where-Object {$_.Extension -in '.args','.history'})}
+# A separately authorized later study must reserve this session's earlier
+# assignments too, including attempted and never-executed slots. The active
+# output has no registry yet and must never inventory itself.
+$sessionRoot=Split-Path -Parent $controls
+foreach($earlier in Get-ChildItem -LiteralPath $sessionRoot -Directory){
+ if($earlier.FullName -ne $OutDir -and (Test-Path -LiteralPath "$($earlier.FullName)/streams.tsv")){
+  $priorFiles+=@(Get-Item -LiteralPath "$($earlier.FullName)/streams.tsv")
+  $priorFiles+=@(Get-PriorEvidence $earlier.FullName)
+ }
+}
+$priorFiles=@($priorFiles | Sort-Object FullName -Unique)
 if(!$priorFiles.Count){throw 'Missing prior seed evidence.'}
 $priorFiles | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/prior-input-hashes.csv" -NoTypeInformation
 $reserved=[Collections.Generic.HashSet[long]]::new()

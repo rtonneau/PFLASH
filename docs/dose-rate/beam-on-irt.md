@@ -215,3 +215,98 @@ seeds in the protocol, and each capture records its own physical, source and
 chemistry seeds. Capture banks are local ignored evidence and depend on the
 exact project-source fingerprint and macro identity; do not substitute a
 different geometry, environment or source-version bank.
+
+## Ticket04 bounded execution — interrupted, 2026-11-08
+
+The single authorized study was launched from baseline
+`2c3c7ed696820345b86cf19b0655d8e2bdb185b5`, but was stopped after an operator
+preflight output-isolation error was discovered. It is an incomplete, invalid
+execution for acceptance; no replacement study was started. This is not a
+four-hour deadline result. Parent review is required before any separately
+authorized future study.
+
+Evidence root: `.scratch/tests/2026-11-08__beam-on-fresh-source-calibration`.
+Fresh `04-preflight` process logs passed three native process/provenance audits
+and `TestCalibratedBeamOn.ps1` Debug checks printed
+`CALIBRATED_BEAM_ON_CHECKS_PASS`. However, slash-sensitive string replacement in
+the operator's control command failed to redirect packet/history arguments:
+those outputs were written into `03-native-controls`. Earlier control outputs
+were therefore overwritten; they must not be represented as immutable original
+evidence. Fresh `.args` files expose the error. No production code was changed.
+Inventoried files match recorded hashes; this does not establish absence of intervening writes or unlisted changes.
+
+Actual study command (paths relative to the repository):
+
+```powershell
+./test/timed-injection/probe/RunCalibratedBeamOn.ps1 `
+ -BuildDir .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/03-probe-release `
+ -FinderBuildDir .scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/finder-probe `
+ -InstallPrefix .scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install `
+ -OutDir .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/04-study
+```
+
+Study start was `2026-11-08T14:57:33.4856071Z`; the original deadline was
+`2026-11-08T18:57:33.4856071Z`. Operator interruption occurred before the
+14:58:35Z post-stop analysis. Raw `processes.csv` preserves 12 accepted capture
+jobs, one attempted but not runner-adjudicated capture, and 5367 unexecuted
+jobs. These include reserved fresh slots and analysis jobs, not 5367 missing
+observations. All 13 physical outputs are retained. The final attempt's native
+process audit passes, but it is excluded from accepted statistics because
+runner reconciliation did not finish. No retries, schedules or chemistry
+histories occurred. Water holdout and all oxygen captures remain unexecuted.
+No full ensemble or zero-retention population claim follows from these survivors.
+
+Original post-stop analyzer files are retained in each condition's
+`analysis.summary.tsv`; both report `complete=0`, `propagation_supported=0`.
+The 12 accepted water captures give descriptive mean 0.0008840510571 MeV,
+SD 0.0008963804524, SE 0.0002587627477, zero count 0 and relative t half-width
+64.423%. This is not the fixed-1024 precision test: that target was not evaluated.
+Holdout comparisons, conditional chemistry intervals, combined calibration design
+sensitivity, ESS and overflow-support acceptance are unavailable. No biological,
+full-dose or equivalence conclusion is supported.
+
+`04-audit` contains separate identities/process audits and independent hash,
+seed, energy and state checks. No activations or paired schedules exist to audit.
+`04-preflight/hashes.csv`, study `hashes-before.csv`, `manifest-hashes.csv`,
+`input-snapshots.csv` and `input-bytes/` preserve exact hashes and input bytes;
+`protocol-at-run.md` is the untouched protocol snapshot. Core SHA256 remains
+`11AD89C931010589B56F32277CE0885397689E1BBF8C682FBFA2BBBD81BD574B`.
+The nine changed private source paths matched both pristine and patched hashes
+in the retained provenance record (`04-preflight/source-check.txt`).
+`04-audit/archive-manifest.csv` inventories ignored ticket04 outputs for archival.
+The interrupted runner did not produce its normal final status/hash files;
+independent post-stop hash comparisons are explicitly separate evidence.
+
+The independent incident review found byte-identical 04-preflight and
+03-native-controls argument files. Exactly these five paths under
+`.scratch/tests/2026-11-08__beam-on-fresh-source-calibration/03-native-controls/`
+were rewritten: `control-capture.packet`, `control-capture.energy`,
+`control-capture.chemistry`, `control-100.history`, and
+`control-1000.history`. No pre-overwrite hashes were found. Identical seeds
+do not certify original bytes; those original bytes remain uncertain.
+The inventories cover 39 preflight, 242 input, 16 manifest, 651 prior and
+3997 archive files, with 242 input snapshots. Inventoried files match recorded
+hashes, with no claim of exhaustive absence of writes.
+
+Prevention is available as the read-only planning interface below:
+```powershell
+. ./test/timed-injection/probe/CalibratedPreflight.ps1
+$plan = New-CalibratedPreflightPlan -ControlDir "$task/new-controls" -Macro ./test/timed-injection/probe/MesoFixture4um.in
+$plan | ConvertTo-Json -Depth 6
+Assert-PreflightDestinations $plan.ControlDir $plan.Destinations
+```
+This plans all three native argument arrays plus packet, energy, chemistry,
+history, process sidecars, audit, schedule and manifest destinations before
+any creation. It rejects existing destinations, duplicates, escaping paths
+and existing reparse-point ancestors, and requires a new control directory.
+No serialized previous arguments are accepted. A future authorized caller
+must consume these exact Jobs.Arguments arrays and destinations, revalidate
+immediately before creation, and retain exclusive ownership of the directory.
+Validation is read-only, not an atomic filesystem reservation against other
+writers. Manifest/schedule contents and runtime provenance still require
+the established controls; this helper launches nothing.
+
+The existing runner rejects an existing OutDir and has no resume mode.
+The original absolute deadline 2026-11-08T18:57:33.4856071Z cannot reset.
+Any new study requires separate authorization and declaration. Ticket04
+and the full study remain incomplete; no scientific inference follows.

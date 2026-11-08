@@ -40,3 +40,7 @@ Before sampling, freeze a tracked protocol, exact seed manifest, executable/sour
 4. Bounded execution, independent evidence/code review, documentation and local commit.
 
 
+
+## Execution status — 2026-11-08
+Ticket04 launched once and was interrupted for an operator preflight path-isolation error after 12 accepted water captures and one unadjudicated attempt. No replacement or extension. Both conditions are incomplete; all comparison and propagation claims are withheld. See docs/dose-rate/beam-on-irt.md for evidence and incident details. Parent review and acceptance remain outstanding.
+
