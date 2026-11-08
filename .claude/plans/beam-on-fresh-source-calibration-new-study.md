@@ -14,3 +14,15 @@ Freeze declaration, protocol, source/binary/runtime hashes, complete seed manife
 
 User explicitly authorized this separately declared fresh study and its additional fixed budget on 2026-11-08, with delegated execution and local reporting. No push or PR; all original evidence remains preserved.
 
+
+## Authorized 05-study terminal outcome — 2026-11-08
+
+Launched exactly once at 2026-11-08T20:09:40.6845574Z with the approved new budget. Runner exited 1 after 109.2153426 seconds: RunCalibratedBeamOn.ps1 line 95, Move-Item replacing processes.csv reported "Cannot create a file when that file already exists." No retry, replacement, source modification or further sampling followed. The monitoring reader accessed processes.csv during execution; whether file sharing caused the replacement failure is unresolved. The finally block persisted status and after-hashes. Its empty stop_reason is not a success indication: the uncaught exception is the terminal cause.
+
+65 accepted water calibration captures completed, including one complete zero deposit. The runner counted 66 attempts: slot water-capture65 was marked attempted before Save failed, has no native log/meta/energy output, and its capture audit rejected missing evidence. Thus 65 actual native captures, one rejected prelaunch slot, 4542 registry-unexecuted capture slots; zero censored native processes. All 512 histories, 256 schedules and four in-run analysis jobs remained unexecuted. Water holdout and all oxygen samples are absent. No paired schedules or activations exist to audit. No truncated output was accepted.
+
+Accepted water deposits sum to 0.056599893557760204 MeV; descriptive mean 0.00087076759319631124 MeV. The incomplete calibration (65/1024) cannot satisfy the fixed-design precision target; no successful-subset confidence claim is made. Both post-analysis runs exited 2 with complete=0 and propagation_supported=0. Conditional sampling intervals and calibration design-sensitivity intervals are both withheld. No complete-ensemble or biological conclusion follows.
+
+Evidence root: .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/. Original 05-study evidence and driver logs are preserved; post-analysis operates on a separate full copy in 05-audit/post-analysis, preserving initial files. Both identity audits passed; all 65 completed process/module re-audits passed; every deposited-energy ledger balances to 0.5 MeV within 1e-8. All inventoried frozen and prior-input hashes match, 14594 stream seeds are unique and overlap with the entire 04-study assignment registry is zero. All 04 evidence remains excluded. See 05-audit/audit-summary.json, hash-verification.csv, energy-audit.csv, process-reaudit.csv and archive-manifest.csv. Archive enumeration excludes its own output. No remaining native worker was observed after termination.
+
+READY for parent independent result/incident review only. Ticket04 acceptance remains with the parent. The original 04 incident and historical authorization narrative below/above remain preserved. This separate 05 software failure does not authorize a new run or clock.

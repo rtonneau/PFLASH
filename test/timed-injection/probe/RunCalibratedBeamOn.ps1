@@ -20,6 +20,7 @@ foreach($exe in $exePaths){if(!(Test-Path $exe)){throw "Missing executable $exe"
 New-Item -ItemType Directory $OutDir | Out-Null; $OutDir=(Resolve-Path $OutDir).Path
 $env:PATH="$InstallPrefix/bin;$env:DEV_DIR/vcpkg/installed/x64-windows/bin;$env:PATH"
 . "$PSScriptRoot/CalibratedProcess.ps1"
+. "$PSScriptRoot/CalibratedLedger.ps1"
 # Reserve observed historical numeric tokens, including intentionally paired reuse,
 # once per seed value. Keep every source hash so this conservative inventory is reproducible.
 $oldRoots=@(Get-ChildItem "$repo/.scratch/tests" -Directory | Where-Object {$_.Name -ne '2026-11-08__beam-on-fresh-source-calibration'})
@@ -92,7 +93,7 @@ foreach($condition in 'water','oxygen'){
  for($r=0;$r -lt 128;$r++){Add-Job "$condition/pair$r-schedule" 'schedule';foreach($rate in 100,1000){Add-Job "$condition/pair$r-$rate" 'history'}}
  Add-Job "$condition/calibration-analysis" 'analysis';Add-Job "$condition/final-analysis" 'analysis'
 }
-$state.Save={ $state.Jobs.Values | Export-Csv "$OutDir/processes.csv.next" -NoTypeInformation; Move-Item -LiteralPath "$OutDir/processes.csv.next" -Destination "$OutDir/processes.csv" -Force }.GetNewClosure()
+$saveLedger=${function:Save-CalibratedLedger}; $state.Save={ & $saveLedger $state }.GetNewClosure()
 $state.Launch={param($seconds,$stem,$exe,$arguments) & $launcher 512 ($seconds.ToString('R',$culture)) $stem $exe @arguments; return $LASTEXITCODE}.GetNewClosure()
 $state.Audit={param($stem,$marker,$install) & $checker process $stem $marker $install > "$stem.audit.log" 2>&1; return $LASTEXITCODE}.GetNewClosure()
 & $state.Save
@@ -104,7 +105,7 @@ function Capture-One($condition,$row,$macro){
  } finally {
   # Reconcile even when launch or process audit throws after persisting an attempt.
   # The native audit retains incomplete evidence as a rejection, without retrying.
- if($state.Jobs[$name].status -ne 'unexecuted'){
+ if($state.Jobs[$name].status -notlike 'unexecuted*'){
   & $checker capture "$OutDir/$condition" $row.id $InstallPrefix > "$prefix.capture-audit.log" 2>&1
   if($LASTEXITCODE -ne 0){
    if($state.Jobs[$name].status -eq 'accepted'){
@@ -157,15 +158,24 @@ try {
   }
   [void](Invoke-CalibratedProcess $state "$condition/final-analysis" 'analysis' "$BuildDir/AnalyzeCalibratedBeamOn.exe" @($dir))
  }
-} finally {
- & $state.Save
- $inputs | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/hashes-after.csv" -NoTypeInformation
- $frozen | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/manifest-hashes-after.csv" -NoTypeInformation
- @("elapsed_seconds $($state.Clock.Elapsed.TotalSeconds)","stop_reason $($state.StopReason)","physical_attempts $($state.Counts.capture)","chemistry_histories $($state.Counts.history)","schedule_jobs $($state.Counts.schedule)") | Set-Content "$OutDir/study-status.txt"
- foreach($condition in 'water','oxygen'){& $checker identities "$OutDir/$condition" > "$OutDir/$condition/identity-audit.log" 2>&1;if($LASTEXITCODE -ne 0){$state.StopReason='manifest identity audit failed'}}
- if((Compare-Object (Import-Csv "$OutDir/hashes-before.csv") (Import-Csv "$OutDir/hashes-after.csv") -Property Path,Hash) -or (Compare-Object (Import-Csv "$OutDir/manifest-hashes.csv") (Import-Csv "$OutDir/manifest-hashes-after.csv") -Property Path,Hash)){throw 'Frozen inputs changed during study.'}
-}
 if($state.StopReason){throw $state.StopReason}
 if($state.Clock.Elapsed.TotalSeconds -ge 14400){throw 'Study wall-clock ceiling reached; unfinished work remains unexecuted.'}
 if($state.Jobs['water/final-analysis'].status -ne 'accepted' -or $state.Jobs['oxygen/final-analysis'].status -ne 'accepted'){throw 'Incomplete or unsupported comparison; inspect retained evidence.'}
+} catch {
+ $state.StopReason=if($state.StopReason){"$($state.StopReason) | $($_.ToString())"}else{$_.ToString()}; throw
+} finally {
+ try { & $state.Save } catch { $state.StopReason += " | terminal ledger: $($_.ToString())"; Write-Warning $state.StopReason }
+ try {
+ $inputs | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/hashes-after.csv" -NoTypeInformation
+ $frozen | Get-FileHash | Select-Object Path,Hash | Export-Csv "$OutDir/manifest-hashes-after.csv" -NoTypeInformation
+ foreach($condition in 'water','oxygen'){& $checker identities "$OutDir/$condition" > "$OutDir/$condition/identity-audit.log" 2>&1;if($LASTEXITCODE -ne 0){$state.StopReason += ' | manifest identity audit failed'}}
+ if((Compare-Object (Import-Csv "$OutDir/hashes-before.csv") (Import-Csv "$OutDir/hashes-after.csv") -Property Path,Hash) -or (Compare-Object (Import-Csv "$OutDir/manifest-hashes.csv") (Import-Csv "$OutDir/manifest-hashes-after.csv") -Property Path,Hash)){throw 'Frozen inputs changed during study.'}
+ } catch {
+  $state.StopReason += " | terminal reporting: $($_.ToString())"; throw
+ } finally {
+ @("elapsed_seconds $($state.Clock.Elapsed.TotalSeconds)","stop_reason $($state.StopReason)","physical_attempts $($state.Counts.capture)","chemistry_histories $($state.Counts.history)","schedule_jobs $($state.Counts.schedule)") | Set-Content "$OutDir/study-status.txt"
+ }
+}
+
+if($state.StopReason){throw $state.StopReason}
 Write-Output 'CALIBRATED_BEAM_ON_COMPLETE'

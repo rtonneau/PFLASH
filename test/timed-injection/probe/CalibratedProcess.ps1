@@ -9,9 +9,23 @@ function Invoke-CalibratedProcess {
  if($State.Counts[$Kind] -ge $caps[$Kind]) { throw "Process budget exceeded: $Kind" }
  $deadline=[math]::Min(60.0,[double]$remaining)
  $row.status='attempted'; $row.deadlineSeconds=$deadline; $row.startedSeconds=$State.Clock.Elapsed.TotalSeconds
- $State.Counts[$Kind]++; & $State.Save
+ try { & $State.Save } catch {
+  $row.status='unexecuted_persistence_failure'
+  $State.Stopped=$true; $State.StopReason="No native launch for ${Name}: $($_.ToString())"
+  throw
+ }
  $stem=Join-Path $State.Root $Name
- $Arguments | Set-Content "$stem.args"
+ try { $Arguments | Set-Content "$stem.args" -ErrorAction Stop } catch {
+  $row.status='unexecuted_argument_failure'
+  $State.Stopped=$true; $State.StopReason="No native launch for ${Name}: argument persistence failed: $($_.ToString())"
+  try { & $State.Save } catch { $State.StopReason += " | ledger: $($_.ToString())" }
+  throw
+ }
+ # Ledger and argument persistence consume the same wall-clock budget.
+ $remaining=14400-$State.Clock.Elapsed.TotalSeconds
+ if($remaining -le 0){$row.status='unexecuted_deadline'; & $State.Save; return $false}
+ $deadline=[math]::Min($deadline,$remaining)
+ $State.Counts[$Kind]++
  $launchExit=& $State.Launch $deadline $stem $Exe $Arguments
  Set-Content "$stem.launcher-exit" $launchExit
  $row.launcherExit=$launchExit
@@ -35,4 +49,3 @@ function Invoke-CalibratedProcess {
  & $State.Save
  return $row.status -eq 'accepted'
 }
-
