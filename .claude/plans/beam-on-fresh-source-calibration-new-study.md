@@ -1,4 +1,4 @@
-# Proposed fresh calibration study — awaiting user authorization
+# Authorized fresh calibration study
 
 The interrupted 04-study and rewritten-control incident remain preserved and excluded from this new study. This is a separately declared experiment, not a resumed clock or replacement of individual failed attempts.
 
@@ -12,4 +12,5 @@ The runner now inventories earlier same-session streams.tsv registries as prior 
 
 Freeze declaration, protocol, source/binary/runtime hashes, complete seed manifest and expected outputs before scientific launch. Reuse the reviewed private runtime only after provenance checks. Use explicit bounded commands and preserve every result. After completion/deadline, audit and report calibration/holdout and paired uncertainty where supported; no complete-ensemble inference from survivors. Obtain independent result review before local delivery. No push or PR.
 
-Authorization needed: one separately declared fresh study with the additional budget above. Until approved, no new physics or chemistry runs.
+User explicitly authorized this separately declared fresh study and its additional fixed budget on 2026-11-08, with delegated execution and local reporting. No push or PR; all original evidence remains preserved.
+
