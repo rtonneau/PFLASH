@@ -1,0 +1,90 @@
+diff --git a/source/processes/electromagnetic/dna/models/src/G4DNAIndependentReactionTimeStepper.cc b/source/processes/electromagnetic/dna/models/src/G4DNAIndependentReactionTimeStepper.cc
+index 3f3a914..9ec22d2 100644
+--- a/source/processes/electromagnetic/dna/models/src/G4DNAIndependentReactionTimeStepper.cc
++++ b/source/processes/electromagnetic/dna/models/src/G4DNAIndependentReactionTimeStepper.cc
+@@ -44,6 +44,47 @@
+ using namespace std;
+ using namespace CLHEP;
+ 
++#include <map>
++#include <set>
++#include <cmath>
++namespace {
++thread_local std::map<G4int, G4double> sourceActivations;
++
++G4bool IsFreshSource(const G4Track& track)
++{
++  const auto now = G4Scheduler::Instance()->GetGlobalTime();
++  auto found = sourceActivations.find(track.GetTrackID());
++  if(found != sourceActivations.end()) return found->second == now;
++  G4int first=0, second=0;
++  GetIT(const_cast<G4Track*>(&track))->GetParentID(first, second);
++  for(const auto parent : {track.GetParentID(), first, second}) {
++    found = sourceActivations.find(parent);
++    if(parent != 0 && found != sourceActivations.end() && found->second == now) {
++      sourceActivations.emplace(track.GetTrackID(), now);
++      return true;
++    }
++  }
++  return false;
++}
++G4bool IsSourceContact(const G4Track& first, const G4Track& second)
++{
++  if(sourceActivations.empty()) return false;
++  const auto freshFirst=IsFreshSource(first), freshSecond=IsFreshSource(second);
++  if(!freshFirst && !freshSecond) return false;
++  return true;
++}
++}
++void G4DNAIndependentReactionTimeStepper::ResetSourceActivations()
++{
++  sourceActivations.clear();
++
++}
++void G4DNAIndependentReactionTimeStepper::RegisterSourceActivation(G4int trackID, G4double time)
++{
++  if(trackID == 0 || time < 0 || !std::isfinite(time) || !sourceActivations.emplace(trackID,time).second)
++    G4Exception("RegisterSourceActivation", "InvalidSourceActivation", FatalErrorInArgument,
++                "Source identity/time invalid or duplicate");
++}
+ G4DNAIndependentReactionTimeStepper::Utils::Utils(const G4Track& trackA, const G4Track& trackB)
+   : fpTrackA(const_cast<G4Track*>(&trackA)), fpTrackB(const_cast<G4Track*>(&trackB))
+ {
+@@ -166,7 +207,7 @@ G4double G4DNAIndependentReactionTimeStepper::CalculateStep(const G4Track& track
+       G4double distance = (trackA.GetPosition() - pTrackB->GetPosition()).mag();
+       if (distance * distance < Reff * Reff) {
+         auto reactionData = fMolecularReactionTable->GetReactionData(pMolConfA, pMolConfB);
+-        if (G4Scheduler::Instance()->GetGlobalTime() == G4Scheduler::Instance()->GetStartTime()) {
++        if ((G4Scheduler::Instance()->GetGlobalTime() == G4Scheduler::Instance()->GetStartTime() || IsSourceContact(trackA, *pTrackB))) {
+           if (reactionData->GetProbability() > G4UniformRand()) {
+             fSampledMinTimeStep = 0.;
+           }
+@@ -430,4 +471,7 @@ const G4ITReaction* G4DNAIndependentReactionTimeStepper::GetNextReaction()
+     output = (reaction_i->get());
+   }
+   return output;
+-}
+\ No newline at end of file
++}
++
++
++
+diff --git a/source/processes/electromagnetic/dna/models/include/G4DNAIndependentReactionTimeStepper.hh b/source/processes/electromagnetic/dna/models/include/G4DNAIndependentReactionTimeStepper.hh
+index 899b6ff..360d716 100644
+--- a/source/processes/electromagnetic/dna/models/include/G4DNAIndependentReactionTimeStepper.hh
++++ b/source/processes/electromagnetic/dna/models/include/G4DNAIndependentReactionTimeStepper.hh
+@@ -59,6 +59,9 @@ class G4DNAIndependentReactionTimeStepper : public G4VITTimeStepComputer
+   G4DNAIndependentReactionTimeStepper& operator =(
+     const G4DNAIndependentReactionTimeStepper&) = delete;
+ 
++  // Experimental per-thread source registration; reset between complete histories.
++  static void ResetSourceActivations();
++  static void RegisterSourceActivation(G4int trackID, G4double activationTime);
+   void Prepare() override;
+   G4double CalculateStep(const G4Track&, const G4double&) override;
+   G4double CalculateMinTimeStep(G4double, G4double) override;
+@@ -109,3 +112,4 @@ class G4DNAIndependentReactionTimeStepper : public G4VITTimeStepComputer
+   };
+ };
+ #endif
++
