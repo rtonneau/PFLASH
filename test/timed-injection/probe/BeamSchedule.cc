@@ -1,5 +1,6 @@
 #include "BeamSchedule.hh"
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 namespace BeamSchedule
 {
@@ -30,6 +31,13 @@ double Dose(double energyMeV, double massKg)
 std::vector<Arrival> Sample(double rate, double duration, std::size_t librarySize,
                             std::mt19937_64 &arrivals, std::mt19937_64 &selection)
 {
+  return SampleBounded(rate, duration, librarySize, arrivals, selection,
+                       std::numeric_limits<std::size_t>::max());
+}
+std::vector<Arrival> SampleBounded(double rate, double duration, std::size_t librarySize,
+                                   std::mt19937_64 &arrivals, std::mt19937_64 &selection,
+                                   std::size_t maximum)
+{
   Positive(rate);
   Positive(duration);
   if (!librarySize)
@@ -46,6 +54,8 @@ std::vector<Arrival> Sample(double rate, double duration, std::size_t librarySiz
     if (next <= t)
       throw std::runtime_error("unresolvable arrival time");
     t = next;
+    if (result.size() == maximum)
+      throw std::runtime_error("source cap exceeded; history censored");
     result.push_back({t, choose(selection)});
   }
   return result;

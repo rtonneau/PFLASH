@@ -32,6 +32,7 @@ struct Ancestry
 };
 std::map<int, Ancestry> ancestry;
 int crossReactions = 0;
+double lastCrossReactionTime = -1;
 int overlappingReactions = 0;
 std::map<const G4Track*, Ancestry> pendingAncestry;
 Ancestry MergeAncestry(Ancestry a, Ancestry b) { return {a.mask | b.mask, std::max(a.activation,b.activation)}; }
@@ -125,6 +126,7 @@ public:
       if (aa->second.mask && bb->second.mask && !(aa->second.mask & bb->second.mask))
       {
         ++crossReactions;
+        lastCrossReactionTime = G4Scheduler::Instance()->GetGlobalTime();
         if (descendant && G4Scheduler::Instance()->GetGlobalTime() == std::max(aa->second.activation,bb->second.activation)) {
           ++descendantCrossReactions;
           std::cout << "DESCENDANT_REACTION " << G4Scheduler::Instance()->GetGlobalTime()/ps
@@ -186,7 +188,7 @@ int main(int argc, char **argv)
     checkBulk = fixture == "bulk";
     checkScore = fixture == "two";
     if (fixture != "simultaneous" && fixture != "delayed" && fixture != "shifted" && fixture != "newold" && fixture != "interrupted" && fixture != "empty" && fixture != "union" &&
-        fixture != "nonreacting" && fixture != "bulk" && fixture != "two" && fixture != "nearend" && fixture != "descendant")
+        fixture != "nonreacting" && fixture != "bulk" && fixture != "two" && fixture != "nearend" && fixture != "descendant" && fixture != "coincident")
       throw std::runtime_error("unknown fixture");
     std::unique_ptr<G4RunManager> manager(
         G4RunManagerFactory::CreateRunManager(G4RunManagerType::Serial));
@@ -209,7 +211,7 @@ int main(int argc, char **argv)
     const std::string species = fixture == "nonreacting" || fixture == "bulk" ? "O2" : "e_aq";
     if (fixture != "empty") {
       Add(species, fixture == "newold" ? 1*ps : activation, {0, 0, 0}, 1000002, 1);
-      Add(species, activation, {0.01 * nm, 0, 0}, 1000003, fixture == "union" ? 1 : 2);
+      Add(species, activation, {fixture == "coincident" ? 0. : 0.01 * nm, 0, 0}, 1000003, fixture == "union" ? 1 : 2);
     }
     if (fixture == "interrupted" || fixture == "descendant") {
       const G4MolecularConfiguration* hole = nullptr;
@@ -272,6 +274,10 @@ int main(int argc, char **argv)
     else if (fixture == "descendant") {
       if (crossReactions < 1) throw std::runtime_error("primary contact lost in descendant fixture");
       std::cout << "DESCENDANT_CROSS " << descendantCrossReactions << '\n';
+    }
+    else if (fixture == "coincident") {
+      if (crossReactions != 1 || lastCrossReactionTime != 10*ps)
+        throw std::runtime_error("coincident distinct sources did not react at activation");
     }
     else if (crossReactions != 1)
       throw std::runtime_error("contact pair failed to react across packets");

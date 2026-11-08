@@ -113,10 +113,13 @@ int main()
     // Predeclared 6-sigma bounds, 100000 fixed-window histories, expected count 8.
     std::mt19937_64 arrivals(1729), selection(2917);
     double sum = 0, sum2 = 0, waitSum = 0;
+    int emptyCount = 0, noArrivalBeforeHalf = 0;
     int waits = 0;
     for (int i = 0; i < 100000; ++i)
     {
       auto a = BeamSchedule::Sample(8, 1, 4, arrivals, selection);
+      if (a.empty()) ++emptyCount;
+      if (a.empty() || a.front().time >= .5) ++noArrivalBeforeHalf;
       double n = double(a.size());
       sum += n;
       sum2 += n * n;
@@ -126,6 +129,10 @@ int main()
     double mean = sum / 100000, variance = sum2 / 100000 - mean * mean;
     Check(std::abs(mean - 8) < 6 * std::sqrt(8. / 100000));
     Check(std::abs(variance - 8) < 6 * std::sqrt((8. + 128.) / 100000));
+    const double emptyProbability = std::exp(-8.);
+    const double halfSurvival = std::exp(-4.);
+    Check(std::abs(emptyCount / 100000. - emptyProbability) < 6 * std::sqrt(emptyProbability * (1 - emptyProbability) / 100000));
+    Check(std::abs(noArrivalBeforeHalf / 100000. - halfSurvival) < 6 * std::sqrt(halfSurvival * (1 - halfSurvival) / 100000));
     std::exponential_distribution<double> exponential(8);
     for (int i = 0; i < 100000; ++i)
       waitSum += exponential(arrivals);

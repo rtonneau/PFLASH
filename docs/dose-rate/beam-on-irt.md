@@ -1,0 +1,217 @@
+# Bounded beam-on IRT_syn reference
+
+This is an isolated **beam-on feasibility reference**, not production
+integration. At baseline `7b5b2bd1fff0698c7a4daf9905bcaf1e110b192c`, a
+private Geant4 11.4.3 runtime combines the molecular-finder correction, native
+source-contact activation and reflecting-boundary changes. A single native
+IRT_syn history receives all scheduled sources and evolves their molecules
+together. The tested regime is a 4 µm water cube, 500 keV electron precursor
+packets, 0.002 Gy nominal dose and at most eight source arrivals per history.
+It supports an exploratory bounded implementation GO for that regime. It does
+not establish the cost or accuracy of a 0.5 mm, up-to-10 Gy irradiation,
+production streaming, or any mesoscopic tail.
+
+## Source and observation contract
+
+`BeamSchedule` uses `lambda = doseRate * mass / (meanEdep * 1.602176634e-13)`
+with MeV and kilograms, and samples exponential waits in a fixed, half-open
+exposure window. Whole packet selection has its own random engine, separate
+from arrivals and Geant4 chemistry. The source count is Poisson; the run does
+not stop at a prescribed count or delivered dose. A ninth arrival is a censored
+history, not a resampled one. Energy is booked at the primary arrival; each
+precursor activates at that arrival plus its recorded 1 ps age. Consequently,
+valid primaries just before beam end can activate after beam end. Native
+observation is at exposure end + 2 ps, after these activations.
+
+The driver preconstructs future source tracks into Geant4 delayed lists, with
+distinct track IDs and source ancestry, and runs **one** particle scheduler.
+Counter registration occurs at the observed activation; expected and observed
+times, packet energy, actual dose and bulk counts are recorded. The actual
+bulk material stays in the native history. Engineered depletion and native
+contact tests exercise continuity. The bulk accessor reports Geant4's tracked
+scavenger counts; its special water value is not a physical water inventory.
+The end observation checks eligible live species against the native molecule
+counter. Empty histories retain zero population and their unchanged oxygen
+pool. The job peak includes preloaded future input as well as live chemistry;
+it is not a measurement of live chemistry alone or evidence for lazy streaming.
+
+## Results and interpretation
+
+The predeclared [protocol](../../test/timed-injection/probe/BeamOnProtocol.md)
+uses 1, 10, 100 and 1,000 Gy/s at the same nominal dose. Its empirical-bank
+experiment uses four disjoint physical-packet clusters per oxygen condition,
+two source/chemistry replicas per cluster and common random streams across
+rates. All **64** histories passed. Rates have identical realized source
+counts and energies within each paired realization, with fluctuating counts
+and actual dose across realizations. Packet selection with replacement can
+reuse an exact physical track at the same position within a history; prior
+diagnostics show that this can bias inter-track chemistry. These 64 histories
+are therefore finite-bank mechanism/reference results, not unbiased beam
+estimates.
+
+At 1 and 1,000 Gy/s, the oxygen-free empirical-bank mean final aqueous-electron
+counts were 4.5 and 25.125 per history, respectively; their paired difference
+was 20.625 with an exploratory t(3) interval of [8.76, 32.49] across four
+physical clusters. This is a result for the stated delivery and observation
+protocol, including its finite bank, changing exposure duration and molecular
+ages. It does **not** identify the portion caused by inter-track interactions;
+matched single-track controls would be needed for that attribution. The
+reported intervals do not include finite-library bias or calibration error.
+
+The additional fresh-per-arrival control used four independent Poisson source
+realizations per oxygen condition at 100 and 1,000 Gy/s. Each of the ten
+captured packets was used once within its realization, with the same fresh
+realization paired across rates. All **16** histories and all captures passed;
+two oxygenated realizations had no arrivals. Mean actual doses were 0.001881 Gy
+for water and 0.000682 Gy for oxygenated water, paired identically across rates.
+For water, the 1,000-minus-100 Gy/s paired final aqueous-electron count was
+1.0 per history, t(3) interval [-2.44, 4.44]; the hydroxyl-radical difference
+was 2.0, interval [-5.23, 9.23]. In oxygenated water the corresponding
+hydroxyl-radical difference was -0.5, interval [-1.42, 0.42], and actual
+oxygen-pool change differed by 0.5 molecules, interval [-0.42, 1.42]. These
+are raw counts per history, not G values. No disjoint-source reactions were
+observed in these 16 fresh histories; zero observed does not prove their
+absence at other doses or rates. Four realizations give weak precision and do
+not justify equivalence or a biological-effect claim.
+
+For the fresh control, the fixed 4 µm calibration banks had mean deposits
+0.000458386 MeV (SE 0.0000856205, 16 water packets) and 0.000556468 MeV
+(SE 0.000166950, eight oxygenated packets), with mass `6.4e-14 kg`. The
+relative standard errors are approximately 18.7% and 30.0%; they are not
+included in the intervals above. The source means used for calibration were
+fixed before fresh captures. In a fresh run the history driver's `mode fixed`
+and zero `rate_s_inv` denote the externally generated schedule; the separately
+recorded `.calibration` and schedule logs carry the actual Poisson calibration.
+The history's packet mean describes those fresh inputs and is not used to
+recalibrate their arrivals.
+
+All **18** compressed 2/4/8-source cost controls used distinct original
+packets and passed; their short separations are mechanism stresses, not
+physical-rate predictions. Their maximum job-reported private peaks were
+12,992,512 / 13,631,488 / 16,773,120 bytes for water and 13,029,376 /
+13,594,624 / 16,728,064 bytes for oxygen, respectively. Full process wall-time
+ranges were 0.219–0.267 / 0.225–0.253 / 0.293–0.302 seconds for water and
+0.215–0.226 / 0.212–0.233 / 0.278–0.290 seconds for oxygen. The largest
+fresh-control process, including physical capture, peaked at 54,009,856 bytes
+and took 8.84 s. These tiny fixtures do not establish a scaling law. Sixteen
+fixed two-source controls with distinct captures and illustrative 1 and 10 µs
+gaps also passed; they are fixed-count checks rather than Poisson evidence.
+The history files' `init_seconds` ends before staging future tracks and
+`chemistry_seconds` begins after staging. Their sum omits that staging work;
+the wall times and peaks above cover the complete Job Object process.
+
+## Validation and provenance
+
+The composed runtime passed 55 capped finder, native coincidence,
+recombination and retained-guard cases. It also passed 36 native source
+controls, including depleted-bulk continuity and delayed zero-distance
+contacts between distinct source IDs, plus the reflecting-boundary unit and
+16 native boundary-activity processes covering all axes, sides and transport
+and dissociation modes. Thirteen capped driver checks covered empty, single,
+simultaneous, close, delayed and post-beam activations, explicit malformed,
+incompatible and excluded-activation rejection, and source RNG invariance.
+The two pure packet/schedule CTests passed. All native processes ran serially;
+the finder suite used its stricter 256 MiB / 5 s cap, and the remaining
+histories used 512 MiB committed-private memory / 60 s, with a 3 GiB free
+system-memory floor. No final control or protocol history hit a cap. Loaded
+Geant4 DLL paths and before/after hashes were checked. A separate ledger
+audit verified all 114 protocol histories, activation IDs/times, dose sums,
+source bounds, paired schedules and no within-history fresh-packet reuse. Its
+negative controls rejected missing activations, altered energy, future
+arrivals, missing registrations and a truncated ledger.
+
+The installed and built private `G4processes_core.dll` SHA-256 is
+`11AD89C931010589B56F32277CE0885397689E1BBF8C682FBFA2BBBD81BD574B`.
+All 17,644 private source files were compared with the configured pristine
+tree: exactly the nine files owned by the three patches differed. An
+independent reconstruction from pristine bytes matched all nine. Protected
+shared source/install and patch hashes showed no drift. The first composition
+attempt silently skipped the `diff --git` source-contact patch because the
+copied source was still nested inside the parent Git worktree. Its build
+failed the native activation API compile; the incomplete core
+`56000465FAA6EAEA09E7E53A6DD10CFC9764C2886A0118507DA942F7DE932267`,
+logs and seven-file comparison are preserved in `pre-source-contact-build`.
+A scratch-private Git boundary, verbose patch checks and the nine-file
+reconstruction resolved this; the earlier core is not the validated runtime.
+The original finder-only, timed-injection and rejected copied-adapter evidence
+was not overwritten or counted as acceptance for the composed runtime.
+
+All raw local evidence is under
+`.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso`: `finder-validation`,
+`runtime-validation`, `beam-checks`, `fresh-protocol`, `empirical-protocol`,
+`protocol-audit.json`, source comparisons and build logs. These ignored files
+must be archived for independent reproduction. The fresh run used the exact
+protocol bytes preserved in `fresh-protocol/protocol-at-run.md`; a later prose
+clarification about interpreting delivery-rate comparisons changed no numeric
+settings and is reflected in the tracked protocol and empirical run.
+
+## Reproduction
+
+Independent code and scientific review identified one analysis omission:
+paired contrasts originally enumerated only species present at the higher
+rate. Both analyzers now use the union of both arms, with absent species
+counted as zero, and require both arms to be complete. A synthetic regression
+checks baseline-only and comparison-only species, including the paired means
+and t3 intervals. It failed before the correction and passed afterward.
+Reanalysis preserved every original history and summary: corrected files are
+`fresh-protocol/analysis-review-v3.txt` and
+`empirical-protocol/analysis-review-v2.txt`. Fresh results are unchanged;
+the empirical summary gains four previously omitted contrasts. All previously
+reported numerical contrasts remain unchanged.
+
+Run the analysis regression with a new output directory:
+
+```powershell
+./test/timed-injection/probe/TestBeamOnAnalysis.ps1 -OutDir "$task/recheck-analysis"
+```
+
+Resolve the configured source, install and vcpkg paths through
+`.claude/.claude-project.json` and `~/.claude/CONFIG_RESOLUTION.md`. Start from
+a new private copy of the configured source, excluding `.git`. Initialise a
+Git boundary **inside that copy**, then apply in order
+`patches/geant4/11.4.3/molecular-finder/coincident-neighbors.patch`,
+`patches/geant4/11.4.3/timed-injection/source-contacts-experimental.patch`,
+and `patches/geant4/11.4.3/timed-injection/meso-boundaries-experimental.patch`
+with `git -C <private-source> -c core.autocrlf=false apply --verbose`. Confirm
+all nine paths were actually applied and independently compare the resulting
+bytes with pristine-plus-patches; exit status alone was insufficient here.
+
+The local exact capped build commands are preserved in the evidence directory
+as `Build.cmd` and `BuildProbesV3.cmd`, and job metadata in
+`kernel-build-v4-contact.meta` and `probes-build-v3.meta`. They use MSVC x64,
+Release/Ninja, four workers, the configured vcpkg toolchain, system zlib and
+HDF5, and no Geant4 data download. The build/install job uses a 4 GiB
+per-process / one-hour cap. Compile the existing `test/molecular-finder/JobLauncher.cc`
+with `psapi.lib` to provide that Job Object launcher. Configure the probe with
+`PROBE_PRIVATE_ACTIVATION=ON`, `PROBE_MESO_EXPERIMENT=ON` and
+`PROBE_MESO_PRIVATE_BIN=<private-install>/bin`, and build only
+`BeamOnHistory`, `InjectionReference`, `FiniteScheduleTest`, `TrackPacketTest`,
+`MesoBoundaryTest`, `MesoBoundaryIntegration`, `FreshSchedule` and
+`TrackCapture4um`. The `PROBE_MESO_EXPERIMENT` option supplies existing 4 µm
+capture and reflecting sources; unrelated mesoscopic targets require other
+instrumentation and were not built or claimed. Do not enable `PROBE_G4_SOURCE`:
+that selects the previously rejected copied-adapter diagnostic.
+
+With `$task` the new scratch root, `$prior` the retained
+`.scratch/tests/2026-11-06__timed-track-injection-dose-rate-feasibility/08-meso`
+and the private bin plus vcpkg bin first on `PATH`, run:
+
+```powershell
+ctest --test-dir "$task/probe" -R '^(FiniteScheduleTest|PacketAndSource)$' --output-on-failure --no-tests=error
+./test/molecular-finder/Validate.ps1 -BuildDir "$task/finder-probe" -InstallPrefix "$task/install" -OutDir "$task/recheck-finder"
+./test/timed-injection/probe/ValidateBeamOnRuntime.ps1 -BuildDir "$task/probe" -FinderBuildDir "$task/finder-probe" -InstallPrefix "$task/install" -OutDir "$task/recheck-runtime"
+./test/timed-injection/probe/CheckBeamOn.ps1 -Exe "$task/probe/BeamOnHistory.exe" -Launcher "$task/finder-probe/JobLauncher.exe" -InstallPrefix "$task/install" -Library "$prior/library4um-16" -OutDir "$task/recheck-schedules"
+./test/timed-injection/probe/RunFreshBeamOn.ps1 -BuildDir "$task/probe" -FinderBuildDir "$task/finder-probe" -InstallPrefix "$task/install" -WaterLibrary "$prior/library4um-16" -OxygenLibrary "$prior/library4um-oxygen-8" -OutDir "$task/recheck-fresh"
+./test/timed-injection/probe/RunBeamOn.ps1 -BuildDir "$task/probe" -FinderBuildDir "$task/finder-probe" -InstallPrefix "$task/install" -WaterLibrary "$prior/library4um-16" -OxygenLibrary "$prior/library4um-oxygen-8" -OutDir "$task/recheck-empirical"
+./test/timed-injection/probe/AnalyzeFreshBeamOn.ps1 -EvidenceDir "$task/recheck-fresh"
+./test/timed-injection/probe/AnalyzeBeamOn.ps1 -EvidenceDir "$task/recheck-empirical"
+```
+
+Each runner refuses to overwrite an existing evidence directory. Inspect all
+individual `.meta`, `.log`, `.err`, `.modules`, `.args`, source ledgers and
+hashes, including any failed or censored run; a launcher exit by itself is
+not a successful history. The fresh schedules use the fixed calibration and
+seeds in the protocol, and each capture records its own physical, source and
+chemistry seeds. Capture banks are local ignored evidence and depend on the
+exact project-source fingerprint and macro identity; do not substitute a
+different geometry, environment or source-version bank.
