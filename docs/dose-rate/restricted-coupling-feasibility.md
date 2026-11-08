@@ -1,0 +1,86 @@
+# Restricted spatial coupling: admission-gate NO-GO
+
+This new investigation rejects **the proposed conservative accelerated regime**, not every possible hybrid method. It implements and validates a small native-particle admission diagnostic, not a particle/mesh solver. No nonzero transfer passed an error certificate. The measured geometric retention is 99.74–100% at the tested settings; no useful reduction was demonstrated. Actual chemical spatial convergence, handover convergence and particle/mesh interface bias remain **untested**, not passed. Consequently there is no supported coupling GO, even for the small packet regime below. Native fallback remains usable for these bounded experiments.
+
+The whole-state reconstruction candidate remains rejected. Its count and clock checks cannot restore the near-contact information it loses. The completed molecular-finder correction fixes a separate degenerate-neighbor defect, but does not validate coupling. This experiment uses the existing private native source-contact/reflecting runtime; it neither merges the finder patch into it nor changes any shared Geant4 files. No production integration, full-dose run, old checkpoint work, PR or push is included.
+
+## Proposed restricted method
+
+Maintain one shared native particle state for connected unions of active regions, including all unresolved precursors and pre-reserved neighborhoods of every known future source. Overlapping regions merge by ownership of the same particles, not by independently evolving source tracks and merging their products. Exact positions and configurations survive throughout this period. A proposed cell transfer requires all of:
+
+1. No unresolved dissociation/recombination precursor, pending delayed track, or source activation inside its protected space-time neighborhood.
+2. A bound on reactions lost by removing its positional detail, including reactions with nearby active particles, products of those reactions, and diffusion across the interface.
+3. A common bulk reservoir with reaction-consistent accounting and invalidation of every affected particle/mesh propensity after depletion or production.
+4. Explicit evidence that remaining within-cell correlations can be discarded at the intended observation times.
+
+Age alone and a diffusion length compared with cell size establish none of these. Empty cells may be mesoscopic without discarding molecules; that trivial case provides no chemistry acceleration evidence. All other transfers are vetoed here.
+
+For **arrivals into a mesoscopic region**, resampling positions is forbidden. A known schedule must reserve the affected neighborhood before its first transfer, enlarge/merge reservations as required, and retain all potentially interacting old particles. An unanticipated arrival invalidates that history before coarse transfer; a future implementation could replay from retained particle history, but no checkpoint/replay implementation is proposed. Arbitrary continuing irradiation therefore lies outside this restricted design.
+
+For **precursor maturation**, native at-rest chemistry acts in the same shared particle state as old reactants. A configuration/status test is necessary but not sufficient for transfer: a stable radical may still have strong spatial correlations. The source captures at 1 ps omit any earlier inter-track chemistry; this remains an independent validity limitation.
+
+For **ordering**, primary-arrival energy is booked at 0 and 1.5 ps, separately from precursor activation at 1 and 2.5 ps. The native NewStage diagnostic registers sources before its activation snapshot; that snapshot is **before** ensuing native contact/at-rest processing, not a chemically relaxed right-limit observation. Endpoint snapshots at 50/100/150 ps are taken at EndProcessing before native cleanup. A future mixed scheduler must give observations explicit before/after-activation labels, process same-time source batches consistently, and never obtain source ordering by independent per-track evolution.
+
+## Why the admission condition is difficult
+
+The configured Geant4 11.4.3 `.cc` sources were read directly. `G4DiffusionControlledReactionModel::GetTimeToEncounter` uses the absorbing-sphere probability and inverse complementary error function. For an isolated diffusion-controlled pair in unbounded space, separation r greater than radius a, the finite-horizon encounter probability is
+
+`P(hit by T) = (a/r) erfc((r-a)/sqrt(4(Da+Db)T))`.
+
+It is strictly positive for finite separation and positive diffusivity/time. For an initially contact-reactive pair the initialized native probability can be one. This explains why an exact zero-error certificate cannot be inferred from a finite geometric cutoff. The expression is not a certified bound for a reacting network in reflecting geometry: products, charge-dependent reaction details, boundary returns and a shared changing reservoir need additional treatment. Summing isolated pair probabilities alone would not establish a hybrid error budget.
+
+`G4DNAIndependentReactionTimeStepper.cc` reads actual positions and effective radii and builds molecular neighbors; the accepted private source-contact extension handles arrivals within this native process. `G4DNAEventScheduler::Voxelizing` consumes the main particle list and clears reactions; it is not a supported selective-region transfer API. `G4Scheduler::Process` ends by clearing tracks and can reset the scavenger unless disabled. The UHDR `TimeStepAction.cc` demonstrates a whole-system handover after a pulse, not simultaneous region-wise solvers. These mechanisms prevent treating a selective call to the native whole-state API as a valid implementation of this design.
+
+## Protocol fixed before comparisons
+
+The [plan](../../.claude/plans/2026-11-08-restricted-spatial-coupling.md) records the protocol and subsequent pre-comparison clarification of controls. Eight independent physical packet pairs per oxygen condition, two chemistry replicas per pair, three endpoints and three arms yield **288 complete histories**. The arms are shared old+fresh, old-only and fresh-only; singles are diagnostic controls, never the proposed evolution method. Both oxygen-free and 21% O2 fixtures use PureWater, a 4 um cube and the same reflecting post-import boundary. Endpoints are separate complete histories; no scheduler restart is inserted. Existing independent packet realizations are used once per cluster rather than resampled as a beam library. The oxygen libraries are separately captured with the same documented seed family; comparisons here do not assume oxygen-arm statistical independence or use a paired oxygen significance test.
+
+The spatial diagnostic retains any survivor with another survivor within `halo + sqrt(3)*cell/2`, for halos 20/40/80 nm and cells 20/25/50 nm. These radii are deliberately a sensitivity grid, **not scientifically derived safe distances**. All live configurations are the denominator; an empty endpoint would have an unavailable fraction and stops this analyzer rather than silently reporting zero. The mask is species-agnostic and cannot certify transfer. Minimum pair distances and raw positions are saved. There are no future arrivals after 2.5 ps in this experiment; this does not test unanticipated arrivals.
+
+Observables are OH, e_aq, H2O2, HO2, total live population, disjoint/mixed ancestry reactions, unresolved precursors, bulk O2 change, spatial-mask retained fraction, exact source/energy/mass/registration and observation budgets, and bounded process cost. Replicas are averaged inside each physical pair; descriptive t(7) 95% intervals use eight pair means. Within-pair difference SD is reported separately. These marginal intervals are exploratory and not familywise coverage or equivalence decisions. More chemistry seeds cannot eliminate spatial-library/model bias.
+
+**Acceptance margins:** source/timing/energy/registration and counter-versus-live budgets require exact equality. The controlled contact gate requires zero lost near-contact electron consumption because its native reaction probability is one; it is a mechanistic sufficiency requirement, not a biological tolerance. For chemical yield acceptance, neither the application supplies an end-use tolerance nor existing evidence maps a finite geometric cutoff to yield error. The earlier exploratory `max(5%, one molecule)` is explicitly not imported as scientific justification. No numerical nonzero chemical margin is asserted. A future restricted GO would need a specified scientific signal (for example minimum oxygen-depletion or fresh–old effect to resolve), a prespecified error allocation small enough not to change that inference, and an independent physical-packet equivalence experiment. The present NO-GO also has positive spatial/cost evidence below; it is not based only on a missing tolerance.
+
+Each history was launched suspended in a Job Object with 256 MiB committed-private-memory cap, 10 s deadline, 3 GiB free-system-memory floor, serial execution and kill-on-close. Nine additional predeclared native mechanism jobs use three seeds each for near/far contacts and engineered bulk continuity. No cap was relaxed. No full-dose extrapolation is made.
+
+## Measured results
+
+All **288/288 histories** completed and passed independent packet-count, registration, energy, mass, species-total, spatial-row and source/observation-ledger audits. Runtime final BasicCounter counts agree with live eligible species; this checks a reaction-changing population, not a false constant-molecule-count invariant. Every endpoint had zero unresolved precursors. Loaded Geant4 DLL inventories point exclusively to the private install. Before/after executable, runtime, packet and macro hashes match. An analyzer filename error was found and corrected; its failed audit is preserved, and the corrected analyzer audits all 288 histories. Separate malformed-score controls reject truncated packet rows, duplicate observations and missing activation observations with exit 2; no physics histories are rerun for these parser checks.
+
+Mean retained fractions with the smallest halo/cell setting were:
+
+| O2 setting | 50 ps | 100 ps | 150 ps |
+|---|---:|---:|---:|
+| oxygen-free | 0.997586 | 0.997441 | 0.997940 |
+| 21% | 0.997445 | 0.997889 | 0.997935 |
+
+The 80 nm halo/50 nm cell setting retained **every survivor in every shared history**. The full nine-setting grid is in the reproducible summary; monotonicity with both halo and cell size was checked. Thus these increasingly conservative regions provide virtually no particle-count reduction in these fresh packet clouds. The small discarded geometric fraction is **not** a demonstrated safe-to-transfer fraction. Later endpoints reduce total mean survivor counts from 200.5 to 194.5 without oxygen and 198.5 to 193.75 with oxygen, but they do not establish positional mixing or handover convergence.
+
+No disjoint-ancestry cross-source reactions were observed in these distinct untransformed physical pairs. This is a weak spatial-overlap regime, not evidence that cross-source effects are absent generally. Shared-minus-singles electron differences at 50/100/150 ps were respectively -0.375/-0.375/0 without oxygen and -1.1875/-1.0625/-0.3125 with oxygen. The oxygen-free 50 ps interval was [-1.594,0.844]; the oxygenated 50 ps interval was [-3.043,0.668]. These include residual stochastic sampling differences between the three native histories. At 150 ps, oxygen-free OH nonadditivity was -1.5 with interval [-6.079,3.079], and H2O2 +0.6875 with interval [-0.891,2.266]. Within-pair replica-difference SDs were 7.730 OH and 2.727 H2O2, illustrating how two chemistry replicas limit precision. None establishes chemical equivalence or a bound on coupling bias.
+
+The **positive spatial control** preserves the original old electron position, adds a fresh electron at 1.001 ps, and evolves one native system. For each seed 1729/1733/1741, the near placement ended with **zero electrons**, while a separated placement in the **same 25 nm cell** ended with **two**. Both coarse old states contain one electron in that cell and the same source schedule. Hence no count-only arrival rule can recover both initial conditions. The new study runs only native particle retention, not the rejected reconstructed arm. This is a deliberately extreme contact diagnostic, not a packet-dose result; three deterministic observed outcomes are not a population confidence certificate. Its conclusion is that the state representation lacks the required spatial distinction unless the region was reserved before transfer.
+
+The oxygenated initial bulk pool was **10,521,884 molecules**. The getter returns the floored stored population (despite its historical `PerVolumeUnit` name); output fields `bulk_before/after/change` are molecule counts, not molarity. Shared mean changes were +0.125/+0.125/+0.0625 molecules at the three endpoints. PureWater can produce bulk O2. These tiny changes do **not** demonstrate meaningful oxygen depletion. Separately, all three engineered continuity controls removed seven bulk molecules through the public API and verified unchanged depleted pool identity/count across source activation checkpoints; all passed. This verifies a bookkeeping mechanism, not coupled mesh propensity refresh or physical oxygen depletion under irradiation.
+
+The longest packet-history process was **0.372667 s**. Maximum job-reported private memory was approximately **15.85 MiB** (16,621,568 bytes), and minimum free system memory was approximately **9.78 GiB**. These include process initialization and diagnostics; they are not chemistry-only timings. All nine mechanism controls also exited zero without cap notification. No useful speedup was measured because no transfer was authorized. Dense-region particle cost and larger systems remain bounded only by rejection at the cap, not by an extrapolated scaling law.
+
+## Decision boundary and remaining work
+
+**NO-GO for accelerating the stated 4 um, two-packet, 50–150 ps regime with this admission rule.** Nearly all particles remain in geometric active regions, positive native contacts require subcell information, and no nonzero error certificate justifies transferring the remainder. This does not reject the bounded native particle reference or prove that a later, source-free matured handover can never work.
+
+The requested chemical spatial/handover convergence, model-bias separation through an actual nonzero-transfer comparison, oxygen-depletion convergence, and concurrent interface validation were not reached. Reporting a zero-transfer path as an equivalent hybrid would hide this failure. New implementation should start only after a nontrivial transfer condition and scientific error budget are defensible; it would require selective ownership/flux semantics rather than the native whole-state transfer call. An exact trajectory match is unnecessary for eventual scientific acceptance; exact source/timing/energy/population audits remain mandatory.
+
+## Reproduction and provenance
+
+Tracked code is `test/timed-injection/probe/RetentionGate.cc`, `AnalyzeRetentionGate.cc`, `RunRetentionGate.ps1` and the isolated probe CMake targets. Configure a **new** build of that probe against the already accepted private source-contact/reflecting install, with `PROBE_PRIVATE_ACTIVATION=ON`, `PROBE_MESO_EXPERIMENT=ON`, and without `PROBE_G4_SOURCE`; build only `RetentionGate` and `AnalyzeRetentionGate`. Resolve machine paths from project config/environment and use the documented MSVC x64 setup. Do not modify the shared Geant4 install or the old evidence.
+
+```powershell
+./test/timed-injection/probe/RunRetentionGate.ps1 -BuildDir <new-build> `
+  -PrivateInstall <private-install> -LibraryRoot <old-08-meso-root> `
+  -JobLauncher <capped-JobLauncher.exe> -OutDir <new-empty-output>
+<new-build>/AnalyzeRetentionGate.exe <new-output> <old-08-meso-root>
+```
+
+`LibraryRoot` contains `library4um-16` and `library4um-oxygen-8`; only pairs 0..7 are used, chemistry seed `91001+101*pair+1009*replica`. The complete native control commands are `MesoOverlapStress <MesoFixture4um.in> particle near|far <seed>` and `InjectionReference <BulkControl.in> bulk <seed> patched`, each through `JobLauncher 256 10 <fresh-prefix> ...` for seeds 1729/1733/1741. Their tracked sources and existing isolated binaries are unchanged.
+
+Raw evidence is in `.scratch/tests/2026-11-08__restricted-spatial-coupling` (the folder deliberately lacks the GPS session's `-feasibility` suffix): `ensemble/`, `controls/`, `summary.csv`, `audit.txt`, build logs and provenance CSVs. Initial manifests cover executable/runtime/packets/macros and `RetentionGate.cc`; `source-provenance-postbuild.csv` supplements complete probe/project/generated source hashes **after build**, not a contemporaneous complete source manifest. Mechanism-control executable hashes are separately recorded after execution. Raw scratch is ignored and must be archived for independent replication; the code and protocol are tracked. The initial PowerShell runner syntax error happened before any history ran and was fixed. The native runtime is not represented as a newly validated combination with the separate finder patch.

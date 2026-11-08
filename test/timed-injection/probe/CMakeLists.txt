@@ -324,3 +324,13 @@ if(PROBE_MESO_EXPERIMENT)
  add_test(NAME MesoDepletedBulkContinuity COMMAND MesoBulkControl "${CMAKE_CURRENT_SOURCE_DIR}/MesoFixture4umOxygen.in")
  set_tests_properties(MesoDepletedBulkContinuity PROPERTIES LABELS injection-coupling TIMEOUT 60)
 endif()
+
+# Read-only endpoint diagnostic: no particle/mesh transfers or kernel changes.
+if(PROBE_MESO_EXPERIMENT AND PROBE_PRIVATE_ACTIVATION)
+ add_executable(RetentionGate RetentionGate.cc BeamSchedule.cc ${reflectingSources})
+ target_include_directories(RetentionGate PRIVATE "${root}/header" "${CMAKE_CURRENT_SOURCE_DIR}")
+ target_compile_definitions(RetentionGate PRIVATE PROBE_PRIVATE_ACTIVATION=1 DNACHEM_HAS_HDF5=0 PACKET_COMPATIBILITY="${fingerprint4}")
+ target_link_libraries(RetentionGate PRIVATE PacketData ${Geant4_LIBRARIES})
+endif()
+add_executable(AnalyzeRetentionGate AnalyzeRetentionGate.cc BeamSchedule.cc)
+target_link_libraries(AnalyzeRetentionGate PRIVATE PacketData)
