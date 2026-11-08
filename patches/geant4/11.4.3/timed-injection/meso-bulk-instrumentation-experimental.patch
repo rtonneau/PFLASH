@@ -1,0 +1,38 @@
+--- a/source/processes/electromagnetic/dna/models/include/G4DNAEventScheduler.hh
++++ b/source/processes/electromagnetic/dna/models/include/G4DNAEventScheduler.hh
+@@ -84,6 +84,9 @@
+   // Experimental bounded persistent-mesh interface.
+   void ProbeRefresh();
+   void ProbeAdvanceTo(G4double boundary);
++  G4double ProbeNextEventTime() const;
++  static void ProbeResetBulkRefreshCount();
++  static G4long ProbeBulkRefreshCount();
+ 
+   void AddTimeToRecord(const G4double& time);
+ 
+--- a/source/processes/electromagnetic/dna/models/src/G4DNAEventScheduler.cc
++++ b/source/processes/electromagnetic/dna/models/src/G4DNAEventScheduler.cc
+@@ -344,6 +344,14 @@
+   }
+ }
+ 
++namespace { thread_local G4long probeBulkRefreshCount = 0; }
++void G4DNAEventScheduler::ProbeResetBulkRefreshCount() { probeBulkRefreshCount = 0; }
++G4long G4DNAEventScheduler::ProbeBulkRefreshCount() { return probeBulkRefreshCount; }
++G4double G4DNAEventScheduler::ProbeNextEventTime() const
++{
++  return fpEventSet->Empty() ? DBL_MAX : (*fpEventSet->begin())->GetTime() + fStartTime;
++}
++
+ // Experimental: the caller owns source/observation ordering and mesh mutations.
+ void G4DNAEventScheduler::ProbeRefresh()
+ {
+@@ -375,7 +383,7 @@
+     Stepping();
+     fGlobalTime = fStartTime + fTimeStep;
+     // Keep native affected-cell updates unless a shared pool actually changed.
+-    if(snapshotBulk() != before) ProbeRefresh();
++    if(snapshotBulk() != before) { ++probeBulkRefreshCount; ProbeRefresh(); }
+   }
+   fGlobalTime = boundary;
+   fTimeStep = boundary - fStartTime;

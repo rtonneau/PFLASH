@@ -1,0 +1,140 @@
+--- a/source/processes/electromagnetic/dna/models/include/G4DNAEventScheduler.hh
++++ b/source/processes/electromagnetic/dna/models/include/G4DNAEventScheduler.hh
+@@ -81,6 +81,9 @@
+   void ResetInMesh();
+   void RunInMesh();
+   void Run();
++  // Experimental bounded persistent-mesh interface.
++  void ProbeRefresh();
++  void ProbeAdvanceTo(G4double boundary);
+ 
+   void AddTimeToRecord(const G4double& time);
+ 
+--- a/source/processes/electromagnetic/dna/models/src/G4DNAEventScheduler.cc
++++ b/source/processes/electromagnetic/dna/models/src/G4DNAEventScheduler.cc
+@@ -42,6 +42,7 @@
+   : fpGillespieReaction(new G4DNAGillespieDirectMethod())
+   , fpEventSet(new G4DNAEventSet())
+   , fpUpdateSystem(new G4DNAUpdateSystemModel())
++  , fLastRecoredTime(fTimeToRecord.end())
+ {}
+ 
+ [[maybe_unused]] void G4DNAEventScheduler::AddTimeToRecord(const G4double& time)
+@@ -343,6 +344,43 @@
+   }
+ }
+ 
++// Experimental: the caller owns source/observation ordering and mesh mutations.
++void G4DNAEventScheduler::ProbeRefresh()
++{
++  fpEventSet->RemoveEventSet();
++  fpGillespieReaction->SetVoxelMesh(*fpMesh);
++  fpUpdateSystem->SetMesh(fpMesh.get());
++  fpGillespieReaction->SetTimeStep(fGlobalTime - fStartTime);
++  fpGillespieReaction->CreateEvents();
++}
++
++void G4DNAEventScheduler::ProbeAdvanceTo(G4double boundary)
++{
++  if(!fInitialized || boundary < fGlobalTime)
++  {
++    G4Exception("G4DNAEventScheduler::ProbeAdvanceTo", "ProbeTimeline", FatalErrorInArgument,
++                "Uninitialized or backwards timeline");
++  }
++  fEndTime = boundary;
++  auto snapshotBulk = []() {
++    std::map<MolType, G4double> counts;
++    auto* bulk = dynamic_cast<G4DNAScavengerMaterial*>(G4Scheduler::Instance()->GetScavengerMaterial());
++    if(bulk != nullptr) for(const auto* conf : bulk->GetScavengerList())
++      counts[conf] = bulk->GetNumberMoleculePerVolumeUnitForMaterialConf(conf);
++    return counts;
++  };
++  while(!fpEventSet->Empty() && (*fpEventSet->begin())->GetTime() + fStartTime < boundary)
++  {
++    const auto before = snapshotBulk();
++    Stepping();
++    fGlobalTime = fStartTime + fTimeStep;
++    // Keep native affected-cell updates unless a shared pool actually changed.
++    if(snapshotBulk() != before) ProbeRefresh();
++  }
++  fGlobalTime = boundary;
++  fTimeStep = boundary - fStartTime;
++}
++
+ void G4DNAEventScheduler::RunInMesh()
+ {
+   if(!fInitialized)
+--- a/source/processes/electromagnetic/dna/processes/include/G4ChemReboundTransportation.hh
++++ b/source/processes/electromagnetic/dna/processes/include/G4ChemReboundTransportation.hh
+@@ -58,6 +58,8 @@
+     G4VParticleChange* AlongStepDoIt(const G4Track& track, const G4Step&) override;
+ 
+     inline void SetBoundary(const G4DNABoundingBox*);
++    static void ProbeResetBoundaryCount();
++    static G4long ProbeBoundaryCount();
+     static G4double calculateNextCoordinate(G4double nextPos, G4double high, G4double low);
+     G4double GetTimeToBoundary(const G4Track& track);
+ 
+--- a/source/processes/electromagnetic/dna/processes/src/G4ChemReboundTransportation.cc
++++ b/source/processes/electromagnetic/dna/processes/src/G4ChemReboundTransportation.cc
+@@ -297,8 +297,13 @@
+ }
+ //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+ 
++namespace { thread_local G4long probeBoundaryCount = 0; }
++void G4ChemReboundTransportation::ProbeResetBoundaryCount() { probeBoundaryCount = 0; }
++G4long G4ChemReboundTransportation::ProbeBoundaryCount() { return probeBoundaryCount; }
++
+ G4ThreeVector G4ChemReboundTransportation::BouncingAction(const G4ThreeVector& nextPosition)
+ {
++  if(!fpBoundingBox->contains(nextPosition)) ++probeBoundaryCount;
+   // from Karamitros, Mathieu et al.2020,arXiv:2006.14225 (2020)
+   // https://doi.org/10.48550/arXiv.2006.14225
+ 
+@@ -322,36 +327,16 @@
+ G4double G4ChemReboundTransportation::calculateNextCoordinate(G4double nextPos, G4double high,
+                                                               G4double low)
+ {
+-  // from Karamitros, Mathieu et al.2020,arXiv:2006.14225 (2020)
+-
+-  G4double length = high - low;
+-  if (std::abs(length) < 1e-10) {
+-    return low;
+-  }
+-
+-  G4double relativePos = std::abs(nextPos - low);
+-  if (!std::isfinite(relativePos)) {
+-    return low;  // no crash
+-  }
+-
+-  G4double n = relativePos / length;
+-  if (!std::isfinite(n)) {
+-    return low;
+-  }
+-
+-  G4double truncVal = std::floor(n);//n is already positive
+-  G4double h = truncVal;
+-  if(truncVal > 2.0){
+-    h = std::fmod(truncVal, 2.0);
+-  }
+-
+-  G4double mod = relativePos;
+-
+-  if(relativePos > length) {
+-    mod = std::fmod(relativePos, length);
+-  }
+-
+-  return low + h * length + (1 - 2 * h) * std::abs(mod);
++  const G4double length = high - low;
++  if(!std::isfinite(nextPos) || !std::isfinite(length) || length <= 0. ||
++     !std::isfinite(nextPos - low) || !std::isfinite(2. * length))
++  {
++    G4Exception("G4ChemReboundTransportation::calculateNextCoordinate", "ProbeBoundary",
++                FatalErrorInArgument, "Nonfinite coordinate or invalid boundary");
++  }
++  G4double folded = std::fmod(nextPos - low, 2. * length);
++  if(folded < 0.) folded += 2. * length;
++  return low + (folded <= length ? folded : 2. * length - folded);
+ }
+ //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+ 
