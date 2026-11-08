@@ -1,4 +1,4 @@
-# Mesoscopic recurring-source feasibility — investigation in progress
+# Mesoscopic recurring-source feasibility — completed investigation
 
 The accepted ticket-2 particle reference is the comparison baseline. This investigation does not authorize production use or a full-dose run. The experimental candidate, assumptions, fixed initial fixture, ordering and resource caps are specified in [MesoProtocol](../../test/timed-injection/probe/MesoProtocol.md).
 
