@@ -20,7 +20,8 @@ add_library(ptirtCore STATIC
   src/Ledger.cc
   src/CaptureLibrary.cc
   src/HistoryConfig.cc
-  src/ActivationObserverCheck.cc)
+  src/ActivationObserverCheck.cc
+  src/SeparatedCheck.cc)
 target_include_directories(ptirtCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(MSVC)
   target_compile_options(ptirtCore PUBLIC /W4 /utf-8)
@@ -57,10 +58,15 @@ add_executable(history
 target_include_directories(history SYSTEM PRIVATE ${Geant4_INCLUDE_DIRS})
 target_link_libraries(history PRIVATE ptirtCore ${Geant4_LIBRARIES})
 
+# ---- compare: the separated-sources check on finished histories (Geant4-free) -
+# Run by scripts/RunSeparatedCheck.ps1; the long check itself is not a ctest.
+add_executable(compare src/CompareMain.cc)
+target_link_libraries(compare PRIVATE ptirtCore)
+
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(ptirtTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest)
+foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE ptirtCore)
   add_test(NAME ${testName} COMMAND ${testName})
