@@ -1,5 +1,8 @@
 # Dose-rate investigations
 
+- [Next: reusable timed-source IRT_syn example](working-example-handoff.md) — current user priority, completed-work checkpoints, implementation reuse and practical delivery criteria.
+- [Matched intertrack result](beam-on-intertrack-result.md) — completed shared-versus-independent comparison; coupling remains unresolved in the tested regime.
+
 - [Recurring chemistry sources](recurring-chemistry-sources.md) — bounded particle reference.
 - [Mesoscopic recurring-source feasibility](mesoscopic-feasibility.md) — bounded coupling experiment, limitations and NO-GO decision.
 - [Restricted spatial coupling admission gate](restricted-coupling-feasibility.md) — native particle retention experiment, geometric sensitivity and bounded NO-GO; chemical handover convergence remains untested.
