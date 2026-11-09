@@ -11,6 +11,16 @@ It supports an exploratory bounded implementation GO for that regime. It does
 not establish the cost or accuracy of a 0.5 mm, up-to-10 Gy irradiation,
 production streaming, or any mesoscopic tail.
 
+> **Later result (2026-11-09).** The calibration-precision gap left open here
+> was addressed by one bounded fresh-source study (Study06: 1024 calibration
+> captures per condition, 128 paired fresh realizations). It completed and was
+> accepted locally, but **both 5% calibration targets were missed** (8.05% water,
+> 8.01% oxygen), so its comparisons are exploratory. Consolidated result and
+> limits: [beam-on-fresh-source-calibration.md](beam-on-fresh-source-calibration.md);
+> next session: [handoff](beam-on-fresh-source-calibration-handoff.md). The
+> Ticket04, Study05 and ledger-repair sections near the end of this page are
+> incident history and are marked superseded where their status changed.
+
 ## Source and observation contract
 
 `BeamSchedule` uses `lambda = doseRate * mass / (meanEdep * 1.602176634e-13)`
@@ -84,6 +94,13 @@ and zero `rate_s_inv` denote the externally generated schedule; the separately
 recorded `.calibration` and schedule logs carry the actual Poisson calibration.
 The history's packet mean describes those fresh inputs and is not used to
 recalibrate their arrivals.
+
+> **Context only (2026-11-09).** These four-realization intervals rest on
+> calibration banks of 16 and eight packets (relative SE about 19% and 30%). The
+> Study06 calibration (1024 captures per condition, 8% relative half-width) and
+> 128 paired realizations per condition replace them as the fresh-source
+> reference; do not pool the two. See
+> [beam-on-fresh-source-calibration.md](beam-on-fresh-source-calibration.md).
 
 All **18** compressed 2/4/8-source cost controls used distinct original
 packets and passed; their short separations are mechanism stresses, not
@@ -218,6 +235,13 @@ different geometry, environment or source-version bank.
 
 ## Ticket04 bounded execution — interrupted, 2026-11-08
 
+> **Superseded as a status (2026-11-09).** Study04 stays excluded from every
+> statistic, and the overwritten `03-native-controls` files are not immutable
+> originals. "Parent review is required before any separately authorized future
+> study" and the "Ticket04 … remain incomplete" statements below are resolved:
+> Ticket04 was completed by Study06 and accepted locally
+> ([result](beam-on-fresh-source-calibration.md)).
+
 The single authorized study was launched from baseline
 `2c3c7ed696820345b86cf19b0655d8e2bdb185b5`, but was stopped after an operator
 preflight output-isolation error was discovered. It is an incomplete, invalid
@@ -313,6 +337,11 @@ and the full study remain incomplete; no scientific inference follows.
 
 ## Authorized 05-study terminal outcome — 2026-11-08
 
+> **Superseded as a status (2026-11-09).** Study05 is closed and excluded, kept
+> here as incident history. "Ticket04 acceptance remains with the parent" was
+> resolved on the basis of Study06, not Study05
+> ([result](beam-on-fresh-source-calibration.md)).
+
 Launched exactly once at 2026-11-08T20:09:40.6845574Z with the approved new budget. Runner exited 1 after 109.2153426 seconds: RunCalibratedBeamOn.ps1 line 95, Move-Item replacing processes.csv reported "Cannot create a file when that file already exists." No retry, replacement, source modification or further sampling followed. The monitoring reader accessed processes.csv during execution; whether file sharing caused the replacement failure is unresolved. The finally block persisted status and after-hashes. Its empty stop_reason is not a success indication: the uncaught exception is the terminal cause.
 
 65 accepted water calibration captures completed, including one complete zero deposit. The runner counted 66 attempts: slot water-capture65 was marked attempted before Save failed, has no native log/meta/energy output, and its capture audit rejected missing evidence. Thus 65 actual native captures, one rejected prelaunch slot, 4542 registry-unexecuted capture slots; zero censored native processes. All 512 histories, 256 schedules and four in-run analysis jobs remained unexecuted. Water holdout and all oxygen samples are absent. No paired schedules or activations exist to audit. No truncated output was accepted.
@@ -325,6 +354,10 @@ READY for parent independent result/incident review only. Ticket04 acceptance re
 Hash verification was performed after terminal exit and before the authorized documentation updates. The live new-study declaration was subsequently appended with the terminal report; its frozen 05-study snapshot and input-bytes remain unchanged. Do not interpret that post-terminal documentation change as run-time hash drift.
 
 ### Ledger repair verification (synthetic only)
+
+> **Not scientific evidence.** The `05-ledger-*` directories used mock or
+> synthetic exits to test the repaired runner; they are excluded from Study06's
+> data. Study06 later ran the repaired runner natively.
 
 The original Move-Item -Force failure is reproduced with readers lacking FileShare.Delete (05-ledger-fix-repro/Reproduce.ps1 and RedOutput.txt). This establishes a Windows sharing failure mechanism, not the identity of the original incident's handle; monitoring attribution remains unproven. Publication now serializes a unique same-directory candidate, flushes it, and uses File.Replace (File.Move for first creation). Failed candidates remain available. Only writer sharing/lock errors 32/33 retry, bounded by 500 ms and the remaining study budget; persistence failure before launch does not count as a native attempt. No native process is retried.
 
@@ -342,6 +375,15 @@ The first full mocked driver run failed its expected totals because script-mock 
 The current full mocked driver retained CALIBRATED_DRIVER_PASS and exit 0: 5380 slots, 5360 mock launches, 5356 accepted, two failed, two censored, and 20 unexecuted; 590 concurrent snapshots had no reader failures. Small driver and argument-write/ledger fault tests also passed. Evidence: 05-ledger-full-driver-mock-exit-fixed-evidence/handoff.md and its stdout, exit codes, and source hashes. Source hashes did not drift. The mock adapter excludes native exit semantics and startup provenance from full-run coverage; only the pure planner ran natively. Scientific runs04/05 remain incomplete and unchanged. Repair acceptance awaits fresh independent review; no new study is authorized.
 
 ## Authorized study06 terminal outcome — 2026-11-08 UTC
+
+> **Status update (2026-11-09).** The line below that reads "READY for
+> independent RESULT review" is the state at the end of the run; the review
+> follows in "Independent result review and local acceptance". The accepted
+> result, tables, interval definitions, limits and handoff are consolidated in
+> [beam-on-fresh-source-calibration.md](beam-on-fresh-source-calibration.md) and
+> [the handoff](beam-on-fresh-source-calibration-handoff.md). That page also
+> records the post hoc source-count and cross-source-reaction checks that this
+> section does not contain.
 
 Study06 invoked the reviewed runner exactly once at HEAD 77f299b6c97d7fe975307e1100f9c148553947bb. Scientific start 2026-11-08T22:01:45.3126158Z; absolute deadline 2026-11-09T02:01:45.3126158Z. It exited 0 at 2026-11-08T23:33:19.9158065Z after 5494.5191028 seconds. All 2901 physical captures, 512 histories, 256 schedules and four analysis jobs were accepted. No failed/censored jobs, replacements, runner retries or clock reset; 1707 unused fresh slots remain unexecuted. One complete zero-deposit capture was retained. Both conditions completed 1024 calibration, 256 holdout and 128 fresh paired realizations.
 

@@ -1,5 +1,15 @@
 # Fresh-source calibration design — proposed for approval
 
+> **Status (2026-11-09): executed and closed.** This design ran once as Study06
+> and is accepted locally as a completed bounded execution, with both 5%
+> precision targets missed. The accepted result and its limits are in
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md);
+> the next-session starting point is
+> [the handoff](../../docs/dose-rate/beam-on-fresh-source-calibration-handoff.md).
+> The "Execution status" and Study05 sections below record earlier interim
+> states and are superseded where they differ. The text below is otherwise kept
+> as written, as the approved design record.
+
 Baseline: ffe1a57; continuation of docs/dose-rate/beam-on-irt.md.
 Scope: isolated 4 micrometre cube, 500 keV physical captures, oxygen-free and existing 21% oxygen fixtures; private validated IRT_syn runtime. No production integration, mesoscopic tail, shared Geant4 changes, push or PR.
 
@@ -42,10 +52,21 @@ Before sampling, freeze a tracked protocol, exact seed manifest, executable/sour
 
 
 ## Execution status — 2026-11-08
+> **Superseded (2026-11-09).** This is the interim state after the Study04
+> interruption; "acceptance remains outstanding" is no longer true. Ticket04 was
+> completed by the separately authorized Study06 and accepted locally; see
+> [the consolidated report](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
+> Study04 data stay excluded.
+
 Ticket04 launched once and was interrupted for an operator preflight path-isolation error after 12 accepted water captures and one unadjudicated attempt. No replacement or extension. Both conditions are incomplete; all comparison and propagation claims are withheld. See docs/dose-rate/beam-on-irt.md for evidence and incident details. Parent review and acceptance remain outstanding.
 
 
 ## Authorized 05-study terminal outcome — 2026-11-08
+> **Superseded as a status (2026-11-09).** Study05 remains closed and excluded
+> from every statistic; its outcome is kept as history. "Ticket04 acceptance
+> remains with the parent" is resolved: the parent accepted Ticket04 on the basis
+> of Study06, not Study05. See
+> [the consolidated report](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
 
 Launched exactly once at 2026-11-08T20:09:40.6845574Z with the approved new budget. Runner exited 1 after 109.2153426 seconds: RunCalibratedBeamOn.ps1 line 95, Move-Item replacing processes.csv reported "Cannot create a file when that file already exists." No retry, replacement, source modification or further sampling followed. The monitoring reader accessed processes.csv during execution; whether file sharing caused the replacement failure is unresolved. The finally block persisted status and after-hashes. Its empty stop_reason is not a success indication: the uncaught exception is the terminal cause.
 
@@ -58,6 +79,14 @@ Evidence root: .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/. Ori
 READY for parent independent result/incident review only. Ticket04 acceptance remains with the parent. The original 04 incident and historical authorization narrative below/above remain preserved. This separate 05 software failure does not authorize a new run or clock.
 
 ## Authorized study06 terminal outcome — 2026-11-08 UTC
+> **Update (2026-11-09).** The closing line "READY for independent RESULT
+> review. No ticket acceptance…" describes the state at the end of the run. Two
+> independent reviews have since found no scientific acceptance blocker and the
+> parent accepted Ticket04 as a completed bounded execution and truthful report,
+> not as achievement of the 5% precision target. The accepted result, the
+> separately hashed post-review report supplement and the remaining limits are in
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
+> No later experiment is authorized.
 
 Study06 invoked the reviewed runner exactly once at HEAD 77f299b6c97d7fe975307e1100f9c148553947bb. Scientific start 2026-11-08T22:01:45.3126158Z; absolute deadline 2026-11-09T02:01:45.3126158Z. It exited 0 at 2026-11-08T23:33:19.9158065Z after 5494.5191028 seconds. All 2901 physical captures, 512 histories, 256 schedules and four analysis jobs were accepted. No failed/censored jobs, replacements, runner retries or clock reset; 1707 unused fresh slots remain unexecuted. One complete zero-deposit capture was retained. Both conditions completed 1024 calibration, 256 holdout and 128 fresh paired realizations.
 

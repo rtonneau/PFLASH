@@ -1,5 +1,16 @@
 # Fresh-source calibration implementation plan
 
+> **Status (2026-11-09): all four tickets are accepted locally.** The checkboxes
+> below were written as planned acceptance criteria and were not ticked as work
+> proceeded; the ticket state of record is the GPS session
+> (`.work/sessions/2026-11-08__beam-on-fresh-source-calibration/`, finish-pending
+> because publication is prohibited). Ticket 04 was completed by Study06, not by
+> the interrupted Study04 or the failed Study05; both 5% precision targets were
+> missed. Result and limits:
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md);
+> next session:
+> [handoff](../../docs/dose-rate/beam-on-fresh-source-calibration-handoff.md).
+
 > For agentic workers: use superpowers:executing-plans for inline execution, or superpowers:subagent-driven-development if delegated execution is selected. Follow the four gps tickets below and their verification gates.
 
 **Goal:** Establish bounded, independently calibrated fresh-source beam-on evidence with explicit uncertainty and failure reporting.
@@ -192,6 +203,12 @@ Audit validates the ledger, including honest incomplete/censored statuses. Analy
 
 
 ## Authorized study06 terminal outcome — 2026-11-08 UTC
+> **Update (2026-11-09).** "READY for independent RESULT review. No ticket
+> acceptance…" at the end of this section is the state at the end of the run. Two
+> independent reviews found no scientific acceptance blocker and Ticket 04 was
+> accepted locally as a completed bounded execution and truthful report, not as
+> meeting the 5% target. See
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
 
 Study06 invoked the reviewed runner exactly once at HEAD 77f299b6c97d7fe975307e1100f9c148553947bb. Scientific start 2026-11-08T22:01:45.3126158Z; absolute deadline 2026-11-09T02:01:45.3126158Z. It exited 0 at 2026-11-08T23:33:19.9158065Z after 5494.5191028 seconds. All 2901 physical captures, 512 histories, 256 schedules and four analysis jobs were accepted. No failed/censored jobs, replacements, runner retries or clock reset; 1707 unused fresh slots remain unexecuted. One complete zero-deposit capture was retained. Both conditions completed 1024 calibration, 256 holdout and 128 fresh paired realizations.
 

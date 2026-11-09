@@ -1,5 +1,14 @@
 # Authorized fresh calibration study
 
+> **Status (2026-11-09): closed.** This file holds, in order, the Study05
+> authorization, the Study05 failure, the Study06 proposal, its authorization and
+> its outcome. Study06 is the accepted study; Study05 is excluded. Accepted
+> result and limits:
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md);
+> next session:
+> [handoff](../../docs/dose-rate/beam-on-fresh-source-calibration-handoff.md).
+> Status headings below that still read "proposed" or "awaiting" are superseded.
+
 The interrupted 04-study and rewritten-control incident remain preserved and excluded from this new study. This is a separately declared experiment, not a resumed clock or replacement of individual failed attempts.
 
 Use the approved scientific design in beam-on-fresh-source-calibration.md and CalibratedBeamOnProtocol.md unchanged: 1024 calibration plus 256 holdout attempts per condition, 128 independent fresh realizations per condition paired at 100/1000 Gy/s, 5% relative 95% calibration interval half-width target. Complete zero deposits remain included; truncated/failed events remain recorded without replacement.
@@ -28,6 +37,10 @@ Evidence root: .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/. Ori
 READY for parent independent result/incident review only. Ticket04 acceptance remains with the parent. The original 04 incident and historical authorization narrative below/above remain preserved. This separate 05 software failure does not authorize a new run or clock.
 
 ## Proposed study06 — awaiting separate user authorization
+> **Superseded (2026-11-09).** The user authorized this proposal (see "Study06
+> authorization" below), and it ran once to completion. The heading records the
+> state when it was written. Outcome:
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
 
 Study05 is closed and excluded. Repair commit bd612d5 has passed the full mocked driver and fresh independent review. This proposal does not authorize execution until the user explicitly approves it.
 
@@ -43,6 +56,11 @@ Scientific settings, fixed-duration Poisson sampling, independent random streams
 The user explicitly authorized study06 and delegated execution/local reporting under the proposal above. This grants one additional fixed budget of at most4608 capture attempts,512 chemistry histories and256 schedule jobs in one new four-hour window. It does not authorize another experiment after failure, replacement attempts, extensions, push or PR. All04/05 evidence remains excluded and preserved.
 
 ## Authorized study06 terminal outcome — 2026-11-08 UTC
+> **Update (2026-11-09).** "READY for independent RESULT review" at the end of
+> this section is the state at the end of the run. Two independent reviews found
+> no scientific acceptance blocker and the result was accepted locally as a
+> completed bounded execution, not as meeting the 5% target. See
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
 
 Study06 invoked the reviewed runner exactly once at HEAD 77f299b6c97d7fe975307e1100f9c148553947bb. Scientific start 2026-11-08T22:01:45.3126158Z; absolute deadline 2026-11-09T02:01:45.3126158Z. It exited 0 at 2026-11-08T23:33:19.9158065Z after 5494.5191028 seconds. All 2901 physical captures, 512 histories, 256 schedules and four analysis jobs were accepted. No failed/censored jobs, replacements, runner retries or clock reset; 1707 unused fresh slots remain unexecuted. One complete zero-deposit capture was retained. Both conditions completed 1024 calibration, 256 holdout and 128 fresh paired realizations.
 
