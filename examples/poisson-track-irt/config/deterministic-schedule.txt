@@ -1,0 +1,7 @@
+# Default deterministic schedule (read by deterministic.cfg and single.cfg):
+# three 10 keV electron tracks about 100 um apart, arriving at 0, 0.5 and 1 ms.
+# Each packet is rigidly translated by its offset; its direction is unchanged.
+# time_ns  packet_index  dx_um  dy_um  dz_um
+0          0             0      0      0
+500000     1             100    0      0
+1000000    2             50     86.6   0

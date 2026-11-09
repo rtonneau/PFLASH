@@ -13,30 +13,59 @@
 // first-order reactions with H2O(B), H3Op(B) and OHm(B). IRT_syn uses those
 // only through a G4DNAScavengerMaterial registered with the G4Scheduler; this
 // example never registers one, so they stay inert.
+//
+// Optional reflecting chemistry box (used by `history`, halfBoxUm > 0): a cube
+// of half side reflectingHalfSide centred on the origin. After option3 has
+// built its processes, the G4DNABrownianTransportation of every molecule is
+// replaced by a G4ChemReboundTransportation bound to the box, and the H2O
+// dissociation gets a HistoryBoundedBrownianAction, as in the Geant4-DNA UHDR
+// example (EmDNAChemistry.cc). With the default 0 nothing is changed, so
+// `capture` builds exactly option3.
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "G4VModularPhysicsList.hh"
+#include "globals.hh"
 
+class G4DNABoundingBox;
 class G4VPhysicsConstructor;
+class G4VProcess;
 
 namespace ptirt
 {
 
+class HistoryBoundedBrownianAction;
+
 class ExamplePhysicsList : public G4VModularPhysicsList
 {
  public:
-  ExamplePhysicsList();
+  explicit ExamplePhysicsList(G4double reflectingHalfSide = 0);
   ~ExamplePhysicsList() override;
 
   void ConstructParticle() override;
   void ConstructProcess() override;
 
+  // nullptr when the chemistry is unbounded (reflectingHalfSide = 0).
+  const G4DNABoundingBox* GetReflectingBox() const { return fBox.get(); }
+  // Dissociation products folded back into the box so far (0 when unbounded).
+  std::size_t GetDissociationFoldCount() const;
+
  private:
+  void InstallReflectingBox();
+
   std::unique_ptr<G4VPhysicsConstructor> fEmDnaPhysics;
   std::unique_ptr<G4VPhysicsConstructor> fEmDnaChemistry;
+  std::unique_ptr<G4DNABoundingBox> fBox;
+  // The replaced G4DNABrownianTransportation processes: removed from their
+  // process managers, and Geant4 never deletes a transport process, so they are
+  // owned here.
+  std::vector<std::unique_ptr<G4VProcess>> fRemovedProcesses;
+  // Owned by the H2O dissociation process.
+  HistoryBoundedBrownianAction* fDissociationAction = nullptr;
 };
 
 // Empty when G4EmParameters selects IRT_syn and the Geant4-DNA chemistry is
