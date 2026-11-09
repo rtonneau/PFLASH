@@ -1,6 +1,7 @@
 # Dose-rate investigations
 
 - [Next: reusable timed-source IRT_syn example](working-example-handoff.md) — current user priority, completed-work checkpoints, implementation reuse and practical delivery criteria.
+- [Poisson-track IRT_syn example: integration guide](../../examples/poisson-track-irt/README.md) — standalone example, required Geant4 patches, build and run commands, hooks and known limits.
 - [Matched intertrack result](beam-on-intertrack-result.md) — completed shared-versus-independent comparison; coupling remains unresolved in the tested regime.
 
 - [Recurring chemistry sources](recurring-chemistry-sources.md) — bounded particle reference.
