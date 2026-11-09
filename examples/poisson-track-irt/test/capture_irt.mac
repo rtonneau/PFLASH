@@ -1,0 +1,7 @@
+# Negative test: selects classic IRT instead of IRT_syn; capture must refuse to run.
+/control/verbose 0
+/run/verbose 0
+/process/chem/TimeStepModel IRT
+/run/initialize
+/gun/particle e-
+/gun/energy 10 keV

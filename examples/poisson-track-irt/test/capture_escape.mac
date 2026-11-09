@@ -1,0 +1,11 @@
+# Escape test: a 1 um half-side box is smaller than the range of a 10 keV
+# electron (about 2.5 um), so part of the energy leaves the box and must be
+# counted as escaped energy for the ledger to balance.
+/control/verbose 0
+/run/verbose 0
+/ptirt/capture/halfSide 1 um
+/run/initialize
+/gun/particle e-
+/gun/energy 10 keV
+/gun/position 0 0 0 um
+/gun/direction 0 0 1
