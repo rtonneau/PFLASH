@@ -1,0 +1,14 @@
+# Fixed original final time for every diagnostic/reference process.
+/run/verbose 0
+/tracking/verbose 0
+/process/dna/e-SolvationSubType Ritchie1994
+/process/chem/TimeStepModel IRT_syn
+/chem/meso/enable true
+/chem/meso/handOverTime 5 ns
+/chem/env/scavenger O2 21 %
+/chem/env/pH 7
+/output/defaultFormat none
+/run/initialize
+/scheduler/endTime 20 ns
+/gun/particle e-
+/gun/energy 10 keV

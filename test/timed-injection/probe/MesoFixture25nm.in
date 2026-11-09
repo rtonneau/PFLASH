@@ -1,0 +1,12 @@
+/run/verbose 0
+/process/chem/TimeStepModel IRT_syn
+/chem/meso/enable false
+/chem/env/halfBox 12.5 nm
+/output/defaultFormat none
+/run/initialize
+/primaryKiller/energyCuts false
+/scheduler/endTime 5 ps
+/gun/particle e-
+/gun/energy 500 keV
+/gun/position 0 0 -12 nm
+/gun/direction 0 0 1

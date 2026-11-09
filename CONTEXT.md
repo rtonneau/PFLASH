@@ -175,3 +175,34 @@ delta-ray tree). A **First-generation secondary electron** is one whose parent i
 the primary itself. Their summed track lengths and counts are recorded per event.
 _Avoid_: "delta electron" (usually implies an energy threshold), "daughter" alone
 (ambiguous between first generation and all generations).
+
+**Chemical checkpoint** (planned):
+Saved unfinished chemistry for every event in a run at a common configured
+**Checkpoint time**, including the state needed for exact continuation in the
+checkpoint-capable mode. Staged and uninterrupted executions of that mode must
+follow the same per-event random streams on the same build and machine, with the
+same worker count. This capability is under design, not implemented.
+_Avoid_: "dump" (an existing **Dump** publishes accumulated results and resets them;
+it does not preserve resumable chemistry).
+
+**Checkpoint time** (planned):
+The exact elapsed chemistry time, greater than 1 ps, represented by every event
+in a **Chemical checkpoint**. Reactions scheduled later remain pending; rounding
+up to the next completed chemistry step is not permitted.
+
+**Track packet** (planned feasibility study):
+A reusable initial chemical-species cloud from one primary electron, retaining
+its species/configuration state, correlated positions, chemical age and energy
+deposited in a specified geometry. Sampling a packet keeps its cloud and deposited
+energy together. It is an initial condition, not a live chemical checkpoint.
+
+**Irradiation history** (planned feasibility study):
+One shared chemical system receiving multiple track packets at scheduled times,
+so species from different packets can react. Independent histories provide
+statistical replicas; distributing their interacting packets among independent
+chemistry workers would change the model.
+
+**Exposure duration** (planned feasibility study):
+The fixed primary-arrival window length, equal to nominal dose divided by requested
+mean dose rate. Poisson arrivals make each history's actual deposited dose fluctuate;
+actual dose is measured from deposited energy rather than forced to the nominal dose.

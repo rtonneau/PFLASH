@@ -1,6 +1,8 @@
 
 **/build/
 /build-ninja/*
+/build-checkpoint-probe/
+/build-timed-injection-probe/
 compile_commands.json
 .vscode/
 # Prerequisites

@@ -1,0 +1,168 @@
+--- a/source/processes/electromagnetic/dna/management/include/G4Octree.icc
++++ b/source/processes/electromagnetic/dna/management/include/G4Octree.icc
+@@ -205,25 +205,41 @@
+     const NodeVector& input_values,
+     size_t current_depth)
+ {
++    // Coincident entries remain distinct, but cannot benefit from subdivision.
++    if (std::all_of(input_values.begin(), input_values.end(),
++        [&input_values](const auto& value) {
++            return value.second == input_values.front().second;
++        }))
++    {
++        init_max_depth_leaf(input_values);
++        return;
++    }
+     std::array<NodeVector, 8> childVectors;
+-    std::array<G4DNABoundingBox, 8> boxes = fBigVolume.partition();
++    const auto middle = fBigVolume.middlePoint();
++    const auto boxes = fBigVolume.partition();
++    for (const auto& value : input_values)
++    {
++        const auto& point = value.second;
++        const size_t child = (point.x() >= middle.x() ? 1 : 0)
++                           + (point.y() >= middle.y() ? 2 : 0)
++                           + (point.z() >= middle.z() ? 4 : 0);
++        childVectors[child].push_back(value);
++    }
++    // At floating-point resolution a nonempty child can equal its parent.
++    for (size_t child = 0; child < 8; ++child)
++    {
++        if (childVectors[child].size() == input_values.size()
++            && boxes[child] == fBigVolume)
++        {
++            init_max_depth_leaf(input_values);
++            return;
++        }
++    }
+     std::array<Node*, 8> children{};
+     for (size_t child = 0; child < 8; ++child)
+     {
+-        NodeVector& childVector = childVectors[child];
+-        childVector.reserve(input_values.size()/8);
+-        std::copy_if(input_values.begin(),input_values.end(),
+-                    std::back_inserter(childVector),
+-                [&boxes, child](const std::pair<Iterator, Point>& element)
+-                -> G4bool
+-        {
+-            const Point& p = element.second;
+-            return boxes[child].contains(p);
+-        }
+-        );
+-        children[child] = childVector.empty()
+-            ? nullptr
+-            : new Node(childVector, boxes[child], ++current_depth);
++        children[child] = childVectors[child].empty() ? nullptr
++            : new Node(childVectors[child], boxes[child], current_depth + 1);
+     }
+     fpValue = new std::array<Node*, 8>(children);
+     fNodeType = NodeTypes::INTERNAL;
+@@ -247,7 +263,13 @@
+             {
+                 continue;
+             }
+-            if(!eachChild->fBigVolume.overlap(query,radius))
++            // Clamp to stored bounds: rounded center/half-width arithmetic can
++            // put a box endpoint outside its own bounding sphere test.
++            const auto& box = eachChild->fBigVolume;
++            const Point nearest(std::clamp(query.x(), box.Getxlo(), box.Getxhi()),
++                                std::clamp(query.y(), box.Getylo(), box.Getyhi()),
++                                std::clamp(query.z(), box.Getzlo(), box.Getzhi()));
++            if((query - nearest).mag() >= radius)
+             {
+                 continue;
+             }
+@@ -263,13 +285,10 @@
+             {
+                 distance = (query - std::get<1>(children.values_[i])).mag();
+ 
+-                if(distance != 0)
++                if( distance < radius )
+                 {
+-                    if( distance < radius )//TODO: find another solution for this using boundingbox
+-                    {
+-                        resultIndices.push_back(std::make_pair(std::get<0>(children.values_[i]),distance));
+-                        success = true;
+-                    }
++                    resultIndices.push_back(std::make_pair(std::get<0>(children.values_[i]),distance));
++                    success = true;
+                 }
+             }
+         }
+@@ -282,16 +301,8 @@
+             const Point& point = std::get<1>(child);
+             //if (this->fBigVolume.contains(query, point, radius))
+             distance = (query - point).mag();
+-            if( distance == 0. )
+-            {
+-                continue;
+-            }
+             if( distance < radius )
+             {
+-                if(distance == 0)
+-                {
+-                    throw std::runtime_error("distance == 0 => OCTREE::Node::radiusNeighbors : find itself");
+-                }
+                 Iterator resultIndex = std::get<0>(child);
+                 resultIndices.push_back(std::make_pair(resultIndex,distance));
+                 success = true;
+--- a/source/processes/electromagnetic/dna/management/include/G4OctreeFinder.icc
++++ b/source/processes/electromagnetic/dna/management/include/G4OctreeFinder.icc
+@@ -152,6 +152,11 @@
+     <std::vector<std::pair<typename CONTAINER::iterator,G4double>>& >(
+     track.GetPosition(), R, tempResult);
+ 
++    // Position equality does not imply track identity.
++    tempResult.erase(std::remove_if(tempResult.begin(), tempResult.end(),
++        [&track](const auto& entry) { return *entry.first == &track; }),
++        tempResult.end());
++
+     G4int nBin = 10;
+ 
+     //G4IRTUtils::GetRCutOff(1000 * CLHEP::ns) = 0.00050251
+@@ -161,7 +166,7 @@
+     G4double binOfR(std::pow(0.00050251 / value,
+     1. / static_cast<G4double>(nBin - 1)));
+ 
+-    if( R <= 0.00050251 )
++    if( R > 0 && R <= 0.00050251 )
+     {
+         if(tempResult.size() < 10 && R < 0.00050251)
+         {
+@@ -205,6 +210,11 @@
+             <std::vector<std::pair<typename CONTAINER::iterator,G4double>>& >(
+             track.GetPosition(), R, tempResult);
+ 
++    // Position equality does not imply track identity.
++    tempResult.erase(std::remove_if(tempResult.begin(), tempResult.end(),
++        [&track](const auto& entry) { return *entry.first == &track; }),
++        tempResult.end());
++
+     if(isSorted)
+     {
+         std::sort(tempResult.begin(),tempResult.end(),fExtractor.compareInterval);
+@@ -245,7 +255,7 @@
+     G4double binOfR(std::pow(0.00050251 / value,
+     1. / static_cast<G4double>(nBin - 1)));
+ 
+-    if( R <= 0.00050251 )
++    if( R > 0 && R <= 0.00050251 )
+     {
+         if(tempResult.size() < 10 && R < 0.00050251)
+         {
+--- a/source/processes/electromagnetic/dna/models/src/G4DNAMakeReaction.cc
++++ b/source/processes/electromagnetic/dna/models/src/G4DNAMakeReaction.cc
+@@ -164,6 +164,13 @@
+ 
+     if(distance == 0)
+     {
++        // Distinct coincident reactants need no displacement when no
++        // position-update interval was requested. Keep the positive-time
++        // singularity and self-pair guards below.
++        if (&trackA != &trackB && fTimeStep == 0)
++        {
++            return;
++        }
+         G4ExceptionDescription exceptionDescription;
+         exceptionDescription << "Two particles are overlap: "
+                              <<GetMolecule(trackA)->GetName()

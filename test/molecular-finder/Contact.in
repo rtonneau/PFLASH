@@ -1,0 +1,7 @@
+/run/verbose 0
+/process/chem/TimeStepModel IRT_syn
+/chem/meso/enable false
+/chem/env/halfBox 2 um
+/output/defaultFormat none
+/run/initialize
+/scheduler/endTime 1.001 ps

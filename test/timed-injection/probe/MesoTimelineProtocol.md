@@ -1,0 +1,3 @@
+# Ordered close-source control
+
+Before execution: in a 4 um reflected world with a 25 nm mesh, place one stable H2 molecule in the mesh at 1 ps. At 2 ps reconstruct it inside its occupied cell, inject one H2 at 2 ps and stage a second H2 at 2.001 ps in the same native particle scheduler invocation. Give all inputs distinct IDs. The action must observe each source for the first time at its own activation time, no future source may appear earlier, and all three nonreacting survivors must return to the mesh at 5 ps. Advance the mesh to 6 ps and require total three. Run seeds 1729–1744, with exact clocks and budgets. This is an ordered multi-source mechanism control, not an overlapping-packet chemistry comparison or a substitute for a physical beam schedule.

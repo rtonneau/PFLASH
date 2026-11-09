@@ -1,0 +1,97 @@
+# Fresh-source calibration design — proposed for approval
+
+> **Status (2026-11-09): executed and closed.** This design ran once as Study06
+> and is accepted locally as a completed bounded execution, with both 5%
+> precision targets missed. The accepted result and its limits are in
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md);
+> the next-session starting point is
+> [the handoff](../../docs/dose-rate/beam-on-fresh-source-calibration-handoff.md).
+> The "Execution status" and Study05 sections below record earlier interim
+> states and are superseded where they differ. The text below is otherwise kept
+> as written, as the approved design record.
+
+Baseline: ffe1a57; continuation of docs/dose-rate/beam-on-irt.md.
+Scope: isolated 4 micrometre cube, 500 keV physical captures, oxygen-free and existing 21% oxygen fixtures; private validated IRT_syn runtime. No production integration, mesoscopic tail, shared Geant4 changes, push or PR.
+
+## Agreed calibration budget
+Per oxygen condition: exactly 1,024 preassigned calibration attempts and 256 disjoint holdout attempts. Target: two-sided 95% Student-t interval half-width / calibration mean <= 0.05 at the fixed final sample size. Report mean, sample SD, SE, interval, zero fraction and quantiles. Bootstrap percentile intervals provide a distribution-shape sensitivity check, not a replacement success criterion. No optional stopping or enlargement after seeing results. Nonpositive means fail calibration. If complete captures miss the 5% target, report target missed; comparisons may remain exploratory but cannot be presented as precision-qualified.
+
+Attempt IDs and independent seed streams are assigned before sampling. Preserve zero-deposit complete events in every denominator. Require successful process status, validation marker, complete packet and consistent energy ledger together; packet-file existence alone is insufficient because capture can write before a later validation failure. Reject truncated, aborted, energy-unbalanced or incomplete captures and retain their diagnostics; never replace them. Any invalid planned capture prevents claiming complete-sample precision or proceeding to an accepted beam comparison for that condition. Unexecuted attempts remain explicitly unexecuted.
+
+Freeze calibration before examining holdout results. Holdout never changes the rate calibration, precision target, seeds or budget. Report independent holdout mean/SE and calibration-minus-holdout difference with uncertainty, plus distribution/zero-fraction diagnostics. A mismatch is reported, not tuned away. Earlier small banks are context only.
+
+## Proposed fresh comparison
+128 independent realizations per condition, paired at 100 and 1,000 Gy/s; nominal dose 0.002 Gy. T = dose / doseRate remains fixed. Exponential arrivals in [0,T), lambda = doseRate * mass / mean deposited energy. Keep mass 6.4e-14 kg, 1 ps precursor age and observation T + 2 ps from the tested fixture, verified against actual geometry and capture metadata.
+
+Every arrival gets a newly captured packet, never a calibration/holdout packet. Use each packet once within a realization; share only between its paired rate arms. Realizations have disjoint physical capture IDs. Keep source-position, physical-transport, arrival, chemistry and statistical-resampling RNG streams separate with a collision-audited seed ledger. Preserve empty histories. No count fixing, dose stopping, resampling failed histories or energy-based packet selection.
+
+Maximum eight sources per realization. A ninth arrival censors that realization rather than changing its Poisson law. Any failed/censored planned comparison prevents reporting complete-ensemble intervals for that condition; retained valid outcomes remain descriptive. Caps remain 512 MiB/process, 60 seconds/process, 3 GiB free-system-memory floor, serial execution. Maximum planned physical attempts: 2*(1024+256+128*8)=4608; chemistry histories: 2*128*2=512. Generate one normalized schedule per realization and scale its times for the two rates: at most 256 schedule-generation jobs; controls/builds are separately logged. Study execution has a four-hour wall-clock ceiling, enforced by passing min(60 seconds, remaining study time) to each launcher and starting no process after expiry; unfinished work is reported without extension or replacement. No precision claim for chemistry is implied by 128 realizations.
+
+## Proposed uncertainty propagation
+Primary comparison: paired 1000-minus-100 Gy/s differences in final species counts and oxygen-pool change; include union of observed species, zero filling only genuinely absent species in complete outputs. Also report actual deposited dose and source count.
+
+At the frozen calibration mean, mu0 = nominalDose * mass / meanEdepJ. Resample the 1024 calibration events with replacement to obtain a mean and corresponding mub. For a complete realization with N arrivals, the Poisson likelihood ratio is exp(mu0-mub)*(mub/mu0)^N. Conditional on N, normalized arrival times and fresh packet distributions are unchanged; thus apply the same weight to both paired arms. Do not multiply the weight twice. Use unnormalized importance-weighted means for the primary expectation estimate.
+
+Use 2000 preseeded bootstrap replicates: independently resample calibration events and complete paired realizations, recompute weights, and calculate paired mean contrasts. Report percentile intervals as approximate combined sampling/calibration design-sensitivity intervals: they describe variation when the calibrated intensity changes, not uncertainty of the chemistry expectation at the already deployed fixed intensity. Report conditional-only sampling intervals for that fixed intensity and calibration-only resampling diagnostics separately. Do not add the components as though independent or count bootstrap draws as physical observations. Holdout is excluded. Validate the likelihood-ratio implementation against analytic compound-Poisson moments and direct schedule Monte Carlo.
+
+Calculate and report exact Poisson P(N>8) at nominal calibration and every bootstrap calibration, including probability of at least one overflow in 128 realizations. This tail is not represented by the capped chemistry outcomes; ESS cannot establish support for it. Require P(N>8) <= 0.001 throughout as an additional operational acceptance bound; otherwise withhold combined intervals. Even below that threshold, label intervals as bounded exploratory approximations with unquantified tail contributions to chemistry observables, not unconditional coverage guarantees. Never renormalize to N<=8 or claim absence of bias from observing no overflow.
+
+Report effective sample size (sum w)^2/sum(w^2) and largest normalized weight for each replicate. Require ESS >= 64 and maximum normalized weight <= 0.10 for every replicate to publish the combined interval; otherwise label propagation unsupported under this fixed budget. Do not clip weights, drop problematic replicates or enlarge the ensemble. A nonpositive bootstrap mean is an explicit unsupported outcome. These support thresholds are operational diagnostics, not coverage guarantees. No bootstrap interval corrects model bias or establishes biological equivalence.
+
+## Alternatives and validation
+Chosen proposal: fixed calibration/holdout samples plus Poisson importance reweighting. Sequential precision stopping would need sequentially valid intervals; nested new chemistry ensembles for each calibration draw would substantially increase cost. Both are outside this bounded proposal.
+
+Before sampling, freeze a tracked protocol, exact seed manifest, executable/source/macro hashes, estimands and budget. Verify actual Geant4 .cc paths and existing capture hooks before altering simulation code. Reuse private runtime only after provenance verification. Test zero deposits, truncated/aborted rejection, split/seed disjointness, Poisson count/time law, stream invariance, packet uniqueness, paired schedules, analytical reweighting and incomplete-data refusal. Audit each attempt and activation/energy ledger. Preserve old evidence; use the new session scratch directory. Report target met/missed, failures, achieved sample sizes and limitations without substituting a successful subset.
+
+## Implementation outline after approval
+1. Capture ledger and validation with deterministic disjoint split/seed allocation.
+2. Calibration/holdout statistics and frozen protocol plus budget enforcement.
+3. Fresh ensemble runner and uncertainty analyzer, targeted regression checks.
+4. Bounded execution, independent evidence/code review, documentation and local commit.
+
+
+
+## Execution status — 2026-11-08
+> **Superseded (2026-11-09).** This is the interim state after the Study04
+> interruption; "acceptance remains outstanding" is no longer true. Ticket04 was
+> completed by the separately authorized Study06 and accepted locally; see
+> [the consolidated report](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
+> Study04 data stay excluded.
+
+Ticket04 launched once and was interrupted for an operator preflight path-isolation error after 12 accepted water captures and one unadjudicated attempt. No replacement or extension. Both conditions are incomplete; all comparison and propagation claims are withheld. See docs/dose-rate/beam-on-irt.md for evidence and incident details. Parent review and acceptance remain outstanding.
+
+
+## Authorized 05-study terminal outcome — 2026-11-08
+> **Superseded as a status (2026-11-09).** Study05 remains closed and excluded
+> from every statistic; its outcome is kept as history. "Ticket04 acceptance
+> remains with the parent" is resolved: the parent accepted Ticket04 on the basis
+> of Study06, not Study05. See
+> [the consolidated report](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
+
+Launched exactly once at 2026-11-08T20:09:40.6845574Z with the approved new budget. Runner exited 1 after 109.2153426 seconds: RunCalibratedBeamOn.ps1 line 95, Move-Item replacing processes.csv reported "Cannot create a file when that file already exists." No retry, replacement, source modification or further sampling followed. The monitoring reader accessed processes.csv during execution; whether file sharing caused the replacement failure is unresolved. The finally block persisted status and after-hashes. Its empty stop_reason is not a success indication: the uncaught exception is the terminal cause.
+
+65 accepted water calibration captures completed, including one complete zero deposit. The runner counted 66 attempts: slot water-capture65 was marked attempted before Save failed, has no native log/meta/energy output, and its capture audit rejected missing evidence. Thus 65 actual native captures, one rejected prelaunch slot, 4542 registry-unexecuted capture slots; zero censored native processes. All 512 histories, 256 schedules and four in-run analysis jobs remained unexecuted. Water holdout and all oxygen samples are absent. No paired schedules or activations exist to audit. No truncated output was accepted.
+
+Accepted water deposits sum to 0.056599893557760204 MeV; descriptive mean 0.00087076759319631124 MeV. The incomplete calibration (65/1024) cannot satisfy the fixed-design precision target; no successful-subset confidence claim is made. Both post-analysis runs exited 2 with complete=0 and propagation_supported=0. Conditional sampling intervals and calibration design-sensitivity intervals are both withheld. No complete-ensemble or biological conclusion follows.
+
+Evidence root: .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/. Original 05-study evidence and driver logs are preserved; post-analysis operates on a separate full copy in 05-audit/post-analysis, preserving initial files. Both identity audits passed; all 65 completed process/module re-audits passed; every deposited-energy ledger balances to 0.5 MeV within 1e-8. All inventoried frozen and prior-input hashes match, 14594 stream seeds are unique and overlap with the entire 04-study assignment registry is zero. All 04 evidence remains excluded. See 05-audit/audit-summary.json, hash-verification.csv, energy-audit.csv, process-reaudit.csv and archive-manifest.csv. Archive enumeration excludes its own output. No remaining native worker was observed after termination.
+
+READY for parent independent result/incident review only. Ticket04 acceptance remains with the parent. The original 04 incident and historical authorization narrative below/above remain preserved. This separate 05 software failure does not authorize a new run or clock.
+
+## Authorized study06 terminal outcome — 2026-11-08 UTC
+> **Update (2026-11-09).** The closing line "READY for independent RESULT
+> review. No ticket acceptance…" describes the state at the end of the run. Two
+> independent reviews have since found no scientific acceptance blocker and the
+> parent accepted Ticket04 as a completed bounded execution and truthful report,
+> not as achievement of the 5% precision target. The accepted result, the
+> separately hashed post-review report supplement and the remaining limits are in
+> [docs/dose-rate/beam-on-fresh-source-calibration.md](../../docs/dose-rate/beam-on-fresh-source-calibration.md).
+> No later experiment is authorized.
+
+Study06 invoked the reviewed runner exactly once at HEAD 77f299b6c97d7fe975307e1100f9c148553947bb. Scientific start 2026-11-08T22:01:45.3126158Z; absolute deadline 2026-11-09T02:01:45.3126158Z. It exited 0 at 2026-11-08T23:33:19.9158065Z after 5494.5191028 seconds. All 2901 physical captures, 512 histories, 256 schedules and four analysis jobs were accepted. No failed/censored jobs, replacements, runner retries or clock reset; 1707 unused fresh slots remain unexecuted. One complete zero-deposit capture was retained. Both conditions completed 1024 calibration, 256 holdout and 128 fresh paired realizations.
+
+Both fixed-design precision targets were missed: relative 95% mean interval half-width 8.05398% water and 8.01033% oxygen, versus 5%. Both complete paired ensembles pass the declared propagation support gates. Conditional fixed-intensity intervals and separate calibration-only/combined bootstrap sensitivity are retained for all metrics; combined intervals remain bounded exploratory approximations with unquantified tail contributions, not unconditional coverage or biological equivalence. No precision-qualified comparison is claimed and no additional sampling is authorized.
+
+Evidence: .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/06-study and 06-audit/local-report.md. Actual scientific startup inventoried 19602 prior inputs including 58 registries; 14594 new seeds are unique and disjoint, with all six control seeds reserved. All inventoried frozen/prior hashes match. 7088 native re-audits passed (3673 process, 2901 capture, 512 history, two identities); all 2901 energy ledgers balance. Postanalysis on a separate copy reproduces both original summaries, support tables, derived streams and capture ledgers byte-for-byte. The initial copied analysis exited 2 with missing/censored/duplicate-pair diagnostics. After logged path corrections, copied analyses exited 0 and reproduced the original outputs. Path relocation is the supported explanation; exclusive causation was not established. This was not a scientific retry. Original study before/after hashes show zero changes. No native workers remained at terminal checks. Preservation applies to inventoried evidence, not every unrelated file or an atomic filesystem snapshot.
+
+READY for independent RESULT review. No ticket acceptance, source edits, new controls, staging, commit, push, PR, GPS state transition or delegation. Earlier 04/05 outcomes remain unchanged; no later experiment authorized.

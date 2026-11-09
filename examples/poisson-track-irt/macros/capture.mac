@@ -1,0 +1,18 @@
+# capture.mac: default capture configuration (read by `capture --macro`).
+# Commands are applied one line at a time; do not put /run/beamOn here
+# (capture shoots --count primaries itself).
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/scheduler/verbose 0
+
+# Capture volume (PreInit): a water box, half side 10 um, centred on the gun.
+/ptirt/capture/halfSide 10 um
+
+/run/initialize
+
+# Primary: one 10 keV electron per event from the box centre along +z.
+/gun/particle e-
+/gun/energy 10 keV
+/gun/position 0 0 0 um
+/gun/direction 0 0 1
