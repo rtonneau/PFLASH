@@ -40,6 +40,18 @@ std::vector<int> Occupancy(const G4MolecularConfiguration& configuration)
   return occupancy;
 }
 
+// Geant4 creates "H2O(B)", "H3Op(B)" and "OHm(B)" as tags for the bulk of the
+// acid-base buffer (diffusion coefficient 0, "just a tag to store and retrieve").
+// They share definition, charge and occupancy with the tracked H2O, H3O and OH-
+// but are never a molecule in the box, so a packet molecule is never one of them.
+// Without this, a start-up contact product OH- (the stock capture) matches both
+// OHm and OHm(B).
+bool IsBulkTag(const G4MolecularConfiguration& configuration)
+{
+  const std::string& label = configuration.GetLabel();
+  return label.size() > 3 && label.compare(label.size() - 3, 3, "(B)") == 0;
+}
+
 // The configuration a packet molecule was captured in, matched on the same
 // fields CaptureRecorder wrote: definition name, charge, decay time, electron
 // occupancy. Exactly one must match.
@@ -51,6 +63,7 @@ const G4MolecularConfiguration* Resolve(const PacketMolecule& molecule, const st
   {
     const auto* configuration = G4MolecularConfiguration::GetMolecularConfiguration(i);
     if (configuration == nullptr || configuration->GetDefinition() == nullptr) continue;
+    if (IsBulkTag(*configuration)) continue;
     if (configuration->GetDefinition()->GetParticleName() != molecule.definitionName) continue;
     if (configuration->GetCharge() != molecule.charge) continue;
     if (configuration->GetDecayTime() / ns != molecule.decayTimeNs) continue;

@@ -80,6 +80,7 @@ endif()
 # ---- Geant4-free core logic -------------------------------------------------
 add_library(ptirtCore STATIC
   src/PrecursorPacket.cc
+  src/PacketDigest.cc
   src/ArrivalSchedule.cc
   src/Ledger.cc
   src/CaptureLibrary.cc
@@ -138,7 +139,7 @@ target_link_libraries(compare PRIVATE ptirtCore)
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(ptirtTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest)
+foreach(testName PrecursorPacketTest PacketDigestTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE ptirtCore)
   add_test(NAME ${testName} COMMAND ${testName})
@@ -178,6 +179,56 @@ add_test(NAME CaptureSeedReproducible
     -DOUTPUT_DIR=${ptirtTestOutput}/capture-seeds
     -DFIRST_SEED=1001
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureSeedCheck.cmake)
+# Capture stage: where the packet is taken, run twice, and the capture.json fields
+# that describe it (test/RunCaptureStageCheck.cmake). The stock build captures
+# after the start-up contacts, the patched build at chemistry start.
+if(PTIRT_PATCHED_GEANT4)
+  set(ptirtStageTest CaptureAtChemistryStart)
+  set(ptirtExpectBuild patched)
+  set(ptirtExpectStage chemistryStart)
+else()
+  set(ptirtStageTest CaptureAfterStartupContacts)
+  set(ptirtExpectBuild stock)
+  set(ptirtExpectStage afterStartupContacts)
+endif()
+if(WIN32)
+  set(ptirtExpectModules ON)  # the loaded modules can be listed on Windows
+else()
+  set(ptirtExpectModules OFF)
+endif()
+add_test(NAME ${ptirtStageTest}
+  COMMAND ${CMAKE_COMMAND}
+    -DCAPTURE=$<TARGET_FILE:capture>
+    -DMACRO=${CMAKE_CURRENT_SOURCE_DIR}/macros/capture.mac
+    -DOUTPUT_DIR=${ptirtTestOutput}/capture-stage
+    -DFIRST_SEED=1001
+    -DCOUNT=4
+    -DEXPECT_BUILD=${ptirtExpectBuild}
+    -DEXPECT_STAGE=${ptirtExpectStage}
+    -DEXPECT_MODULES=${ptirtExpectModules}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureStageCheck.cmake)
+set(ptirtStageTests ${ptirtStageTest})
+if(NOT PTIRT_PATCHED_GEANT4)
+  # The stock build derives the chemistry seed from the physics seed (2147483648 - S),
+  # so physics seeds stop at 1073741823: that one is captured, the next is refused.
+  add_test(NAME CaptureAcceptsStockSeedCeiling
+    COMMAND ${CMAKE_COMMAND}
+      -DCAPTURE=$<TARGET_FILE:capture>
+      -DCHECK=$<TARGET_FILE:capture-check>
+      -DMACRO=${CMAKE_CURRENT_SOURCE_DIR}/macros/capture.mac
+      -DOUTPUT_DIR=${ptirtTestOutput}/capture-seed-ceiling
+      -DCOUNT=1
+      -DFIRST_SEED=1073741823
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureSmoke.cmake)
+  add_test(NAME CaptureRejectsStockSeedAboveCeiling
+    COMMAND ${CMAKE_COMMAND}
+      -DCAPTURE=$<TARGET_FILE:capture>
+      -DOUTPUT_DIR=${ptirtTestOutput}/capture-seed-above-ceiling
+      -DEXPECT_ERROR=first-seed.*1073741823
+      "-DARGS=--macro|${CMAKE_CURRENT_SOURCE_DIR}/macros/capture.mac|--output|${ptirtTestOutput}/capture-seed-above-ceiling|--count|1|--first-seed|1073741824"
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureExpectFailure.cmake)
+  list(APPEND ptirtStageTests CaptureAcceptsStockSeedCeiling CaptureRejectsStockSeedAboveCeiling)
+endif()
 # Refusals: a macro selecting SBS, and invalid arguments.
 add_test(NAME CaptureRejectsSbs
   COMMAND ${CMAKE_COMMAND}
@@ -347,7 +398,7 @@ set(ptirtHistoryTests HistoryLibrary HistoryBoxLibrary HistoryDeterministicSmoke
 # another Geant4 on the user's PATH is never loaded by mistake.
 if(WIN32)
   get_filename_component(ptirtGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
-  set_tests_properties(CaptureSmoke CaptureEscapeLedger CaptureSeedReproducible
+  set_tests_properties(CaptureSmoke CaptureEscapeLedger CaptureSeedReproducible ${ptirtStageTests}
                        CaptureRejectsSbs CaptureRejectsClassicIrt CaptureRejectsGunTime
                        CaptureRejectsBadArguments ${ptirtHistoryTests} PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${ptirtGeant4BinDir}")

@@ -4,7 +4,10 @@
 // The chemistry is started the way the Geant4-DNA chem examples do it: when the
 // physics stack is empty, CaptureStackingAction::NewStage calls
 // G4DNAChemistryManager::Run. CaptureTimeStepAction::StartProcessing then
-// captures the precursors and stops the scheduler.
+// captures the precursors and stops the scheduler (patched build) or reseeds the
+// chemistry and lets it run to its first step of positive length, where
+// UserPreTimeStepAction captures the molecules (stock build; the reactions of the
+// start-up contacts are counted in UserReactionAction). See CaptureRecorder.hh.
 //
 // Ownership: the run manager owns the actions built here; the G4Scheduler does
 // NOT delete its user time-step action, so CaptureActionInitialization only
@@ -12,6 +15,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "G4UserEventAction.hh"
 #include "G4UserStackingAction.hh"
@@ -82,6 +86,9 @@ class CaptureTimeStepAction : public G4UserTimeStepAction
  public:
   explicit CaptureTimeStepAction(CaptureRecorder& recorder) : fRecorder(recorder) {}
   void StartProcessing() override;
+  void UserPreTimeStepAction() override;
+  void UserReactionAction(const G4Track& trackA, const G4Track& trackB,
+                          const std::vector<G4Track*>* products) override;
 
  private:
   CaptureRecorder& fRecorder;

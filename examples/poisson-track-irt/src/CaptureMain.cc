@@ -10,10 +10,14 @@
 //                 is issued after it if the macro did not.
 //   --output      library directory; created if missing, must be empty
 //   --count       number of primaries = packets, 1..1000000
-//   --first-seed  physics seed of packet 0; packet i uses S + i (1 <= S + i <= 2147483647)
+//   --first-seed  physics seed of packet 0; packet i uses S + i (1 <= S + i <= 2147483647;
+//                 the stock build derives the chemistry seed from it and needs
+//                 S + i <= 1073741823, see PacketDigest.hh)
 //
 // Output: <dir>/packet-00000.txt ..., <dir>/library.csv, <dir>/capture.json
-// (see CaptureLibrary.hh). Exit status 0 and a "CAPTURE_DONE" line on success;
+// (see CaptureLibrary.hh). What a packet holds depends on the build: the
+// molecules at chemistry start (patched) or after the start-up contacts (stock),
+// see CaptureRecorder.hh; capture.json names the stage and the build. Exit status 0 and a "CAPTURE_DONE" line on success;
 // otherwise a "CAPTURE_ERROR <reason>" line on stderr and a nonzero status:
 // 2 bad arguments, 3 macro or initialization failure, 4 chemistry model is not
 // IRT_syn, 1 failure during the run or while writing the library.
@@ -29,6 +33,7 @@
 #include <string>
 #include <vector>
 
+#include "BuildMode.hh"
 #include "CaptureActions.hh"
 #include "CaptureDetectorConstruction.hh"
 #include "CaptureLibrary.hh"
@@ -36,6 +41,8 @@
 #include "ExamplePhysicsList.hh"
 #include "ExamplePhysicsTag.hh"
 #include "Ledger.hh"
+#include "LoadedModules.hh"
+#include "PacketDigest.hh"
 #include "PrecursorPacket.hh"
 
 #include "G4RunManager.hh"
@@ -50,6 +57,10 @@ namespace
 {
 
 constexpr long long kMaxSeed = std::numeric_limits<int>::max();  // G4Random::setTheSeed takes a 32-bit long on Windows
+// Highest physics seed. The stock build derives the chemistry seed from it
+// (ChemistrySeedFor) and keeps the two seed ranges apart.
+constexpr long long kMaxPhysicsSeed =
+    ptirt::kPatchedGeant4 ? kMaxSeed : static_cast<long long>(ptirt::kMaxStockPhysicsSeed);
 constexpr long long kMaxCount = 1'000'000;
 
 struct Arguments
@@ -123,8 +134,13 @@ Arguments ParseArguments(int argc, char** argv)
     throw ExitError(2, "usage: capture --macro <file> --output <dir> --count <N> --first-seed <S>");
   if (arguments.count < 1 || arguments.count > kMaxCount)
     throw ExitError(2, "--count must be in 1.." + std::to_string(kMaxCount));
-  if (arguments.firstSeed < 1 || arguments.firstSeed > kMaxSeed - (arguments.count - 1))
-    throw ExitError(2, "--first-seed S needs 1 <= S and S + count - 1 <= " + std::to_string(kMaxSeed));
+  if (arguments.firstSeed < 1 || arguments.firstSeed > kMaxPhysicsSeed - (arguments.count - 1))
+    throw ExitError(2, "--first-seed S needs 1 <= S and S + count - 1 <= " +
+                           std::to_string(kMaxPhysicsSeed) +
+                           (ptirt::kPatchedGeant4
+                                ? std::string()
+                                : std::string(" (stock Geant4 build: the chemistry seed is derived from "
+                                              "the physics seed and needs a physics seed below 2^30)")));
   if (!std::filesystem::is_regular_file(arguments.macro))
     throw ExitError(2, "macro not found: " + arguments.macro.string());
   arguments.macro = std::filesystem::absolute(arguments.macro);
@@ -196,7 +212,8 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
 
   auto root = JsonValue::Object();
   root.Set("format", JsonValue::String("ptirt-capture-summary"));
-  root.Set("formatVersion", JsonValue::Integer(1));
+  root.Set("formatVersion", JsonValue::Integer(2));
+  root.Set("buildMode", JsonValue::String(ptirt::kBuildModeName));
   root.Set("compatibilityTag", JsonValue::String(ptirt::kPacketCompatibilityTag));
   root.Set("geant4Version", JsonValue::String(G4Version));
   root.Set("physics", JsonValue::String("G4EmDNAPhysics_option2"));
@@ -209,6 +226,12 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
   root.Set("captureTime_ns", JsonValue::Real(picosecond / ns));
   root.Set("firstPhysicsSeed", JsonValue::Integer(arguments.firstSeed));
   root.Set("libraryIndex", JsonValue::String(ptirt::kLibraryIndexName));
+
+  // Full paths of the Geant4 libraries this process loaded (empty where the
+  // operating system cannot list them).
+  auto modules = JsonValue::Array();
+  for (const auto& module : ptirt::ListLoadedGeant4Modules()) modules.Append(JsonValue::String(module));
+  root.Set("loadedGeant4Modules", modules);
 
   auto tolerance = JsonValue::Object();
   tolerance.Set("energyAbsTol_eV", JsonValue::Real(limits.energyAbsTolEv));
@@ -241,6 +264,16 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
     packet.Set("escapedEnergy_eV", JsonValue::Real(e.escapedEnergyEv));
     packet.Set("energyResidual_eV", JsonValue::Real(e.energyResidualEv));
     packet.Set("moleculeCount", JsonValue::Integer(static_cast<long long>(e.moleculeCount)));
+    packet.Set("captureStage", JsonValue::String(ptirt::kCaptureStageName));
+    // 16 hexadecimal digits: a JSON number cannot hold all 64 bits.
+    packet.Set("chemistryStartDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].chemistryStartDigest)));
+    packet.Set("capturedDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].capturedDigest)));
+    if constexpr (!ptirt::kPatchedGeant4)
+    {
+      packet.Set("chemistrySeed", JsonValue::Integer(static_cast<long long>(provenance[i].chemistrySeed)));
+      packet.Set("startupZeroSteps", JsonValue::Integer(provenance[i].startupZeroSteps));
+      packet.Set("startupReactions", JsonValue::Integer(provenance[i].startupReactions));
+    }
     packets.Append(packet);
   }
   root.Set("packets", packets);
