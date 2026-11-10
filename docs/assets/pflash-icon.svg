@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">PFLASH — Pulsed droplet</title>
+  <rect width="128" height="128" rx="24" fill="#14122b"/>
+  <path d="M68 16C56 34 30 60 30 80a38 34 0 0 0 76 0C106 60 80 34 68 16Z" fill="#1d4f73"/>
+  <path d="M16 56h8m-8 24h8" fill="none" stroke="#ffcc33" stroke-width="8" stroke-linecap="round"/>
+  <path d="M36 56h18l14 16h24M36 80h18l14-16h24" fill="none" stroke="#8fe3ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#ff6b4a" stroke="#14122b" stroke-width="3">
+    <circle cx="64" cy="68" r="7"/>
+    <circle cx="78" cy="94" r="6"/>
+  </g>
+</svg>
