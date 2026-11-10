@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "BuildMode.hh"
+
 #include "G4DNAIndependentReactionTimeStepper.hh"
 #include "G4ElectronOccupancy.hh"
 #include "G4ITTrackHolder.hh"
@@ -192,7 +194,11 @@ void SourceInjector::Inject()
   fInjected = true;
 
   // One registry per history: forget the activations of any earlier history.
+  // Patched Geant4 only: the stock stepper has no activation registry (the
+  // sources then get no contact trials at their activation time).
+#if PTIRT_PATCHED_GEANT4
   G4DNAIndependentReactionTimeStepper::ResetSourceActivations();
+#endif
 
   CounterStagingGuard guard;
   auto* holder = G4ITTrackHolder::Instance();
@@ -208,7 +214,9 @@ void SourceInjector::Inject()
     track->SetKineticEnergy(staged.kineticEnergy);
     track->SetLocalTime(staged.localTime);
     track->SetProperTime(staged.properTime);
+#if PTIRT_PATCHED_GEANT4
     G4DNAIndependentReactionTimeStepper::RegisterSourceActivation(trackId, activation);
+#endif
     // Not running yet: the holder files the track in the delayed list of its
     // global time, i.e. its activation time.
     holder->Push(track);

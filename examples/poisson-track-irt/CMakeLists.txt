@@ -10,8 +10,72 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Geant4 is needed by the executables added in later steps (capture, history, compare).
 # The pure-logic library below never includes Geant4, so its tests run without a kernel.
-# Geant4_DIR must point at the private patched Geant4 11.4.3 install.
+# Geant4_DIR points at a Geant4 11.4.3 install: stock by default, or the private
+# patched install when PTIRT_PATCHED_GEANT4 is ON.
 find_package(Geant4 11.4.3 REQUIRED)
+
+# ---- Build mode: stock or patched Geant4 ------------------------------------
+# The patched build uses G4DNAIndependentReactionTimeStepper::ResetSourceActivations
+# and RegisterSourceActivation (patches/geant4/11.4.3/timed-injection/). The option
+# must agree with the install: the headers are compiled against, so a mismatch
+# stops the configure instead of giving a binary that lies about its build mode.
+option(PTIRT_PATCHED_GEANT4 "Build against a Geant4 11.4.3 with the timed-injection patches" OFF)
+
+include(CheckCXXSourceCompiles)
+# Compile only (no link): the check needs the declarations, not the Geant4 libraries.
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+set(CMAKE_REQUIRED_INCLUDES ${Geant4_INCLUDE_DIRS})
+set(CMAKE_REQUIRED_DEFINITIONS ${Geant4_DEFINITIONS})
+# Not cached across configures: Geant4_DIR or the install may have changed.
+unset(PTIRT_GEANT4_HEADERS_COMPILE CACHE)
+unset(PTIRT_GEANT4_HAS_SOURCE_PATCH CACHE)
+check_cxx_source_compiles("
+#include \"G4DNAIndependentReactionTimeStepper.hh\"
+#include \"globals.hh\"
+int main() { return 0; }
+" PTIRT_GEANT4_HEADERS_COMPILE)
+if(NOT PTIRT_GEANT4_HEADERS_COMPILE)
+  message(FATAL_ERROR
+    "Cannot compile against the Geant4 headers of ${Geant4_DIR} "
+    "(G4DNAIndependentReactionTimeStepper.hh); see CMakeFiles/CMakeError.log. "
+    "This is not a build-mode mismatch.")
+endif()
+check_cxx_source_compiles("
+#include \"G4DNAIndependentReactionTimeStepper.hh\"
+#include \"globals.hh\"
+int main()
+{
+  void (*reset)() = &G4DNAIndependentReactionTimeStepper::ResetSourceActivations;
+  void (*registerSource)(G4int, G4double) = &G4DNAIndependentReactionTimeStepper::RegisterSourceActivation;
+  return reset == nullptr || registerSource == nullptr;
+}
+" PTIRT_GEANT4_HAS_SOURCE_PATCH)
+unset(CMAKE_REQUIRED_INCLUDES)
+unset(CMAKE_REQUIRED_DEFINITIONS)
+unset(CMAKE_TRY_COMPILE_TARGET_TYPE)
+
+if(PTIRT_PATCHED_GEANT4 AND NOT PTIRT_GEANT4_HAS_SOURCE_PATCH)
+  message(FATAL_ERROR
+    "PTIRT_PATCHED_GEANT4=ON but ${Geant4_DIR} has no source-activation API "
+    "(G4DNAIndependentReactionTimeStepper::ResetSourceActivations and "
+    "RegisterSourceActivation): this is a stock Geant4. Point Geant4_DIR at the patched "
+    "install, or configure with -DPTIRT_PATCHED_GEANT4=OFF. "
+    "See patches/geant4/11.4.3/timed-injection/README.md.")
+endif()
+if(NOT PTIRT_PATCHED_GEANT4 AND PTIRT_GEANT4_HAS_SOURCE_PATCH)
+  message(FATAL_ERROR
+    "PTIRT_PATCHED_GEANT4=OFF but ${Geant4_DIR} is patched (it has "
+    "G4DNAIndependentReactionTimeStepper::ResetSourceActivations). Configure with "
+    "-DPTIRT_PATCHED_GEANT4=ON for this install, or point Geant4_DIR at a stock 11.4.3.")
+endif()
+
+if(PTIRT_PATCHED_GEANT4)
+  set(ptirtPatchedValue 1)
+  message(STATUS "poisson-track-irt build mode: patched Geant4 (${Geant4_DIR})")
+else()
+  set(ptirtPatchedValue 0)
+  message(STATUS "poisson-track-irt build mode: stock Geant4 (${Geant4_DIR})")
+endif()
 
 # ---- Geant4-free core logic -------------------------------------------------
 add_library(ptirtCore STATIC
@@ -21,8 +85,14 @@ add_library(ptirtCore STATIC
   src/CaptureLibrary.cc
   src/HistoryConfig.cc
   src/ActivationObserverCheck.cc
-  src/SeparatedCheck.cc)
+  src/SeparatedCheck.cc
+  src/LoadedModules.cc)
 target_include_directories(ptirtCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# include/BuildMode.hh turns this into constants; it has no default.
+target_compile_definitions(ptirtCore PUBLIC PTIRT_PATCHED_GEANT4=${ptirtPatchedValue})
+if(WIN32)
+  target_link_libraries(ptirtCore PUBLIC psapi)  # LoadedModules.cc: EnumProcessModules
+endif()
 if(MSVC)
   target_compile_options(ptirtCore PUBLIC /W4 /utf-8)
 else()
@@ -66,7 +136,7 @@ target_link_libraries(compare PRIVATE ptirtCore)
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(ptirtTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest)
+foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE ptirtCore)
   add_test(NAME ${testName} COMMAND ${testName})
@@ -251,7 +321,7 @@ ptirt_history_refusal(HistoryRejectsMalformedPacket "packet library .*malformed 
   "-DPACKET_FIND=moleculeCount " "-DPACKET_REPLACE=moleculeCount x")
 ptirt_history_refusal(HistoryRejectsIncompatibleTag "incompatible packet: tag"
   "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
-  "-DPACKET_FIND=compatibilityTag ptirt1_" "-DPACKET_REPLACE=compatibilityTag ptirt0_")
+  "-DPACKET_FIND=compatibilityTag ptirt2_" "-DPACKET_REPLACE=compatibilityTag ptirt1_")
 # A molecule this build does not know (renamed in the packet).
 ptirt_history_refusal(HistoryRejectsIncompatiblePacket "incompatible packet: source 0 \\(packet 0\\): molecule e_aqZ"
   "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
