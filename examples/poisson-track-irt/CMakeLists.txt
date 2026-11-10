@@ -86,7 +86,9 @@ add_library(ptirtCore STATIC
   src/HistoryConfig.cc
   src/ActivationObserverCheck.cc
   src/SeparatedCheck.cc
-  src/LoadedModules.cc)
+  src/LoadedModules.cc
+  src/ReflectingFold.cc
+  src/BoxGuard.cc)
 target_include_directories(ptirtCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # include/BuildMode.hh turns this into constants; it has no default.
 target_compile_definitions(ptirtCore PUBLIC PTIRT_PATCHED_GEANT4=${ptirtPatchedValue})
@@ -136,7 +138,7 @@ target_link_libraries(compare PRIVATE ptirtCore)
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(ptirtTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest)
+foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE ptirtCore)
   add_test(NAME ${testName} COMMAND ${testName})

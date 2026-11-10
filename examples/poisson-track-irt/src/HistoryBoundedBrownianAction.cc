@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <sstream>
 
-#include "G4ChemReboundTransportation.hh"
+#include "ReflectingFold.hh"
+
 #include "G4Exception.hh"
 #include "G4Track.hh"
 
@@ -13,10 +14,11 @@ namespace ptirt
 G4bool HistoryBoundedBrownianAction::Fold(G4ThreeVector& position, const G4DNABoundingBox& box)
 {
   if (box.contains(position)) return false;
-  // Reflection at each face, applied per axis (fatal on a non-finite coordinate).
-  position.set(G4ChemReboundTransportation::calculateNextCoordinate(position.x(), box.Getxhi(), box.Getxlo()),
-               G4ChemReboundTransportation::calculateNextCoordinate(position.y(), box.Getyhi(), box.Getylo()),
-               G4ChemReboundTransportation::calculateNextCoordinate(position.z(), box.Getzhi(), box.Getzlo()));
+  // Reflection at each face, applied per axis with the example's own fold
+  // (throws std::invalid_argument on a non-finite coordinate).
+  position.set(ReflectIntoInterval(position.x(), box.Getxlo(), box.Getxhi()),
+               ReflectIntoInterval(position.y(), box.Getylo(), box.Getyhi()),
+               ReflectIntoInterval(position.z(), box.Getzlo(), box.Getzhi()));
   return true;
 }
 

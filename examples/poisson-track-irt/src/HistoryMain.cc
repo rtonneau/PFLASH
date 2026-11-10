@@ -46,6 +46,8 @@
 
 #include "ActivationObserver.hh"
 #include "ArrivalSchedule.hh"
+#include "BoxGuard.hh"
+#include "BuildMode.hh"
 #include "CaptureLibrary.hh"
 #include "ExamplePhysicsList.hh"
 #include "ExamplePhysicsTag.hh"
@@ -56,9 +58,11 @@
 
 #include "G4DNAChemistryManager.hh"
 #include "G4H2O.hh"
+#include "G4MolecularConfiguration.hh"
 #include "G4MoleculeCounter.hh"
 #include "G4MoleculeCounterManager.hh"
 #include "G4MoleculeCounterTimeComparer.hh"
+#include "G4MoleculeTable.hh"
 #include "G4RunManager.hh"
 #include "G4RunManagerFactory.hh"
 #include "G4Scheduler.hh"
@@ -237,6 +241,7 @@ struct LedgerInput
   std::size_t molecules;
   std::size_t dissociationFolds;
   double wallTimeS;
+  const ptirt::BoxGuardResult& boxGuard;  // not in the ledger yet (ticket 06)
 };
 
 ptirt::JsonValue MakeLedger(const LedgerInput& in)
@@ -385,6 +390,46 @@ ptirt::JsonValue MakeLedger(const LedgerInput& in)
   return root;
 }
 
+// The species with the largest diffusion coefficient in the molecule table
+// (Geant4 internal units mm2/ns, converted to nm2/ns). Valid after
+// /run/initialize; an empty name and 0 when the table holds no species.
+struct FastestSpecies
+{
+  std::string name;
+  double dNm2PerNs = 0;
+};
+
+FastestSpecies FindFastestSpecies()
+{
+  FastestSpecies fastest;
+  auto iterator = G4MoleculeTable::Instance()->GetConfigurationIterator();
+  iterator.reset();
+  while (iterator())
+  {
+    const auto* configuration = iterator.value();
+    if (configuration == nullptr) continue;
+    const double d = configuration->GetDiffusionCoefficient() / (nm * nm / ns);
+    if (d > fastest.dNm2PerNs)
+    {
+      fastest.dNm2PerNs = d;
+      fastest.name = configuration->GetName();
+    }
+  }
+  return fastest;
+}
+
+// Reports the box guard; a warning never stops the run.
+void ReportBoxGuard(const ptirt::BoxGuardResult& guard)
+{
+  if (guard.status != "warning") return;
+  std::ostringstream text;
+  text.precision(6);
+  text << " ratio=" << guard.ratio << " species=" << guard.fastestSpecies
+       << " halfBox_nm=" << guard.halfBoxNm << " diffusionLength_nm=" << guard.diffusionLengthNm
+       << " endpoint_ns=" << guard.endpointNs << " (minimum ratio " << ptirt::kBoxGuardMinRatio << ")";
+  std::cerr << (ptirt::kPatchedGeant4 ? "PTIRT_BOX_GUARD_NOTE" : "PTIRT_BOX_GUARD_WARNING") << text.str() << std::endl;
+}
+
 G4ApplicationState CurrentState()
 {
   return G4StateManager::GetStateManager()->GetCurrentState();
@@ -441,6 +486,10 @@ int Run(int argc, char** argv)
   if (CurrentState() != G4State_Idle) throw ExitError(3, "Geant4 is not Idle after initialization");
   if (const auto problem = ptirt::DescribeIrtSynParameterProblem(); !problem.empty()) throw ExitError(4, problem);
 
+  const auto fastest = FindFastestSpecies();
+  const auto boxGuard = ptirt::EvaluateBoxGuard(config.halfBoxNm, config.endpointNs, fastest.name, fastest.dNm2PerNs);
+  ReportBoxGuard(boxGuard);
+
   // Validates every packet against this build before any Geant4 state changes.
   std::unique_ptr<ptirt::SourceInjector> injector;
   try
@@ -491,7 +540,8 @@ int Run(int argc, char** argv)
 
   const double wallTimeS = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
   const LedgerInput input{arguments, config,    library,   schedule, grid, records, observer, ran,
-                          injector->MoleculeCount(), physics->GetDissociationFoldCount(), wallTimeS};
+                          injector->MoleculeCount(), physics->GetDissociationFoldCount(), wallTimeS,
+                          boxGuard};
   WriteFile(arguments.output / "ledger.json", [&](std::ostream& out) {
     ptirt::WriteJson(out, MakeLedger(input));
     out << '\n';

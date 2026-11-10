@@ -19,7 +19,13 @@
 // built its processes, the G4DNABrownianTransportation of every molecule is
 // replaced by a G4ChemReboundTransportation bound to the box, and the H2O
 // dissociation gets a HistoryBoundedBrownianAction, as in the Geant4-DNA UHDR
-// example (EmDNAChemistry.cc). With the default 0 nothing is changed, so
+// example (EmDNAChemistry.cc, which also registers G4ChemReboundTransportation).
+// The example's own fold (ReflectIntoInterval) applies at the history boundaries
+// (dissociation and reaction products) in both builds. The stock in-box transport
+// goes through the kernel's G4ChemReboundTransportation, whose fold is wrong for
+// overshoots of two box lengths or more and at exactly one box length (on [0,1]:
+// 2.1 -> 1.7, 2.9 -> -0.7, 1.0 -> 0.0); keep the box large against the
+// diffusion length (BoxGuard.hh). With the default 0 nothing is changed, so
 // `capture` builds exactly option3.
 #pragma once
 
