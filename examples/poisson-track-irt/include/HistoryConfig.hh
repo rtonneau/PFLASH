@@ -26,6 +26,10 @@
 //                      if > 0 it must be smaller than worldHalfSideUm
 //   gridMinAgeNs       first record age after each arrival, ns, >= 0.01 (default 1)
 //   gridPointsPerDecade record points per decade of age, 1..100         (default 5)
+//   newOldContactLimit more than this many new-old contact pairs in the whole history
+//                      (ActivationObserver::NewOldContacts) end the run with exit
+//                      status 1 after the outputs are written; integer >= 0
+//                      (default: no limit; 0 allows none)
 //
 // Relative paths are relative to the directory of the config file. The
 // chemistry seed and the source seed are separate on purpose: the same arrival
@@ -41,6 +45,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iosfwd>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -68,6 +73,7 @@ struct HistoryConfig
   double halfBoxNm = 0;                // 0 = unbounded
   double gridMinAgeNs = 1;
   int gridPointsPerDecade = 5;
+  std::optional<std::uint64_t> newOldContactLimit;  // unset = no limit
 };
 
 // Throws std::runtime_error ("line N: ...") on any violation. Relative paths

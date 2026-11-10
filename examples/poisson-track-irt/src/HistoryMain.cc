@@ -30,7 +30,10 @@
 // "HISTORY_ERROR <reason>" line on stderr and a nonzero status: 2 bad
 // arguments, config, schedule or packets; 3 initialization failure; 4 the
 // chemistry model is not IRT_syn; 1 a failed check, or a failure during the
-// history or while writing the outputs.
+// history or while writing the outputs. The one failure that still writes the
+// outputs: when the optional config key newOldContactLimit is exceeded, the three
+// files are written (ledger checks.allPassed false), then
+// "HISTORY_ERROR PTIRT_NEW_OLD_CONTACTS pairs=<n> limit=<l>" and status 1.
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -38,6 +41,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -54,6 +58,7 @@
 #include "HistoryConfig.hh"
 #include "HistoryDetectorConstruction.hh"
 #include "Ledger.hh"
+#include "LoadedModules.hh"
 #include "SourceInjector.hh"
 
 #include "G4DNAChemistryManager.hh"
@@ -241,8 +246,73 @@ struct LedgerInput
   std::size_t molecules;
   std::size_t dissociationFolds;
   double wallTimeS;
-  const ptirt::BoxGuardResult& boxGuard;  // not in the ledger yet (ticket 06)
+  const ptirt::BoxGuardResult& boxGuard;
+  const ptirt::CoincidenceSummary& coincidences;  // the allowed ones, over the injected set
+  bool contactLimitExceeded;
 };
+
+// pairs > limit; no limit configured never exceeds.
+bool ContactLimitExceeded(const ptirt::HistoryConfig& config, std::size_t pairs)
+{
+  return config.newOldContactLimit.has_value() && pairs > *config.newOldContactLimit;
+}
+
+ptirt::JsonValue PerPairNode(const std::map<std::string, std::size_t>& perPair)
+{
+  auto node = ptirt::JsonValue::Object();
+  for (const auto& [label, n] : perPair) node.Set(label, Count(n));
+  return node;
+}
+
+ptirt::JsonValue BoxGuardNode(const ptirt::BoxGuardResult& guard)
+{
+  using ptirt::JsonValue;
+  auto node = JsonValue::Object();
+  node.Set("status", JsonValue::String(guard.status));
+  node.Set("ratio", JsonValue::Real(guard.ratio));  // +inf (nothing diffuses) is written as null
+  node.Set("diffusionLengthNm", JsonValue::Real(guard.diffusionLengthNm));
+  node.Set("halfBoxNm", JsonValue::Real(guard.halfBoxNm));
+  node.Set("fastestSpecies", JsonValue::String(guard.fastestSpecies));
+  node.Set("minRatio", JsonValue::Real(ptirt::kBoxGuardMinRatio));
+  return node;
+}
+
+ptirt::JsonValue NewOldContactsNode(const LedgerInput& in)
+{
+  using ptirt::JsonValue;
+  const auto& contacts = in.observer.Contacts();
+  auto perActivation = JsonValue::Array();
+  for (const auto& activation : contacts.perActivation)
+  {
+    auto item = JsonValue::Object();
+    item.Set("index", Count(activation.index));
+    item.Set("timeNs", JsonValue::Real(activation.timeNs));
+    item.Set("pairs", Count(activation.pairs));
+    perActivation.Append(item);
+  }
+  auto node = JsonValue::Object();
+  node.Set("rule", JsonValue::String("at each activation, pairs (fresh molecule, molecule already in the history) "
+                                     "with squared distance < squared effective reaction radius "
+                                     "(G4DNAMolecularReactionTable; no pair without reaction data)"));
+  node.Set("pairs", Count(contacts.pairs));
+  node.Set("newMoleculesInContact", Count(contacts.newMoleculesInContact));
+  node.Set("perPair", PerPairNode(contacts.perPair));
+  node.Set("perActivation", perActivation);
+  node.Set("limit", in.config.newOldContactLimit.has_value()
+                        ? JsonValue::Integer(static_cast<long long>(*in.config.newOldContactLimit))
+                        : JsonValue());
+  node.Set("limitExceeded", JsonValue::Bool(in.contactLimitExceeded));
+  node.Set("trialledByKernel", JsonValue::Bool(ptirt::kPatchedGeant4));
+  node.Set("cpuSeconds", JsonValue::Real(contacts.cpuSeconds));
+  node.Set("note", JsonValue::String(
+                       ptirt::kPatchedGeant4
+                           ? "informational: the patched stepper trials a fresh source against the molecules "
+                             "already in the history, so these contacts are not missed; counted at the activation "
+                             "hook (NewStage), before that trial. A configured limit is still enforced"
+                           : "the stock stepper gives a fresh source no contact trial at its activation: these "
+                             "pairs cannot react at that moment; counted at the activation hook (NewStage)"));
+  return node;
+}
 
 ptirt::JsonValue MakeLedger(const LedgerInput& in)
 {
@@ -252,8 +322,11 @@ ptirt::JsonValue MakeLedger(const LedgerInput& in)
 
   auto root = JsonValue::Object();
   root.Set("format", JsonValue::String("ptirt-history-ledger"));
-  root.Set("formatVersion", JsonValue::Integer(1));
+  root.Set("formatVersion", JsonValue::Integer(2));
   root.Set("mode", JsonValue::String(ptirt::HistoryModeName(config.mode)));
+  root.Set("buildMode", JsonValue::String(ptirt::kBuildModeName));
+  root.Set("captureStage", JsonValue::String(ptirt::kCaptureStageName));
+  root.Set("kernelFold", JsonValue::String(ptirt::kKernelFoldName));
   root.Set("config", JsonValue::String(in.arguments.config.string()));
   root.Set("compatibilityTag", JsonValue::String(ptirt::kPacketCompatibilityTag));
   root.Set("geant4Version", JsonValue::String(G4Version));
@@ -331,12 +404,30 @@ ptirt::JsonValue MakeLedger(const LedgerInput& in)
   injected.Set("primaryEnergy_eV", JsonValue::Real(primary));
   injected.Set("energyDeposit_eV", JsonValue::Real(deposit));
   injected.Set("escapedEnergy_eV", JsonValue::Real(escaped));
+  // Molecules at one position are refused before the run, so this is always 0;
+  // "coincidence" holds the allowed ones (products of one start-up reaction of one
+  // source), with the pairs among them that could react (radius > 0). Same names
+  // as the packets of capture.json.
+  injected.Set("coincidentMolecules", JsonValue::Integer(0));
+  {
+    const auto& c = in.coincidences;
+    auto coincidence = JsonValue::Object();
+    coincidence.Set("exempt", Count(c.exemptPositions));  // positions
+    coincidence.Set("exemptMolecules", Count(c.exemptMolecules));
+    coincidence.Set("reactivePairs", Count(c.reactivePairs));
+    coincidence.Set("perPair", PerPairNode(c.perPair));
+    injected.Set("coincidence", coincidence);
+  }
   root.Set("injected", injected);
+  root.Set("boxFoldGuard", BoxGuardNode(in.boxGuard));
+  root.Set("newOldContacts", NewOldContactsNode(in));
   root.Set("sources", sources);
 
-  // Checks: reaching this point means every check passed.
+  // Checks: every check of the history passed (a failed one ends the run before the
+  // ledger); the contact limit is the one check that still writes it.
   auto checks = JsonValue::Object();
-  checks.Set("allPassed", JsonValue::Bool(true));
+  checks.Set("allPassed", JsonValue::Bool(!in.contactLimitExceeded));
+  checks.Set("newOldContactLimitPassed", JsonValue::Bool(!in.contactLimitExceeded));
   checks.Set("chemistryRan", JsonValue::Bool(in.ran));
   auto stages = JsonValue::Array();
   std::size_t preservedTotal = 0;
@@ -382,6 +473,10 @@ ptirt::JsonValue MakeLedger(const LedgerInput& in)
   folds.Set("reactionProducts", Count(in.observer.ProductFoldCount()));
   root.Set("reflectingBoxFolds", folds);
   root.Set("wallTime_s", JsonValue::Real(in.wallTimeS));
+  // Every G4 library this process loaded, full paths: all from the install Geant4_DIR names.
+  auto modules = JsonValue::Array();
+  for (const auto& module : ptirt::ListLoadedGeant4Modules()) modules.Append(JsonValue::String(module));
+  root.Set("loadedGeant4Modules", modules);
   root.Set("outputs", [] {
     auto files = JsonValue::Array();
     for (const char* name : {"species.csv", "activations.csv", "ledger.json"}) files.Append(JsonValue::String(name));
@@ -539,13 +634,18 @@ int Run(int argc, char** argv)
             [&](std::ostream& out) { ptirt::WriteActivationsCsv(out, records); });
 
   const double wallTimeS = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+  const bool limitExceeded = ContactLimitExceeded(config, observer.Contacts().pairs);
   const LedgerInput input{arguments, config,    library,   schedule, grid, records, observer, ran,
                           injector->MoleculeCount(), physics->GetDissociationFoldCount(), wallTimeS,
-                          boxGuard};
+                          boxGuard, injector->Coincidences(), limitExceeded};
   WriteFile(arguments.output / "ledger.json", [&](std::ostream& out) {
     ptirt::WriteJson(out, MakeLedger(input));
     out << '\n';
   });
+
+  if (limitExceeded)
+    throw ExitError(1, "PTIRT_NEW_OLD_CONTACTS pairs=" + std::to_string(observer.Contacts().pairs) +
+                           " limit=" + std::to_string(*config.newOldContactLimit));
 
   std::ostringstream done;
   done.precision(17);

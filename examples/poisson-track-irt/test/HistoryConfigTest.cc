@@ -1,7 +1,9 @@
 #include "HistoryConfig.hh"
 
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <optional>
 #include <sstream>
 
 #include "TestCheck.hh"
@@ -48,7 +50,14 @@ void TestDeterministic()
   CHECK(config.halfBoxNm == 0);
   CHECK(config.gridMinAgeNs == 1);
   CHECK(config.gridPointsPerDecade == 5);
+  CHECK(!config.newOldContactLimit.has_value());
   CHECK(std::string(HistoryModeName(config.mode)) == "deterministic");
+
+  // The contact limit: any integer >= 0, in every mode; 0 is a limit, not "off".
+  CHECK(Read(kDeterministic + "newOldContactLimit = 0\n").newOldContactLimit == std::optional<std::uint64_t>(0));
+  CHECK(Read(kDeterministic + "newOldContactLimit = 12345\n").newOldContactLimit ==
+        std::optional<std::uint64_t>(12345));
+  CHECK(Read(kPoisson + "newOldContactLimit = 7\n").newOldContactLimit == std::optional<std::uint64_t>(7));
 
   const auto boxed = Read(kDeterministic + "worldHalfSideUm = 3\nhalfBoxUm = 1.5\ngridMinAgeNs = 0.1\n"
                                            "gridPointsPerDecade = 10\n");
@@ -125,6 +134,11 @@ void TestRejections()
   CHECK_THROWS(Read(kDeterministic + "gridPointsPerDecade = 101\n"), "gridPointsPerDecade");
   CHECK_THROWS(Read(kDeterministic + "gridMinAgeNs = 0.001\n"), "at least 0.01 ns");
   CHECK_THROWS(Read(kDeterministic + "gridMinAgeNs = 3e6\n"), "smaller than endpointNs");
+  // Contact limit: a non-negative integer, plain digits.
+  for (const auto* limit : {"-1", "+3", "1.5", "1e3", "abc", "0x10", "99999999999999999999"})
+    CHECK_THROWS(Read(kDeterministic + "newOldContactLimit = " + std::string(limit) + "\n"), "newOldContactLimit");
+  CHECK_THROWS(Read(kDeterministic + "newOldContactLimit = \n"), "empty value");
+  CHECK_THROWS(Read(kDeterministic + "newOldContactLimit = 1\nnewOldContactLimit = 2\n"), "repeated");
   // Geometry.
   CHECK_THROWS(Read(kDeterministic + "worldHalfSideUm = 0\n"), "worldHalfSideUm: must be positive");
   CHECK_THROWS(Read(kDeterministic + "halfBoxUm = -1\n"), "zero (no box) or positive");

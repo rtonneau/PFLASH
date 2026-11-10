@@ -293,6 +293,9 @@ set(ptirtHistoryScript ${CMAKE_CURRENT_SOURCE_DIR}/test)
 set(ptirtThreeTracks "0 0 0 0 0|50 1 0.05 0 0|100 2 60 0 0")
 set(ptirtScheduleConfig "libraryDir = @LIBRARY@|scheduleFile = @SCHEDULE@")
 
+# Ledger fields every history smoke requires (test/RunHistorySmoke.cmake).
+set(ptirtLedgerExpect -DEXPECT_BUILD=${ptirtExpectBuild} -DEXPECT_MODULES=${ptirtExpectModules})
+
 # Deterministic 3-track smoke: two overlapping tracks (50 nm apart) and a far
 # one, arriving at 0, 50 and 100 ns, in one history observed to 1 us.
 add_test(NAME HistoryDeterministicSmoke
@@ -303,6 +306,7 @@ add_test(NAME HistoryDeterministicSmoke
     "-DCONFIG=mode = deterministic|${ptirtScheduleConfig}|endpointNs = 1000|chemistrySeed = 11"
     "-DSCHEDULE=${ptirtThreeTracks}"
     -DEXPECT_SOURCES=3 -DEXPECT_STAGES=3 -DEXPECT_LAST_TIME=1000
+    ${ptirtLedgerExpect}
     -P ${ptirtHistoryScript}/RunHistorySmoke.cmake)
 set_tests_properties(HistoryDeterministicSmoke PROPERTIES
   FIXTURES_REQUIRED HistoryLibrary FIXTURES_SETUP HistoryDeterministicOutput)
@@ -315,6 +319,7 @@ add_test(NAME HistorySingleSmoke
     "-DCONFIG=mode = single|${ptirtScheduleConfig}|singleSource = 1|endpointNs = 1000|chemistrySeed = 12"
     "-DSCHEDULE=${ptirtThreeTracks}"
     -DEXPECT_SOURCES=1 -DEXPECT_STAGES=1 -DEXPECT_LAST_TIME=1000
+    ${ptirtLedgerExpect}
     -DSAME_GRID_AS=${ptirtTestOutput}/history-deterministic/out
     -P ${ptirtHistoryScript}/RunHistorySmoke.cmake)
 set_tests_properties(HistorySingleSmoke PROPERTIES
@@ -327,6 +332,7 @@ add_test(NAME HistoryPoissonSmoke
     -DLIBRARY=${ptirtHistoryLibrary}
     "-DCONFIG=mode = poisson|libraryDir = @LIBRARY@|rateHz = 1e7|exposureS = 2e-7|sourceSeed = 3|regionHalfSizeUm = 0.2|endpointNs = 1000|chemistrySeed = 13"
     -DEXPECT_SOURCES=2 -DEXPECT_STAGES=2 -DEXPECT_LAST_TIME=1000
+    ${ptirtLedgerExpect}
     -P ${ptirtHistoryScript}/RunHistorySmoke.cmake)
 set_tests_properties(HistoryPoissonSmoke PROPERTIES FIXTURES_REQUIRED HistoryLibrary)
 # A Poisson draw of zero sources is a valid, unconditioned outcome: the history
@@ -338,6 +344,7 @@ add_test(NAME HistoryPoissonZeroArrivals
     -DLIBRARY=${ptirtHistoryLibrary}
     "-DCONFIG=mode = poisson|libraryDir = @LIBRARY@|rateHz = 1|exposureS = 2e-7|sourceSeed = 3|regionHalfSizeUm = 0.2|endpointNs = 1000|chemistrySeed = 13"
     -DEXPECT_SOURCES=0 -DEXPECT_STAGES=0 -DEXPECT_LAST_TIME=1000
+    ${ptirtLedgerExpect}
     -P ${ptirtHistoryScript}/RunHistorySmoke.cmake)
 set_tests_properties(HistoryPoissonZeroArrivals PROPERTIES FIXTURES_REQUIRED HistoryLibrary)
 # Reflecting box: 1.1 um half box around tracks captured in a 1 um box, to 2 us.
@@ -349,8 +356,23 @@ add_test(NAME HistoryReflectingBoxSmoke
     "-DCONFIG=mode = deterministic|${ptirtScheduleConfig}|halfBoxUm = 1.1|worldHalfSideUm = 3|endpointNs = 2000|chemistrySeed = 14"
     "-DSCHEDULE=0 0 0 0 0|20 1 0.05 0 0"
     -DEXPECT_SOURCES=2 -DEXPECT_STAGES=2 -DEXPECT_LAST_TIME=2000 -DEXPECT_BOX_NM=1100
+    -DEXPECT_BOX_GUARD=ok ${ptirtLedgerExpect}
     -P ${ptirtHistoryScript}/RunHistorySmoke.cmake)
 set_tests_properties(HistoryReflectingBoxSmoke PROPERTIES FIXTURES_REQUIRED HistoryBoxLibrary)
+
+# New-old contact limit: the one failure that still writes its outputs (exit 1,
+# PTIRT_NEW_OLD_CONTACTS, ledger checks.allPassed false). Source 1 arrives 10 ns after
+# source 0, 5 nm away, so its fresh molecules sit inside the reaction radius of the
+# old ones. A second run with the limit at the observed count must pass.
+add_test(NAME HistoryNewOldContactLimit
+  COMMAND ${CMAKE_COMMAND}
+    -DHISTORY=$<TARGET_FILE:history>
+    -DWORK_DIR=${ptirtTestOutput}/history-contact-limit
+    -DLIBRARY=${ptirtHistoryLibrary}
+    "-DCONFIG=mode = deterministic|${ptirtScheduleConfig}|endpointNs = 1000|chemistrySeed = 21|newOldContactLimit = 0"
+    "-DSCHEDULE=0 0 0 0 0|10 1 0.005 0 0" -DPACKET_DUPLICATE=ON
+    -P ${ptirtHistoryScript}/RunHistoryContactLimit.cmake)
+set_tests_properties(HistoryNewOldContactLimit PROPERTIES FIXTURES_REQUIRED HistoryLibrary)
 
 # Refusals: exit status 2, a HISTORY_ERROR matching the regex, nothing written.
 # ptirt_history_refusal(<test name> <error regex> <-D inputs of HistoryTestInput.cmake>...)
@@ -398,7 +420,8 @@ ptirt_history_refusal(HistoryRejectsSingleSourceOutOfRange "singleSource 3 is no
   "-DSCHEDULE=${ptirtThreeTracks}")
 
 set(ptirtHistoryTests HistoryLibrary HistoryBoxLibrary HistoryDeterministicSmoke HistorySingleSmoke
-    HistoryPoissonSmoke HistoryPoissonZeroArrivals HistoryReflectingBoxSmoke HistoryRejectsMalformedConfig
+    HistoryPoissonSmoke HistoryPoissonZeroArrivals HistoryReflectingBoxSmoke HistoryNewOldContactLimit
+    HistoryRejectsMalformedConfig
     HistoryRejectsMalformedSchedule HistoryRejectsMalformedPacket HistoryRejectsIncompatibleTag
     HistoryRejectsIncompatiblePacket HistoryRejectsCoincidentPacket HistoryRejectsCoincidentSources
     HistoryRejectsExhaustedLibrary
