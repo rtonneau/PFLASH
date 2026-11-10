@@ -8,6 +8,8 @@
 #include <string>
 
 #include "BuildMode.hh"
+#include "CoincidenceCheck.hh"
+#include "ReactionRadius.hh"
 
 #include "G4DNAIndependentReactionTimeStepper.hh"
 #include "G4ElectronOccupancy.hh"
@@ -130,6 +132,12 @@ SourceInjector::SourceInjector(const std::vector<Arrival>& arrivals, const Packe
   if (total > static_cast<std::size_t>(std::numeric_limits<G4int>::max()))
     throw std::runtime_error("too many molecules for G4int track IDs");
   fMolecules.reserve(total);
+  // For the coincidence check over the whole injected set.
+  std::vector<CoincidenceMolecule> placed;
+  std::vector<std::string> species;
+  placed.reserve(total);
+  species.reserve(total);
+  ConfigurationRadii radii;
 
   for (const auto& arrival : arrivals)
   {
@@ -179,6 +187,14 @@ SourceInjector::SourceInjector(const std::vector<Arrival>& arrivals, const Packe
       molecule.properTime = captured.properTimeNs * ns;
       molecule.source = fSources.size();
       fMolecules.push_back(molecule);
+
+      // Exact equality on the positions Geant4 will get, after the translation.
+      CoincidenceMolecule placedMolecule;
+      placedMolecule.position = {molecule.position.x(), molecule.position.y(), molecule.position.z()};
+      placedMolecule.packet = molecule.source;  // a source, not a packet: one packet may be injected twice
+      placedMolecule.productGroup = captured.productGroup;
+      placed.push_back(placedMolecule);
+      species.push_back(radii.Label(molecule.configuration));
     }
     source.lastTrackId = static_cast<G4int>(fMolecules.size());
     fSources.push_back(source);
@@ -197,6 +213,13 @@ SourceInjector::SourceInjector(const std::vector<Arrival>& arrivals, const Packe
     record.escapedEnergyEv = entry.escapedEnergyEv;
     fRecords.push_back(record);
   }
+
+  // Before Inject(): nothing has been pushed to Geant4 yet. Molecules at one point
+  // within a source are allowed only as the products of one start-up reaction;
+  // across sources they never are.
+  const auto coincidences = FindCoincidentPositions(placed);
+  if (coincidences.forbiddenMolecules > 0) throw std::runtime_error(DescribeForbiddenCoincidences(coincidences));
+  fCoincidences = SummarizeExempt(coincidences, species, radii.AsFunction());
 }
 
 void SourceInjector::Inject()

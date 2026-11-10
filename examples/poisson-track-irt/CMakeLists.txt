@@ -89,7 +89,9 @@ add_library(ptirtCore STATIC
   src/SeparatedCheck.cc
   src/LoadedModules.cc
   src/ReflectingFold.cc
-  src/BoxGuard.cc)
+  src/BoxGuard.cc
+  src/CoincidenceCheck.cc
+  src/ContactCount.cc)
 target_include_directories(ptirtCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # include/BuildMode.hh turns this into constants; it has no default.
 target_compile_definitions(ptirtCore PUBLIC PTIRT_PATCHED_GEANT4=${ptirtPatchedValue})
@@ -139,7 +141,7 @@ target_link_libraries(compare PRIVATE ptirtCore)
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(ptirtTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest PacketDigestTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest)
+foreach(testName PrecursorPacketTest PacketDigestTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest CoincidenceCheckTest ContactCountTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE ptirtCore)
   add_test(NAME ${testName} COMMAND ${testName})
@@ -379,6 +381,13 @@ ptirt_history_refusal(HistoryRejectsIncompatibleTag "incompatible packet: tag"
 ptirt_history_refusal(HistoryRejectsIncompatiblePacket "incompatible packet: source 0 \\(packet 0\\): molecule e_aqZ"
   "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
   "-DPACKET_FIND=molecule e_aq " "-DPACKET_REPLACE=molecule e_aqZ ")
+# Two molecules of one packet at one position (a hand-made packet): refused with the token.
+ptirt_history_refusal(HistoryRejectsCoincidentPacket "PTIRT_COINCIDENT_MOLECULES count=2 positions=1"
+  "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}" -DPACKET_COINCIDE=ON)
+# Two sources at one offset whose packets hold the same molecules (packet 1 is a copy
+# of packet 0): every molecule meets its copy, across sources.
+ptirt_history_refusal(HistoryRejectsCoincidentSources "PTIRT_COINCIDENT_MOLECULES count=[0-9]+ positions=[0-9]+"
+  "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=0 0 0 0 0|50 1 0 0 0" -DPACKET_DUPLICATE=ON)
 ptirt_history_refusal(HistoryRejectsExhaustedLibrary "library exhausted"
   "-DCONFIG=mode = poisson|libraryDir = @LIBRARY@|rateHz = 1e9|exposureS = 1e-6|sourceSeed = 1|endpointNs = 2000|chemistrySeed = 1")
 # Arrival 0.5 ps before the endpoint: activation (arrival + 1 ps) after it.
@@ -391,7 +400,8 @@ ptirt_history_refusal(HistoryRejectsSingleSourceOutOfRange "singleSource 3 is no
 set(ptirtHistoryTests HistoryLibrary HistoryBoxLibrary HistoryDeterministicSmoke HistorySingleSmoke
     HistoryPoissonSmoke HistoryPoissonZeroArrivals HistoryReflectingBoxSmoke HistoryRejectsMalformedConfig
     HistoryRejectsMalformedSchedule HistoryRejectsMalformedPacket HistoryRejectsIncompatibleTag
-    HistoryRejectsIncompatiblePacket HistoryRejectsExhaustedLibrary
+    HistoryRejectsIncompatiblePacket HistoryRejectsCoincidentPacket HistoryRejectsCoincidentSources
+    HistoryRejectsExhaustedLibrary
     HistoryRejectsActivationAfterEndpoint HistoryRejectsSingleSourceOutOfRange)
 
 # The Geant4 DLLs of the install found through Geant4_DIR go first on PATH, so

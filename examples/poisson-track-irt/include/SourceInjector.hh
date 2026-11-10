@@ -32,6 +32,13 @@
 // start. The tracks are therefore built with the manager inactive, and
 // ActivationObserver counts each source when it actually activates.
 //
+// Coincident molecules. Two molecules at exactly one position (after the
+// translations) fail the constructor with
+// "PTIRT_COINCIDENT_MOLECULES count=<n> positions=<p>", unless they are the
+// products of one start-up reaction of one packet (same nonzero productGroup).
+// Molecules of different sources at one position always fail. The allowed ones
+// are counted in Coincidences(), with the pairs among them that could react.
+//
 // Everything is validated in the constructor, before any Geant4 state changes:
 // a packet molecule must resolve to exactly one molecular configuration of this
 // build (else "incompatible packet"), sit at the packet's capture age, land
@@ -44,6 +51,7 @@
 
 #include "ArrivalSchedule.hh"
 #include "CaptureLibrary.hh"
+#include "CoincidenceCheck.hh"
 #include "Ledger.hh"
 
 #include "G4ThreeVector.hh"
@@ -79,6 +87,10 @@ class SourceInjector
   void Inject();
 
   const std::vector<InjectedSource>& Sources() const { return fSources; }
+
+  // The allowed coincidences of the whole injected set (summed over the packets):
+  // exempt positions and molecules, reactive pairs in total and per species pair.
+  const CoincidenceSummary& Coincidences() const { return fCoincidences; }
   std::size_t MoleculeCount() const { return fMolecules.size(); }
 
   // One record per source, observedActivationTimeNs = NaN (filled by the caller).
@@ -100,6 +112,7 @@ class SourceInjector
   std::vector<InjectedSource> fSources;
   std::vector<ActivationRecord> fRecords;
   std::vector<Molecule> fMolecules;  // in track-ID order: molecule i gets ID i + 1
+  CoincidenceSummary fCoincidences;
   G4bool fInjected = false;
 };
 

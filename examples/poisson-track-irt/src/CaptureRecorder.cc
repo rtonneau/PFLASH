@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "BuildMode.hh"
+#include "CoincidenceCheck.hh"
 #include "ExamplePhysicsList.hh"
 #include "ExamplePhysicsTag.hh"
 #include "PacketDigest.hh"
@@ -120,6 +121,7 @@ void CaptureRecorder::BeginEvent(G4int eventId, G4ParticleGun& gun)
   fChemistryStarted = false;
   fCaptured = false;
   fMolecules.clear();
+  fMoleculeSpecies.clear();
   fChemistryStartDigest = 0;
   fCapturedDigest = 0;
   fChemistrySeed = 0;
@@ -305,6 +307,7 @@ void CaptureRecorder::CaptureStartupState()
   {
     PacketMolecule molecule;
     const G4Track* track = nullptr;
+    const G4MolecularConfiguration* configuration = nullptr;
     int trackId = 0;  // tie-break only
   };
   std::vector<Captured> captured;
@@ -344,6 +347,7 @@ void CaptureRecorder::CaptureStartupState()
       }
       Captured entry;
       entry.track = track;
+      entry.configuration = GetMolecule(*track)->GetMolecularConfiguration();
       entry.trackId = track->GetTrackID();
       if (const auto problem = DescribeTrack(*track, fOrigin, entry.molecule); !problem.empty())
       {
@@ -368,8 +372,11 @@ void CaptureRecorder::CaptureStartupState()
   std::map<int, int> groupOfReaction;
   fMolecules.clear();
   fMolecules.reserve(captured.size());
+  fMoleculeSpecies.clear();
+  fMoleculeSpecies.reserve(captured.size());
   for (auto& entry : captured)
   {
+    fMoleculeSpecies.push_back(fRadii.Label(entry.configuration));
     if (const auto it = fProductReaction.find(entry.track); it != fProductReaction.end())
       entry.molecule.productGroup =
           groupOfReaction.try_emplace(it->second, static_cast<int>(groupOfReaction.size()) + 1)
@@ -407,6 +414,32 @@ void CaptureRecorder::EndEvent(const G4Event& event)
   if (fMolecules.empty())
   {
     Fail("the primary produced no precursor molecule in the capture box");
+    return;
+  }
+
+  // Two molecules at one point cannot be injected (CoincidenceCheck.hh); the
+  // products of one start-up reaction are the only allowed exception.
+  std::vector<CoincidenceMolecule> placed(fMolecules.size());
+  for (std::size_t i = 0; i < fMolecules.size(); ++i)
+  {
+    placed[i].position = fMolecules[i].positionNm;
+    placed[i].productGroup = fMolecules[i].productGroup;
+  }
+  CoincidenceSummary coincidence;
+  try
+  {
+    const auto coincidences = FindCoincidentPositions(placed);
+    if (coincidences.forbiddenMolecules > 0)
+    {
+      Fail(DescribeForbiddenCoincidences(coincidences));
+      return;
+    }
+    // The patched capture has no product groups, hence nothing exempt and no species labels.
+    coincidence = SummarizeExempt(coincidences, fMoleculeSpecies, fRadii.AsFunction());
+  }
+  catch (const std::exception& error)
+  {
+    Fail(std::string("coincidence check: ") + error.what());
     return;
   }
 
@@ -452,6 +485,7 @@ void CaptureRecorder::EndEvent(const G4Event& event)
   provenance.chemistrySeed = fChemistrySeed;
   provenance.startupZeroSteps = fStartupZeroSteps;
   provenance.startupReactions = fStartupReactions;
+  provenance.coincidence = coincidence;
   fProvenance.push_back(provenance);
 }
 

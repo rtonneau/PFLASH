@@ -268,6 +268,21 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
     // 16 hexadecimal digits: a JSON number cannot hold all 64 bits.
     packet.Set("chemistryStartDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].chemistryStartDigest)));
     packet.Set("capturedDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].capturedDigest)));
+    // Molecules at one position are refused (the capture fails), so this is always 0;
+    // "coincidence" holds the allowed ones: products of one start-up reaction, with the
+    // pairs among them that could react (effective reaction radius > 0).
+    packet.Set("coincidentMolecules", JsonValue::Integer(0));
+    {
+      const auto& c = provenance[i].coincidence;
+      auto perPair = JsonValue::Object();
+      for (const auto& [label, n] : c.perPair) perPair.Set(label, JsonValue::Integer(static_cast<long long>(n)));
+      auto coincidence = JsonValue::Object();
+      coincidence.Set("exempt", JsonValue::Integer(static_cast<long long>(c.exemptPositions)));  // positions
+      coincidence.Set("exemptMolecules", JsonValue::Integer(static_cast<long long>(c.exemptMolecules)));
+      coincidence.Set("reactivePairs", JsonValue::Integer(static_cast<long long>(c.reactivePairs)));
+      coincidence.Set("perPair", perPair);
+      packet.Set("coincidence", coincidence);
+    }
     if constexpr (!ptirt::kPatchedGeant4)
     {
       packet.Set("chemistrySeed", JsonValue::Integer(static_cast<long long>(provenance[i].chemistrySeed)));

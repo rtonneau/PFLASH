@@ -12,7 +12,8 @@
 //                           BeforeTimeStep
 //                                         before every chemistry step (stock only)
 //                           OnReaction    every reaction (stock only, before the capture)
-//   EventAction             EndEvent      build, validate, write and re-read the packet
+//   EventAction             EndEvent      check for coincident molecules (CoincidenceCheck.hh),
+//                                         then build, validate, write and re-read the packet
 //
 // Capture runs inside G4DNAChemistryManager::Run (G4Scheduler::Process), so no
 // Geant4 source is instrumented. Where the molecules are read depends on the
@@ -34,6 +35,12 @@
 // capture.json records, per packet, the digest of the molecules waiting at
 // chemistry start and the digest of the molecules captured (PacketDigest.hh).
 //
+// Coincident molecules (two at exactly one position) fail the event with
+// PTIRT_COINCIDENT_MOLECULES count=<n> positions=<p> before anything is written,
+// unless they are the products of one start-up reaction (same nonzero
+// productGroup); those are counted, and the pairs among them that could react
+// (effective reaction radius > 0) are counted per species pair.
+//
 // Errors never throw through the Geant4 kernel: the first one is stored
 // (Failure()), the chemistry is stopped and the run is aborted. A state that the
 // stock capture cannot interpret (a molecule still delayed, a stopped-but-alive
@@ -49,7 +56,9 @@
 #include <vector>
 
 #include "CaptureLibrary.hh"
+#include "CoincidenceCheck.hh"
 #include "PrecursorPacket.hh"
+#include "ReactionRadius.hh"
 
 #include "G4ThreeVector.hh"
 #include "globals.hh"
@@ -85,6 +94,9 @@ struct CaptureProvenance
   std::uint64_t chemistrySeed = 0;
   int startupZeroSteps = 0;
   int startupReactions = 0;
+  // The allowed coincidences of the packet (a refused one fails the capture, so
+  // none is ever recorded): exempt positions and molecules, reactive pairs.
+  CoincidenceSummary coincidence;
 };
 
 class CaptureRecorder
@@ -137,6 +149,8 @@ class CaptureRecorder
   bool fChemistryStarted = false;
   bool fCaptured = false;  // fMolecules holds the packet molecules
   std::vector<PacketMolecule> fMolecules;
+  std::vector<std::string> fMoleculeSpecies;  // stock only: label of each fMolecules entry (fRadii)
+  ConfigurationRadii fRadii;
   std::uint64_t fChemistryStartDigest = 0;
   std::uint64_t fCapturedDigest = 0;
   std::uint64_t fChemistrySeed = 0;
