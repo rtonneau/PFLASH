@@ -4,6 +4,9 @@
 #include <cmath>
 #include <exception>
 #include <fstream>
+#include <map>
+#include <optional>
+#include <set>
 #include <sstream>
 #include <utility>
 
@@ -391,6 +394,36 @@ void CaptureRecorder::CaptureStartupState()
   scheduler->Stop();
 }
 
+// Within-Reff pairs of the captured molecules (all alive) and the sum of the
+// contact probabilities that G4DNAIndependentReactionTimeStepper applies to them
+// at the start time: reactionData->GetProbability() > G4UniformRand() per pair.
+SecondTrial CaptureRecorder::ComputeSecondTrial(std::map<std::string, std::pair<std::size_t, double>>& perPair)
+{
+  std::vector<ContactMolecule> molecules(fMolecules.size());
+  for (std::size_t i = 0; i < fMolecules.size(); ++i)
+  {
+    molecules[i].species = fMoleculeSpecies[i];
+    molecules[i].positionNm = fMolecules[i].positionNm;
+  }
+  const auto counts = CountInternalContacts(molecules, fRadii.AsFunction());
+
+  std::map<std::string, double> probabilityOf;  // PairLabel -> GetProbability()
+  std::set<std::string> species(fMoleculeSpecies.begin(), fMoleculeSpecies.end());
+  for (auto a = species.begin(); a != species.end(); ++a)
+    for (auto b = a; b != species.end(); ++b) probabilityOf[PairLabel(*a, *b)] = fRadii.Probability(*a, *b);
+
+  SecondTrial trial;
+  trial.pairs = counts.pairs;
+  for (const auto& [label, n] : counts.perPair)
+  {
+    const auto it = probabilityOf.find(label);
+    if (it == probabilityOf.end()) throw std::runtime_error("no probability for pair '" + label + "'");
+    perPair[label] = {n, static_cast<double>(n) * it->second};
+    trial.expectedReactions += perPair[label].second;
+  }
+  return trial;
+}
+
 void CaptureRecorder::EndEvent(const G4Event& event)
 {
   if (!fFailure.empty()) return;
@@ -443,6 +476,22 @@ void CaptureRecorder::EndEvent(const G4Event& event)
     return;
   }
 
+  // Stock only: what the IRT_syn stepper's first trial would see in this packet.
+  std::optional<SecondTrial> secondTrial;
+  std::map<std::string, std::pair<std::size_t, double>> secondTrialPerPair;
+  if constexpr (!kPatchedGeant4)
+  {
+    try
+    {
+      secondTrial = ComputeSecondTrial(secondTrialPerPair);
+    }
+    catch (const std::exception& error)
+    {
+      Fail(std::string("second trial: ") + error.what());
+      return;
+    }
+  }
+
   PrecursorPacket packet;
   packet.compatibilityTag = kPacketCompatibilityTag;
   packet.primaryParticle = fPrimaryParticle;
@@ -470,6 +519,7 @@ void CaptureRecorder::EndEvent(const G4Event& event)
     if (!(reread == packet))
       throw std::runtime_error(path.string() + " does not read back to the captured packet");
     fEntries.push_back(MakeLibraryEntry(index, fPhysicsSeed, packet));
+    fEntries.back().secondTrial = secondTrial;
   }
   catch (const std::exception& error)
   {
@@ -486,6 +536,7 @@ void CaptureRecorder::EndEvent(const G4Event& event)
   provenance.startupZeroSteps = fStartupZeroSteps;
   provenance.startupReactions = fStartupReactions;
   provenance.coincidence = coincidence;
+  provenance.secondTrialPerPair = std::move(secondTrialPerPair);
   fProvenance.push_back(provenance);
 }
 

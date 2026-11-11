@@ -11,7 +11,10 @@
 // Run(); no event loop, no physics transport). Each source therefore activates
 // at its own time, inside the history left by the earlier sources, and reacts
 // with all of them. ActivationObserver checks every activation and the
-// preservation of the earlier molecules, and reads the species counts.
+// preservation of the earlier molecules, and reads the species counts. In the
+// stock build, StartTrialGate switches off the stepper's start-time contact
+// trial during the run, so the first packet's contacts (already resolved by
+// capture) are not trialled a second time.
 //
 // Modes (config file, see HistoryConfig.hh):
 //   deterministic  every row of a schedule file;
@@ -34,6 +37,7 @@
 // outputs: when the optional config key newOldContactLimit is exceeded, the three
 // files are written (ledger checks.allPassed false), then
 // "HISTORY_ERROR PTIRT_NEW_OLD_CONTACTS pairs=<n> limit=<l>" and status 1.
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -60,8 +64,10 @@
 #include "Ledger.hh"
 #include "LoadedModules.hh"
 #include "SourceInjector.hh"
+#include "StartTrialGate.hh"
 
 #include "G4DNAChemistryManager.hh"
+#include "G4DNAMolecularReactionTable.hh"
 #include "G4H2O.hh"
 #include "G4MolecularConfiguration.hh"
 #include "G4MoleculeCounter.hh"
@@ -249,6 +255,7 @@ struct LedgerInput
   const ptirt::BoxGuardResult& boxGuard;
   const ptirt::CoincidenceSummary& coincidences;  // the allowed ones, over the injected set
   bool contactLimitExceeded;
+  std::size_t gatedReactionData;  // StartTrialGate::Gated() (stock build; 0 when nothing ran)
 };
 
 // pairs > limit; no limit configured never exceeds.
@@ -274,6 +281,43 @@ ptirt::JsonValue BoxGuardNode(const ptirt::BoxGuardResult& guard)
   node.Set("halfBoxNm", JsonValue::Real(guard.halfBoxNm));
   node.Set("fastestSpecies", JsonValue::String(guard.fastestSpecies));
   node.Set("minRatio", JsonValue::Real(ptirt::kBoxGuardMinRatio));
+  return node;
+}
+
+// Stock only: the second trial of the first packet, the one present at the
+// scheduler start time; null in the patched build, which trials fresh sources
+// itself, and when no source ran.
+//   pairs, expectedReactions  from its library entry: the pairs within the
+//       effective radius at capture and their sum of contact probabilities, i.e.
+//       the reactions the start-time trial would fire on average (a lower bound:
+//       the 64-packet spike counted 4.80 +- 0.27 per packet against sum p 3.24,
+//       .scratch/tests/2026-11-10__poisson-track-irt-stock-build/mitigation-spike/README.md);
+//   decision "gated"  the trial is switched off around the run (StartTrialGate),
+//       after the 64-packet mean of 3.24 exceeded the accepted 1;
+//   gatedReactionData  the reaction data held at probability 0;
+//   startZeroStepReactions  the reactions observed in a zero time step at the
+//       start time with the gate on (0 when it works). The reactions the gate
+//       suppresses cannot be counted in the same run: they never happen.
+ptirt::JsonValue FirstPacketSecondTrialNode(const LedgerInput& in)
+{
+  using ptirt::JsonValue;
+  if (ptirt::kPatchedGeant4 || in.records.empty()) return JsonValue();
+  // The scheduler starts at the earliest delayed track (G4Scheduler::Process,
+  // fStartTime = GetNextTime()): the earliest activation, whatever its source
+  // index (single mode injects one source of the schedule). On a tie, the first
+  // record at that time.
+  const auto first = std::min_element(in.records.begin(), in.records.end(), [](const auto& a, const auto& b) {
+    return a.expectedActivationTimeNs < b.expectedActivationTimeNs;
+  });
+  const auto& trial = in.library.entries[first->packetIndex].secondTrial;
+  if (!trial.has_value()) return JsonValue();  // a stock library without second-trial columns (the gate still ran)
+  auto node = JsonValue::Object();
+  node.Set("packetIndex", Count(first->packetIndex));
+  node.Set("pairs", Count(trial->pairs));
+  node.Set("expectedReactions", JsonValue::Real(trial->expectedReactions));
+  node.Set("decision", JsonValue::String("gated"));
+  node.Set("gatedReactionData", Count(in.gatedReactionData));
+  node.Set("startZeroStepReactions", Count(in.observer.StartZeroStepReactions()));
   return node;
 }
 
@@ -421,6 +465,7 @@ ptirt::JsonValue MakeLedger(const LedgerInput& in)
   root.Set("injected", injected);
   root.Set("boxFoldGuard", BoxGuardNode(in.boxGuard));
   root.Set("newOldContacts", NewOldContactsNode(in));
+  root.Set("firstPacketSecondTrial", FirstPacketSecondTrialNode(in));
   root.Set("sources", sources);
 
   // Checks: every check of the history passed (a failed one ends the run before the
@@ -609,8 +654,19 @@ int Run(int argc, char** argv)
   auto* chemistry = G4DNAChemistryManager::Instance();
   chemistry->UseAsStandalone(true);
   const bool ran = !injector->Sources().empty();
+  std::size_t gatedReactionData = 0;
   if (ran)
+  {
+#if PTIRT_PATCHED_GEANT4
     chemistry->Run();
+#else
+    // The first packet sits in the history at the scheduler start time, where the
+    // stock stepper would trial its contacts again (StartTrialGate.hh).
+    ptirt::StartTrialGate gate(*G4DNAMolecularReactionTable::Instance());
+    gatedReactionData = gate.Gated();
+    chemistry->Run();
+#endif
+  }
   else
     observer.FinishEmpty();  // no source (e.g. a Poisson draw of zero): zero counts on the grid
 
@@ -637,7 +693,7 @@ int Run(int argc, char** argv)
   const bool limitExceeded = ContactLimitExceeded(config, observer.Contacts().pairs);
   const LedgerInput input{arguments, config,    library,   schedule, grid, records, observer, ran,
                           injector->MoleculeCount(), physics->GetDissociationFoldCount(), wallTimeS,
-                          boxGuard, injector->Coincidences(), limitExceeded};
+                          boxGuard, injector->Coincidences(), limitExceeded, gatedReactionData};
   WriteFile(arguments.output / "ledger.json", [&](std::ostream& out) {
     ptirt::WriteJson(out, MakeLedger(input));
     out << '\n';

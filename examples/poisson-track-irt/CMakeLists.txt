@@ -69,6 +69,24 @@ if(NOT PTIRT_PATCHED_GEANT4 AND PTIRT_GEANT4_HAS_SOURCE_PATCH)
     "-DPTIRT_PATCHED_GEANT4=ON for this install, or point Geant4_DIR at a stock 11.4.3.")
 endif()
 
+# The stock build's history zeroes every reaction probability while the chemistry
+# runs (include/StartTrialGate.hh), to remove the start-time contact trial the
+# first packet would get a second time. That is only safe while GetProbability()
+# has no IRT_syn reader other than this trial
+# (G4DNAIndependentReactionTimeStepper.cc:170 in 11.4.3), so another minor
+# version must be audited again before it is allowed here. Only 11.4.3 was
+# audited; later 11.4 patch releases are assumed not to change the stepper or
+# the reaction data (residual risk, recorded in ADR 0010).
+if(NOT PTIRT_PATCHED_GEANT4
+   AND (Geant4_VERSION VERSION_LESS 11.4 OR NOT Geant4_VERSION VERSION_LESS 11.5))
+  message(FATAL_ERROR
+    "The stock build needs Geant4 11.4.x, found ${Geant4_VERSION} (${Geant4_DIR}). "
+    "Its start-trial gate (include/StartTrialGate.hh) relies on GetProbability() having "
+    "no IRT_syn reader other than the start-time contact trial "
+    "(G4DNAIndependentReactionTimeStepper.cc:170 in 11.4.3); re-audit the readers in "
+    "source/processes/electromagnetic/dna before allowing another version.")
+endif()
+
 if(PTIRT_PATCHED_GEANT4)
   set(ptirtPatchedValue 1)
   message(STATUS "poisson-track-irt build mode: patched Geant4 (${Geant4_DIR})")
@@ -127,6 +145,7 @@ add_executable(history
   src/HistoryMain.cc
   src/SourceInjector.cc
   src/ActivationObserver.cc
+  src/StartTrialGate.cc
   src/HistoryDetectorConstruction.cc
   src/HistoryBoundedBrownianAction.cc
   src/ExamplePhysicsList.cc)
@@ -150,6 +169,12 @@ endforeach()
 add_executable(CaptureLibraryTest test/CaptureLibraryTest.cc)
 target_link_libraries(CaptureLibraryTest PRIVATE ptirtCore)
 add_test(NAME CaptureLibraryTest COMMAND CaptureLibraryTest ${ptirtTestOutput}/capture-library-test)
+
+# StartTrialGate on real G4DNAMolecularReactionData objects: Geant4 classes, no kernel.
+add_executable(StartTrialGateTest test/StartTrialGateTest.cc src/StartTrialGate.cc)
+target_include_directories(StartTrialGateTest SYSTEM PRIVATE ${Geant4_INCLUDE_DIRS})
+target_link_libraries(StartTrialGateTest PRIVATE ptirtCore ${Geant4_LIBRARIES})
+add_test(NAME StartTrialGateTest COMMAND StartTrialGateTest)
 
 # ---- Capture tests (run the Geant4 kernel) -----------------------------------
 # Smoke: capture 2 packets with the shipped macro, read back and validate.
@@ -361,16 +386,17 @@ add_test(NAME HistoryReflectingBoxSmoke
 set_tests_properties(HistoryReflectingBoxSmoke PROPERTIES FIXTURES_REQUIRED HistoryBoxLibrary)
 
 # New-old contact limit: the one failure that still writes its outputs (exit 1,
-# PTIRT_NEW_OLD_CONTACTS, ledger checks.allPassed false). Source 1 arrives 10 ns after
-# source 0, 5 nm away, so its fresh molecules sit inside the reaction radius of the
-# old ones. A second run with the limit at the observed count must pass.
+# PTIRT_NEW_OLD_CONTACTS, ledger checks.allPassed false). Source 1, a copy of source 0,
+# arrives 1 ns after it, 5 nm away, so some of its fresh molecules sit inside the
+# reaction radius of the old ones (10 pairs stock, 3 patched; at 10 ns the count was
+# 0 or 1, by chance). A second run with the limit at the observed count must pass.
 add_test(NAME HistoryNewOldContactLimit
   COMMAND ${CMAKE_COMMAND}
     -DHISTORY=$<TARGET_FILE:history>
     -DWORK_DIR=${ptirtTestOutput}/history-contact-limit
     -DLIBRARY=${ptirtHistoryLibrary}
     "-DCONFIG=mode = deterministic|${ptirtScheduleConfig}|endpointNs = 1000|chemistrySeed = 21|newOldContactLimit = 0"
-    "-DSCHEDULE=0 0 0 0 0|10 1 0.005 0 0" -DPACKET_DUPLICATE=ON
+    "-DSCHEDULE=0 0 0 0 0|1 1 0.005 0 0" -DPACKET_DUPLICATE=ON
     -P ${ptirtHistoryScript}/RunHistoryContactLimit.cmake)
 set_tests_properties(HistoryNewOldContactLimit PROPERTIES FIXTURES_REQUIRED HistoryLibrary)
 
@@ -419,8 +445,25 @@ ptirt_history_refusal(HistoryRejectsSingleSourceOutOfRange "singleSource 3 is no
   "-DCONFIG=mode = single|${ptirtScheduleConfig}|singleSource = 3|endpointNs = 1000|chemistrySeed = 1"
   "-DSCHEDULE=${ptirtThreeTracks}")
 
+# Stock only: the start-trial gate (include/StartTrialGate.hh). Packet 0 of the
+# HistoryLibrary fixture alone at the start time, to 10 ns, run twice: no reaction
+# in a zero time step at the start time, the same species.csv on repeat.
+if(NOT PTIRT_PATCHED_GEANT4)
+  add_test(NAME HistorySmokeStartGate
+    COMMAND ${CMAKE_COMMAND}
+      -DHISTORY=$<TARGET_FILE:history>
+      -DWORK_DIR=${ptirtTestOutput}/history-start-gate
+      -DLIBRARY=${ptirtHistoryLibrary}
+      "-DCONFIG=mode = deterministic|${ptirtScheduleConfig}|endpointNs = 10|chemistrySeed = 5001"
+      "-DSCHEDULE=0 0 0 0 0"
+      -P ${ptirtHistoryScript}/RunHistoryStartGate.cmake)
+  set_tests_properties(HistorySmokeStartGate PROPERTIES FIXTURES_REQUIRED HistoryLibrary)
+  set(ptirtStockHistoryTests HistorySmokeStartGate)
+endif()
+
 set(ptirtHistoryTests HistoryLibrary HistoryBoxLibrary HistoryDeterministicSmoke HistorySingleSmoke
     HistoryPoissonSmoke HistoryPoissonZeroArrivals HistoryReflectingBoxSmoke HistoryNewOldContactLimit
+    ${ptirtStockHistoryTests}
     HistoryRejectsMalformedConfig
     HistoryRejectsMalformedSchedule HistoryRejectsMalformedPacket HistoryRejectsIncompatibleTag
     HistoryRejectsIncompatiblePacket HistoryRejectsCoincidentPacket HistoryRejectsCoincidentSources
@@ -433,6 +476,6 @@ if(WIN32)
   get_filename_component(ptirtGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
   set_tests_properties(CaptureSmoke CaptureEscapeLedger CaptureSeedReproducible ${ptirtStageTests}
                        CaptureRejectsSbs CaptureRejectsClassicIrt CaptureRejectsGunTime
-                       CaptureRejectsBadArguments ${ptirtHistoryTests} PROPERTIES
+                       CaptureRejectsBadArguments ${ptirtHistoryTests} StartTrialGateTest PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${ptirtGeant4BinDir}")
 endif()

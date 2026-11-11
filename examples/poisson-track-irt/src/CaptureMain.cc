@@ -264,6 +264,22 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
     packet.Set("escapedEnergy_eV", JsonValue::Real(e.escapedEnergyEv));
     packet.Set("energyResidual_eV", JsonValue::Real(e.energyResidualEv));
     packet.Set("moleculeCount", JsonValue::Integer(static_cast<long long>(e.moleculeCount)));
+    if (e.secondTrial.has_value())
+    {
+      auto trial = JsonValue::Object();
+      trial.Set("pairs", JsonValue::Integer(static_cast<long long>(e.secondTrial->pairs)));
+      trial.Set("expectedReactions", JsonValue::Real(e.secondTrial->expectedReactions));
+      auto perPair = JsonValue::Object();
+      for (const auto& [label, value] : provenance[i].secondTrialPerPair)
+      {
+        auto item = JsonValue::Object();
+        item.Set("pairs", JsonValue::Integer(static_cast<long long>(value.first)));
+        item.Set("expectedReactions", JsonValue::Real(value.second));
+        perPair.Set(label, item);
+      }
+      trial.Set("perPair", perPair);
+      packet.Set("secondTrial", trial);
+    }
     packet.Set("captureStage", JsonValue::String(ptirt::kCaptureStageName));
     // 16 hexadecimal digits: a JSON number cannot hold all 64 bits.
     packet.Set("chemistryStartDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].chemistryStartDigest)));

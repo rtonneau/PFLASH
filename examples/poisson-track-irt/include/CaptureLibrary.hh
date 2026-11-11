@@ -8,7 +8,10 @@
 // library.csv columns (camelCase, unit suffix; reals with 17 significant digits,
 // so they read back to the same double):
 //   packetIndex,file,physicsSeed,primaryParticle,primaryEnergyEv,energyDepositEv,
-//   escapedEnergyEv,energyResidualEv,moleculeCount
+//   escapedEnergyEv,energyResidualEv,moleculeCount,secondTrialPairs,
+//   secondTrialExpectedReactions
+// The last two are the stock build's "second trial" of the packet (SecondTrial
+// below); both fields are empty in the patched build.
 // energyResidualEv = energyDepositEv + escapedEnergyEv - primaryEnergyEv, the
 // per-packet energy ledger (its bound is enforced by PrecursorPacket::Validate).
 //
@@ -19,6 +22,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <iosfwd>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -28,6 +32,16 @@ namespace ptirt
 {
 
 inline constexpr const char kLibraryIndexName[] = "library.csv";
+
+// What the IRT_syn stepper would do with the captured packet on its first
+// trial: the pairs of alive molecules within their effective reaction radius, and
+// the sum of their contact probabilities (the expected number of reactions).
+struct SecondTrial
+{
+  std::size_t pairs = 0;
+  double expectedReactions = 0;
+  bool operator==(const SecondTrial&) const = default;
+};
 
 struct LibraryEntry
 {
@@ -40,6 +54,7 @@ struct LibraryEntry
   double escapedEnergyEv = 0;
   double energyResidualEv = 0;  // deposit + escaped - primary
   std::size_t moleculeCount = 0;
+  std::optional<SecondTrial> secondTrial;  // stock build only
   bool operator==(const LibraryEntry&) const = default;
 };
 

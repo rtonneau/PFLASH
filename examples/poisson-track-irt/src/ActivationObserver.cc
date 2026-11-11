@@ -98,6 +98,7 @@ void ActivationObserver::Configure(const std::vector<InjectedSource>& sources,
   fEnd = EndChecks{};
   fRows.clear();
   fProductFolds = 0;
+  fStartZeroStepReactions = 0;
   fContacts = NewOldContacts{};
   fFailure.clear();
   fModelProblem.clear();
@@ -205,6 +206,9 @@ void ActivationObserver::CountContacts(const std::vector<const G4Track*>& live,
 
 void ActivationObserver::UserReactionAction(const G4Track&, const G4Track&, const std::vector<G4Track*>* products)
 {
+  const auto* scheduler = G4Scheduler::Instance();
+  if (scheduler->GetTimeStep() == 0 && scheduler->GetGlobalTime() == scheduler->GetStartTime())
+    ++fStartZeroStepReactions;
   if (fBox == nullptr || products == nullptr) return;
   for (auto* product : *products)
   {

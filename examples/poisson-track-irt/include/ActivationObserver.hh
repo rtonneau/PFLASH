@@ -22,7 +22,11 @@
 //                           or moved). The molecules that activated are then
 //                           added to the molecule counter at t: they were built
 //                           with the counter inactive (SourceInjector.hh).
-//   UserReactionAction      with a reflecting box, folds a reaction product
+//   UserReactionAction      counts the reactions in a zero time step at the
+//                           scheduler start time (the start-time contact trial
+//                           of the stepper; 0 in the stock build, whose
+//                           StartTrialGate switches that trial off); with a
+//                           reflecting box, folds a reaction product
 //                           that IRT_syn placed outside the box back in
 //                           (G4DNAMakeReaction places products between the
 //                           reaction site and a random point, which can lie
@@ -123,6 +127,10 @@ class ActivationObserver : public G4UserTimeStepAction
   // timeNs, species, count (the history and seed columns are left to the caller).
   const std::vector<SpeciesRow>& SpeciesRows() const { return fRows; }
   std::size_t ProductFoldCount() const { return fProductFolds; }
+  // Reactions at the scheduler start time in a time step of exactly 0, i.e. fired
+  // by the stepper's start-time contact trial (G4DNAIndependentReactionTimeStepper,
+  // GetGlobalTime() == GetStartTime()); compared exactly, like the stepper does.
+  std::size_t StartZeroStepReactions() const { return fStartZeroStepReactions; }
   // For a history with no source (chemistry not run): zero rows on the record grid.
   void FinishEmpty();
 
@@ -143,6 +151,7 @@ class ActivationObserver : public G4UserTimeStepAction
   ConfigurationRadii fRadii;
   std::vector<SpeciesRow> fRows;
   std::size_t fProductFolds = 0;
+  std::size_t fStartZeroStepReactions = 0;
   std::string fFailure;
   std::string fModelProblem;
   G4bool fFinished = false;

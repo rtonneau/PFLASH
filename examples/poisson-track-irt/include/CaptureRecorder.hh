@@ -32,6 +32,11 @@
 //            each molecule carries the id of the start-up reaction that made it
 //            (PacketMolecule::productGroup, 0 for the others).
 //
+// The library entry of each stock packet also carries its "second trial"
+// (SecondTrial in CaptureLibrary.hh): the within-Reff alive pairs and the sum of
+// their contact probabilities, which is what the IRT_syn stepper would apply on
+// its first trial of the packet. The patched build records none.
+//
 // capture.json records, per packet, the digest of the molecules waiting at
 // chemistry start and the digest of the molecules captured (PacketDigest.hh).
 //
@@ -53,6 +58,7 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "CaptureLibrary.hh"
@@ -97,6 +103,9 @@ struct CaptureProvenance
   // The allowed coincidences of the packet (a refused one fails the capture, so
   // none is ever recorded): exempt positions and molecules, reactive pairs.
   CoincidenceSummary coincidence;
+  // Stock only: the second trial by species pair (PairLabel): pairs within the
+  // effective radius, and the sum of their contact probabilities.
+  std::map<std::string, std::pair<std::size_t, double>> secondTrialPerPair;
 };
 
 class CaptureRecorder
@@ -130,6 +139,8 @@ class CaptureRecorder
  private:
   void Fail(const std::string& message);
   void CaptureStartupState();
+  // Stock only; reads fMolecules and fMoleculeSpecies. perPair gets the split by species pair.
+  SecondTrial ComputeSecondTrial(std::map<std::string, std::pair<std::size_t, double>>& perPair);
 
   CaptureSettings fSettings;
   G4double fHalfSide = 0;

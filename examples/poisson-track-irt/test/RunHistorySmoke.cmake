@@ -113,6 +113,23 @@ endif()
 foreach(field exempt exemptMolecules reactivePairs perPair)
   ledger_get(unused injected coincidence ${field})
 endforeach()
+# firstPacketSecondTrial: null in the patched build and without a source; in the
+# stock build the start-trial gate is on and no reaction fires in a zero time
+# step at the start time.
+string(JSON trialType TYPE "${ledger}" firstPacketSecondTrial)
+if(buildMode STREQUAL "patched" OR EXPECT_SOURCES EQUAL 0)
+  if(NOT trialType STREQUAL "NULL")
+    message(FATAL_ERROR "firstPacketSecondTrial is ${trialType}, expected null")
+  endif()
+else()
+  ledger_get(trialDecision firstPacketSecondTrial decision)
+  ledger_get(startZeroStep firstPacketSecondTrial startZeroStepReactions)
+  ledger_get(gatedData firstPacketSecondTrial gatedReactionData)
+  if(NOT trialDecision STREQUAL "gated" OR NOT startZeroStep EQUAL 0 OR NOT gatedData GREATER 0)
+    message(FATAL_ERROR "firstPacketSecondTrial: decision '${trialDecision}', startZeroStepReactions "
+                        "${startZeroStep}, gatedReactionData ${gatedData}; expected gated, 0, > 0")
+  endif()
+endif()
 string(JSON moduleCount LENGTH "${ledger}" loadedGeant4Modules)
 if(EXPECT_MODULES AND moduleCount EQUAL 0)
   message(FATAL_ERROR "ledger.json lists no loaded Geant4 module")

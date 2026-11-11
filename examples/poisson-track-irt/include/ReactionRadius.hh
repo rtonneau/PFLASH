@@ -49,6 +49,18 @@ class ConfigurationRadii
     return data == nullptr ? -1.0 : data->GetEffectiveReactionRadius() / nm;
   }
 
+  // Contact probability the IRT_syn stepper applies to a pair that starts within the
+  // effective radius (G4DNAMolecularReactionData::GetProbability); 0 when the pair
+  // has no reaction data or a label is unknown.
+  double Probability(const std::string& labelA, const std::string& labelB) const
+  {
+    const auto a = fByLabel.find(labelA);
+    const auto b = fByLabel.find(labelB);
+    if (a == fByLabel.end() || b == fByLabel.end()) return 0;
+    const auto* data = G4DNAMolecularReactionTable::GetReactionTable()->GetReactionData(a->second, b->second);
+    return data == nullptr ? 0.0 : data->GetProbability();
+  }
+
   // Valid while this object lives.
   ContactRadiusFn AsFunction() const
   {
