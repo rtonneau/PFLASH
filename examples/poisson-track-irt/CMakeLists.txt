@@ -235,6 +235,19 @@ add_test(NAME ${ptirtStageTest}
     -DEXPECT_MODULES=${ptirtExpectModules}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureStageCheck.cmake)
 set(ptirtStageTests ${ptirtStageTest})
+if(NOT PTIRT_PATCHED_GEANT4 AND WIN32)
+  # Every Geant4 module the capture process loaded lies under Geant4_DIR/../../../bin.
+  get_filename_component(ptirtGeant4BinDirCheck "${Geant4_DIR}/../../../bin" ABSOLUTE)
+  add_test(NAME StockBuildModuleCheck
+    COMMAND ${CMAKE_COMMAND}
+      -DCAPTURE=$<TARGET_FILE:capture>
+      -DMACRO=${CMAKE_CURRENT_SOURCE_DIR}/macros/capture.mac
+      -DOUTPUT_DIR=${ptirtTestOutput}/module-check
+      -DFIRST_SEED=1001
+      -DGEANT4_BIN_DIR=${ptirtGeant4BinDirCheck}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunModuleCheck.cmake)
+  list(APPEND ptirtStageTests StockBuildModuleCheck)
+endif()
 if(NOT PTIRT_PATCHED_GEANT4)
   # The stock build derives the chemistry seed from the physics seed (2147483648 - S),
   # so physics seeds stop at 1073741823: that one is captured, the next is refused.
@@ -425,6 +438,18 @@ ptirt_history_refusal(HistoryRejectsMalformedPacket "packet library .*malformed 
 ptirt_history_refusal(HistoryRejectsIncompatibleTag "incompatible packet: tag"
   "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
   "-DPACKET_FIND=compatibilityTag ptirt2_" "-DPACKET_REPLACE=compatibilityTag ptirt1_")
+# A library captured by the other build: the build mode is part of the tag.
+if(PTIRT_PATCHED_GEANT4)
+  ptirt_history_refusal(HistoryRejectsStockLibrary "incompatible packet: tag '[^']*-stock_[^']*' but"
+    "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
+    "-DPACKET_FIND=-patched_" "-DPACKET_REPLACE=-stock_")
+  set(ptirtOtherBuildTest HistoryRejectsStockLibrary)
+else()
+  ptirt_history_refusal(HistoryRejectsPatchedLibrary "incompatible packet: tag '[^']*-patched_[^']*' but"
+    "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
+    "-DPACKET_FIND=-stock_" "-DPACKET_REPLACE=-patched_")
+  set(ptirtOtherBuildTest HistoryRejectsPatchedLibrary)
+endif()
 # A molecule this build does not know (renamed in the packet).
 ptirt_history_refusal(HistoryRejectsIncompatiblePacket "incompatible packet: source 0 \\(packet 0\\): molecule e_aqZ"
   "-DCONFIG=${ptirtDeterministic100}" "-DSCHEDULE=${ptirtOneTrack}"
@@ -466,7 +491,7 @@ set(ptirtHistoryTests HistoryLibrary HistoryBoxLibrary HistoryDeterministicSmoke
     ${ptirtStockHistoryTests}
     HistoryRejectsMalformedConfig
     HistoryRejectsMalformedSchedule HistoryRejectsMalformedPacket HistoryRejectsIncompatibleTag
-    HistoryRejectsIncompatiblePacket HistoryRejectsCoincidentPacket HistoryRejectsCoincidentSources
+    HistoryRejectsIncompatiblePacket ${ptirtOtherBuildTest} HistoryRejectsCoincidentPacket HistoryRejectsCoincidentSources
     HistoryRejectsExhaustedLibrary
     HistoryRejectsActivationAfterEndpoint HistoryRejectsSingleSourceOutOfRange)
 
