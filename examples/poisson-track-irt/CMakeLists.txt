@@ -109,7 +109,8 @@ add_library(ptirtCore STATIC
   src/ReflectingFold.cc
   src/BoxGuard.cc
   src/CoincidenceCheck.cc
-  src/ContactCount.cc)
+  src/ContactCount.cc
+  src/BuildComparison.cc)
 target_include_directories(ptirtCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # include/BuildMode.hh turns this into constants; it has no default.
 target_compile_definitions(ptirtCore PUBLIC PTIRT_PATCHED_GEANT4=${ptirtPatchedValue})
@@ -157,10 +158,15 @@ target_link_libraries(history PRIVATE ptirtCore ${Geant4_LIBRARIES})
 add_executable(compare src/CompareMain.cc)
 target_link_libraries(compare PRIVATE ptirtCore)
 
+# ---- compare-builds: stock vs patched species counts (Geant4-free) ------------
+# Run by scripts/RunBuildComparison.ps1 and scripts/RunOverlapSweep.ps1; reports only.
+add_executable(compare-builds src/CompareBuildsMain.cc)
+target_link_libraries(compare-builds PRIVATE ptirtCore)
+
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(ptirtTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest PacketDigestTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest CoincidenceCheckTest ContactCountTest)
+foreach(testName PrecursorPacketTest PacketDigestTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest SeparatedCheckTest BuildModeTest ReflectingFoldTest BoxGuardTest CoincidenceCheckTest ContactCountTest BuildComparisonTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE ptirtCore)
   add_test(NAME ${testName} COMMAND ${testName})
