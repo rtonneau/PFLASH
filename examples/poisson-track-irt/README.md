@@ -39,29 +39,84 @@ Limits of the design, by intention:
 
 ## Dependencies
 
-- A **patched** Geant4 11.4.3 with the DNA datasets (see the next section). An
-  unpatched install does not compile `history`: the methods below do not exist.
+- Geant4 11.4.3 with the DNA datasets. The default build uses a **stock** install.
+  A patched install is optional (see "Build mode" and "Switching to the patched
+  build"). The stock build accepts Geant4 11.4.x (CMake refuses other versions), but
+  only 11.4.3 was audited (see "Stock-build limits").
 - CMake 3.16 or newer, a C++20 compiler (built and tested here with MSVC 19 x64,
   Ninja, `RelWithDebInfo`). A vcpkg toolchain file is only needed if your Geant4 was
   built with vcpkg dependencies (HDF5, zlib), as here.
-- PowerShell 7 for `scripts/RunSeparatedCheck.ps1` (optional).
+- PowerShell 7 for the scripts under `scripts/` (optional).
 
-Runtime: the Geant4 `bin` directory of the patched install must come first on `PATH`
-so that no other Geant4 DLLs are loaded (ctest does this for you through
-`ENVIRONMENT_MODIFICATION` on Windows), and the Geant4 data must be found, for
+Runtime: the Geant4 `bin` directory of the install you configured against must come
+first on `PATH` so that no other Geant4 DLLs are loaded (ctest does this for you
+through `ENVIRONMENT_MODIFICATION` on Windows), and the Geant4 data must be found, for
 example through `GEANT4_DATA_DIR` (the directory holding `G4EMLOW...`,
-`G4PARTICLEXS...`, ...) or the individual `G4*DATA` variables.
+`G4PARTICLEXS...`, ...) or the individual `G4*DATA` variables. In this repository the
+install is the one in `G4_ROOT` (`Geant4_DIR` = `<G4_ROOT>/lib/cmake/Geant4`).
 
-## Geant4 patches
+## Build mode: stock (default) or patched
 
-The example calls two static methods that are not in the stock tree
+`-DPTIRT_PATCHED_GEANT4=OFF` (default) builds against a stock Geant4. `ON` builds
+against a Geant4 11.4.3 carrying the three patches below. Configure checks that the
+option matches the install (it compiles a probe for the two source-activation methods
+of the patch) and stops with a message when it does not: ON with a stock install, or
+OFF with a patched one. The mode is compiled in (`PTIRT_PATCHED_GEANT4`, `BuildMode.hh`)
+and written to `capture.json` and `ledger.json` (`buildMode`, `captureStage`,
+`loadedGeant4Modules` on Windows).
+
+The two builds do not share libraries. The compatibility tag of a packet carries the
+build mode and the capture stage, and `history` refuses a library made by the other
+build:
+
+| build | capture point | tag ends with |
+|---|---|---|
+| stock | after the Startup contacts, at the first chemistry step of positive length (still 1 ps) | `-stock_...-afterStartupContacts` |
+| patched | at chemistry start, before the Startup contacts (the patched stepper trials them once, in `history`) | `-patched_...-chemistryStart` |
+
+Both are captured from the same physics seeds. A stock packet has already been through
+the startup trials, so it must not be injected into the patched build, which would
+trial it twice. The stock chemistry seed at capture is `2147483648 - physicsSeed`, so
+`--first-seed S` needs `S + count - 1 <= 1073741823` there.
+
+Format change: packet files are format version 2 and carry a `productGroup` column
+(0 = none; otherwise a group label, not a Geant4 reaction number, shared by the
+products of one startup reaction). Old libraries are refused.
+
+## Stock-build limits
+
+What the stock build does instead of patching, and how big the remaining
+approximation was in the runs made. Design record and the full not-run list:
+`docs/adr/0010-poisson-track-irt-stock-build.md`. Evidence paths are under
+`.scratch/tests/2026-11-10__poisson-track-irt-stock-build/` (local, git-ignored).
+
+| item | stock behaviour | measured size | evidence |
+|---|---|---|---|
+| Startup contacts | resolved at capture (the packet is the state after them) | 247 startup reactions in 16 packets, 11 to 22 per packet | `spike/README.md` |
+| Coincident molecules | refused at capture and at injection, except products of one startup reaction (same `productGroup`) | 3 coincident molecules in 1 of 16 packets, all products of one reaction | `spike/README.md`, `evidence/05-coincidence-seeds-1001-1016.txt` |
+| New-old contacts | not trialled by the stock kernel; counted and reported | 0 in 128 comparison histories and 0 in 320 overlap histories (d = 0.005 to 100 um); positive control gives 10 pairs at 1 ns. The sweep has almost no power at short delays | `comparison/README.md`, `overlap/README.md` |
+| First-packet second trial | zeroed by `StartTrialGate` around `chemistry->Run()` (stock only) | expected 3.24 reactions per first packet (sum of probabilities); 4.80 +- 0.27 counted without the gate (307 in 64 packets); 0 with it | `double-trial/README.md`, `mitigation-spike/README.md` |
+| Reflecting fold | own fold at the history boundaries; in-box transport still uses the kernel fold (also in UHDR, `EmDNAChemistry.cc:352`) | unit tests only | `ReflectingFoldTest` |
+| Small box | warning when the half box is below 3 diffusion lengths (`sqrt(6Dt)` of the fastest species) | not a stop | `BoxGuardTest` |
+
+Stock against patched, same seeds: 1552 rows, 0 DIFFERENT, 303 INCONCLUSIVE, 243
+EMPTY, 1006 EQUIVALENT, 199 bias flags; stock `O^-1` is about 10% lower at 1 to 3 ms
+(INCONCLUSIVE, cause not traced) (`comparison/README.md`). Separated-sources check on
+the stock build: 1552 of 1552 cells pass (`separated/README.md`).
+
+Use the patched build when the ledger shows `newOldContacts.pairs` above 0 (or set
+`newOldContactLimit` to make that an error), when the packet must be taken before the
+startup contacts, or on a Geant4 other than 11.4.3.
+
+## Geant4 patches (patched build only)
+
+The patched build calls two static methods that are not in the stock tree
 (`G4DNAIndependentReactionTimeStepper::ResetSourceActivations()` and
 `RegisterSourceActivation(trackID, activationTime)`; a search of the 11.4.3 source
-finds neither), and it uses a corrected reflecting-box fold
-(`G4ChemReboundTransportation::calculateNextCoordinate`, used by
-`HistoryBoundedBrownianAction` and by the transport inside the box).
+finds neither). The stock build does not call them. The checklist for switching back
+is in [docs/re-enabling-patch.md](docs/re-enabling-patch.md).
 
-The patches are in the repository, for Geant4 11.4.3 only:
+The patches are in the repository, for Geant4 11.4.3 only (the recipe is unchanged):
 
 | order | file under `patches/geant4/11.4.3/` | provides |
 |---|---|---|
@@ -69,8 +124,8 @@ The patches are in the repository, for Geant4 11.4.3 only:
 | 2 | `timed-injection/source-contacts-experimental.patch` | `ResetSourceActivations`, `RegisterSourceActivation` (`G4DNAIndependentReactionTimeStepper.{hh,cc}`) |
 | 3 | `timed-injection/meso-boundaries-experimental.patch` | bounded-box fold fix in `G4ChemReboundTransportation.cc` (also touches `G4DNAEventScheduler`, unused here) |
 
-All three together change nine files and are what the evidence of this repository was
-produced with. I did not test a smaller subset. The patches are experimental; see
+All three together change nine files and are what the patched-build evidence of this
+repository was produced with. I did not test a smaller subset. The patches are experimental; see
 `patches/geant4/11.4.3/timed-injection/README.md`.
 
 Recipe (never patch your shared Geant4):
@@ -86,28 +141,38 @@ Recipe (never patch your shared Geant4):
    HDF5 through vcpkg, Qt off, no data download). Install to `<patched-geant4-install>`.
 4. Use `<patched-geant4-install>/lib/cmake/Geant4` as `Geant4_DIR` below.
 
-Where this repository's evidence was produced:
+Where this repository's patched-build evidence was produced:
 `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install` (built by `Build.cmd`
 next to it). It is read-only evidence, not a path to rely on. Background:
 `docs/dose-rate/beam-on-irt.md`, `docs/dose-rate/recurring-chemistry-sources.md`.
 
 ## Build and test
 
-From the repository root (Windows: use a Visual Studio x64 developer shell):
+From the repository root (Windows: use a Visual Studio x64 developer shell). Stock
+build (default):
 
 ```powershell
 cmake -S examples/poisson-track-irt -B <build> -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo `
   -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake `
-  -DGeant4_DIR=<patched-geant4-install>/lib/cmake/Geant4
+  -DGeant4_DIR=<G4_ROOT>/lib/cmake/Geant4
 cmake --build <build>
 ctest --test-dir <build> --output-on-failure
 ```
 
-`ctest` runs 29 tests in about 35 s (unit tests, capture and history smoke runs,
-refusals). Executables: `capture`, `capture-check`, `history`, `compare`.
+Patched build: the same with `-DPTIRT_PATCHED_GEANT4=ON` and
+`-DGeant4_DIR=<patched-geant4-install>/lib/cmake/Geant4`, in its own build directory
+(`build-*/` under the example is git-ignored).
 
-For the manual commands below, put the patched install's `bin` first on `PATH`
-(`$env:PATH = "<patched-geant4-install>/bin;$env:PATH"`) and set `GEANT4_DATA_DIR`.
+`ctest` runs 46 tests in the stock build (about 60 s) and 42 in the patched build
+(about 50 s): unit tests, capture and history smoke runs, refusals, and the
+mode-specific tests (stock: `CaptureAfterStartupContacts`, `HistorySmokeStartGate`,
+`StockBuildModuleCheck`, `HistoryRejectsPatchedLibrary`; patched: `CaptureAtChemistryStart`,
+`HistoryRejectsStockLibrary`). Executables: `capture`, `capture-check`, `history`,
+`compare`, `compare-builds`. Final logs: `evidence/09-ctest-stock.log`,
+`evidence/09-ctest-patched.log` (under the evidence root named above).
+
+For the manual commands below, put the `bin` of the install you configured against
+first on `PATH` (`$env:PATH = "<G4_ROOT>/bin;$env:PATH"`) and set `GEANT4_DATA_DIR`.
 
 ## Run the example
 
@@ -139,8 +204,14 @@ Output in `<work>/library`: `packet-00000.txt` ..., `library.csv`, `capture.json
 `library.csv` columns: `packetIndex,file,physicsSeed,primaryParticle,primaryEnergyEv,`
 `energyDepositEv,escapedEnergyEv,energyResidualEv,moleculeCount`. Packet files store
 every real as a hexadecimal float, so a read-back is bit exact. A packet carries a
-compatibility tag (example version, Geant4 version, physics, chemistry, model,
-capture age); `history` rejects a library with another tag.
+compatibility tag (example version, Geant4 version, build mode, physics, chemistry,
+model, capture age, capture stage); `history` rejects a library with another tag.
+`capture.json` also records the build mode, the loaded Geant4 DLLs, per packet the
+chemistry-start and captured digests, and in the stock build the chemistry seed, the
+startup reactions, the coincidence counts and the first-trial pairs and expected
+reactions (`library.csv` has the last two as `secondTrialPairs`,
+`secondTrialExpectedReactions`; empty in the patched build). A coincident molecule that
+is not a product of one startup reaction stops `capture` (`PTIRT_COINCIDENT_MOLECULES`).
 
 ### 2. Shared history, deterministic schedule
 
@@ -259,6 +330,22 @@ summary: tag, versions, seeds, totals, per-packet origin, direction and energies
   `allInsideBox`) and `reflectingBoxFolds` (dissociation and reaction products
   folded back into the box). Also `wallTime_s`.
 
+  Fields added by the stock/patched work (ledger `formatVersion` 2): `buildMode`,
+  `captureStage`, `kernelFold`, `loadedGeant4Modules`; `boxFoldGuard` (`status`
+  `none`/`ok`/`warning`, `ratio`, `diffusionLengthNm`, `halfBoxNm`, `fastestSpecies`,
+  `minRatio`); `newOldContacts` (`pairs`, `newMoleculesInContact`, `perPair`,
+  `perActivation`, `limit`, `limitExceeded`, `trialledByKernel`, `cpuSeconds`);
+  `injected.coincidentMolecules` and `injected.coincidence` (`exempt`,
+  `exemptMolecules`, `reactivePairs`, `perPair`); and `firstPacketSecondTrial`
+  (`packetIndex`, `pairs`, `expectedReactions`, `decision` `"gated"`,
+  `gatedReactionData`, `startZeroStepReactions`; null in the patched build and when no
+  source ran). `expectedReactions` is the sum of the pair probabilities, a lower bound
+  of what the gate suppresses; the counted ungated value (4.80 +- 0.27 per first packet)
+  is not a per-run field because the suppressed reactions never happen. The optional
+  config key `newOldContactLimit` (integer, unset = no limit) makes more than that many
+  new-old pairs an error: outputs are written, `checks.allPassed` is false, exit status 1,
+  `HISTORY_ERROR PTIRT_NEW_OLD_CONTACTS`.
+
 The recorded deterministic run: 3 stages, 1083 / 1036 / 1097 molecules injected,
 preserved 0 / 752 / 1462 earlier molecules at the stages, all checks passed,
 `allPassed: true`.
@@ -273,9 +360,9 @@ include and is covered by plain unit tests. To adapt:
 | primary, energy, direction | `macros/capture.mac` (`/gun/...`) | any single particle of a Geant4-DNA water model |
 | capture geometry | `CaptureDetectorConstruction` (`/ptirt/capture/halfSide`) | one `G4_WATER` box; what leaves it is counted as escaped energy |
 | physics and chemistry | `ExamplePhysicsList` and `ExamplePhysicsTag.hh` | if you change physics, chemistry model, medium or capture age, change the compatibility tag so old libraries are refused |
-| per-event capture | `CaptureRecorder` (`BeginEvent`, `AddDeposit`, `EndTrack`, `CaptureAtChemistryStart`, `EndEvent`) and `CaptureActions` | what a packet holds and how it is validated |
+| per-event capture | `CaptureRecorder` (`BeginEvent`, `AddDeposit`, `EndTrack`, `StartChemistry`, `BeforeTimeStep`, `OnReaction`, `EndEvent`) and `CaptureActions` | what a packet holds and how it is validated |
 | arrival schedule | `ArrivalSchedule.hh` | produce a `std::vector<ptirt::Arrival>` (`timeNs`, `packetIndex`, `offsetNm`) yourself, or reuse `ParseDeterministicSchedule` / `SamplePoissonArrivals`; the rest of `history` only needs that vector |
-| where the packets are placed | `ptirt::SourceInjector(arrivals, library, worldHalfSide, boxHalfSide, endpoint)` then `Inject()` | validates everything before any Geant4 state changes, assigns positive track IDs, calls `ResetSourceActivations` / `RegisterSourceActivation` (the patched API), pushes into `G4ITTrackHolder` before `G4DNAChemistryManager::Run()` |
+| where the packets are placed | `ptirt::SourceInjector(arrivals, library, worldHalfSide, boxHalfSide, endpoint)` then `Inject()` | validates everything before any Geant4 state changes, assigns positive track IDs, refuses coincident molecules, calls `ResetSourceActivations` / `RegisterSourceActivation` (patched build only), pushes into `G4ITTrackHolder` before `G4DNAChemistryManager::Run()` |
 | what is observed or written | `ActivationObserver` (a `G4UserTimeStepAction`): `Configure(sources, recordTimes, box, counterId)`, then `SpeciesRows()`, `Activations()`, `End()`, `Failure()`; and the writers in `Ledger.hh` (`WriteSpeciesCsv`, `WriteActivationsCsv`, `JsonValue`) | add observables in `UserPostTimeStepAction` / `EndProcessing`, columns in `Ledger.cc` |
 | record grid | `BuildRecordGrid` in `HistoryConfig.hh` | |
 | config keys | `HistoryConfig.cc` | one place for parsing and validation |
@@ -299,6 +386,14 @@ It takes about 75 s with 6 histories in parallel (each capped at 30 min), refuse
 non-empty output directory, and prints `SEPARATED_CHECK_PASS` and
 `NEGATIVE_CONTROL_OK` when it succeeds.
 
+## Validation scripts
+
+`scripts/RunBuildComparison.ps1` (stock against patched on the same seeds, 8 clusters x
+3 packets, 16 seeds, 3 ms; asserts equal chemistry-start digests; calls `compare-builds`)
+and `scripts/RunOverlapSweep.ps1` (two packets 10 ns apart at five separations). They need
+both build directories and report verdicts (EQUIVALENT, DIFFERENT, INCONCLUSIVE, EMPTY);
+they are not pass/fail gates. Results are summarised in "Stock-build limits".
+
 ## Known limits
 
 - The reflecting-box fold is never exercised by the tests: the box smoke test and the
@@ -321,3 +416,10 @@ non-empty output directory, and prints `SEPARATED_CHECK_PASS` and
   dose-rate effect.
 - The Geant4 patches are experimental and for 11.4.3 only. The example was built and
   run on Windows with MSVC only.
+- Not run or not proven (full list in ADR 0010): the capture-side coincidence refusal
+  has no integration test; reactive exempt pairs are only unit-tested; only the
+  `fAlive` branch of `PTIRT_CAPTURE_STATE` was forced; the separation of `H3Op` from
+  `H3Op(B)` was not checked empirically; the patched install's finder and rebound
+  patches have no dedicated test; multithreaded runs and start-time ties are untested;
+  the stock build accepts Geant4 11.4.x but only 11.4.3 was audited; the overlap sweep
+  has no power at short delays.
