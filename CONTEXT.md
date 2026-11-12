@@ -190,6 +190,22 @@ The exact elapsed chemistry time, greater than 1 ps, represented by every event
 in a **Chemical checkpoint**. Reactions scheduled later remain pending; rounding
 up to the next completed chemistry step is not permitted.
 
+**Build mode** (poisson-track-irt):
+Whether the example is built against stock Geant4 11.4.3 (`stock`, the default)
+or a Geant4 with the local timed-injection patches (`patched`). It is part of the
+packet compatibility tag, so each mode refuses the other's libraries.
+
+**Startup contacts**:
+The contact trials IRT_syn runs, as zero-time steps at the chemistry start time,
+for molecule pairs already within their effective reaction radius. In the stock
+**Build mode** a packet is captured after them.
+_Avoid_: "first step" (the first positive step comes after them).
+
+**New-old contact**:
+A molecule from a newly activated packet lying within the effective reaction
+radius of a molecule already in the history. The stock kernel never trials it,
+so its count measures missed reactions; it is a diagnostic, not a correction.
+
 **Track packet** (planned feasibility study):
 A reusable initial chemical-species cloud from one primary electron, retaining
 its species/configuration state, correlated positions, chemical age and energy

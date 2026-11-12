@@ -18,8 +18,8 @@ namespace
 
 constexpr const char* kHeader =
     "packetIndex,file,physicsSeed,primaryParticle,primaryEnergyEv,energyDepositEv,"
-    "escapedEnergyEv,energyResidualEv,moleculeCount";
-constexpr std::size_t kFieldCount = 9;
+    "escapedEnergyEv,energyResidualEv,moleculeCount,secondTrialPairs,secondTrialExpectedReactions";
+constexpr std::size_t kFieldCount = 11;
 
 [[noreturn]] void Fail(const std::string& message)
 {
@@ -138,7 +138,16 @@ void WriteLibraryIndex(std::ostream& out, const std::vector<LibraryEntry>& entri
     out << e.packetIndex << ',' << e.file << ',' << e.physicsSeed << ',' << e.primaryParticle << ','
         << FormatReal(e.primaryEnergyEv) << ',' << FormatReal(e.energyDepositEv) << ','
         << FormatReal(e.escapedEnergyEv) << ',' << FormatReal(e.energyResidualEv) << ','
-        << e.moleculeCount << '\n';
+        << e.moleculeCount << ',';
+    if (e.secondTrial.has_value())
+    {
+      Require(std::isfinite(e.secondTrial->expectedReactions) && e.secondTrial->expectedReactions >= 0,
+              where + "second-trial expected reactions must be finite and >= 0");
+      out << e.secondTrial->pairs << ',' << FormatReal(e.secondTrial->expectedReactions);
+    }
+    else
+      out << ',';
+    out << '\n';
   }
   if (!out) Fail("output stream failed");
 }
@@ -181,6 +190,16 @@ std::vector<LibraryEntry> ReadLibraryIndex(std::istream& in)
     Require(e.energyResidualEv == Residual(e),
             where + "energyResidualEv does not equal deposit + escaped - primary");
     e.moleculeCount = ParseCount(f[8], where);
+    Require(f[9].empty() == f[10].empty(),
+            where + "secondTrialPairs and secondTrialExpectedReactions must both be set or both empty");
+    if (!f[9].empty())
+    {
+      SecondTrial trial;
+      trial.pairs = ParseCount(f[9], where);
+      trial.expectedReactions = ParseReal(f[10], where);
+      Require(trial.expectedReactions >= 0, where + "negative expectedReactions");
+      e.secondTrial = trial;
+    }
     entries.push_back(std::move(e));
   }
   Require(!entries.empty(), "the index lists no packet");

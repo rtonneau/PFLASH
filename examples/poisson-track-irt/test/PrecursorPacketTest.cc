@@ -27,6 +27,7 @@ PrecursorPacket MakePacket()
     m.definitionName = i % 2 ? "OH" : "e_aq";
     m.charge = i % 2 ? 0 : -1;
     m.status = i % 2;
+    m.productGroup = i < 2 ? 0 : (i < 4 ? 1 : 2);  // two precursors, then groups 1 and 2
     m.electronOccupancy = {2, 2, 2, 1, 2};
     m.positionNm = {0.1 * i + 1.0 / 3.0, -2.5e-3 * i, 1e-300 * i};
     m.direction = {0.6, 0.0, 0.8};
@@ -150,6 +151,22 @@ void TestValidateRejects()
   }
   {
     PrecursorPacket p = MakePacket();
+    p.molecules[3].productGroup = -1;
+    CHECK_THROWS(Validate(p), "product group is negative");
+  }
+  {
+    PrecursorPacket p = MakePacket();
+    p.molecules[3].productGroup = static_cast<int>(p.molecules.size()) + 1;
+    CHECK_THROWS(Validate(p), "product group exceeds");
+  }
+  {
+    // The largest valid group id: as many groups as molecules.
+    PrecursorPacket p = MakePacket();
+    p.molecules[3].productGroup = static_cast<int>(p.molecules.size());
+    Validate(p);
+  }
+  {
+    PrecursorPacket p = MakePacket();
     p.molecules[0].definitionName = "bad name";
     CHECK_THROWS(Validate(p), "definition name");
   }
@@ -184,8 +201,14 @@ void TestReadRejects()
   }
   {
     std::string t = good;
-    ReplaceFirst(t, "PACKET 1", "PACKET 2");
-    CHECK_THROWS(Parse(t), "unsupported version");
+    ReplaceFirst(t, "PACKET 2", "PACKET 3");
+    CHECK_THROWS(Parse(t), "unsupported version 3");
+  }
+  {
+    // A version 1 file (no productGroup column) is refused, not misread.
+    std::string t = good;
+    ReplaceFirst(t, "PACKET 2", "PACKET 1");
+    CHECK_THROWS(Parse(t), "unsupported version 1");
   }
   CHECK_THROWS(Parse(""), "truncated");
   // Truncation at every line boundary and in the middle of the text.
@@ -232,6 +255,40 @@ void TestReadRejects()
   }
 }
 
+void TestProductGroupColumn()
+{
+  const PrecursorPacket p = MakePacket();
+  const std::string text = Serialize(p);
+  CHECK(Parse(text).molecules[2].productGroup == 1);
+  CHECK(Parse(text).molecules[4].productGroup == 2);
+  // The column sits right after the status: "molecule OH 0 1 0 5 ..." is molecule 1.
+  CHECK(text.find("molecule OH 0 1 0 5 ") != std::string::npos);
+  CHECK(text.find("molecule e_aq -1 0 2 5 ") != std::string::npos);
+  {
+    // Not an integer, negative, or a column dropped (everything shifts by one).
+    std::string t = text;
+    ReplaceFirst(t, "molecule OH 0 1 0 5 ", "molecule OH 0 1 x 5 ");
+    CHECK_THROWS(Parse(t), "malformed integer");
+  }
+  {
+    std::string t = text;
+    ReplaceFirst(t, "molecule OH 0 1 0 5 ", "molecule OH 0 1 -1 5 ");
+    CHECK_THROWS(Parse(t), "productGroup is negative");
+  }
+  {
+    std::string t = text;
+    ReplaceFirst(t, "molecule OH 0 1 0 5 ", "molecule OH 0 1 6 5 ");
+    CHECK_THROWS(Parse(t), "product group exceeds");
+  }
+  {
+    std::string t = text;
+    ReplaceFirst(t, "molecule OH 0 1 0 5 ", "molecule OH 0 1 5 ");
+    CHECK_THROWS(Parse(t), "");
+  }
+  // Translation keeps the group.
+  CHECK(Translate(p, {1, 2, 3}).molecules[3].productGroup == p.molecules[3].productGroup);
+}
+
 void TestTranslate()
 {
   const PrecursorPacket p = MakePacket();
@@ -254,6 +311,7 @@ int main()
   TestRoundTrip();
   TestValidateRejects();
   TestReadRejects();
+  TestProductGroupColumn();
   TestTranslate();
   std::puts("PrecursorPacketTest passed");
   return 0;

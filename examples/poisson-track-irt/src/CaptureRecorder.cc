@@ -1,13 +1,20 @@
 #include "CaptureRecorder.hh"
 
+#include <algorithm>
 #include <cmath>
 #include <exception>
 #include <fstream>
+#include <map>
+#include <optional>
+#include <set>
 #include <sstream>
 #include <utility>
 
+#include "BuildMode.hh"
+#include "CoincidenceCheck.hh"
 #include "ExamplePhysicsList.hh"
 #include "ExamplePhysicsTag.hh"
+#include "PacketDigest.hh"
 
 #include "G4ElectronOccupancy.hh"
 #include "G4Event.hh"
@@ -43,6 +50,30 @@ std::array<double, 3> ToArray(const G4ThreeVector& v)
   return {v.x(), v.y(), v.z()};
 }
 
+// Copies the state of a chemistry track into `state`; returns a problem
+// description, empty when the track is a molecule that can be captured.
+std::string DescribeTrack(const G4Track& track, const G4ThreeVector& origin, PacketMolecule& state)
+{
+  const auto* molecule = GetMolecule(track);
+  if (molecule == nullptr) return "a chemistry track carries no G4Molecule";
+  const auto* configuration = molecule->GetMolecularConfiguration();
+  state = PacketMolecule{};
+  state.definitionName = configuration->GetDefinition()->GetParticleName();
+  state.charge = configuration->GetCharge();
+  state.status = static_cast<int>(track.GetTrackStatus());  // fAlive 0, fStopButAlive 1
+  if (const auto* occupancy = configuration->GetElectronOccupancy())
+    for (G4int i = 0; i < occupancy->GetSizeOfOrbit(); ++i)
+      state.electronOccupancy.push_back(occupancy->GetOccupancy(i));
+  state.positionNm = ToNm(track.GetPosition() - origin);
+  state.direction = ToArray(track.GetMomentumDirection());
+  state.globalTimeNs = track.GetGlobalTime() / ns;
+  state.localTimeNs = track.GetLocalTime() / ns;
+  state.properTimeNs = track.GetProperTime() / ns;
+  state.decayTimeNs = configuration->GetDecayTime() / ns;
+  state.kineticEnergyEv = track.GetKineticEnergy() / eV;
+  return {};
+}
+
 }  // namespace
 
 CaptureRecorder::CaptureRecorder(CaptureSettings settings) : fSettings(std::move(settings)) {}
@@ -55,7 +86,7 @@ void CaptureRecorder::Fail(const std::string& message)
     text << "event " << fEventId << ": " << message;
     fFailure = text.str();
   }
-  // Inside G4Scheduler::Process this ends the chemistry before its first step;
+  // Inside G4Scheduler::Process this ends the chemistry before its next step;
   // outside it, Process() resets the flag, so the call is harmless.
   G4Scheduler::Instance()->Stop();
   if (auto* runManager = G4RunManager::GetRunManager()) runManager->AbortRun(/*softAbort*/ true);
@@ -91,7 +122,15 @@ void CaptureRecorder::BeginEvent(G4int eventId, G4ParticleGun& gun)
   fDeposit = 0;
   fEscaped = 0;
   fChemistryStarted = false;
+  fCaptured = false;
   fMolecules.clear();
+  fMoleculeSpecies.clear();
+  fChemistryStartDigest = 0;
+  fCapturedDigest = 0;
+  fChemistrySeed = 0;
+  fStartupZeroSteps = 0;
+  fStartupReactions = 0;
+  fProductReaction.clear();
 
   // Declared seed: everything random in this event (physics and the molecule
   // directions drawn by G4Molecule::BuildTrack) follows from it.
@@ -122,7 +161,7 @@ void CaptureRecorder::EndTrack(const G4Track& track)
   if (track.GetNextVolume() == nullptr) fEscaped += track.GetKineticEnergy();
 }
 
-void CaptureRecorder::CaptureAtChemistryStart()
+void CaptureRecorder::StartChemistry()
 {
   fChemistryStarted = true;
   if (!fFailure.empty())
@@ -139,6 +178,7 @@ void CaptureRecorder::CaptureAtChemistryStart()
     return;
   }
 
+  std::vector<PacketMolecule> waiting;
   for (const auto& [time, lists] : G4ITTrackHolder::Instance()->GetDelayedLists())
   {
     if (time != captureTime)
@@ -155,10 +195,10 @@ void CaptureRecorder::CaptureAtChemistryStart()
       if (list == nullptr) continue;
       for (auto* track : *list)
       {
-        auto* molecule = GetMolecule(track);
-        if (molecule == nullptr)
+        PacketMolecule state;
+        if (const auto problem = DescribeTrack(*track, fOrigin, state); !problem.empty())
         {
-          Fail("a chemistry track carries no G4Molecule");
+          Fail(problem);
           return;
         }
         if (track->GetGlobalTime() != captureTime)
@@ -166,29 +206,222 @@ void CaptureRecorder::CaptureAtChemistryStart()
           Fail("a molecule's global time differs from its delayed-list time");
           return;
         }
-        const auto* configuration = molecule->GetMolecularConfiguration();
-        PacketMolecule state;
-        state.definitionName = configuration->GetDefinition()->GetParticleName();
-        state.charge = configuration->GetCharge();
-        state.status = static_cast<int>(track->GetTrackStatus());  // fAlive 0, fStopButAlive 1
-        if (const auto* occupancy = configuration->GetElectronOccupancy())
-          for (G4int i = 0; i < occupancy->GetSizeOfOrbit(); ++i)
-            state.electronOccupancy.push_back(occupancy->GetOccupancy(i));
-        state.positionNm = ToNm(track->GetPosition() - fOrigin);
-        state.direction = ToArray(track->GetMomentumDirection());
-        state.globalTimeNs = track->GetGlobalTime() / ns;
-        state.localTimeNs = track->GetLocalTime() / ns;
-        state.properTimeNs = track->GetProperTime() / ns;
-        state.decayTimeNs = configuration->GetDecayTime() / ns;
-        state.kineticEnergyEv = track->GetKineticEnergy() / eV;
-        fMolecules.push_back(std::move(state));
+        waiting.push_back(std::move(state));
       }
     }
   }
+  fChemistryStartDigest = DigestMolecules(waiting);
 
-  // Merge the delayed lists but run no chemistry step (G4Scheduler::Process
-  // then ends the tracks and clears the lists).
-  G4Scheduler::Instance()->Stop();
+  if constexpr (kPatchedGeant4)
+  {
+    // Keep the delayed-list molecules but run no chemistry step
+    // (G4Scheduler::Process then ends the tracks and clears the lists).
+    fMolecules = std::move(waiting);
+    fCapturedDigest = fChemistryStartDigest;
+    fCaptured = true;
+    G4Scheduler::Instance()->Stop();
+  }
+  else
+  {
+    // The stock kernel gives no hook before the start-up contacts, so the
+    // chemistry runs on; its random sequence is restarted here so that it
+    // depends on the declared physics seed alone (CaptureMain refuses the
+    // physics seeds for which that cannot be done).
+    if (fPhysicsSeed < 1 || static_cast<std::uint64_t>(fPhysicsSeed) > kMaxStockPhysicsSeed)
+    {
+      Fail("physics seed " + std::to_string(fPhysicsSeed) + " is outside 1.." +
+           std::to_string(kMaxStockPhysicsSeed) + " in the stock build");
+      return;
+    }
+    fChemistrySeed = ChemistrySeedFor(static_cast<std::uint64_t>(fPhysicsSeed));
+    G4Random::setTheSeed(static_cast<long>(fChemistrySeed));
+  }
+}
+
+void CaptureRecorder::BeforeTimeStep(G4double timeStep)
+{
+  // The patched build captured at StartChemistry and stopped the chemistry.
+  if constexpr (!kPatchedGeant4)
+  {
+    if (!fChemistryStarted || fCaptured || !fFailure.empty()) return;
+
+    if (timeStep < 0)
+    {
+      Fail("PTIRT_CAPTURE_STATE: the chemistry chose a negative time step");
+      return;
+    }
+    if (timeStep == 0)
+    {
+      ++fStartupZeroSteps;
+      return;
+    }
+    CaptureStartupState();
+  }
+}
+
+void CaptureRecorder::OnReaction(const G4Track& trackA, const G4Track& trackB,
+                                 const std::vector<G4Track*>* products)
+{
+  // The patched build runs no chemistry step before its capture.
+  if constexpr (!kPatchedGeant4)
+  {
+    if (!fChemistryStarted || fCaptured || !fFailure.empty()) return;
+
+    ++fStartupReactions;
+    // Geant4 kills both reactants of a reaction that reaches this point.
+    fProductReaction.erase(&trackA);
+    fProductReaction.erase(&trackB);
+    if (products == nullptr) return;
+    for (const auto* product : *products)
+    {
+      if (product == nullptr)
+      {
+        Fail("PTIRT_CAPTURE_STATE: a start-up reaction lists a null product");
+        return;
+      }
+      fProductReaction[product] = fStartupReactions;
+    }
+  }
+}
+
+// Stock build, at the first chemistry step of positive length: every molecule is
+// alive in the main list, at the precursor age, with nothing waiting anywhere.
+void CaptureRecorder::CaptureStartupState()
+{
+  const G4double captureTime = picosecond;
+  auto* scheduler = G4Scheduler::Instance();
+  auto* holder = G4ITTrackHolder::Instance();
+
+  if (scheduler->GetGlobalTime() != captureTime)
+  {
+    std::ostringstream text;
+    text << "PTIRT_CAPTURE_STATE: the first step of positive length starts at "
+         << scheduler->GetGlobalTime() / ns << " ns, not at 1 ps";
+    Fail(text.str());
+    return;
+  }
+  if (holder->DelayListsNOTEmpty())
+  {
+    Fail("PTIRT_CAPTURE_STATE: molecules are still waiting in a delayed list");
+    return;
+  }
+
+  struct Captured
+  {
+    PacketMolecule molecule;
+    const G4Track* track = nullptr;
+    const G4MolecularConfiguration* configuration = nullptr;
+    int trackId = 0;  // tie-break only
+  };
+  std::vector<Captured> captured;
+  for (const auto& [key, lists] : holder->GetLists())
+  {
+    (void)key;
+    if (lists == nullptr) continue;
+    for (const auto type : {PriorityList::SecondariesList, PriorityList::WaitingList})
+    {
+      const auto* list = lists->Get(type);
+      if (list != nullptr && !list->empty())
+      {
+        Fail(std::string("PTIRT_CAPTURE_STATE: molecules are still in a ") +
+             (type == PriorityList::SecondariesList ? "secondaries" : "waiting") + " list");
+        return;
+      }
+    }
+    G4TrackList* mainList = lists->GetMainList();
+    if (mainList == nullptr) continue;
+    for (auto* track : *mainList)
+    {
+      if (track->GetTrackStatus() != fAlive)
+      {
+        std::ostringstream text;
+        text << "PTIRT_CAPTURE_STATE: track " << track->GetTrackID() << " has status "
+             << static_cast<int>(track->GetTrackStatus()) << " (fAlive expected)";
+        Fail(text.str());
+        return;
+      }
+      if (track->GetGlobalTime() != captureTime)
+      {
+        std::ostringstream text;
+        text << "PTIRT_CAPTURE_STATE: track " << track->GetTrackID() << " is at "
+             << track->GetGlobalTime() / ns << " ns, not at 1 ps";
+        Fail(text.str());
+        return;
+      }
+      Captured entry;
+      entry.track = track;
+      entry.configuration = GetMolecule(*track)->GetMolecularConfiguration();
+      entry.trackId = track->GetTrackID();
+      if (const auto problem = DescribeTrack(*track, fOrigin, entry.molecule); !problem.empty())
+      {
+        Fail(problem);
+        return;
+      }
+      captured.push_back(std::move(entry));
+    }
+  }
+
+  // Geant4 lists the molecules in an order that follows memory addresses. The
+  // packet lists them in canonical order instead, so that it depends on the
+  // physics seed alone.
+  std::sort(captured.begin(), captured.end(), [](const Captured& a, const Captured& b) {
+    if (CanonicalLess(a.molecule, b.molecule)) return true;
+    if (CanonicalLess(b.molecule, a.molecule)) return false;
+    return a.trackId < b.trackId;
+  });
+
+  // Product groups: dense ids 1..G by first appearance in that order; the
+  // molecules of one reaction share a group.
+  std::map<int, int> groupOfReaction;
+  fMolecules.clear();
+  fMolecules.reserve(captured.size());
+  fMoleculeSpecies.clear();
+  fMoleculeSpecies.reserve(captured.size());
+  for (auto& entry : captured)
+  {
+    fMoleculeSpecies.push_back(fRadii.Label(entry.configuration));
+    if (const auto it = fProductReaction.find(entry.track); it != fProductReaction.end())
+      entry.molecule.productGroup =
+          groupOfReaction.try_emplace(it->second, static_cast<int>(groupOfReaction.size()) + 1)
+              .first->second;
+    fMolecules.push_back(std::move(entry.molecule));
+  }
+  fCapturedDigest = DigestMolecules(fMolecules);
+  fCaptured = true;
+
+  // The step that is about to start still runs to its end (a reaction or two may
+  // fire); the copy above is not affected.
+  scheduler->Stop();
+}
+
+// Within-Reff pairs of the captured molecules (all alive) and the sum of the
+// contact probabilities that G4DNAIndependentReactionTimeStepper applies to them
+// at the start time: reactionData->GetProbability() > G4UniformRand() per pair.
+SecondTrial CaptureRecorder::ComputeSecondTrial(std::map<std::string, std::pair<std::size_t, double>>& perPair)
+{
+  std::vector<ContactMolecule> molecules(fMolecules.size());
+  for (std::size_t i = 0; i < fMolecules.size(); ++i)
+  {
+    molecules[i].species = fMoleculeSpecies[i];
+    molecules[i].positionNm = fMolecules[i].positionNm;
+  }
+  const auto counts = CountInternalContacts(molecules, fRadii.AsFunction());
+
+  std::map<std::string, double> probabilityOf;  // PairLabel -> GetProbability()
+  std::set<std::string> species(fMoleculeSpecies.begin(), fMoleculeSpecies.end());
+  for (auto a = species.begin(); a != species.end(); ++a)
+    for (auto b = a; b != species.end(); ++b) probabilityOf[PairLabel(*a, *b)] = fRadii.Probability(*a, *b);
+
+  SecondTrial trial;
+  trial.pairs = counts.pairs;
+  for (const auto& [label, n] : counts.perPair)
+  {
+    const auto it = probabilityOf.find(label);
+    if (it == probabilityOf.end()) throw std::runtime_error("no probability for pair '" + label + "'");
+    perPair[label] = {n, static_cast<double>(n) * it->second};
+    trial.expectedReactions += perPair[label].second;
+  }
+  return trial;
 }
 
 void CaptureRecorder::EndEvent(const G4Event& event)
@@ -204,10 +437,59 @@ void CaptureRecorder::EndEvent(const G4Event& event)
     Fail("the chemistry never started (G4DNAChemistryManager::Run was not reached)");
     return;
   }
+  if (!fCaptured)
+  {
+    Fail("PTIRT_CAPTURE_STATE: the chemistry ended before its first step of positive length (" +
+         std::to_string(fStartupZeroSteps) + " zero-length steps, " +
+         std::to_string(fStartupReactions) + " start-up reactions)");
+    return;
+  }
   if (fMolecules.empty())
   {
     Fail("the primary produced no precursor molecule in the capture box");
     return;
+  }
+
+  // Two molecules at one point cannot be injected (CoincidenceCheck.hh); the
+  // products of one start-up reaction are the only allowed exception.
+  std::vector<CoincidenceMolecule> placed(fMolecules.size());
+  for (std::size_t i = 0; i < fMolecules.size(); ++i)
+  {
+    placed[i].position = fMolecules[i].positionNm;
+    placed[i].productGroup = fMolecules[i].productGroup;
+  }
+  CoincidenceSummary coincidence;
+  try
+  {
+    const auto coincidences = FindCoincidentPositions(placed);
+    if (coincidences.forbiddenMolecules > 0)
+    {
+      Fail(DescribeForbiddenCoincidences(coincidences));
+      return;
+    }
+    // The patched capture has no product groups, hence nothing exempt and no species labels.
+    coincidence = SummarizeExempt(coincidences, fMoleculeSpecies, fRadii.AsFunction());
+  }
+  catch (const std::exception& error)
+  {
+    Fail(std::string("coincidence check: ") + error.what());
+    return;
+  }
+
+  // Stock only: what the IRT_syn stepper's first trial would see in this packet.
+  std::optional<SecondTrial> secondTrial;
+  std::map<std::string, std::pair<std::size_t, double>> secondTrialPerPair;
+  if constexpr (!kPatchedGeant4)
+  {
+    try
+    {
+      secondTrial = ComputeSecondTrial(secondTrialPerPair);
+    }
+    catch (const std::exception& error)
+    {
+      Fail(std::string("second trial: ") + error.what());
+      return;
+    }
   }
 
   PrecursorPacket packet;
@@ -237,13 +519,25 @@ void CaptureRecorder::EndEvent(const G4Event& event)
     if (!(reread == packet))
       throw std::runtime_error(path.string() + " does not read back to the captured packet");
     fEntries.push_back(MakeLibraryEntry(index, fPhysicsSeed, packet));
+    fEntries.back().secondTrial = secondTrial;
   }
   catch (const std::exception& error)
   {
     Fail(std::string("packet ") + path.filename().string() + ": " + error.what());
     return;
   }
-  fProvenance.push_back({ToNm(fOrigin), ToArray(fDirection)});
+
+  CaptureProvenance provenance;
+  provenance.primaryOriginNm = ToNm(fOrigin);
+  provenance.primaryDirection = ToArray(fDirection);
+  provenance.chemistryStartDigest = fChemistryStartDigest;
+  provenance.capturedDigest = fCapturedDigest;
+  provenance.chemistrySeed = fChemistrySeed;
+  provenance.startupZeroSteps = fStartupZeroSteps;
+  provenance.startupReactions = fStartupReactions;
+  provenance.coincidence = coincidence;
+  provenance.secondTrialPerPair = std::move(secondTrialPerPair);
+  fProvenance.push_back(provenance);
 }
 
 }  // namespace ptirt

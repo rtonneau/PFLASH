@@ -7,6 +7,10 @@
 #include <stdexcept>
 #include <string>
 
+#include "BuildMode.hh"
+#include "CoincidenceCheck.hh"
+#include "ReactionRadius.hh"
+
 #include "G4DNAIndependentReactionTimeStepper.hh"
 #include "G4ElectronOccupancy.hh"
 #include "G4ITTrackHolder.hh"
@@ -38,6 +42,18 @@ std::vector<int> Occupancy(const G4MolecularConfiguration& configuration)
   return occupancy;
 }
 
+// Geant4 creates "H2O(B)", "H3Op(B)" and "OHm(B)" as tags for the bulk of the
+// acid-base buffer (diffusion coefficient 0, "just a tag to store and retrieve").
+// They share definition, charge and occupancy with the tracked H2O, H3O and OH-
+// but are never a molecule in the box, so a packet molecule is never one of them.
+// Without this, a start-up contact product OH- (the stock capture) matches both
+// OHm and OHm(B).
+bool IsBulkTag(const G4MolecularConfiguration& configuration)
+{
+  const std::string& label = configuration.GetLabel();
+  return label.size() > 3 && label.compare(label.size() - 3, 3, "(B)") == 0;
+}
+
 // The configuration a packet molecule was captured in, matched on the same
 // fields CaptureRecorder wrote: definition name, charge, decay time, electron
 // occupancy. Exactly one must match.
@@ -49,6 +65,7 @@ const G4MolecularConfiguration* Resolve(const PacketMolecule& molecule, const st
   {
     const auto* configuration = G4MolecularConfiguration::GetMolecularConfiguration(i);
     if (configuration == nullptr || configuration->GetDefinition() == nullptr) continue;
+    if (IsBulkTag(*configuration)) continue;
     if (configuration->GetDefinition()->GetParticleName() != molecule.definitionName) continue;
     if (configuration->GetCharge() != molecule.charge) continue;
     if (configuration->GetDecayTime() / ns != molecule.decayTimeNs) continue;
@@ -115,6 +132,12 @@ SourceInjector::SourceInjector(const std::vector<Arrival>& arrivals, const Packe
   if (total > static_cast<std::size_t>(std::numeric_limits<G4int>::max()))
     throw std::runtime_error("too many molecules for G4int track IDs");
   fMolecules.reserve(total);
+  // For the coincidence check over the whole injected set.
+  std::vector<CoincidenceMolecule> placed;
+  std::vector<std::string> species;
+  placed.reserve(total);
+  species.reserve(total);
+  ConfigurationRadii radii;
 
   for (const auto& arrival : arrivals)
   {
@@ -164,6 +187,14 @@ SourceInjector::SourceInjector(const std::vector<Arrival>& arrivals, const Packe
       molecule.properTime = captured.properTimeNs * ns;
       molecule.source = fSources.size();
       fMolecules.push_back(molecule);
+
+      // Exact equality on the positions Geant4 will get, after the translation.
+      CoincidenceMolecule placedMolecule;
+      placedMolecule.position = {molecule.position.x(), molecule.position.y(), molecule.position.z()};
+      placedMolecule.packet = molecule.source;  // a source, not a packet: one packet may be injected twice
+      placedMolecule.productGroup = captured.productGroup;
+      placed.push_back(placedMolecule);
+      species.push_back(radii.Label(molecule.configuration));
     }
     source.lastTrackId = static_cast<G4int>(fMolecules.size());
     fSources.push_back(source);
@@ -182,6 +213,13 @@ SourceInjector::SourceInjector(const std::vector<Arrival>& arrivals, const Packe
     record.escapedEnergyEv = entry.escapedEnergyEv;
     fRecords.push_back(record);
   }
+
+  // Before Inject(): nothing has been pushed to Geant4 yet. Molecules at one point
+  // within a source are allowed only as the products of one start-up reaction;
+  // across sources they never are.
+  const auto coincidences = FindCoincidentPositions(placed);
+  if (coincidences.forbiddenMolecules > 0) throw std::runtime_error(DescribeForbiddenCoincidences(coincidences));
+  fCoincidences = SummarizeExempt(coincidences, species, radii.AsFunction());
 }
 
 void SourceInjector::Inject()
@@ -192,7 +230,11 @@ void SourceInjector::Inject()
   fInjected = true;
 
   // One registry per history: forget the activations of any earlier history.
+  // Patched Geant4 only: the stock stepper has no activation registry (the
+  // sources then get no contact trials at their activation time).
+#if PTIRT_PATCHED_GEANT4
   G4DNAIndependentReactionTimeStepper::ResetSourceActivations();
+#endif
 
   CounterStagingGuard guard;
   auto* holder = G4ITTrackHolder::Instance();
@@ -208,7 +250,9 @@ void SourceInjector::Inject()
     track->SetKineticEnergy(staged.kineticEnergy);
     track->SetLocalTime(staged.localTime);
     track->SetProperTime(staged.properTime);
+#if PTIRT_PATCHED_GEANT4
     G4DNAIndependentReactionTimeStepper::RegisterSourceActivation(trackId, activation);
+#endif
     // Not running yet: the holder files the track in the delayed list of its
     // global time, i.e. its activation time.
     holder->Push(track);

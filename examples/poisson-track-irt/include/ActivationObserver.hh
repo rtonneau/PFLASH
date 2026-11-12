@@ -22,7 +22,11 @@
 //                           or moved). The molecules that activated are then
 //                           added to the molecule counter at t: they were built
 //                           with the counter inactive (SourceInjector.hh).
-//   UserReactionAction      with a reflecting box, folds a reaction product
+//   UserReactionAction      counts the reactions in a zero time step at the
+//                           scheduler start time (the start-time contact trial
+//                           of the stepper; 0 in the stock build, whose
+//                           StartTrialGate switches that trial off); with a
+//                           reflecting box, folds a reaction product
 //                           that IRT_syn placed outside the box back in
 //                           (G4DNAMakeReaction places products between the
 //                           reaction site and a random point, which can lie
@@ -39,12 +43,14 @@
 #pragma once
 
 #include <cstddef>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "ActivationObserverCheck.hh"
 #include "Ledger.hh"
+#include "ReactionRadius.hh"
 #include "SourceInjector.hh"
 
 #include "G4UserTimeStepAction.hh"
@@ -71,6 +77,29 @@ class ActivationObserver : public G4UserTimeStepAction
     G4bool allInsideBox = false;    // true when there is no box
   };
 
+  // New-old contacts: at each activation, the pairs (fresh molecule, molecule that
+  // was already in the history) closer than their effective reaction radius
+  // (strict d^2 < R^2; radius from G4DNAMolecularReactionTable, no pair without
+  // data). The stock stepper gives a fresh source no contact trial at its
+  // activation, so these are the pairs it can miss; the patched stepper trials
+  // them, and the counts are then informational. Counted at NewStage, before the
+  // stage's first step and before any dissociation of the fresh molecules.
+  struct ContactActivation
+  {
+    std::size_t index = 0;         // the stage (position in Activations().Stages())
+    double timeNs = 0;
+    std::size_t pairs = 0;
+    std::size_t newMoleculesInContact = 0;
+  };
+  struct NewOldContacts
+  {
+    std::size_t pairs = 0;                 // summed over the activations
+    std::size_t newMoleculesInContact = 0;
+    std::map<std::string, std::size_t> perPair;  // by PairLabel
+    std::vector<ContactActivation> perActivation;
+    double cpuSeconds = 0;                 // wall time of the diagnostic: building the lists and counting
+  };
+
   // sources: from SourceInjector (contiguous IDs from 1); recordTimesNs:
   // increasing, the last one is the end time; box: nullptr = unbounded;
   // counterId: the G4MoleculeCounter registered for the history.
@@ -94,9 +123,14 @@ class ActivationObserver : public G4UserTimeStepAction
   // Stages and observed activation times (after Configure).
   const ActivationObserverCheck& Activations() const { return fCheck.value(); }
   const EndChecks& End() const { return fEnd; }
+  const NewOldContacts& Contacts() const { return fContacts; }
   // timeNs, species, count (the history and seed columns are left to the caller).
   const std::vector<SpeciesRow>& SpeciesRows() const { return fRows; }
   std::size_t ProductFoldCount() const { return fProductFolds; }
+  // Reactions at the scheduler start time in a time step of exactly 0, i.e. fired
+  // by the stepper's start-time contact trial (G4DNAIndependentReactionTimeStepper,
+  // GetGlobalTime() == GetStartTime()); compared exactly, like the stepper does.
+  std::size_t StartZeroStepReactions() const { return fStartZeroStepReactions; }
   // For a history with no source (chemistry not run): zero rows on the record grid.
   void FinishEmpty();
 
@@ -104,6 +138,8 @@ class ActivationObserver : public G4UserTimeStepAction
   void Fail(const std::string& message);
   void TakeSnapshot();
   void Finish();
+  void CountContacts(const std::vector<const G4Track*>& live, const std::vector<std::size_t>& activated,
+                     std::size_t stageIndex, double timeNs);
 
   std::optional<ActivationObserverCheck> fCheck;
   std::vector<double> fRecordTimesNs;
@@ -111,8 +147,11 @@ class ActivationObserver : public G4UserTimeStepAction
   G4int fCounterId = -1;
 
   EndChecks fEnd;
+  NewOldContacts fContacts;
+  ConfigurationRadii fRadii;
   std::vector<SpeciesRow> fRows;
   std::size_t fProductFolds = 0;
+  std::size_t fStartZeroStepReactions = 0;
   std::string fFailure;
   std::string fModelProblem;
   G4bool fFinished = false;

@@ -4,12 +4,17 @@
 // G4DNAMolecularDissociation places the products of an excited or ionised H2O
 // with its displacer, then hands each product position to its user Brownian
 // action (G4DNAMolecularDissociation::SetUserBrownianAction). This action folds
-// a position that left the box back into it with the same reflection rule as
-// G4ChemReboundTransportation (calculateNextCoordinate), the transport used for
-// all other molecules when the box is on. Same role as BoundedBrownianAction of
-// the Geant4-DNA UHDR example. It holds its own copy of the box because the
-// dissociation process deletes it only when the process table is destroyed,
-// after main().
+// a position that left the box back into it with ReflectIntoInterval, the
+// example's own fold (ReflectingFold.hh), at the history boundaries (dissociation
+// products and reaction products) in both the stock and the patched build.
+// The in-box transport of every other molecule is still the kernel's
+// G4ChemReboundTransportation in both builds; its fold is wrong for overshoots of
+// two box lengths or more and at exactly one box length (on [0,1]: 2.1 -> 1.7,
+// 2.9 -> -0.7, 1.0 -> 0.0). The Geant4-DNA UHDR example registers the same
+// kernel class (EmDNAChemistry.cc), so it has the same limits. Same role as
+// BoundedBrownianAction of the UHDR example. It holds its own copy of the box
+// because the dissociation process deletes it only when the process table is
+// destroyed, after main().
 #pragma once
 
 #include <cstddef>

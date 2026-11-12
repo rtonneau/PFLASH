@@ -7,11 +7,11 @@
 // Units used everywhere in this header:
 //   energy   eV      length   nm      time   ns
 //
-// Text format (version 1), one logical record per line, whitespace separated.
+// Text format (version 2), one logical record per line, whitespace separated.
 // Every real number is written as a C99 hexadecimal float ("%a", e.g.
 // 0x1.8p+3), so Write followed by Read reproduces the exact bits.
 //
-//   PTIRT-PRECURSOR-PACKET 1
+//   PTIRT-PRECURSOR-PACKET 2
 //   compatibilityTag <token>
 //   primaryParticle <token>
 //   primaryEnergy_eV <real>
@@ -20,12 +20,21 @@
 //   captureHalfSide_nm <real>
 //   captureTime_ns <real>
 //   moleculeCount <N>
-//   molecule <name> <charge> <status> <nOcc> <occ...> <x y z nm> <dx dy dz>
-//            <globalTime localTime properTime decayTime ns> <kineticEnergy eV>
+//   molecule <name> <charge> <status> <productGroup> <nOcc> <occ...> <x y z nm>
+//            <dx dy dz> <globalTime localTime properTime decayTime ns> <kineticEnergy eV>
 //   ... (N lines)
 //   end
 //
 // Tokens (tag, particle, molecule name) contain no whitespace.
+//
+// Version 2 added <productGroup> (version 1 packets are refused, not converted).
+// productGroup is 0 for a molecule that is a precursor of the primary track, and
+// k >= 1 for a molecule that a start-up reaction of the stock-build capture made
+// (see CaptureRecorder.hh): all products of one reaction share the same k. The
+// ids are group labels, not Geant4 reaction numbers: the capture writes them
+// dense (1..G, no gap) in an order that does not depend on Geant4 track IDs.
+// The reader checks only 0 <= k <= molecule count; density is a writer
+// property. Products of one reaction sit at one point.
 #pragma once
 
 #include <array>
@@ -42,6 +51,7 @@ struct PacketMolecule
   std::string definitionName;                // G4MoleculeDefinition name, e.g. "OH"
   int charge = 0;
   int status = 0;                            // 0 or 1 (electronic-state switch)
+  int productGroup = 0;                      // 0 = precursor; k >= 1 = product of start-up reaction k; <= molecule count
   std::vector<int> electronOccupancy;        // per-level occupancy, each 0..maxOccupancyPerLevel
   std::array<double, 3> positionNm{};        // relative to the packet origin (primary entry point)
   std::array<double, 3> direction{0, 0, 1};  // unit vector

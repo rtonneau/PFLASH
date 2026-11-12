@@ -14,7 +14,7 @@ namespace
 {
 
 constexpr const char* kMagic = "PTIRT-PRECURSOR-PACKET";
-constexpr int kVersion = 1;
+constexpr int kVersion = 2;
 
 [[noreturn]] void Fail(const std::string& message)
 {
@@ -123,6 +123,9 @@ void Validate(const PrecursorPacket& p, const PacketLimits& limits)
   {
     Require(IsToken(m.definitionName), "molecule definition name must be a non-empty token");
     Require(m.status == 0 || m.status == 1, "molecule status must be 0 or 1");
+    Require(m.productGroup >= 0, "molecule product group is negative");
+    Require(static_cast<std::size_t>(m.productGroup) <= p.molecules.size(),
+            "molecule product group exceeds the molecule count");
     Require(m.electronOccupancy.size() <= limits.maxOccupancyLevels, "too many occupancy levels");
     for (int n : m.electronOccupancy)
       Require(n >= 0 && n <= limits.maxOccupancyPerLevel, "electron occupancy out of range");
@@ -157,7 +160,7 @@ void Write(std::ostream& out, const PrecursorPacket& p, const PacketLimits& limi
   for (const auto& m : p.molecules)
   {
     out << "molecule " << m.definitionName << ' ' << m.charge << ' ' << m.status << ' '
-        << m.electronOccupancy.size();
+        << m.productGroup << ' ' << m.electronOccupancy.size();
     for (int n : m.electronOccupancy) out << ' ' << n;
     for (double x : {m.positionNm[0], m.positionNm[1], m.positionNm[2], m.direction[0], m.direction[1],
                      m.direction[2], m.globalTimeNs, m.localTimeNs, m.properTimeNs, m.decayTimeNs,
@@ -200,6 +203,7 @@ PrecursorPacket Read(std::istream& in, const std::string& expectedTag, const Pac
     m.definitionName = NextToken(in, "molecule name");
     m.charge = static_cast<int>(GetInteger(in, "charge"));
     m.status = static_cast<int>(GetInteger(in, "status"));
+    m.productGroup = static_cast<int>(GetCount(in, "productGroup", limits.maxMolecules));
     const std::size_t levels = GetCount(in, "occupancy level count", limits.maxOccupancyLevels);
     for (std::size_t k = 0; k < levels; ++k)
       m.electronOccupancy.push_back(static_cast<int>(GetInteger(in, "occupancy")));

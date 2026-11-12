@@ -1690,7 +1690,7 @@
       "id": "decisions",
       "title": "Read the design decisions",
       "audience": "everyone",
-      "summary": "The nine architecture decision records and the project glossary.",
+      "summary": "The ten architecture decision records and the project glossary.",
       "docs": [
         "CONTEXT.md",
         "docs/adr/0001-baseline-acid-base-buffer.md",
@@ -1701,7 +1701,8 @@
         "docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md",
         "docs/adr/0007-extra-molecules-per-chemistry.md",
         "docs/adr/0008-selectable-chemistry-modes.md",
-        "docs/adr/0009-standardized-output-products.md"
+        "docs/adr/0009-standardized-output-products.md",
+        "docs/adr/0010-poisson-track-irt-stock-build.md"
       ],
       "files": []
     }

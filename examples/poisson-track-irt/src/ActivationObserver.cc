@@ -1,6 +1,7 @@
 #include "ActivationObserver.hh"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <exception>
 #include <limits>
@@ -9,6 +10,7 @@
 #include <sstream>
 #include <utility>
 
+#include "ContactCount.hh"
 #include "ExamplePhysicsList.hh"
 #include "HistoryBoundedBrownianAction.hh"
 
@@ -96,6 +98,8 @@ void ActivationObserver::Configure(const std::vector<InjectedSource>& sources,
   fEnd = EndChecks{};
   fRows.clear();
   fProductFolds = 0;
+  fStartZeroStepReactions = 0;
+  fContacts = NewOldContacts{};
   fFailure.clear();
   fModelProblem.clear();
   fFinished = false;
@@ -161,10 +165,50 @@ void ActivationObserver::NewStage()
   // The sources were built with the counter inactive; they count from now on.
   auto* counter = G4MoleculeCounterManager::Instance();
   for (const auto i : activated) counter->AddMolecule(live[i], now);
+
+  // CheckStage has just appended this stage to Activations().Stages().
+  try
+  {
+    CountContacts(live, activated, fCheck->Stages().size() - 1, now / ns);
+  }
+  catch (const std::exception& e)
+  {
+    Fail(std::string("new-old contact count: ") + e.what());
+  }
+}
+
+void ActivationObserver::CountContacts(const std::vector<const G4Track*>& live,
+                                       const std::vector<std::size_t>& activated, std::size_t stageIndex,
+                                       double timeNs)
+{
+  const auto start = std::chrono::steady_clock::now();
+  std::vector<bool> isFresh(live.size(), false);
+  for (const auto i : activated) isFresh[i] = true;
+  std::vector<ContactMolecule> fresh, old;
+  fresh.reserve(activated.size());
+  old.reserve(live.size() - activated.size());
+  for (std::size_t i = 0; i < live.size(); ++i)
+  {
+    const auto& p = live[i]->GetPosition();
+    ContactMolecule molecule;
+    molecule.species = fRadii.Label(GetMolecule(live[i])->GetMolecularConfiguration());
+    molecule.positionNm = {p.x() / nm, p.y() / nm, p.z() / nm};
+    (isFresh[i] ? fresh : old).push_back(std::move(molecule));
+  }
+  const auto counts = CountNewOldContacts(fresh, old, fRadii.AsFunction());
+
+  fContacts.pairs += counts.pairs;
+  fContacts.newMoleculesInContact += counts.newMoleculesInContact;
+  for (const auto& [label, n] : counts.perPair) fContacts.perPair[label] += n;
+  fContacts.perActivation.push_back(ContactActivation{stageIndex, timeNs, counts.pairs, counts.newMoleculesInContact});
+  fContacts.cpuSeconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
 }
 
 void ActivationObserver::UserReactionAction(const G4Track&, const G4Track&, const std::vector<G4Track*>* products)
 {
+  const auto* scheduler = G4Scheduler::Instance();
+  if (scheduler->GetTimeStep() == 0 && scheduler->GetGlobalTime() == scheduler->GetStartTime())
+    ++fStartZeroStepReactions;
   if (fBox == nullptr || products == nullptr) return;
   for (auto* product : *products)
   {
