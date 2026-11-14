@@ -87,7 +87,8 @@ std::string CaptureRecorder::DescribeGunProblem(G4ParticleGun& gun) const
 void CaptureRecorder::BeginEvent(G4int eventId, G4ParticleGun& gun)
 {
   fEventId = eventId;
-  fPhysicsSeed = fSettings.firstPhysicsSeed + eventId;
+  // Seeds follow every event shot, across BeamOn calls (event IDs restart at 0).
+  fPhysicsSeed = fSettings.firstPhysicsSeed + fEventsBegun++;
   fDeposit = 0;
   fEscaped = 0;
   fChemistryStarted = false;
@@ -214,6 +215,11 @@ void CaptureRecorder::EndEvent(const G4Event& event)
     Fail("the chemistry never started (G4DNAChemistryManager::Run was not reached)");
     return;
   }
+  if (fMolecules.empty() && fSkipped.size() < fSettings.maxEmpty)
+  {
+    fSkipped.push_back({fPhysicsSeed, fDeposit / eV});  // no packet; the next event takes this index
+    return;
+  }
   if (fMolecules.empty())
   {
     Fail("the primary produced no precursor molecule in the capture box");
@@ -231,7 +237,7 @@ void CaptureRecorder::EndEvent(const G4Event& event)
   packet.molecules = std::move(fMolecules);
   fMolecules.clear();
 
-  const auto index = static_cast<std::size_t>(fEventId);
+  const auto index = fEntries.size();  // = event ID unless empty events were skipped
   const auto path = fSettings.outputDirectory / PacketFileName(index);
   try
   {

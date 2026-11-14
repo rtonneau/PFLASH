@@ -1,0 +1,12 @@
+# capture_tiny_box.mac: 100 keV electrons crossing a 6 nm box from its -z face.
+# Many primaries cross it without an interaction, so many events have no precursor
+# molecule: used by the --max-empty tests.
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/scheduler/verbose 0
+/ptirt/capture/halfSide 3 nm
+/ptirt/capture/entryFace true
+/run/initialize
+/gun/particle e-
+/gun/energy 100 keV

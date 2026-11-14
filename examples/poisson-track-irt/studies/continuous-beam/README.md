@@ -34,7 +34,10 @@ arrival). `realizations` is keyed by the rate (compared as numbers).
 
 Method. Box mass `m = (boxSideUm)^3 * 1 g/cm3` (1.25e-13 kg for 5 um). Mean arrival rate
 `lambda = Ddot * m / mean(E_dep)` with `mean(E_dep)` the mean of `energyDepositEv` over the whole
-`library.csv` (the library mean, not the drawn packets). Per realization: a Poisson count with mean
+`library.csv` (the library mean, not the drawn packets). Capture such a library with
+`capture --max-empty M`: some primaries cross the 5 um box without making a precursor molecule.
+Those events have no packet, so they are not counted in this mean. Their deposits are listed in
+`capture.json` (`skippedEmptyEvents`); check that they are negligible. Per realization: a Poisson count with mean
 `lambda * window`, then that many arrival times uniform on `[0, window)`, sorted
 (`numpy.random.Generator(PCG64(sourceSeed))`, rates in order, realizations in order). Empty draws
 are not run; they are counted per rate in `plan.json` (`emptyRealizations`). Non-empty realizations
@@ -58,7 +61,7 @@ Output in `--out`: `plan.json`, `runs/<id>/schedule.txt`, `runs/<id>/history.cfg
 ## 2. run_study.ps1
 
 ```powershell
-pwsh run_study.ps1 -Plan <plan dir>\plan.json [-DryRun] [-Limit N] [-History <history.exe>] [-Geant4Bin <patched install bin>] [-LogCsv <csv>]
+pwsh run_study.ps1 -Plan <plan dir>\plan.json [-DryRun] [-Limit N] [-Parallel N] [-History <history.exe>] [-Geant4Bin <patched install bin>] [-LogCsv <csv>]
 ```
 
 Defaults: `history.exe` from `build-patched`, the patched install's `bin` from
@@ -67,7 +70,7 @@ Defaults: `history.exe` from `build-patched`, the patched install's `bin` from
 output holds a `ledger.json` with `checks.allPassed` true; an incomplete output directory (under
 the plan's output root only) is deleted and rerun. Each run appends to `run_log.csv` (next to
 `plan.json`): `id,startUtc,wallTime_s,exitCode,status,historyDone` (the `HISTORY_DONE` line). It
-stops with exit 1 at the first run that exits non-zero or fails its checks. Console output of each
+runs `-Parallel N` histories at once (separate single-threaded processes, longest first; Geant4 MT cannot split one history, whose packets share one event) and exits 1 at the end when any run exited non-zero or failed its checks. Console output of each
 run goes to `<outputRoot>/logs/<id>.log`. `-DryRun` prints the commands and changes nothing.
 
 ## 3. analyze.py

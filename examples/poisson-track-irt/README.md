@@ -128,7 +128,13 @@ mkdir <work>; copy-item -Recurse config <work>/config
 
 `--output` must be empty or new. Packet `i` is made with physics seed
 `first-seed + i`, so each packet is reproducible from its seed alone. Seeds must be in
-1..2147483647. The macro (`macros/capture.mac`) sets the capture box
+1..2147483647. An event whose primary leaves no precursor molecule in the box is an
+error by default. `--max-empty M` instead lets up to `M` such events be skipped: a skipped
+event gives no packet and its seed is not reused. Further runs are made until `--count`
+packets exist, so packet seeds are then no longer `first-seed + i` (the library lists each
+packet's seed). The skipped seeds and deposits are listed under `skippedEmptyEvents` in
+`capture.json`. A thin box crossed by a fast primary (the 5 um entry-face library) needs
+this. The macro (`macros/capture.mac`) sets the capture box
 (`/ptirt/capture/halfSide 10 um`), `/run/initialize` and the gun (10 keV `e-` from
 the box centre along +z). Do not put `/run/beamOn` or `/gun/time` in it (both are
 errors), and do not select another time-step model.

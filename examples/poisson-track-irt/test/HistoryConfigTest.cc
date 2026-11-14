@@ -48,10 +48,12 @@ void TestDeterministic()
   CHECK(config.halfBoxNm == 0);
   CHECK(config.gridMinAgeNs == 1);
   CHECK(config.gridPointsPerDecade == 5);
+  CHECK(config.progressIntervalS == 0);
   CHECK(std::string(HistoryModeName(config.mode)) == "deterministic");
 
   const auto boxed = Read(kDeterministic + "worldHalfSideUm = 3\nhalfBoxUm = 1.5\ngridMinAgeNs = 0.1\n"
-                                           "gridPointsPerDecade = 10\n");
+                                           "gridPointsPerDecade = 10\nprogressIntervalS = 30\n");
+  CHECK(boxed.progressIntervalS == 30);
   CHECK(boxed.worldHalfSideNm == 3000);
   CHECK(boxed.halfBoxNm == 1500);
   CHECK(boxed.gridMinAgeNs == 0.1);
@@ -124,6 +126,7 @@ void TestRejections()
   CHECK_THROWS(Read(kDeterministic + "gridPointsPerDecade = 0\n"), "gridPointsPerDecade");
   CHECK_THROWS(Read(kDeterministic + "gridPointsPerDecade = 101\n"), "gridPointsPerDecade");
   CHECK_THROWS(Read(kDeterministic + "gridMinAgeNs = 0.001\n"), "at least 0.01 ns");
+  CHECK_THROWS(Read(kDeterministic + "progressIntervalS = -1\n"), "zero (off) or positive");
   CHECK_THROWS(Read(kDeterministic + "gridMinAgeNs = 3e6\n"), "smaller than endpointNs");
   // Geometry.
   CHECK_THROWS(Read(kDeterministic + "worldHalfSideUm = 0\n"), "worldHalfSideUm: must be positive");

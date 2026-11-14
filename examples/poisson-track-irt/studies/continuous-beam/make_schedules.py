@@ -189,6 +189,8 @@ def write_config(path, study, run, library_dir, schedule_path):
         "gridMinAgeNs = %r" % float(study["gridMinAgeNs"]),
         "gridPointsPerDecade = %d" % int(study["gridPointsPerDecade"]),
     ]
+    if float(study.get("progressIntervalS", 0)) > 0:
+        lines.append("progressIntervalS = %r" % float(study["progressIntervalS"]))
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(lines) + "\n")
 

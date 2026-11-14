@@ -41,7 +41,9 @@ namespace ptirt
 struct CaptureSettings
 {
   std::filesystem::path outputDirectory;  // must exist; packets are written here
-  long long firstPhysicsSeed = 1;         // event i uses firstPhysicsSeed + i
+  long long firstPhysicsSeed = 1;         // event i uses firstPhysicsSeed + i (i counts every event)
+  std::size_t maxEmpty = 0;               // events without any precursor molecule that may be
+                                          // skipped (recorded, no packet); one more is an error
   PacketLimits limits;
 };
 
@@ -80,6 +82,13 @@ class CaptureRecorder
   const std::string& Failure() const { return fFailure; }
   const std::vector<LibraryEntry>& Entries() const { return fEntries; }
   const std::vector<CaptureProvenance>& Provenance() const { return fProvenance; }
+  // Skipped events (no precursor molecule in the capture box): seed and deposit.
+  struct SkippedEvent
+  {
+    long long physicsSeed = 0;
+    double energyDepositEv = 0;
+  };
+  const std::vector<SkippedEvent>& Skipped() const { return fSkipped; }
   G4double GetCaptureHalfSide() const { return fHalfSide; }
 
  private:
@@ -91,10 +100,12 @@ class CaptureRecorder
   std::string fFailure;
   std::vector<LibraryEntry> fEntries;
   std::vector<CaptureProvenance> fProvenance;
+  std::vector<SkippedEvent> fSkipped;
 
   // Current event.
   G4int fEventId = -1;
   long long fPhysicsSeed = 0;
+  long long fEventsBegun = 0;
   G4String fPrimaryParticle;
   G4double fPrimaryEnergy = 0;
   G4ThreeVector fOrigin;

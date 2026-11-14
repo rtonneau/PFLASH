@@ -132,11 +132,30 @@ void ActivationObserver::StartProcessing()
     return;
   }
   TakeSnapshot();  // the history before its first source: empty
+  fProgressStart = fLastProgress = std::chrono::steady_clock::now();
+}
+
+void ActivationObserver::ReportProgress(G4bool force)
+{
+  if (!(fProgressIntervalS > 0)) return;
+  const auto now = std::chrono::steady_clock::now();
+  if (!force && std::chrono::duration<double>(now - fLastProgress).count() < fProgressIntervalS) return;
+  fLastProgress = now;
+  auto* scheduler = G4Scheduler::Instance();
+  std::size_t molecules = 0;
+  for (const auto* track : LiveTracks())
+    if (!IsWater(*track)) ++molecules;
+  G4cout << "HISTORY_PROGRESS wall_s=" << std::chrono::duration<double>(now - fProgressStart).count()
+         << " simTime_ns=" << scheduler->GetGlobalTime() / ns << " endpoint_ns=" << scheduler->GetEndTime() / ns
+         << " activated=" << (fCheck->Sources().size() - fCheck->PendingSourceCount()) << "/"
+         << fCheck->Sources().size() << " liveMolecules=" << molecules
+         << " steps=" << scheduler->GetNbSteps() << G4endl;
 }
 
 void ActivationObserver::UserPostTimeStepAction()
 {
   if (!fFailure.empty()) return;
+  ReportProgress(false);
   // The last step before the next delayed list joins: the clock reached the
   // list's time, or no track is left to step. The next call is then NewStage.
   auto* holder = G4ITTrackHolder::Instance();
@@ -180,6 +199,7 @@ void ActivationObserver::UserReactionAction(const G4Track&, const G4Track&, cons
 void ActivationObserver::EndProcessing()
 {
   if (!fFailure.empty()) return;
+  ReportProgress(true);
   try
   {
     Finish();

@@ -121,6 +121,11 @@ class PoissonPlanTest(unittest.TestCase):
             for key in ("mode = deterministic", "halfBoxUm = 2.5", "endpointNs = 1000000.0",
                         "chemistrySeed = %d" % run["chemistrySeed"]):
                 self.assertIn(key, cfg)
+            self.assertNotIn("progressIntervalS", cfg)          # off unless the study sets it
+            with_progress = os.path.join(tmp, "cfg_progress.cfg")
+            ms.write_config(with_progress, dict(make_study(), progressIntervalS=60), run, lib,
+                            os.path.join(out, run["schedule"]))
+            self.assertIn("progressIntervalS = 60.0", read_text(with_progress))
             rows = [l.split() for l in read_text(os.path.join(out, run["schedule"])).splitlines()
                     if not l.startswith("#")]
             self.assertEqual(len(rows), run["nPackets"])

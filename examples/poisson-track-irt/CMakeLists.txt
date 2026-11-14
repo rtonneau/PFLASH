@@ -116,6 +116,25 @@ add_test(NAME CaptureEntryFace
     -DFIRST_SEED=2001
     -DHALF_SIDE_NM=2500
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureEntryFace.cmake)
+# Empty events: in a 6 nm box many primaries leave no molecule (seeds 2-4 do);
+# --max-empty skips them.
+add_test(NAME CaptureMaxEmpty
+  COMMAND ${CMAKE_COMMAND}
+    -DCAPTURE=$<TARGET_FILE:capture>
+    -DCHECK=$<TARGET_FILE:capture-check>
+    -DMACRO=${CMAKE_CURRENT_SOURCE_DIR}/test/capture_tiny_box.mac
+    -DOUTPUT_DIR=${ptirtTestOutput}/capture-max-empty
+    -DCOUNT=2
+    -DFIRST_SEED=1
+    -DMAX_EMPTY=5000
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureMaxEmpty.cmake)
+add_test(NAME CaptureRejectsEmptyEvent
+  COMMAND ${CMAKE_COMMAND}
+    -DCAPTURE=$<TARGET_FILE:capture>
+    -DOUTPUT_DIR=${ptirtTestOutput}/capture-empty
+    -DEXPECT_ERROR=no precursor molecule
+    "-DARGS=--macro|${CMAKE_CURRENT_SOURCE_DIR}/test/capture_tiny_box.mac|--output|${ptirtTestOutput}/capture-empty|--count|1|--first-seed|2"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureExpectFailure.cmake)
 # Refusals: a macro selecting SBS, and invalid arguments.
 add_test(NAME CaptureRejectsSbs
   COMMAND ${CMAKE_COMMAND}

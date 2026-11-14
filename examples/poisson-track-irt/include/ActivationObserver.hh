@@ -38,6 +38,7 @@
 // Failure() after Run().
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -78,6 +79,11 @@ class ActivationObserver : public G4UserTimeStepAction
   void Configure(const std::vector<InjectedSource>& sources, const std::vector<double>& recordTimesNs,
                  const G4DNABoundingBox* box, G4int counterId);
 
+  // Wall seconds between HISTORY_PROGRESS console lines (simulated time,
+  // sources activated, live molecules, steps); 0 (default) = none. Lines are
+  // checked once per scheduler step, so one long step delays the next line.
+  void SetProgressInterval(double seconds) { fProgressIntervalS = seconds; }
+
   void StartProcessing() override;
   void NewStage() override;
   void UserPostTimeStepAction() override;
@@ -104,8 +110,12 @@ class ActivationObserver : public G4UserTimeStepAction
   void Fail(const std::string& message);
   void TakeSnapshot();
   void Finish();
+  void ReportProgress(G4bool force);
 
   std::optional<ActivationObserverCheck> fCheck;
+  double fProgressIntervalS = 0;
+  std::chrono::steady_clock::time_point fProgressStart;
+  std::chrono::steady_clock::time_point fLastProgress;
   std::vector<double> fRecordTimesNs;
   const G4DNABoundingBox* fBox = nullptr;
   G4int fCounterId = -1;

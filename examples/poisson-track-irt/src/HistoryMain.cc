@@ -448,6 +448,7 @@ int Run(int argc, char** argv)
     injector = std::make_unique<ptirt::SourceInjector>(schedule.arrivals, library, config.worldHalfSideNm * nm,
                                                        config.halfBoxNm * nm, config.endpointNs * ns);
     observer.Configure(injector->Sources(), grid, physics->GetReflectingBox(), counterId);
+    observer.SetProgressInterval(config.progressIntervalS);
   }
   catch (const std::exception& error)
   {
