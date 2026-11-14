@@ -97,6 +97,16 @@ void CaptureRecorder::BeginEvent(G4int eventId, G4ParticleGun& gun)
   // directions drawn by G4Molecule::BuildTrack) follows from it.
   G4Random::setTheSeed(static_cast<long>(fPhysicsSeed));
 
+  // Entry-face placement: the first two draws of the packet's seed, so the origin
+  // is reproducible from it. G4UniformRand is in (0, 1), hence |x|, |y| < half side.
+  if (fEntryFace && fHalfSide > 0)
+  {
+    const G4double x = fHalfSide * (2 * G4UniformRand() - 1);
+    const G4double y = fHalfSide * (2 * G4UniformRand() - 1);
+    gun.SetParticlePosition({x, y, -fHalfSide + 1 * nm});
+    gun.SetParticleMomentumDirection({0, 0, 1});
+  }
+
   if (const auto problem = DescribeGunProblem(gun); !problem.empty())
   {
     Fail(problem);

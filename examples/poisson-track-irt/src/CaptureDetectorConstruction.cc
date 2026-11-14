@@ -6,6 +6,7 @@
 #include "G4NistManager.hh"
 #include "G4PVPlacement.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4UIcmdWithABool.hh"
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIdirectory.hh"
 #include "G4UImessenger.hh"
@@ -26,18 +27,27 @@ class CaptureDetectorConstruction::Messenger : public G4UImessenger
     fHalfSideCmd->SetRange("halfSide > 0");
     fHalfSideCmd->SetUnitCategory("Length");
     fHalfSideCmd->AvailableForStates(G4State_PreInit);
+    fEntryFaceCmd = std::make_unique<G4UIcmdWithABool>("/ptirt/capture/entryFace", this);
+    fEntryFaceCmd->SetGuidance("true: each primary starts at a random point of the -z face of the");
+    fEntryFaceCmd->SetGuidance("capture box (z = -halfSide + 1 nm) and moves along +z; the gun");
+    fEntryFaceCmd->SetGuidance("position and direction are overridden. false: use the gun as given.");
+    fEntryFaceCmd->SetParameterName("entryFace", false);
+    fEntryFaceCmd->AvailableForStates(G4State_PreInit, G4State_Idle);
   }
 
   void SetNewValue(G4UIcommand* command, G4String value) override
   {
     if (command == fHalfSideCmd.get())
       fDetector->SetHalfSide(G4UIcmdWithADoubleAndUnit::GetNewDoubleValue(value));
+    else if (command == fEntryFaceCmd.get())
+      fDetector->SetEntryFace(G4UIcmdWithABool::GetNewBoolValue(value));
   }
 
  private:
   CaptureDetectorConstruction* fDetector;
   std::unique_ptr<G4UIdirectory> fDirectory;
   std::unique_ptr<G4UIcmdWithADoubleAndUnit> fHalfSideCmd;
+  std::unique_ptr<G4UIcmdWithABool> fEntryFaceCmd;
 };
 
 CaptureDetectorConstruction::CaptureDetectorConstruction()

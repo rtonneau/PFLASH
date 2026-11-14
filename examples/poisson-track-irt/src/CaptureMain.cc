@@ -285,6 +285,7 @@ int Run(int argc, char** argv)
     throw ExitError(4, problem);
 
   recorder.SetCaptureHalfSide(detector->GetHalfSide());
+  recorder.SetEntryFace(detector->GetEntryFace());
   runManager->BeamOn(static_cast<G4int>(arguments.count));
 
   if (!recorder.Failure().empty()) throw ExitError(1, recorder.Failure());

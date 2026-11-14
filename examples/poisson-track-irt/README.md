@@ -103,7 +103,7 @@ cmake --build <build>
 ctest --test-dir <build> --output-on-failure
 ```
 
-`ctest` runs 29 tests in about 35 s (unit tests, capture and history smoke runs,
+`ctest` runs 30 tests in about 40 s (unit tests, capture and history smoke runs,
 refusals). Executables: `capture`, `capture-check`, `history`, `compare`.
 
 For the manual commands below, put the patched install's `bin` first on `PATH`
@@ -132,6 +132,17 @@ mkdir <work>; copy-item -Recurse config <work>/config
 (`/ptirt/capture/halfSide 10 um`), `/run/initialize` and the gun (10 keV `e-` from
 the box centre along +z). Do not put `/run/beamOn` or `/gun/time` in it (both are
 errors), and do not select another time-step model.
+
+Entry-face capture (`/ptirt/capture/entryFace true|false`, PreInit or Idle, default
+`false`): when `true`, each primary starts, after the per-packet reseed, at a uniformly
+random point `x, y` in `(-h, h)` of the `-z` face of the capture box (`z = -h + 1 nm`,
+`h` = `/ptirt/capture/halfSide`) and moves along `+z`; `/gun/position` and
+`/gun/direction` are then overridden (the gun is still validated as usual). Each packet is
+then a track segment of a broad parallel beam. The placement uses the first two draws of
+the packet's physics seed, so a packet stays reproducible from its seed, and the origin is
+recorded as `primaryOrigin_nm` in `capture.json`. `macros/capture-100keV-entry-face.mac`
+sets it up for 100 keV `e-` in a 5 um box (`halfSide 2.5 um`); the `CaptureEntryFace`
+ctest captures 4 packets with it and checks the origins and their reproducibility.
 
 Output in `<work>/library`: `packet-00000.txt` ..., `library.csv`, `capture.json`.
 `capture` prints `CAPTURE_DONE packets=16 ...` and exits 0. For the commands above:

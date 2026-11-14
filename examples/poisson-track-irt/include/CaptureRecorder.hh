@@ -61,6 +61,11 @@ class CaptureRecorder
   // may change it). Must be set before the first event.
   void SetCaptureHalfSide(G4double halfSide) { fHalfSide = halfSide; }
 
+  // true: BeginEvent places the primary on the -z face of the capture box
+  // (z = -halfSide + 1 nm, x and y uniform in (-halfSide, halfSide)) and aims it
+  // along +z, drawing from the packet's physics seed. Known after /run/initialize.
+  void SetEntryFace(bool entryFace) { fEntryFace = entryFace; }
+
   // Empty if the gun can be used: one particle, positive energy, unit
   // direction, position strictly inside the capture box.
   // (Non-const gun: G4VPrimaryGenerator::GetParticlePosition is not const.)
@@ -82,6 +87,7 @@ class CaptureRecorder
 
   CaptureSettings fSettings;
   G4double fHalfSide = 0;
+  bool fEntryFace = false;
   std::string fFailure;
   std::vector<LibraryEntry> fEntries;
   std::vector<CaptureProvenance> fProvenance;

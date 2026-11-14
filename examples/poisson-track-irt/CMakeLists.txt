@@ -106,6 +106,16 @@ add_test(NAME CaptureSeedReproducible
     -DOUTPUT_DIR=${ptirtTestOutput}/capture-seeds
     -DFIRST_SEED=1001
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureSeedCheck.cmake)
+# Entry face: 100 keV primaries start on the -z face of a 5 um box, reproducibly.
+add_test(NAME CaptureEntryFace
+  COMMAND ${CMAKE_COMMAND}
+    -DCAPTURE=$<TARGET_FILE:capture>
+    -DMACRO=${CMAKE_CURRENT_SOURCE_DIR}/test/capture_entry_face.mac
+    -DOUTPUT_DIR=${ptirtTestOutput}/capture-entry-face
+    -DCOUNT=4
+    -DFIRST_SEED=2001
+    -DHALF_SIDE_NM=2500
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunCaptureEntryFace.cmake)
 # Refusals: a macro selecting SBS, and invalid arguments.
 add_test(NAME CaptureRejectsSbs
   COMMAND ${CMAKE_COMMAND}
@@ -275,7 +285,7 @@ set(ptirtHistoryTests HistoryLibrary HistoryBoxLibrary HistoryDeterministicSmoke
 # another Geant4 on the user's PATH is never loaded by mistake.
 if(WIN32)
   get_filename_component(ptirtGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
-  set_tests_properties(CaptureSmoke CaptureEscapeLedger CaptureSeedReproducible
+  set_tests_properties(CaptureSmoke CaptureEscapeLedger CaptureSeedReproducible CaptureEntryFace
                        CaptureRejectsSbs CaptureRejectsClassicIrt CaptureRejectsGunTime
                        CaptureRejectsBadArguments ${ptirtHistoryTests} PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${ptirtGeant4BinDir}")

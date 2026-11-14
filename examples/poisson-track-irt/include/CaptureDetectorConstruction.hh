@@ -8,6 +8,13 @@
 //
 // Macro command (PreInit, before /run/initialize):
 //   /ptirt/capture/halfSide <value> <unit>   half side of the box, > 0 (default 10 um)
+//
+// Macro command (PreInit or Idle):
+//   /ptirt/capture/entryFace true|false      default false (the gun position is used as
+//     given). When true, each primary starts at a uniformly random point of the -z face
+//     (z = -halfSide + 1 nm, drawn after the per-packet reseed) and moves along +z, so a
+//     packet is a track segment of a broad parallel beam. The gun position and direction
+//     are then overridden.
 #pragma once
 
 #include <memory>
@@ -28,10 +35,13 @@ class CaptureDetectorConstruction : public G4VUserDetectorConstruction
 
   void SetHalfSide(G4double halfSide);
   G4double GetHalfSide() const { return fHalfSide; }
+  void SetEntryFace(bool entryFace) { fEntryFace = entryFace; }
+  bool GetEntryFace() const { return fEntryFace; }
 
  private:
   class Messenger;
   G4double fHalfSide;
+  bool fEntryFace = false;
   std::unique_ptr<Messenger> fMessenger;
 };
 

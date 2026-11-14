@@ -1,0 +1,16 @@
+# Test copy of the entry-face capture: 100 keV e-, 2.5 um half side, entryFace true.
+# Commands are applied one line at a time; do not put /run/beamOn here.
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/scheduler/verbose 0
+
+# Capture volume (PreInit): a water box, half side 2.5 um.
+/ptirt/capture/halfSide 2.5 um
+# Entry-face placement (overrides /gun/position and /gun/direction).
+/ptirt/capture/entryFace true
+
+/run/initialize
+
+/gun/particle e-
+/gun/energy 100 keV
