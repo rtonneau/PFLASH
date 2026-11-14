@@ -194,6 +194,7 @@ up to the next completed chemistry step is not permitted.
 Whether the example is built against stock Geant4 11.4.3 (`stock`, the default)
 or a Geant4 with the local timed-injection patches (`patched`). It is part of the
 packet compatibility tag, so each mode refuses the other's libraries.
+_Reverted 2026-11-14_: the example has only the patched mode again (ADR 0010, status note).
 
 **Startup contacts**:
 The contact trials IRT_syn runs, as zero-time steps at the chemistry start time,

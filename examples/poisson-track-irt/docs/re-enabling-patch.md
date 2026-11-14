@@ -1,5 +1,7 @@
 # Switching to the patched Geant4 build
 
+> **Status: obsolete (2026-11-14).** The stock build and `PTIRT_PATCHED_GEANT4` were reverted (ADR 0010, status note). The patched Geant4 build is now the only build; follow the example README. This checklist is kept for reference only.
+
 The default build is stock (`PTIRT_PATCHED_GEANT4=OFF`). Use this checklist to build
 and run against a patched Geant4 11.4.3 instead. Why you might want to: the ledger of a
 stock run shows `newOldContacts.pairs` above 0, the packet must be taken before the

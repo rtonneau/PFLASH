@@ -88,11 +88,9 @@ void TestIndexRoundTrip()
   std::vector<LibraryEntry> entries;
   entries.push_back(MakeLibraryEntry(0, 1, MakePacket(9990.123456789, 3)));
   entries.push_back(MakeLibraryEntry(1, 2, MakePacket(1.0 / 3.0, 5)));
-  entries[1].secondTrial = SecondTrial{3, 1.0 / 7.0};  // one stock-style entry, one without
   const auto text = IndexText(entries);
   CHECK(text.rfind("packetIndex,file,physicsSeed,primaryParticle,primaryEnergyEv,energyDepositEv,"
-                   "escapedEnergyEv,energyResidualEv,moleculeCount,secondTrialPairs,"
-                   "secondTrialExpectedReactions\n",
+                   "escapedEnergyEv,energyResidualEv,moleculeCount\n",
                    0) == 0);
   CHECK(ParseIndex(text) == entries);
 
@@ -164,13 +162,6 @@ void TestIndexReadRejects()
   CHECK_THROWS(ParseIndex(t), "fields");
   t = text + "\n";
   CHECK_THROWS(ParseIndex(t), "blank line");
-  // The two second-trial fields are both set or both empty.
-  t = text;
-  ReplaceFirst(t, ",2,,\n", ",2,3,\n");
-  CHECK_THROWS(ParseIndex(t), "both be set or both empty");
-  t = text;
-  ReplaceFirst(t, ",2,,\n", ",2,3,-1\n");
-  CHECK_THROWS(ParseIndex(t), "negative");
 }
 
 void TestLoadLibrary(const std::filesystem::path& scratch)
