@@ -178,3 +178,33 @@ The tests:
   and 0.02 Gy. The second uses 2-sample windows and a loose tolerance so that
   the steady-state stop fires. Each checks the outputs, the activation checks
   and the energy checks.
+
+## Study tooling (`studies/`)
+
+Python: the GEANT4 conda env (numpy, matplotlib). Tests:
+`python -m unittest discover -s examples/dose-rate-study/studies -v`.
+
+```
+python studies/merge_libraries.py --out <lib> <capture part dir> ...     # parallel captures, distinct seeds
+python studies/make_configs.py --library <lib> --study studies/study.json --out <plan dir> [--realizations 0.1=4 ...] [--snapshots]
+pwsh studies/run_study.ps1 -Plan <plan dir>/plan.json -Parallel N [-WallTimeCapS S]
+python studies/analyze.py --plan <plan dir>/plan.json [--allow-partial]
+python studies/plot.py --data <plan dir> [--norm cum|final]
+python studies/spike_report.py <dir holding plan dirs>
+```
+
+- `study.json`: rates, realization counts, dose (1 Gy), steady-state window
+  (50) and tolerance (5 %), seed bases, progress interval, wall-time cap.
+- `make_configs.py`: one doseCutoff config per rate and realization, distinct
+  chemistry and source seeds; each run starts at a random library offset that
+  still holds the target dose plus one track.
+- `run_study.ps1`: resumable, parallel; samples the peak working set; kills a
+  run beyond the cap (status `truncated`, its last `HISTORY_PROGRESS` line is
+  kept). Log: `run_log.csv` next to `plan.json`.
+- `analyze.py`: mean G(t) +- SE over realizations (ratio estimator, delta-method
+  SE), by cumulative dose (`G_cum`) and by final dose (`G_final`), on the common
+  grid (`gvalues_time.csv`) and at beam-off (`gvalues_beamoff.csv`); rows held
+  by a steady-state stop are flagged `extrapolated`.
+- `spike_report.py`: per-run wall time, peak memory, arrivals, dose reached,
+  live molecules, steady-state stop, snapshot size and estimated full cost
+  (`spike_table.md`, `spike_table.csv`).

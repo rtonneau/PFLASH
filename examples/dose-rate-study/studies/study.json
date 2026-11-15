@@ -1,0 +1,16 @@
+{
+  "rates": [0.1, 50, 100, 500, 1000, 1e4],
+  "realizations": {"0.1": 1, "50": 1, "100": 1, "500": 1, "1000": 1, "10000": 1},
+  "doseGy": 1.0,
+  "halfBoxUm": 2.0,
+  "worldHalfSideUm": 3.0,
+  "steadyStateWindow": 50,
+  "steadyStateTolerance": 0.05,
+  "steadyStateMinMean": 0,
+  "ageGridPointsPerDecade": 0,
+  "chemistrySeedBase": 1000,
+  "sourceSeedBase": 500000,
+  "maxArrivals": 100000,
+  "progressIntervalS": 30,
+  "wallTimeCapS": 2700
+}
