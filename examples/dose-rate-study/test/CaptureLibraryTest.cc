@@ -220,6 +220,61 @@ void TestEnergyLedgerEnforced()
   CHECK_THROWS(Write(out, packet), "does not match the primary energy");
 }
 
+CaptureSummary Summary(const std::string& text)
+{
+  std::istringstream in(text);
+  return ReadCaptureSummary(in);
+}
+
+void TestCaptureSummary(const std::filesystem::path& scratch)
+{
+  const std::string text =
+      "{\"format\": \"drs-capture-summary\", \"formatVersion\": 1, \"captureHalfSide_nm\": 1999.9999999999998,\n"
+      " \"skippedEmptyEvents\": [{\"physicsSeed\": 1004, \"energyDeposit_eV\": 0},\n"
+      "                          {\"physicsSeed\": 1017, \"energyDeposit_eV\": 12.5}],\n"
+      " \"totals\": {\"packetCount\": 20}, \"packets\": []}\n";
+  const auto summary = Summary(text);
+  CHECK(summary.captureHalfSideNm == 1999.9999999999998);
+  CHECK(summary.skippedEmptyEvents.size() == 2);
+  CHECK((summary.skippedEmptyEvents[0] == SkippedEmptyEvent{1004, 0}));
+  CHECK((summary.skippedEmptyEvents[1] == SkippedEmptyEvent{1017, 12.5}));
+  CHECK(Summary("{\"format\": \"drs-capture-summary\", \"captureHalfSide_nm\": 2000, \"skippedEmptyEvents\": []}")
+            .skippedEmptyEvents.empty());
+
+  const std::string head = "{\"format\": \"drs-capture-summary\", ";
+  CHECK_THROWS(Summary("{\"format\": "), "capture.json: JSON");
+  CHECK_THROWS(Summary("[1]"), "not a JSON object");
+  CHECK_THROWS(Summary("{\"format\": \"other\", \"captureHalfSide_nm\": 1, \"skippedEmptyEvents\": []}"),
+               "format is not drs-capture-summary");
+  CHECK_THROWS(Summary(head + "\"skippedEmptyEvents\": []}"), "captureHalfSide_nm is missing");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": \"2\", \"skippedEmptyEvents\": []}"),
+               "captureHalfSide_nm is missing or not a number");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 0, \"skippedEmptyEvents\": []}"), "must be positive");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 1}"), "skippedEmptyEvents is missing");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 1, \"skippedEmptyEvents\": [3]}"), "not an object");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 1, \"skippedEmptyEvents\": [{\"energyDeposit_eV\": 0}]}"),
+               "no physicsSeed >= 1");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 1, \"skippedEmptyEvents\": [{\"physicsSeed\": 0, "
+                              "\"energyDeposit_eV\": 0}]}"),
+               "no physicsSeed >= 1");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 1, \"skippedEmptyEvents\": [{\"physicsSeed\": 3}]}"),
+               "energyDeposit_eV is missing");
+  CHECK_THROWS(Summary(head + "\"captureHalfSide_nm\": 1, \"skippedEmptyEvents\": [{\"physicsSeed\": 3, "
+                              "\"energyDeposit_eV\": -1}]}"),
+               "negative energyDeposit_eV");
+
+  const auto dir = scratch / "capture-summary";
+  std::filesystem::remove_all(dir);
+  std::filesystem::create_directories(dir);
+  CHECK_THROWS(LoadCaptureSummary(dir), "cannot open");
+  {
+    std::ofstream out(dir / kCaptureSummaryName, std::ios::binary);
+    out << text;
+  }
+  CHECK(LoadCaptureSummary(dir).skippedEmptyEvents.size() == 2);
+  std::filesystem::remove_all(dir);
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
@@ -234,5 +289,6 @@ int main(int argc, char** argv)
   TestIndexReadRejects();
   TestLoadLibrary(scratch);
   TestEnergyLedgerEnforced();
+  TestCaptureSummary(scratch);
   return 0;
 }

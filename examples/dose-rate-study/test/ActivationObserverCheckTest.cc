@@ -196,6 +196,39 @@ void TestConstructor()
   CHECK_THROWS(Check({Check::Source{0, NAN, 1, 1}}), "finite");
 }
 
+void TestEarlyEnd()
+{
+  // Source 7 activates at 10 ns; the steady-state stop comes at 50 ns, just
+  // before source 8 (due at 50 ns) joins. G4Scheduler then merges source 8's
+  // molecule (ID 3) into the main list without starting its stage.
+  Check check(TwoSources());
+  CHECK(!check.IsActivatedMolecule(1));
+  CHECK(check.Snapshot({}).empty());
+  std::vector<std::size_t> activated;
+  CHECK(check.CheckStage(10, {T(1, 10), T(2, 10)}, activated).empty());
+  CHECK(check.IsActivatedMolecule(1) && check.IsActivatedMolecule(2));
+  CHECK(!check.IsActivatedMolecule(3));
+  CHECK(!check.IsActivatedMolecule(0) && !check.IsActivatedMolecule(-4) && !check.IsActivatedMolecule(99));
+
+  std::size_t pending = 99;
+  CHECK(check.CheckEarlyEnd(50, {T(1, 50), T(-4, 50, kB), T(3, 50)}, pending).empty());
+  CHECK(pending == 1);
+  CHECK(check.CheckEarlyEnd(50, {T(1, 50)}, pending).empty());
+  CHECK(pending == 0);
+  // The plain end check refuses it: source 8 never activated.
+  CHECK(Has(check.CheckEnd({T(1, 50), T(3, 50)}), "missing activation"));
+  // A source due before the stop must have activated.
+  CHECK(Has(check.CheckEarlyEnd(60, {T(1, 60)}, pending), "never activated before the stop"));
+  // A positive ID that is no source molecule.
+  CHECK(Has(check.CheckEarlyEnd(50, {T(4, 50)}, pending), "not a source molecule"));
+
+  // Before any activation: a molecule of a source due before the stop is an error.
+  Check fresh(TwoSources());
+  CHECK(Has(fresh.CheckEarlyEnd(20, {T(1, 20)}, pending), "never activated before the stop"));
+  CHECK(fresh.CheckEarlyEnd(5, {T(1, 5), T(3, 5)}, pending).empty());
+  CHECK(pending == 2);
+}
+
 }  // namespace
 
 int main()
@@ -208,6 +241,7 @@ int main()
   TestPreservation();
   TestStageErrors();
   TestConstructor();
+  TestEarlyEnd();
   std::printf("ActivationObserverCheckTest: all checks passed\n");
   return 0;
 }

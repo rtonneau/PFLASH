@@ -93,12 +93,24 @@ void ActivationObserver::Configure(const std::vector<InjectedSource>& sources,
   fRecordTimesNs = recordTimesNs;
   fBox = box;
   fCounterId = counterId;
+  fSteadySettings.reset();
+  fSteadyState.reset();
+  fSpeciesIndex.clear();
+  fStopRequested = false;
+  fStopTime = 0;
   fEnd = EndChecks{};
   fRows.clear();
+  fTable = SpeciesTable{};
   fProductFolds = 0;
   fFailure.clear();
   fModelProblem.clear();
   fFinished = false;
+}
+
+void ActivationObserver::EnableSteadyState(const SteadyStateSettings& settings)
+{
+  static_cast<void>(SteadyStateDetector(settings, 1));  // validates the settings now, not when the chemistry runs
+  fSteadySettings = settings;
 }
 
 void ActivationObserver::Fail(const std::string& message)
@@ -110,10 +122,35 @@ void ActivationObserver::Fail(const std::string& message)
   G4Scheduler::Instance()->Stop();
 }
 
-void ActivationObserver::TakeSnapshot()
+void ActivationObserver::TakeSnapshot(const std::vector<const G4Track*>& live)
 {
-  const auto problem = fCheck->Snapshot(CheckTracks(LiveTracks()));
+  const auto problem = fCheck->Snapshot(CheckTracks(live));
   if (!problem.empty()) Fail(problem);
+}
+
+void ActivationObserver::SampleSteadyState(const std::vector<const G4Track*>& live, G4double now)
+{
+  std::vector<double> counts(fSpeciesIndex.size(), 0.0);
+  for (const auto* track : live)
+  {
+    if (IsWater(*track)) continue;
+    const auto found = fSpeciesIndex.find(GetMolecule(track)->GetMolecularConfiguration()->GetName());
+    if (found != fSpeciesIndex.end()) counts[found->second] += 1;
+  }
+  try
+  {
+    if (fSteadyState->AddSample(counts))
+    {
+      // Stop before the next delayed list joins; Finish checks at this time.
+      fStopRequested = true;
+      fStopTime = now;
+      G4Scheduler::Instance()->Stop();
+    }
+  }
+  catch (const std::exception& e)
+  {
+    Fail(std::string("steady-state sample: ") + e.what());
+  }
 }
 
 void ActivationObserver::StartProcessing()
@@ -131,7 +168,14 @@ void ActivationObserver::StartProcessing()
     Fail(fModelProblem);
     return;
   }
-  TakeSnapshot();  // the history before its first source: empty
+  if (fSteadySettings)
+  {
+    // One sample entry per species, in the order of the species tables.
+    const auto names = AllSpeciesNames();
+    for (const auto& name : names) fSpeciesIndex.emplace(name, fSpeciesIndex.size());
+    fSteadyState.emplace(*fSteadySettings, names.size());
+  }
+  TakeSnapshot(LiveTracks());  // the history before its first source: empty
   fProgressStart = fLastProgress = std::chrono::steady_clock::now();
 }
 
@@ -162,7 +206,12 @@ void ActivationObserver::UserPostTimeStepAction()
   auto* scheduler = G4Scheduler::Instance();
   const G4double next = holder->GetNextTime();  // DBL_MAX when no list is left
   const G4double now = scheduler->GetGlobalTime();
-  if (next < scheduler->GetEndTime() && (!(now < next) || !holder->MainListsNOTEmpty())) TakeSnapshot();
+  if (next < scheduler->GetEndTime() && (!(now < next) || !holder->MainListsNOTEmpty()))
+  {
+    const auto live = LiveTracks();
+    TakeSnapshot(live);
+    if (fFailure.empty() && fSteadyState) SampleSteadyState(live, now);
+  }
 }
 
 void ActivationObserver::NewStage()
@@ -208,6 +257,9 @@ void ActivationObserver::EndProcessing()
   {
     Fail(std::string("end-of-history check: ") + e.what());
   }
+  // After a steady-state stop the scheduler deletes tracks the counter never
+  // saw (the sources not yet activated); the counts are read, switch it off.
+  if (fEnd.stoppedEarly) G4MoleculeCounterManager::Instance()->SetIsActive(false);
 }
 
 void ActivationObserver::Finish()
@@ -215,10 +267,16 @@ void ActivationObserver::Finish()
   auto* scheduler = G4Scheduler::Instance();
   fEnd.steps = scheduler->GetNbSteps();
   fEnd.finalTime = scheduler->GetGlobalTime();
-  const G4double endTime = scheduler->GetEndTime();
+  fEnd.stoppedEarly = fStopRequested;
+  // After a steady-state stop the checks hold at the stop time.
+  const G4double endTime = fStopRequested ? fStopTime : scheduler->GetEndTime();
+  fEnd.checkTime = endTime;
 
   const auto live = LiveTracks();
-  const auto activation = fCheck->CheckEnd(CheckTracks(live));
+  const auto checkTracks = CheckTracks(live);
+  const auto activation = fStopRequested
+                              ? fCheck->CheckEarlyEnd(endTime / ns, checkTracks, fEnd.pendingSourceMolecules)
+                              : fCheck->CheckEnd(checkTracks);
   if (!activation.empty())
   {
     Fail(activation);
@@ -233,6 +291,8 @@ void ActivationObserver::Finish()
   std::map<const G4MolecularConfiguration*, G4int> liveCount;
   for (const auto* track : live)
   {
+    // A molecule of a source not yet activated (steady-state stop) is not in the history.
+    if (fStopRequested && track->GetTrackID() >= 1 && !fCheck->IsActivatedMolecule(track->GetTrackID())) continue;
     if (std::abs(track->GetGlobalTime() - endTime) > tolerance) fEnd.allLiveAtEndTime = false;
     if (fBox != nullptr && !fBox->contains(track->GetPosition())) fEnd.allInsideBox = false;
     if (IsWater(*track))
@@ -274,12 +334,16 @@ void ActivationObserver::Finish()
     return;
   }
 
-  // Species counts on the record grid, summed per species name.
+  // Species counts on the record grid, summed per species name. After a stop,
+  // only the record times at least one counter precision before it.
+  std::vector<double> measuredNs;
+  for (const auto timeNs : fRecordTimesNs)
+    if (!fStopRequested || endTime / ns - timeNs >= kCounterPrecisionNs) measuredNs.push_back(timeNs);
   std::map<std::pair<double, std::string>, double> counts;
   const auto allNames = AllSpeciesNames();
-  for (const auto timeNs : fRecordTimesNs)
+  for (const auto timeNs : measuredNs)
     for (const auto& name : allNames) counts[{timeNs, name}] = 0;
-  for (const auto timeNs : fRecordTimesNs)
+  for (const auto timeNs : measuredNs)
     for (const auto* configuration : recorded)
       counts[{timeNs, configuration->GetName()}] +=
           counter->GetNbMoleculesAtTime(G4MoleculeCounterIndex(configuration), timeNs * ns);
@@ -291,6 +355,13 @@ void ActivationObserver::Finish()
     row.species = key.second;
     row.count = count;
     fRows.push_back(row);
+  }
+  fTable = SpeciesTable{};
+  fTable.species.assign(allNames.begin(), allNames.end());
+  for (const auto timeNs : measuredNs)
+  {
+    auto& column = fTable.countsAt[timeNs];
+    for (const auto& name : fTable.species) column.push_back(counts.at({timeNs, name}));
   }
   fFinished = true;
 }

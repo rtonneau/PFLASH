@@ -85,6 +85,70 @@ void TestPoisson()
   CHECK(anisotropic.poisson.regionHalfSizeNm[1] == 0 && anisotropic.poisson.regionHalfSizeNm[2] == 3000);
 }
 
+const std::string kDose =
+    "mode = doseCutoff\n"
+    "libraryDir = lib\n"
+    "halfBoxUm = 2\n"
+    "worldHalfSideUm = 3\n"
+    "chemistrySeed = 5\n"
+    "doseRateGyPerS = 1e4\n"
+    "sourceSeed = 9\n";
+
+void TestDoseCutoff()
+{
+  const auto config = Read(kDose);
+  CHECK(config.mode == HistoryMode::DoseCutoff);
+  CHECK(std::string(HistoryModeName(config.mode)) == "doseCutoff");
+  CHECK(config.halfBoxNm == 2000);
+  CHECK(config.dose.doseRateGyPerS == 1e4);
+  CHECK(config.dose.sourceSeed == 9);
+  // Defaults: 1 Gy, the steady-state stop on with W = 50 and 5 %.
+  CHECK(config.dose.doseGy == 1);
+  CHECK(config.dose.firstPacket == 0);
+  CHECK(config.dose.maxArrivals == 100000);
+  CHECK(config.dose.steadyStateWindow == 50);
+  CHECK(config.dose.steadyState.window == 50);
+  CHECK(config.dose.steadyState.tolerance == 0.05);
+  CHECK(config.dose.steadyState.minMean == 0);
+  CHECK(config.dose.ageGridPointsPerDecade == 5);
+
+  const auto custom = Read(kDose + "doseGy = 0.5\nfirstPacket = 100\nmaxArrivals = 2000\n"
+                                   "steadyStateWindow = 20\nsteadyStateTolerance = 0.02\n"
+                                   "steadyStateMinMean = 3\nageGridPointsPerDecade = 0\n");
+  CHECK(custom.dose.doseGy == 0.5);
+  CHECK(custom.dose.firstPacket == 100);
+  CHECK(custom.dose.maxArrivals == 2000);
+  CHECK(custom.dose.steadyStateWindow == 20 && custom.dose.steadyState.window == 20);
+  CHECK(custom.dose.steadyState.tolerance == 0.02);
+  CHECK(custom.dose.steadyState.minMean == 3);
+  CHECK(custom.dose.ageGridPointsPerDecade == 0);
+  // Window 0 switches the stop off; the detector settings stay valid.
+  const auto off = Read(kDose + "steadyStateWindow = 0\n");
+  CHECK(off.dose.steadyStateWindow == 0 && off.dose.steadyState.window == 1);
+
+  // The end is beam-off: no endpoint, no timed grid keys; the box is required.
+  CHECK_THROWS(Read(kDose + "endpointNs = 100\n"), "not used by mode doseCutoff");
+  CHECK_THROWS(Read(kDose + "gridPointsPerDecade = 5\n"), "not used by mode doseCutoff");
+  CHECK_THROWS(Read(kDose + "rateHz = 5\n"), "not used by mode doseCutoff");
+  CHECK_THROWS(Read(kPoisson + "doseGy = 1\n"), "not used by mode poisson");
+  CHECK_THROWS(Read("mode = doseCutoff\nlibraryDir = lib\nchemistrySeed = 5\ndoseRateGyPerS = 1e4\n"
+                    "sourceSeed = 9\n"),
+               "needs halfBoxUm > 0");
+  CHECK_THROWS(Read("mode = doseCutoff\nlibraryDir = lib\nhalfBoxUm = 2\nworldHalfSideUm = 3\n"
+                    "chemistrySeed = 5\nsourceSeed = 9\n"),
+               "missing required key 'doseRateGyPerS'");
+  CHECK_THROWS(Read("mode = doseCutoff\nlibraryDir = lib\nhalfBoxUm = 2\nworldHalfSideUm = 3\n"
+                    "chemistrySeed = 5\ndoseRateGyPerS = 1e4\n"),
+               "missing required key 'sourceSeed'");
+  CHECK_THROWS(Read(kDose + "doseGy = 0\n"), "must be positive");
+  CHECK_THROWS(Read(kDose + "doseGy = -1\n"), "must be positive");
+  CHECK_THROWS(Read(kDose + "maxArrivals = 0\n"), "is outside");
+  CHECK_THROWS(Read(kDose + "steadyStateTolerance = 0\n"), "must be positive");
+  CHECK_THROWS(Read(kDose + "steadyStateMinMean = -1\n"), "must not be negative");
+  CHECK_THROWS(Read(kDose + "ageGridPointsPerDecade = 101\n"), "is outside");
+  CHECK_THROWS(Read(kDose + "steadyStateWindow = 1.5\n"), "steadyStateWindow");
+}
+
 void TestRejections()
 {
   // Syntax.
@@ -187,6 +251,7 @@ int main()
 {
   TestDeterministic();
   TestPoisson();
+  TestDoseCutoff();
   TestRejections();
   TestRecordGrid();
   std::puts("HistoryConfigTest passed");

@@ -11,6 +11,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "Ledger.hh"
+
 namespace drs
 {
 namespace
@@ -260,6 +262,60 @@ LibraryTotals SumLibrary(const std::vector<LibraryEntry>& entries)
     t.maxAbsResidualEv = std::max(t.maxAbsResidualEv, std::abs(e.energyResidualEv));
   }
   return t;
+}
+
+CaptureSummary ReadCaptureSummary(std::istream& in)
+{
+  JsonValue root;
+  try
+  {
+    root = ParseJson(in);
+  }
+  catch (const std::runtime_error& error)
+  {
+    Fail(std::string(kCaptureSummaryName) + ": " + error.what());
+  }
+  const std::string where = std::string(kCaptureSummaryName) + ": ";
+  Require(root.GetType() == JsonValue::Type::Object, where + "not a JSON object");
+  const auto* format = root.Find("format");
+  Require(format != nullptr && format->GetType() == JsonValue::Type::String &&
+              format->StringValue() == "drs-capture-summary",
+          where + "format is not drs-capture-summary");
+
+  const auto number = [&where](const JsonValue* value, const std::string& name) {
+    Require(value != nullptr &&
+                (value->GetType() == JsonValue::Type::Integer || value->GetType() == JsonValue::Type::Real),
+            where + name + " is missing or not a number");
+    const double x = value->NumberValue();
+    Require(std::isfinite(x), where + name + " is not finite");
+    return x;
+  };
+
+  CaptureSummary summary;
+  summary.captureHalfSideNm = number(root.Find("captureHalfSide_nm"), "captureHalfSide_nm");
+  Require(summary.captureHalfSideNm > 0, where + "captureHalfSide_nm must be positive");
+  const auto* skipped = root.Find("skippedEmptyEvents");
+  Require(skipped != nullptr && skipped->GetType() == JsonValue::Type::Array,
+          where + "skippedEmptyEvents is missing or not an array");
+  for (const auto& item : skipped->Elements())
+  {
+    Require(item.GetType() == JsonValue::Type::Object, where + "a skippedEmptyEvents item is not an object");
+    const auto* seed = item.Find("physicsSeed");
+    Require(seed != nullptr && seed->GetType() == JsonValue::Type::Integer && seed->IntegerValue() >= 1,
+            where + "a skipped event has no physicsSeed >= 1");
+    const double deposit = number(item.Find("energyDeposit_eV"), "a skipped event's energyDeposit_eV");
+    Require(deposit >= 0, where + "a skipped event has a negative energyDeposit_eV");
+    summary.skippedEmptyEvents.push_back(SkippedEmptyEvent{seed->IntegerValue(), deposit});
+  }
+  return summary;
+}
+
+CaptureSummary LoadCaptureSummary(const std::filesystem::path& directory)
+{
+  const auto path = directory / kCaptureSummaryName;
+  std::ifstream in(path, std::ios::binary);
+  Require(static_cast<bool>(in), "cannot open " + path.string());
+  return ReadCaptureSummary(in);
 }
 
 }  // namespace drs

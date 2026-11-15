@@ -41,16 +41,29 @@ struct Entry
   std::size_t line = 0;
 };
 
-const std::set<std::string> kCommonKeys{"mode",       "libraryDir",      "endpointNs",   "chemistrySeed",
-                                        "worldHalfSideUm", "halfBoxUm", "gridMinAgeNs", "gridPointsPerDecade",
+const std::set<std::string> kCommonKeys{"mode", "libraryDir", "chemistrySeed", "worldHalfSideUm", "halfBoxUm",
                                         "progressIntervalS"};
+const std::set<std::string> kTimedKeys{"endpointNs", "gridMinAgeNs", "gridPointsPerDecade"};  // not doseCutoff
 const std::set<std::string> kScheduleKeys{"scheduleFile"};
 const std::set<std::string> kSingleKeys{"singleSource"};
 const std::set<std::string> kPoissonKeys{"rateHz", "exposureS", "sourceSeed", "regionCenterUm", "regionHalfSizeUm"};
+const std::set<std::string> kDoseKeys{"doseRateGyPerS",       "doseGy",
+                                      "sourceSeed",           "firstPacket",
+                                      "maxArrivals",          "steadyStateWindow",
+                                      "steadyStateTolerance", "steadyStateMinMean",
+                                      "ageGridPointsPerDecade"};
+
+std::set<std::string> AllKeys()
+{
+  std::set<std::string> keys;
+  for (const auto* set : {&kCommonKeys, &kTimedKeys, &kScheduleKeys, &kSingleKeys, &kPoissonKeys, &kDoseKeys})
+    keys.insert(set->begin(), set->end());
+  return keys;
+}
 
 bool IsKnownKey(const std::string& key)
 {
-  return kCommonKeys.count(key) || kScheduleKeys.count(key) || kSingleKeys.count(key) || kPoissonKeys.count(key);
+  return AllKeys().count(key) > 0;
 }
 
 bool IsKeyOfMode(const std::string& key, HistoryMode mode)
@@ -59,11 +72,13 @@ bool IsKeyOfMode(const std::string& key, HistoryMode mode)
   switch (mode)
   {
     case HistoryMode::Deterministic:
-      return kScheduleKeys.count(key) > 0;
+      return kTimedKeys.count(key) > 0 || kScheduleKeys.count(key) > 0;
     case HistoryMode::Single:
-      return kScheduleKeys.count(key) > 0 || kSingleKeys.count(key) > 0;
+      return kTimedKeys.count(key) > 0 || kScheduleKeys.count(key) > 0 || kSingleKeys.count(key) > 0;
     case HistoryMode::Poisson:
-      return kPoissonKeys.count(key) > 0;
+      return kTimedKeys.count(key) > 0 || kPoissonKeys.count(key) > 0;
+    case HistoryMode::DoseCutoff:
+      return kDoseKeys.count(key) > 0;
   }
   return false;
 }
@@ -141,7 +156,8 @@ HistoryMode ParseMode(const Entries& entries)
   if (value == "deterministic") return HistoryMode::Deterministic;
   if (value == "single") return HistoryMode::Single;
   if (value == "poisson") return HistoryMode::Poisson;
-  Fail(entries.Where("mode") + "'" + value + "' is not one of deterministic, single, poisson");
+  if (value == "doseCutoff") return HistoryMode::DoseCutoff;
+  Fail(entries.Where("mode") + "'" + value + "' is not one of deterministic, single, poisson, doseCutoff");
 }
 
 }  // namespace
@@ -156,6 +172,8 @@ const char* HistoryModeName(HistoryMode mode)
       return "single";
     case HistoryMode::Poisson:
       return "poisson";
+    case HistoryMode::DoseCutoff:
+      return "doseCutoff";
   }
   return "unknown";
 }
@@ -189,16 +207,18 @@ HistoryConfig ReadHistoryConfig(std::istream& in, const std::filesystem::path& b
   const Entries entries(std::move(collected));
   HistoryConfig config;
   config.mode = ParseMode(entries);
-  for (const auto* key : {"mode", "libraryDir", "endpointNs", "chemistrySeed", "worldHalfSideUm", "halfBoxUm",
-                          "gridMinAgeNs", "gridPointsPerDecade", "progressIntervalS", "scheduleFile", "singleSource",
-                          "rateHz", "exposureS", "sourceSeed", "regionCenterUm", "regionHalfSizeUm"})
+  for (const auto& key : AllKeys())
     if (entries.Has(key))
       Require(IsKeyOfMode(key, config.mode),
               entries.Where(key) + "not used by mode " + HistoryModeName(config.mode));
 
+  const bool dose = config.mode == HistoryMode::DoseCutoff;
   config.libraryDir = entries.Path("libraryDir", baseDirectory);
-  config.endpointNs = entries.Number("endpointNs");
-  Require(config.endpointNs > 0, entries.Where("endpointNs") + "must be positive");
+  if (!dose)
+  {
+    config.endpointNs = entries.Number("endpointNs");
+    Require(config.endpointNs > 0, entries.Where("endpointNs") + "must be positive");
+  }
   config.chemistrySeed = entries.Unsigned("chemistrySeed", 1, kMaxHistorySeed);
 
   if (entries.Has("worldHalfSideUm"))
@@ -215,12 +235,15 @@ HistoryConfig ReadHistoryConfig(std::istream& in, const std::filesystem::path& b
     Require(config.halfBoxNm < config.worldHalfSideNm,
             entries.Where("halfBoxUm") + "the reflecting box must be smaller than the world (worldHalfSideUm)");
   }
+  if (dose)
+    Require(entries.Has("halfBoxUm") && config.halfBoxNm > 0,
+            "mode doseCutoff needs halfBoxUm > 0: the reflecting box is the capture (dose) box");
   if (entries.Has("gridMinAgeNs"))
   {
     config.gridMinAgeNs = entries.Number("gridMinAgeNs");
     Require(config.gridMinAgeNs >= 0.01, entries.Where("gridMinAgeNs") + "must be at least 0.01 ns");
   }
-  Require(config.gridMinAgeNs < config.endpointNs, "gridMinAgeNs must be smaller than endpointNs");
+  if (!dose) Require(config.gridMinAgeNs < config.endpointNs, "gridMinAgeNs must be smaller than endpointNs");
   if (entries.Has("gridPointsPerDecade"))
     config.gridPointsPerDecade = static_cast<int>(entries.Unsigned("gridPointsPerDecade", 1, 100));
   if (entries.Has("progressIntervalS"))
@@ -264,6 +287,37 @@ HistoryConfig ReadHistoryConfig(std::istream& in, const std::filesystem::path& b
         poisson.regionHalfSizeNm[axis] = value * 1000.0;
       }
     }
+  }
+  if (dose)
+  {
+    auto& d = config.dose;
+    d.doseRateGyPerS = entries.Number("doseRateGyPerS");
+    Require(d.doseRateGyPerS > 0, entries.Where("doseRateGyPerS") + "must be positive");
+    if (entries.Has("doseGy"))
+    {
+      d.doseGy = entries.Number("doseGy");
+      Require(d.doseGy > 0, entries.Where("doseGy") + "must be positive");
+    }
+    d.sourceSeed = entries.Unsigned("sourceSeed", 1, kMaxHistorySeed);
+    if (entries.Has("firstPacket"))
+      d.firstPacket = static_cast<std::size_t>(entries.Unsigned("firstPacket", 0, 9999999999ULL));
+    if (entries.Has("maxArrivals"))
+      d.maxArrivals = static_cast<std::size_t>(entries.Unsigned("maxArrivals", 1, 10000000));
+    if (entries.Has("steadyStateWindow"))
+      d.steadyStateWindow = static_cast<std::size_t>(entries.Unsigned("steadyStateWindow", 0, 1000000));
+    d.steadyState.window = d.steadyStateWindow > 0 ? d.steadyStateWindow : 1;
+    if (entries.Has("steadyStateTolerance"))
+    {
+      d.steadyState.tolerance = entries.Number("steadyStateTolerance");
+      Require(d.steadyState.tolerance > 0, entries.Where("steadyStateTolerance") + "must be positive");
+    }
+    if (entries.Has("steadyStateMinMean"))
+    {
+      d.steadyState.minMean = entries.Number("steadyStateMinMean");
+      Require(d.steadyState.minMean >= 0, entries.Where("steadyStateMinMean") + "must not be negative");
+    }
+    if (entries.Has("ageGridPointsPerDecade"))
+      d.ageGridPointsPerDecade = static_cast<int>(entries.Unsigned("ageGridPointsPerDecade", 0, 100));
   }
   return config;
 }

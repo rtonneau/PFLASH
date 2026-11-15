@@ -184,6 +184,121 @@ void TestPoissonEdgeCases()
   CHECK_THROWS(SamplePoissonArrivals(Params(1000.0, 2e-3, 1), Bounds(0)), "library is empty");
 }
 
+void TestArrivalRates()
+{
+  // The 4 um box: m = (4e-6 m)^3 * 1000 kg/m^3 = 6.4e-14 kg; 1 Gy = 6.4e-14 J.
+  const double e = 1.602176634e-19;
+  const auto r = ComputeArrivalRates(1e4, 1.0, 2000.0, {100, 200, 300}, 1, 42);
+  CHECK(std::abs(r.boxMassKg - 6.4e-14) < 1e-26);
+  CHECK(std::abs(r.targetEnergyEv - 6.4e-14 / e) < 1e-6);
+  CHECK(r.targetEnergyEv > 3.99e5 && r.targetEnergyEv < 4.0e5);
+  CHECK(r.doseRateGyPerS == 1e4 && r.targetDoseGy == 1 && r.boxHalfSideNm == 2000);
+  CHECK(r.packetCount == 3 && r.emptyCount == 1 && r.launchedCount == 4);
+  CHECK(r.hitFraction == 0.75);
+  CHECK(r.packetDepositSumEv == 600 && r.emptyDepositSumEv == 42);
+  // Thinning: the empty crossing counts as 0 eV in ebar_launched; its 42 eV is reported only.
+  CHECK(r.meanDepositPerLaunchedEv == 150);
+  CHECK(r.meanDepositPerPacketEv == 200);
+  const double launched = 1e4 * r.boxMassKg / (150 * e);
+  CHECK(std::abs(r.launchedRateHz - launched) <= 1e-12 * launched);
+  CHECK(std::abs(r.packetRateHz - 0.75 * launched) <= 1e-12 * launched);
+  // packet rate = Ddot * m / ebar_packet.
+  CHECK(std::abs(r.packetRateHz - 1e4 * r.boxMassKg / (200 * e)) <= 1e-12 * launched);
+  // Without empties both rates agree.
+  const auto full = ComputeArrivalRates(1e4, 1.0, 2000.0, {100, 200, 300}, 0, 0);
+  CHECK(full.hitFraction == 1 && full.launchedRateHz == full.packetRateHz);
+
+  CHECK_THROWS(ComputeArrivalRates(0, 1, 2000, {1}, 0, 0), "dose rate");
+  CHECK_THROWS(ComputeArrivalRates(1e4, 0, 2000, {1}, 0, 0), "the dose must");
+  CHECK_THROWS(ComputeArrivalRates(1e4, 1, 0, {1}, 0, 0), "half side");
+  CHECK_THROWS(ComputeArrivalRates(1e4, 1, 2000, {}, 0, 0), "library is empty");
+  CHECK_THROWS(ComputeArrivalRates(1e4, 1, 2000, {1, -1}, 0, 0), "negative");
+  CHECK_THROWS(ComputeArrivalRates(1e4, 1, 2000, {0, 0}, 0, 0), "deposit no energy");
+  CHECK_THROWS(ComputeArrivalRates(1e4, 1, 2000, {1}, 1, -1), "empty crossings");
+}
+
+DoseCutoffParameters DoseParams(double target, std::uint64_t seed = 3, std::size_t first = 0, double rate = 1e6)
+{
+  DoseCutoffParameters p;
+  p.rateHz = rate;
+  p.targetEnergyEv = target;
+  p.sourceSeed = seed;
+  p.firstPacket = first;
+  return p;
+}
+
+void TestDoseCutoffSchedule()
+{
+  const std::vector<double> deposits{10, 20, 30, 40, 50};
+  const auto s = SampleDoseCutoffArrivals(DoseParams(55), deposits, 100);
+  // E = 10, 30, 60: the third arrival reaches 55 eV, overshoot 5 eV < 30 eV.
+  CHECK(s.arrivals.size() == 3);
+  CHECK((s.cumulativeEnergyEv == std::vector<double>{10, 30, 60}));
+  CHECK(s.arrivals[0].timeNs == 0);  // the beam starts with an arrival
+  for (std::size_t k = 0; k < s.arrivals.size(); ++k)
+  {
+    CHECK(s.arrivals[k].sourceIndex == k && s.arrivals[k].packetIndex == k);
+    CHECK(s.arrivals[k].offsetNm == (std::array<double, 3>{0, 0, 0}));
+    if (k > 0) CHECK(s.arrivals[k].timeNs > s.arrivals[k - 1].timeNs);
+  }
+  // Reaching the target exactly stops there; just above it needs one more.
+  CHECK(SampleDoseCutoffArrivals(DoseParams(60), deposits, 100).arrivals.size() == 3);
+  CHECK(SampleDoseCutoffArrivals(DoseParams(60.0001), deposits, 100).arrivals.size() == 4);
+  // A target below the first deposit: one arrival, at t = 0.
+  const auto one = SampleDoseCutoffArrivals(DoseParams(1), deposits, 100);
+  CHECK(one.arrivals.size() == 1 && one.arrivals[0].timeNs == 0);
+  // firstPacket shifts the packets, never reused.
+  const auto shifted = SampleDoseCutoffArrivals(DoseParams(55, 3, 2), deposits, 100);
+  CHECK(shifted.arrivals.size() == 2);
+  CHECK(shifted.arrivals[0].packetIndex == 2 && shifted.arrivals[1].packetIndex == 3);
+  CHECK((shifted.cumulativeEnergyEv == std::vector<double>{30, 70}));
+  // Same seed, same times; the times do not depend on the deposits.
+  const auto again = SampleDoseCutoffArrivals(DoseParams(55), {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}, 100);
+  for (std::size_t k = 0; k < s.arrivals.size(); ++k) CHECK(again.arrivals[k].timeNs == s.arrivals[k].timeNs);
+  const auto other = SampleDoseCutoffArrivals(DoseParams(55, 4), deposits, 100);
+  CHECK(other.arrivals[1].timeNs != s.arrivals[1].timeNs);
+
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(1000), deposits, 100), "library exhausted");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(55, 3, 4), deposits, 100), "library exhausted");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(55), {0, 0, 0}, 100), "library exhausted");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(55), deposits, 2), "censored");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(0), deposits, 100), "target energy");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(55, 3, 0, 0), deposits, 100), "rate");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(55), deposits, 0), "at least 1");
+  CHECK_THROWS(SampleDoseCutoffArrivals(DoseParams(55), {10, -1}, 100), "negative");
+}
+
+void TestDoseCutoffStatistics()
+{
+  // 1 eV per packet, target 20000 eV: 20000 arrivals, 19999 exponential waits
+  // of mean 1/rate = 1000 ns.
+  const std::size_t n = 20000;
+  const std::vector<double> deposits(n, 1.0);
+  const auto s = SampleDoseCutoffArrivals(DoseParams(static_cast<double>(n), 17), deposits, n);
+  CHECK(s.arrivals.size() == n);
+  const double meanWait = s.arrivals.back().timeNs / static_cast<double>(n - 1);
+  CHECK(std::abs(meanWait - 1000.0) < 5 * 1000.0 / std::sqrt(static_cast<double>(n - 1)));
+}
+
+void TestDoseEnergyChecks()
+{
+  DoseCutoffSchedule s;
+  s.cumulativeEnergyEv = {10, 30, 60};
+  CHECK(CheckDoseEnergy(s, 55, 60, 60).AllPassed());
+  // Summed in another order: equal within 1e-12.
+  CHECK(CheckDoseEnergy(s, 55, 60 * (1 + 1e-14), 60).AllPassed());
+  const auto lateSource = CheckDoseEnergy(s, 55, 30, 60);
+  CHECK(!lateSource.beamOffHoldsEverySource && lateSource.targetReached && !lateSource.AllPassed());
+  CHECK(!CheckDoseEnergy(s, 55, 60, 59).injectedMatchesSchedule);
+  const auto overshoot = CheckDoseEnergy(s, 25, 60, 60);  // already reached at 30 eV
+  CHECK(!overshoot.overshootBelowOneTrack && overshoot.targetReached);
+  CHECK(!CheckDoseEnergy(s, 61, 60, 60).targetReached);
+  CHECK(!CheckDoseEnergy(DoseCutoffSchedule{}, 1, 0, 0).AllPassed());
+  DoseCutoffSchedule single;
+  single.cumulativeEnergyEv = {10};
+  CHECK(CheckDoseEnergy(single, 5, 10, 10).AllPassed());
+}
+
 }  // namespace
 
 int main()
@@ -193,6 +308,10 @@ int main()
   TestPoissonBasics();
   TestPoissonStatistics();
   TestPoissonEdgeCases();
+  TestArrivalRates();
+  TestDoseCutoffSchedule();
+  TestDoseCutoffStatistics();
+  TestDoseEnergyChecks();
   std::puts("ArrivalScheduleTest passed");
   return 0;
 }

@@ -83,6 +83,19 @@ class ActivationObserverCheck
   // the failure.
   std::string CheckEnd(const std::vector<Track>& live) const;
 
+  // End of a history stopped early at stopNs (the steady-state stop of a
+  // doseCutoff history, G4Scheduler::Stop() just before a delayed list joins).
+  // Every source still pending must be due at or after stopNs. A live track
+  // with a positive ID is either a source molecule seen activating or a
+  // molecule of a pending source: G4Scheduler merges the next delayed list
+  // into the main list after a stop without starting its stage, so those
+  // molecules are live but never activated. pendingLive receives their count.
+  // Returns "" or the failure.
+  std::string CheckEarlyEnd(double stopNs, const std::vector<Track>& live, std::size_t& pendingLive) const;
+
+  // True for a source molecule that was seen activating.
+  bool IsActivatedMolecule(long long id) const;
+
   const std::vector<Source>& Sources() const { return fSources; }
   const std::vector<Stage>& Stages() const { return fStages; }
   // NaN until the source activated.

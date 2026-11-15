@@ -1,9 +1,11 @@
 // ArrivalSchedule: when and where each precursor packet is injected.
 //
 // An Arrival says "packet number packetIndex of the library is injected at
-// timeNs, rigidly translated by offsetNm". Two ways to make a schedule:
+// timeNs, rigidly translated by offsetNm". Three ways to make a schedule:
 //   1. ParseDeterministicSchedule: read a small text file.
 //   2. SamplePoissonArrivals: draw a Poisson process from a source seed.
+//   3. SampleDoseCutoffArrivals: a Poisson process at the rate of a dose rate,
+//      stopped when the deposited energy reaches a dose (ComputeArrivalRates).
 //
 // Geant4-free. Units in this header: time ns (rates and exposure in the
 // Poisson parameters are in s and 1/s, as named), length nm.
@@ -77,5 +79,91 @@ struct PoissonParameters
 // bounds.minArrivals is ignored here.
 std::vector<Arrival> SamplePoissonArrivals(const PoissonParameters& parameters,
                                            const ScheduleBounds& bounds);
+
+// ---- Dose cutoff ---------------------------------------------------------------
+//
+// Rates. A dose rate Ddot (Gy/s) in a water box of mass m is reached by
+// launching primaries at lambda_launched = Ddot * m / ebar_launched, where
+// ebar_launched is the mean box deposit per LAUNCHED primary. Some launched
+// primaries leave no molecule in the box ("empty" crossings: `capture` makes no
+// packet for them, CaptureLibrary.hh). They are handled by thinning: an empty
+// crossing has no chemistry, so it is not scheduled at all, and its deposit is
+// counted as 0 (the deposits `capture` records for them are reported, not
+// used). The arrival process of the packets is then the launched process
+// thinned by the hit fraction f = packets / launched:
+//   lambda_packet = f * lambda_launched = Ddot * m / ebar_packet,
+// ebar_packet being the mean deposit per packet. Both rates are kept.
+//
+// Box mass m = (2 * halfSide)^3 * 1000 kg/m^3; for the 2 um half side (4 um
+// box) m = 6.4e-14 kg, so 1 Gy is 6.4e-14 J = 3.99e5 eV.
+inline constexpr double kWaterDensityKgPerM3 = 1000.0;
+
+struct ArrivalRates
+{
+  double doseRateGyPerS = 0;
+  double targetDoseGy = 0;
+  double boxHalfSideNm = 0;
+  double boxMassKg = 0;
+  double targetEnergyEv = 0;           // targetDoseGy * boxMassKg / e
+  std::size_t packetCount = 0;         // library packets (box crossings with molecules)
+  std::size_t emptyCount = 0;          // launched primaries without a packet
+  std::size_t launchedCount = 0;       // packetCount + emptyCount
+  double hitFraction = 0;              // packetCount / launchedCount
+  double packetDepositSumEv = 0;
+  double emptyDepositSumEv = 0;        // reported only: the empties count as 0
+  double meanDepositPerLaunchedEv = 0;  // ebar_launched = packetDepositSumEv / launchedCount
+  double meanDepositPerPacketEv = 0;    // ebar_packet = packetDepositSumEv / packetCount
+  double launchedRateHz = 0;           // Ddot * m / ebar_launched
+  double packetRateHz = 0;             // hitFraction * launchedRateHz, the scheduled rate
+};
+
+// Throws std::runtime_error on a non-positive or non-finite dose rate, dose or
+// half side, no packet, a negative or non-finite deposit, or a zero deposit sum.
+ArrivalRates ComputeArrivalRates(double doseRateGyPerS, double doseGy, double boxHalfSideNm,
+                                 const std::vector<double>& packetDepositsEv, std::size_t emptyCount,
+                                 double emptyDepositSumEv);
+
+struct DoseCutoffParameters
+{
+  double rateHz = 0;          // packet arrival rate (ArrivalRates::packetRateHz), > 0
+  double targetEnergyEv = 0;  // > 0
+  std::uint64_t sourceSeed = 1;
+  std::size_t firstPacket = 0;  // arrival k uses packet firstPacket + k
+};
+
+struct DoseCutoffSchedule
+{
+  std::vector<Arrival> arrivals;            // offsets 0: the packets are box-centred
+  std::vector<double> cumulativeEnergyEv;   // after each arrival (E_k = sum of deposits 0..k)
+};
+
+// The first arrival is at t = 0 (no draw); then one std::mt19937_64(sourceSeed)
+// uniform per wait, built as in SamplePoissonArrivals (wait = -log1p(-u) /
+// rate). Arrivals are added until the cumulative deposit reaches the target:
+// the last arrival K is the first with E_K >= target, so E_{K-1} < target <= E_K
+// and the overshoot E_K - target is less than one track's deposit. Arrival k
+// uses packet firstPacket + k (never reused). Throws std::runtime_error on
+// invalid parameters, "library exhausted" (the packets run out before the
+// target) or "censored" (more than maxArrivals arrivals).
+DoseCutoffSchedule SampleDoseCutoffArrivals(const DoseCutoffParameters& parameters,
+                                            const std::vector<double>& packetDepositsEv, std::size_t maxArrivals);
+
+// Energy checks of a dose-cutoff history.
+struct DoseEnergyChecks
+{
+  bool targetReached = false;            // E_final >= target
+  bool overshootBelowOneTrack = false;   // E_final - (last deposit) < target
+  bool beamOffHoldsEverySource = false;  // E(beam-off) == E_final
+  bool injectedMatchesSchedule = false;  // deposits of the injected sources sum to E_final
+  bool AllPassed() const
+  {
+    return targetReached && overshootBelowOneTrack && beamOffHoldsEverySource && injectedMatchesSchedule;
+  }
+};
+
+// The two sums are compared with a relative tolerance of 1e-12 (they add the
+// same deposits, possibly in another order).
+DoseEnergyChecks CheckDoseEnergy(const DoseCutoffSchedule& schedule, double targetEnergyEv,
+                                 double energyAtBeamOffEv, double injectedDepositEv);
 
 }  // namespace drs

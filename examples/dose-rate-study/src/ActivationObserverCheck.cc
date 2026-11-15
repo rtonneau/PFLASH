@@ -170,4 +170,37 @@ std::string ActivationObserverCheck::CheckEnd(const std::vector<Track>& live) co
   return {};
 }
 
+std::string ActivationObserverCheck::CheckEarlyEnd(double stopNs, const std::vector<Track>& live,
+                                                   std::size_t& pendingLive) const
+{
+  pendingLive = 0;
+  if (!fPending.empty() && fPending.begin()->first < stopNs)
+  {
+    const auto& [time, due] = *fPending.begin();
+    return "missing activation: " + Name(due.front()) + ", due at " + Ns(time) +
+           ", never activated before the stop at " + Ns(stopNs);
+  }
+  for (const auto& track : live)
+  {
+    if (track.id < 1) continue;
+    const auto source = SourceOf(track.id);
+    if (source == kNotASource)
+      return "unexpected track " + std::to_string(track.id) + " at the stop: positive ID but not a source molecule";
+    if (fActivated[static_cast<std::size_t>(track.id - 1)]) continue;
+    if (std::isnan(fObservedNs[source]) && fSources[source].activationTimeNs >= stopNs)
+    {
+      ++pendingLive;
+      continue;
+    }
+    return "molecule " + std::to_string(track.id) + " of " + Name(source) +
+           " is in the history at the stop but was never seen activating";
+  }
+  return {};
+}
+
+bool ActivationObserverCheck::IsActivatedMolecule(long long id) const
+{
+  return SourceOf(id) != kNotASource && fActivated[static_cast<std::size_t>(id - 1)] != 0;
+}
+
 }  // namespace drs

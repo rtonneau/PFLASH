@@ -3,7 +3,9 @@
 // A library is one directory holding
 //   library.csv          the index, one row per packet, in packet-index order
 //   packet-00000.txt ... one PrecursorPacket file per primary (PrecursorPacket.hh)
-//   capture.json         a human-readable summary (written by `capture`, not read back)
+//   capture.json         a human-readable summary written by `capture`; a
+//                        doseCutoff history reads back only the capture box and
+//                        the skipped empty events (ReadCaptureSummary)
 //
 // library.csv columns (camelCase, unit suffix; reals with 17 significant digits,
 // so they read back to the same double):
@@ -94,5 +96,34 @@ struct LibraryTotals
 };
 
 LibraryTotals SumLibrary(const std::vector<LibraryEntry>& entries);
+
+// ---- capture.json, the part a doseCutoff history needs ----------------------
+inline constexpr const char kCaptureSummaryName[] = "capture.json";
+
+// A launched primary that left no molecule in the box (it missed the box, or
+// crossed a corner without an ionisation): `capture` skips it, makes no packet,
+// and lists its seed and box deposit in capture.json.
+struct SkippedEmptyEvent
+{
+  long long physicsSeed = 0;  // >= 1
+  double energyDepositEv = 0;  // >= 0
+  bool operator==(const SkippedEmptyEvent&) const = default;
+};
+
+struct CaptureSummary
+{
+  double captureHalfSideNm = 0;  // half side of the capture (dose) box, > 0
+  std::vector<SkippedEmptyEvent> skippedEmptyEvents;
+};
+
+// Reads the capture.json text (format "drs-capture-summary"): captureHalfSide_nm
+// and skippedEmptyEvents (each {"physicsSeed": integer >= 1,
+// "energyDeposit_eV": number >= 0}). Other members are ignored. Throws
+// std::runtime_error on malformed JSON, another format or a missing or invalid
+// member.
+CaptureSummary ReadCaptureSummary(std::istream& in);
+
+// <directory>/capture.json.
+CaptureSummary LoadCaptureSummary(const std::filesystem::path& directory);
 
 }  // namespace drs

@@ -55,6 +55,8 @@ double Uniform01(std::mt19937_64& engine)
   return static_cast<double>(engine() >> 11) * (1.0 / 9007199254740992.0);
 }
 
+constexpr double kJoulePerEvLocal = 1.602176634e-19;  // same value as Ledger.hh kJoulePerEv
+
 }  // namespace
 
 std::vector<Arrival> ParseDeterministicSchedule(std::istream& in, const ScheduleBounds& bounds)
@@ -140,6 +142,95 @@ std::vector<Arrival> SamplePoissonArrivals(const PoissonParameters& parameters, 
     arrivals.push_back(a);
   }
   return arrivals;
+}
+
+ArrivalRates ComputeArrivalRates(double doseRateGyPerS, double doseGy, double boxHalfSideNm,
+                                 const std::vector<double>& packetDepositsEv, std::size_t emptyCount,
+                                 double emptyDepositSumEv)
+{
+  Require(std::isfinite(doseRateGyPerS) && doseRateGyPerS > 0, "the dose rate must be positive and finite");
+  Require(std::isfinite(doseGy) && doseGy > 0, "the dose must be positive and finite");
+  Require(std::isfinite(boxHalfSideNm) && boxHalfSideNm > 0, "the box half side must be positive and finite");
+  Require(!packetDepositsEv.empty(), "the packet library is empty");
+  Require(std::isfinite(emptyDepositSumEv) && emptyDepositSumEv >= 0,
+          "the deposit of the empty crossings must be finite and not negative");
+
+  ArrivalRates r;
+  r.doseRateGyPerS = doseRateGyPerS;
+  r.targetDoseGy = doseGy;
+  r.boxHalfSideNm = boxHalfSideNm;
+  const double sideM = 2.0 * boxHalfSideNm * 1e-9;
+  r.boxMassKg = sideM * sideM * sideM * kWaterDensityKgPerM3;
+  r.targetEnergyEv = doseGy * r.boxMassKg / kJoulePerEvLocal;
+  r.packetCount = packetDepositsEv.size();
+  r.emptyCount = emptyCount;
+  r.launchedCount = r.packetCount + emptyCount;
+  r.hitFraction = static_cast<double>(r.packetCount) / static_cast<double>(r.launchedCount);
+  for (const double deposit : packetDepositsEv)
+  {
+    Require(std::isfinite(deposit) && deposit >= 0, "a packet deposit is negative or not finite");
+    r.packetDepositSumEv += deposit;
+  }
+  Require(r.packetDepositSumEv > 0, "the packets deposit no energy");
+  r.emptyDepositSumEv = emptyDepositSumEv;
+  r.meanDepositPerLaunchedEv = r.packetDepositSumEv / static_cast<double>(r.launchedCount);
+  r.meanDepositPerPacketEv = r.packetDepositSumEv / static_cast<double>(r.packetCount);
+  // Ddot [J/(kg s)] * m [kg] / (ebar [eV] * e [J/eV]).
+  r.launchedRateHz = doseRateGyPerS * r.boxMassKg / (r.meanDepositPerLaunchedEv * kJoulePerEvLocal);
+  r.packetRateHz = r.hitFraction * r.launchedRateHz;
+  return r;
+}
+
+DoseCutoffSchedule SampleDoseCutoffArrivals(const DoseCutoffParameters& parameters,
+                                            const std::vector<double>& packetDepositsEv, std::size_t maxArrivals)
+{
+  Require(std::isfinite(parameters.rateHz) && parameters.rateHz > 0, "rate must be positive and finite");
+  Require(std::isfinite(parameters.targetEnergyEv) && parameters.targetEnergyEv > 0,
+          "the target energy must be positive and finite");
+  Require(maxArrivals >= 1, "the maximum number of arrivals must be at least 1");
+  for (const double deposit : packetDepositsEv)
+    Require(std::isfinite(deposit) && deposit >= 0, "a packet deposit is negative or not finite");
+
+  std::mt19937_64 engine(parameters.sourceSeed);
+  DoseCutoffSchedule schedule;
+  double timeS = 0;
+  double energy = 0;
+  while (!(energy >= parameters.targetEnergyEv))
+  {
+    const std::size_t k = schedule.arrivals.size();
+    if (k > 0) timeS += -std::log1p(-Uniform01(engine)) / parameters.rateHz;  // the first arrival is at 0
+    Require(k < maxArrivals, "censored: more than " + std::to_string(maxArrivals) +
+                                 " arrivals before the target dose; raise maxArrivals or lower the dose");
+    const std::size_t packet = parameters.firstPacket + k;
+    Require(packet < packetDepositsEv.size(),
+            "library exhausted: arrival " + std::to_string(k + 1) + " needs packet " + std::to_string(packet) +
+                " but only " + std::to_string(packetDepositsEv.size()) +
+                " exist (packets are never reused); the target dose was not reached");
+    Arrival a;
+    a.sourceIndex = k;
+    a.packetIndex = packet;
+    a.timeNs = timeS * 1e9;
+    schedule.arrivals.push_back(a);
+    energy += packetDepositsEv[packet];
+    schedule.cumulativeEnergyEv.push_back(energy);
+  }
+  return schedule;
+}
+
+DoseEnergyChecks CheckDoseEnergy(const DoseCutoffSchedule& schedule, double targetEnergyEv,
+                                 double energyAtBeamOffEv, double injectedDepositEv)
+{
+  DoseEnergyChecks checks;
+  if (schedule.cumulativeEnergyEv.empty()) return checks;
+  const std::vector<double>& energies = schedule.cumulativeEnergyEv;
+  const double finalEnergy = energies.back();
+  const double previous = energies.size() > 1 ? energies[energies.size() - 2] : 0;
+  const auto same = [finalEnergy](double x) { return std::abs(x - finalEnergy) <= 1e-12 * std::abs(finalEnergy); };
+  checks.targetReached = finalEnergy >= targetEnergyEv;
+  checks.overshootBelowOneTrack = previous < targetEnergyEv;
+  checks.beamOffHoldsEverySource = same(energyAtBeamOffEv);
+  checks.injectedMatchesSchedule = same(injectedDepositEv);
+  return checks;
 }
 
 }  // namespace drs

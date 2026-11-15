@@ -24,7 +24,9 @@ add_library(drsCore STATIC
   src/Ledger.cc
   src/CaptureLibrary.cc
   src/HistoryConfig.cc
-  src/ActivationObserverCheck.cc)
+  src/ActivationObserverCheck.cc
+  src/TimeGrid.cc
+  src/SteadyStateDetector.cc)
 target_include_directories(drsCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(MSVC)
   target_compile_options(drsCore PUBLIC /W4 /utf-8)
@@ -70,7 +72,8 @@ target_link_libraries(history PRIVATE drsCore ${Geant4_LIBRARIES})
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()
 set(drsTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
-foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest)
+foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest
+                 TimeGridTest SteadyStateDetectorTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE drsCore)
   add_test(NAME ${testName} COMMAND ${testName})
@@ -114,10 +117,36 @@ add_test(NAME HistorySmoke
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunHistorySmoke.cmake)
 set_tests_properties(HistorySmoke PROPERTIES FIXTURES_REQUIRED DrsCaptureLibrary)
 
+# ---- History dose cutoff (1e4 Gy/s) -----------------------------------------
+# The 20-packet fixture library holds ~0.037 Gy of the 4 um box (1 Gy = 3.99e5
+# eV, ~600 tracks), so these tests stop at a small dose. HistoryDoseCutoff:
+# ~3 arrivals to 0.005 Gy, no steady-state test; the CSV, the ledger and the
+# activation and energy checks. HistoryDoseSteadyState: ~11 arrivals to 0.02 Gy
+# with 2-sample windows and a tolerance loose enough to stop early, so the
+# later rows are extrapolated.
+set(drsDoseConfig
+  "mode = doseCutoff|libraryDir = @LIBRARY@|halfBoxUm = 2|worldHalfSideUm = 3|chemistrySeed = 21|sourceSeed = 7|doseRateGyPerS = 1e4")
+add_test(NAME HistoryDoseCutoff
+  COMMAND ${CMAKE_COMMAND}
+    -DHISTORY=$<TARGET_FILE:history>
+    -DWORK_DIR=${drsTestOutput}/history-dose-cutoff
+    -DLIBRARY=${drsCaptureLibrary}
+    "-DCONFIG=${drsDoseConfig}|doseGy = 0.005|steadyStateWindow = 0"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunHistoryDose.cmake)
+add_test(NAME HistoryDoseSteadyState
+  COMMAND ${CMAKE_COMMAND}
+    -DHISTORY=$<TARGET_FILE:history>
+    -DWORK_DIR=${drsTestOutput}/history-dose-steady-state
+    -DLIBRARY=${drsCaptureLibrary}
+    "-DCONFIG=${drsDoseConfig}|doseGy = 0.02|steadyStateWindow = 2|steadyStateTolerance = 1000|steadyStateMinMean = 5"
+    -DEXPECT_STEADY_STATE=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunHistoryDose.cmake)
+set_tests_properties(HistoryDoseCutoff HistoryDoseSteadyState PROPERTIES FIXTURES_REQUIRED DrsCaptureLibrary)
+
 # The Geant4 DLLs of the install found through Geant4_DIR go first on PATH, so
 # another Geant4 on the user's PATH is never loaded by mistake.
 if(WIN32)
   get_filename_component(drsGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
-  set_tests_properties(CaptureSmoke HistorySmoke PROPERTIES
+  set_tests_properties(CaptureSmoke HistorySmoke HistoryDoseCutoff HistoryDoseSteadyState PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${drsGeant4BinDir}")
 endif()

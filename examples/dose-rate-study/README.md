@@ -7,8 +7,8 @@ injection, reflecting box) and from the dnachem-min `PureWater` Chemistry
 (`PureWaterReactions.cc`, `ChemistryTypes.hh`). It does not link or include
 either; a change there does not reach this example.
 
-Status: ticket 01 skeleton. `capture` is complete; `history` loads a packet
-library and runs one bounded history.
+Status: ticket 02. `capture` is complete. `history` runs one bounded history,
+including the doseCutoff mode (constant dose rate up to a set dose).
 
 ## Physics and chemistry
 
@@ -59,6 +59,70 @@ the world escape and the dropped molecules, for every packet and in total.
 `history --config <file> --output <dir>` takes the config keys of
 `include/HistoryConfig.hh`. Set `halfBoxUm = 2` for the reflecting 4 um box.
 
+### doseCutoff
+
+`mode = doseCutoff` irradiates the box at a constant dose rate until it has
+received a set dose, all in one IRT_syn history:
+
+```
+mode = doseCutoff
+libraryDir = <capture library>
+halfBoxUm = 2              # must equal the library's capture box
+worldHalfSideUm = 3
+chemistrySeed = 21
+sourceSeed = 7             # arrival sampler
+doseRateGyPerS = 1e4
+doseGy = 1                 # default 1
+steadyStateWindow = 50     # default 50; 0 = no steady-state stop
+steadyStateTolerance = 0.05  # default 0.05
+```
+
+Optional keys: `firstPacket`, `maxArrivals`, `steadyStateMinMean` and
+`ageGridPointsPerDecade` (default 5).
+
+- Box mass: m = rho (2 h)^3 = 6.4e-14 kg for the 4 um box, so 1 Gy is
+  3.99e5 eV, about 600 tracks of 500 keV e-.
+- Rates: the launch rate is `Ddot m / ebar`. Here ebar is the mean box
+  deposit per launched primary, and the empty crossings skipped by capture
+  count as 0 eV. Only primaries that hit the box are scheduled, as packets at
+  `hitFraction` times the launch rate (thinning). The ledger records ebar, the
+  hit fraction and both rates.
+- Schedule: the first arrival is at t = 0, then exponential waits, using
+  library packets in order from `firstPacket`. Scheduling stops at the first
+  arrival whose cumulative box deposit reaches the target dose, so the
+  overshoot is less than one track. A source activates 1 ps after its arrival
+  (the capture time).
+- Beam-off: 1 ps after the last activation (G4Scheduler never processes a
+  delayed list due exactly at the end time). It is also the chemistry end;
+  there is no post-beam relaxation.
+- Grids: a common absolute log grid from 1 ps at 10 points per decade, the
+  same for every dose rate, truncated below beam-off, with beam-off appended.
+  There is also one age grid per arrival, from 1 ps after it, up to the next
+  arrival. Counter times within 1 fs are merged, and E(t) follows the same
+  rule.
+- Steady-state stop: there is one sample per arrival after the first (live
+  counts just before the arrival's source joins). The run stops when every
+  species' mean over the last `steadyStateWindow` samples is within
+  `steadyStateTolerance` of the previous window's mean (species whose two
+  means are both at most `steadyStateMinMean` are skipped). The history then
+  ends early, and the later common-grid rows hold the last window's means,
+  with `extrapolated = 1`.
+
+Outputs:
+
+- `species.csv`: one row per common-grid time and species, with columns
+  `timeNs,species,count,energyDepositEv,doseGy,gCumulativePer100eV,gFinalPer100eV,extrapolated`.
+  G by cumulative dose divides by E(t), and G by final dose divides by the
+  final deposit.
+- `species_age.csv`: the same quantities on the age grids, with
+  `arrivalIndex` and `ageNs` added. Only measured points are written.
+- `activations.csv`: one row per source, with the expected and observed
+  activation times.
+- `ledger.json` (format version 2): `rates`, `dose`, `grids`, `steadyState`,
+  and checks for activation, end and energy (target reached, overshoot below
+  one track, E(beam-off) and the injected deposit both equal to the final
+  deposit). `history` exits with status 1 when any check fails.
+
 ## Build and test
 
 Build against the patched Geant4 11.4.3 install, and pass its path on the
@@ -82,3 +146,8 @@ The tests:
   mean box deposit.
 - `HistorySmoke`: two packets of that library in the 2 um reflecting half box,
   to 100 ns.
+- `HistoryDoseCutoff` and `HistoryDoseSteadyState`: doseCutoff at 1e4 Gy/s.
+  The 20-packet library holds only about 0.037 Gy, so these stop at 0.005 Gy
+  and 0.02 Gy. The second uses 2-sample windows and a loose tolerance so that
+  the steady-state stop fires. Each checks the outputs, the activation checks
+  and the energy checks.
