@@ -36,6 +36,10 @@ inline constexpr int kCommonGridPointsPerDecade = 10;
 // Beam-off (the chemistry end) lies this long after the cutoff source's
 // activation, so its molecules join the history before it ends.
 inline constexpr double kBeamOffMarginNs = 1.0e-3;
+// A snapshot time this close to an activation or to the end is taken at that
+// stage boundary (ActivationObserver.hh); a watched time is never closer than
+// this to the next delayed list. The same value as the scheduler's 1 ps step tolerance.
+inline constexpr double kSnapshotGuardNs = 1.0e-3;
 inline constexpr std::size_t kMaxTimeGridPoints = 5'000'000;
 
 // startNs * 10^(k / pointsPerDecade) for k = 0, 1, ... strictly below endNs,
@@ -43,6 +47,16 @@ inline constexpr std::size_t kMaxTimeGridPoints = 5'000'000;
 // its place). Throws std::invalid_argument on a non-positive or non-finite
 // start or end, end < start, or pointsPerDecade outside [1, 100].
 std::vector<double> BuildCommonLogGrid(double startNs, int pointsPerDecade, double endNs);
+
+// The snapshot times: the points of the common grid closest to
+// startNs * 10^(s / snapshotsPerDecade), s = 0, 1, ..., plus the last point
+// (beam-off). `grid` is a BuildCommonLogGrid result made with
+// gridPointsPerDecade; the selection is a subset of it (increasing, no
+// repeats), so a snapshot time is a record time of species.csv bit for bit.
+// Throws std::invalid_argument for an empty grid or a snapshot density
+// outside [1, gridPointsPerDecade].
+std::vector<double> SelectSnapshotTimes(const std::vector<double>& grid, int gridPointsPerDecade,
+                                        int snapshotsPerDecade);
 
 struct AgePoint
 {

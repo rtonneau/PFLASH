@@ -86,6 +86,8 @@ struct DoseCutoffConfig
   std::size_t steadyStateWindow = 50;  // 0 = no steady-state stop
   SteadyStateSettings steadyState;      // window = steadyStateWindow when it is > 0
   int ageGridPointsPerDecade = 5;       // 0 = no age grid
+  bool snapshots = false;               // write snapshots.h5 (particle positions at the snapshot times)
+  int snapshotsPerDecade = 3;           // frames per decade, a subset of the common grid
 };
 
 struct HistoryConfig

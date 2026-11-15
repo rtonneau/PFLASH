@@ -45,6 +45,25 @@
 // stop are measured (SpeciesRows, MeasuredTable). The counter is then switched
 // off, as after a failure, before the scheduler deletes the remaining tracks.
 //
+// Snapshots (doseCutoff mode, EnableSnapshots). At each snapshot time the
+// positions and species of every live molecule (water excluded, as in the
+// species tables) go to a SnapshotWriter. The scheduler only stops where it is
+// told to, so the snapshot times inside a stage are given to it as watched
+// times (G4Scheduler::AddWatchedTime): it then ends a step, and runs a
+// DoProcess (NewStage), at each of them. Geant4 11.4.3's SynchronizeTracks
+// skips the final step to the next delayed list when a watched time lies
+// between that list's time and the end time, so the watched times of one
+// inter-activation interval are added only once the previous one is over (at
+// the last step before the delayed list joins) and always end kSnapshotGuardNs
+// before the next list. A stage at a watched time is not an activation: it is
+// recognised by its time and skipped by NewStage. A snapshot time within
+// kSnapshotGuardNs of an activation, or of the end, is taken at the nearest
+// stage boundary (after the activation, before the next list, the final step)
+// and carries the clock time of that boundary. Times before the first
+// activation (no molecule yet) have no frame. Because the steps are clipped at
+// the watched times, a run with snapshots follows a different random stream
+// than one without: results agree statistically, not bit for bit.
+//
 // A failed check never throws through Geant4: the first failure is kept, the
 // counter is switched off (so the tracks left are deleted without being
 // uncounted) and G4Scheduler::Stop() ends the history; the caller reads
@@ -53,15 +72,20 @@
 
 #include <chrono>
 #include <cstddef>
+#include <filesystem>
 #include <map>
+#include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "ActivationObserverCheck.hh"
 #include "Ledger.hh"
+#include "SnapshotWriter.hh"
 #include "SourceInjector.hh"
 #include "SteadyStateDetector.hh"
+#include "TimeGrid.hh"
 
 #include "G4UserTimeStepAction.hh"
 #include "globals.hh"
@@ -106,6 +130,13 @@ class ActivationObserver : public G4UserTimeStepAction
   // std::invalid_argument on invalid settings.
   void EnableSteadyState(const SteadyStateSettings& settings);
 
+  // Turns the snapshots on (after Configure, once the chemistry is
+  // initialized: the species table is read now): creates the file and keeps
+  // the snapshot times, increasing, in ns. Throws std::runtime_error when the
+  // file cannot be written (or HDF5 is missing) and std::invalid_argument on
+  // invalid times.
+  void EnableSnapshots(const std::filesystem::path& file, const std::vector<double>& timesNs);
+
   void StartProcessing() override;
   void NewStage() override;
   void UserPostTimeStepAction() override;
@@ -131,6 +162,17 @@ class ActivationObserver : public G4UserTimeStepAction
   const SteadyStateDetector* SteadyState() const { return fSteadyState ? &*fSteadyState : nullptr; }
   G4bool StoppedEarly() const { return fEnd.stoppedEarly; }
   std::size_t ProductFoldCount() const { return fProductFolds; }
+  // Snapshots: frame times are the clock times of the
+  // frames written, in order; the requested times are those of EnableSnapshots.
+  G4bool SnapshotsEnabled() const { return fSnapshotWriter != nullptr; }
+  const std::vector<double>& SnapshotFrameTimesNs() const { return fFrameTimesNs; }
+  std::size_t SnapshotTimesRequested() const { return fSnapshotTimesNs.size(); }
+  std::size_t SnapshotTimesDropped() const { return fSnapshotsDropped; }
+  // Requested times that shared the frame of another time taken in the same call.
+  std::size_t SnapshotTimesMerged() const { return fSnapshotsMerged; }
+  std::size_t SnapshotMoleculeTotal() const { return fSnapshotMolecules; }
+  // Flushes and closes the snapshot file (end of the run; also on failure).
+  void CloseSnapshots();
   // For a history with no source (chemistry not run): zero rows on the record grid.
   void FinishEmpty();
 
@@ -140,6 +182,9 @@ class ActivationObserver : public G4UserTimeStepAction
   void SampleSteadyState(const std::vector<const G4Track*>& live, G4double now);
   void Finish();
   void ReportProgress(G4bool force);
+  void ArmNextInterval(G4double endTime);
+  void CaptureDue(double limitNs, bool strict, double clockNs, const std::vector<const G4Track*>& live);
+  void CaptureFrame(double labelNs, const std::vector<const G4Track*>& live);
 
   std::optional<ActivationObserverCheck> fCheck;
   double fProgressIntervalS = 0;
@@ -151,6 +196,19 @@ class ActivationObserver : public G4UserTimeStepAction
   std::optional<SteadyStateSettings> fSteadySettings;
   std::optional<SteadyStateDetector> fSteadyState;
   std::map<std::string, std::size_t> fSpeciesIndex;  // steady-state sample order
+  // Snapshots.
+  std::unique_ptr<SnapshotWriter> fSnapshotWriter;
+  std::vector<double> fSnapshotTimesNs;       // requested, increasing
+  std::vector<double> fActivationTimesNs;     // distinct activation times, increasing
+  std::map<std::string, std::uint8_t> fSnapshotSpecies;
+  std::vector<double> fFrameTimesNs;          // clock time of each frame written
+  std::set<double> fWatched;                  // watched times added, in Geant4 units
+  std::size_t fNextFrame = 0;                 // first requested time not yet captured
+  std::size_t fNextArm = 0;                   // first requested time not yet considered for arming
+  std::size_t fArmedIntervals = 0;
+  std::size_t fSnapshotsDropped = 0;
+  std::size_t fSnapshotsMerged = 0;
+  std::size_t fSnapshotMolecules = 0;
   G4bool fStopRequested = false;
   G4double fStopTime = 0;
 

@@ -36,6 +36,10 @@
 //                    arrival (WriteAgeSpeciesCsv);
 //   activations.csv  one row per source: scheduled, expected and observed
 //                    activation times, track IDs, energies;
+//   snapshots.h5     doseCutoff with `snapshots = true` only (needs HDF5): the
+//                    position and species of every live molecule at 3 times
+//                    per decade of the common grid (SnapshotWriter.hh; read it
+//                    with scripts/snapshots.py, see scripts/movie.py);
 //   ledger.json      seeds, settings, library and source energies, the checks;
 //                    in doseCutoff mode also the rates, the dose cutoff, the
 //                    grids, the steady state and the energy checks.
@@ -67,6 +71,7 @@
 #include "HistoryConfig.hh"
 #include "HistoryDetectorConstruction.hh"
 #include "Ledger.hh"
+#include "SnapshotWriter.hh"
 #include "SourceInjector.hh"
 #include "SteadyStateDetector.hh"
 #include "TimeGrid.hh"
@@ -472,6 +477,22 @@ void AddDoseLedger(drs::JsonValue& root, drs::JsonValue& checks, const drs::Hist
   steady.Set("extrapolatedRowCount", Count(outcome.extrapolatedTimes * outcome.species.size()));
   root.Set("steadyState", steady);
 
+  auto snapshots = JsonValue::Object();
+  snapshots.Set("enabled", JsonValue::Bool(observer.SnapshotsEnabled()));
+  snapshots.Set("perDecade", JsonValue::Integer(config.dose.snapshotsPerDecade));
+  snapshots.Set("requestedTimeCount", Count(observer.SnapshotTimesRequested()));
+  snapshots.Set("droppedBeforeFirstActivation", Count(observer.SnapshotTimesDropped()));
+  snapshots.Set("mergedIntoAnotherFrame", Count(observer.SnapshotTimesMerged()));
+  snapshots.Set("compressed", JsonValue::Bool(drs::SnapshotWriter::Compressed()));
+  snapshots.Set("frameCount", Count(observer.SnapshotFrameTimesNs().size()));
+  snapshots.Set("moleculeCount", Count(observer.SnapshotMoleculeTotal()));
+  snapshots.Set("rule", JsonValue::String("the common-grid points closest to 1 ps * 10^(s/perDecade), then beam-off; "
+                                          "frame time_ns is the clock time of the frame (a requested time within "
+                                          "0.001 ns of an activation or the end is taken at that stage boundary); "
+                                          "the history is stepped to each snapshot time, so its random stream "
+                                          "differs from a run without snapshots"));
+  root.Set("snapshots", snapshots);
+
   const auto& c = outcome.checks;
   auto energy = JsonValue::Object();
   energy.Set("rule", JsonValue::String("E_final >= target > E_final - (cutoff deposit); E(beam-off) and the "
@@ -684,10 +705,11 @@ drs::JsonValue MakeLedger(const LedgerInput& in)
   folds.Set("reactionProducts", Count(in.observer.ProductFoldCount()));
   root.Set("reflectingBoxFolds", folds);
   root.Set("wallTime_s", JsonValue::Real(in.wallTimeS));
-  root.Set("outputs", [dose] {
+  root.Set("outputs", [dose, snapshots = in.observer.SnapshotsEnabled()] {
     auto files = JsonValue::Array();
     files.Append(JsonValue::String("species.csv"));
     if (dose) files.Append(JsonValue::String("species_age.csv"));
+    if (snapshots) files.Append(JsonValue::String("snapshots.h5"));
     for (const char* name : {"activations.csv", "ledger.json"}) files.Append(JsonValue::String(name));
     return files;
   }());
@@ -725,6 +747,10 @@ int Run(int argc, char** argv)
     throw ExitError(2, "packet library " + config.libraryDir.string() + ": " + error.what());
   }
   const bool dose = config.mode == drs::HistoryMode::DoseCutoff;
+  const bool snapshots = dose && config.dose.snapshots;
+  if (snapshots && !drs::SnapshotWriter::Available())
+    throw ExitError(2, "config: snapshots = true needs HDF5, and this build has none (configure with "
+                       "-DDRS_WITH_HDF5=AUTO or ON)");
   auto schedule = MakeSchedule(config, library.entries.size());
   DosePlan plan;
   if (dose)
@@ -787,6 +813,10 @@ int Run(int argc, char** argv)
     observer.Configure(injector->Sources(), grid, physics->GetReflectingBox(), counterId);
     observer.SetProgressInterval(config.progressIntervalS);
     if (dose && config.dose.steadyStateWindow > 0) observer.EnableSteadyState(config.dose.steadyState);
+    if (snapshots)
+      observer.EnableSnapshots(arguments.output / "snapshots.h5",
+                               drs::SelectSnapshotTimes(plan.commonGridNs, drs::kCommonGridPointsPerDecade,
+                                                        config.dose.snapshotsPerDecade));
   }
   catch (const std::exception& error)
   {
@@ -809,6 +839,7 @@ int Run(int argc, char** argv)
   else
     observer.FinishEmpty();  // no source (e.g. a Poisson draw of zero): zero counts on the grid
 
+  observer.CloseSnapshots();
   if (!observer.ModelProblem().empty()) throw ExitError(4, observer.ModelProblem());
   if (!observer.Failure().empty()) throw ExitError(1, observer.Failure());
   if (!observer.Finished()) throw ExitError(1, "the chemistry history ended without its end-of-history checks");
@@ -864,6 +895,7 @@ int Run(int argc, char** argv)
        << " records=" << recordCount << " chemistrySeed=" << config.chemistrySeed;
   if (dose)
     done << " stoppedEarly=" << (observer.StoppedEarly() ? 1 : 0) << " endTime_ns=" << config.endpointNs;
+  if (snapshots) done << " snapshotFrames=" << observer.SnapshotFrameTimesNs().size();
   done << " wallTime_s=" << wallTimeS << " output=" << arguments.output.string();
   std::cout << done.str() << std::endl;
   return 0;

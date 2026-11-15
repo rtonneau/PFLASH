@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <exception>
 #include <limits>
 #include <map>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 
 #include "DrsPhysicsList.hh"
@@ -89,7 +91,18 @@ void ActivationObserver::Configure(const std::vector<InjectedSource>& sources,
   for (const auto& source : sources)
     checked.push_back(ActivationObserverCheck::Source{source.sourceIndex, source.activationTime / ns,
                                                       source.firstTrackId, source.lastTrackId});
+  fActivationTimesNs.clear();
+  for (const auto& source : checked) fActivationTimesNs.push_back(source.activationTimeNs);
+  std::sort(fActivationTimesNs.begin(), fActivationTimesNs.end());
+  fActivationTimesNs.erase(std::unique(fActivationTimesNs.begin(), fActivationTimesNs.end()),
+                           fActivationTimesNs.end());
   fCheck.emplace(std::move(checked));
+  fSnapshotWriter.reset();
+  fSnapshotTimesNs.clear();
+  fSnapshotSpecies.clear();
+  fFrameTimesNs.clear();
+  fWatched.clear();
+  fNextFrame = fNextArm = fArmedIntervals = fSnapshotsDropped = fSnapshotsMerged = fSnapshotMolecules = 0;
   fRecordTimesNs = recordTimesNs;
   fBox = box;
   fCounterId = counterId;
@@ -111,6 +124,112 @@ void ActivationObserver::EnableSteadyState(const SteadyStateSettings& settings)
 {
   static_cast<void>(SteadyStateDetector(settings, 1));  // validates the settings now, not when the chemistry runs
   fSteadySettings = settings;
+}
+
+void ActivationObserver::EnableSnapshots(const std::filesystem::path& file, const std::vector<double>& timesNs)
+{
+  if (!fCheck) throw std::invalid_argument("ActivationObserver: EnableSnapshots before Configure");
+  if (timesNs.empty()) throw std::invalid_argument("ActivationObserver: no snapshot time");
+  for (std::size_t i = 0; i < timesNs.size(); ++i)
+    if (!std::isfinite(timesNs[i]) || !(timesNs[i] > 0) || (i > 0 && !(timesNs[i] > timesNs[i - 1])))
+      throw std::invalid_argument("ActivationObserver: snapshot times must be positive and increasing");
+  // The species table: the same species as the species tables, sorted by name.
+  const auto names = AllSpeciesNames();
+  const std::vector<std::string> table(names.begin(), names.end());
+  fSnapshotWriter = std::make_unique<SnapshotWriter>(file, table);  // throws on a missing HDF5 or a bad file
+  fSnapshotSpecies.clear();
+  for (std::size_t i = 0; i < table.size(); ++i) fSnapshotSpecies.emplace(table[i], static_cast<std::uint8_t>(i));
+  fSnapshotTimesNs = timesNs;
+  fFrameTimesNs.clear();
+  fWatched.clear();
+  fNextFrame = fNextArm = fArmedIntervals = fSnapshotsDropped = fSnapshotsMerged = fSnapshotMolecules = 0;
+}
+
+void ActivationObserver::CloseSnapshots()
+{
+  if (!fSnapshotWriter) return;
+  try
+  {
+    fSnapshotWriter->Close();
+  }
+  catch (const std::exception& e)
+  {
+    if (fFailure.empty()) fFailure = e.what();
+  }
+}
+
+void ActivationObserver::CaptureFrame(double labelNs, const std::vector<const G4Track*>& live)
+{
+  std::vector<float> positions;
+  std::vector<std::uint8_t> species;
+  positions.reserve(3 * live.size());
+  species.reserve(live.size());
+  for (const auto* track : live)
+  {
+    if (IsWater(*track)) continue;
+    const auto name = GetMolecule(track)->GetMolecularConfiguration()->GetName();
+    const auto found = fSnapshotSpecies.find(name);
+    if (found == fSnapshotSpecies.end())
+    {
+      Fail("snapshot: the live species " + name + " is not in the species table");
+      return;
+    }
+    const auto& p = track->GetPosition();
+    positions.push_back(static_cast<float>(p.x() / nm));
+    positions.push_back(static_cast<float>(p.y() / nm));
+    positions.push_back(static_cast<float>(p.z() / nm));
+    species.push_back(found->second);
+  }
+  try
+  {
+    fSnapshotWriter->AddFrame(labelNs, positions, species);
+  }
+  catch (const std::exception& e)
+  {
+    Fail(std::string("snapshot: ") + e.what());
+    return;
+  }
+  fFrameTimesNs.push_back(labelNs);
+  fSnapshotMolecules += species.size();
+}
+
+// Writes every requested time not yet captured that is <= limitNs (< when
+// strict), labelled with the clock time. An empty history has no clock to
+// speak of (its tracks are gone, the clock stays behind): the requested time
+// labels the frame.
+void ActivationObserver::CaptureDue(double limitNs, bool strict, double clockNs,
+                                    const std::vector<const G4Track*>& live)
+{
+  bool first = true;
+  while (fFailure.empty() && fNextFrame < fSnapshotTimesNs.size())
+  {
+    const double requested = fSnapshotTimesNs[fNextFrame];
+    if (strict ? !(requested < limitNs) : !(requested <= limitNs)) break;
+    // Times closer than the clock can tell apart (the early picoseconds) share one frame.
+    if (first) CaptureFrame(live.empty() ? requested : clockNs, live);
+    else ++fSnapshotsMerged;
+    first = false;
+    ++fNextFrame;
+  }
+}
+
+// Adds the watched times of the next inter-activation interval (see the header).
+void ActivationObserver::ArmNextInterval(G4double endTime)
+{
+  if (!fSnapshotWriter || fArmedIntervals >= fActivationTimesNs.size()) return;
+  const std::size_t k = fArmedIntervals++;
+  const double low = fActivationTimesNs[k] + kSnapshotGuardNs;
+  const double high =
+      (k + 1 < fActivationTimesNs.size() ? fActivationTimesNs[k + 1] : endTime / ns) - kSnapshotGuardNs;
+  while (fNextArm < fSnapshotTimesNs.size() && fSnapshotTimesNs[fNextArm] <= low) ++fNextArm;  // at the stage boundary
+  auto* scheduler = G4Scheduler::Instance();
+  while (fNextArm < fSnapshotTimesNs.size() && fSnapshotTimesNs[fNextArm] < high)
+  {
+    const G4double watched = fSnapshotTimesNs[fNextArm] * ns;
+    scheduler->AddWatchedTime(watched);
+    fWatched.insert(watched);
+    ++fNextArm;
+  }
 }
 
 void ActivationObserver::Fail(const std::string& message)
@@ -176,6 +295,18 @@ void ActivationObserver::StartProcessing()
     fSteadyState.emplace(*fSteadySettings, names.size());
   }
   TakeSnapshot(LiveTracks());  // the history before its first source: empty
+  if (fSnapshotWriter)
+  {
+    // No molecule exists before the first activation: no frame there.
+    const double first = fActivationTimesNs.front() - kSnapshotGuardNs;
+    while (fNextFrame < fSnapshotTimesNs.size() && fSnapshotTimesNs[fNextFrame] < first)
+    {
+      ++fNextFrame;
+      ++fSnapshotsDropped;
+    }
+    fNextArm = fNextFrame;
+    ArmNextInterval(G4Scheduler::Instance()->GetEndTime());
+  }
   fProgressStart = fLastProgress = std::chrono::steady_clock::now();
 }
 
@@ -206,10 +337,30 @@ void ActivationObserver::UserPostTimeStepAction()
   auto* scheduler = G4Scheduler::Instance();
   const G4double next = holder->GetNextTime();  // DBL_MAX when no list is left
   const G4double now = scheduler->GetGlobalTime();
-  if (next < scheduler->GetEndTime() && (!(now < next) || !holder->MainListsNOTEmpty()))
+  const bool beforeMerge = next < scheduler->GetEndTime() && (!(now < next) || !holder->MainListsNOTEmpty());
+  std::vector<const G4Track*> live;
+  if (fSnapshotWriter && fNextFrame < fSnapshotTimesNs.size())
   {
-    const auto live = LiveTracks();
+    // A watched time reached (the step was clipped to it), or the last step
+    // before a delayed list joins (frames in the guard before the list).
+    const double nowNs = now / ns;
+    if (beforeMerge)
+    {
+      live = LiveTracks();
+      CaptureDue(next / ns, true, nowNs, live);
+    }
+    else if (fSnapshotTimesNs[fNextFrame] <= nowNs + 1.0e-9)
+    {
+      live = LiveTracks();
+      CaptureDue(nowNs + 1.0e-9, false, nowNs, live);
+    }
+    if (!fFailure.empty()) return;
+  }
+  if (beforeMerge)
+  {
+    if (live.empty()) live = LiveTracks();
     TakeSnapshot(live);
+    if (fFailure.empty()) ArmNextInterval(scheduler->GetEndTime());
     if (fFailure.empty() && fSteadyState) SampleSteadyState(live, now);
   }
 }
@@ -218,6 +369,13 @@ void ActivationObserver::NewStage()
 {
   if (!fFailure.empty()) return;
   const G4double now = G4Scheduler::Instance()->GetGlobalTime();
+  if (fSnapshotWriter && now / ns != fCheck->NextActivationTimeNs())
+  {
+    // A stage G4Scheduler runs at a watched time (a snapshot time inside an
+    // interval), not an activation: nothing joined.
+    const auto watched = fWatched.lower_bound(now - 1.0e-9 * ns);
+    if (watched != fWatched.end() && *watched <= now + 1.0e-9 * ns) return;
+  }
   const auto live = LiveTracks();
   std::vector<std::size_t> activated;
   const auto problem = fCheck->CheckStage(now / ns, CheckTracks(live), activated);
@@ -229,6 +387,9 @@ void ActivationObserver::NewStage()
   // The sources were built with the counter inactive; they count from now on.
   auto* counter = G4MoleculeCounterManager::Instance();
   for (const auto i : activated) counter->AddMolecule(live[i], now);
+  // No frame here: the pre-chemical molecules of this activation dissociate in
+  // the first step, so the snapshot times at (or just after) it are taken at the
+  // first UserPostTimeStepAction that follows.
 }
 
 void ActivationObserver::UserReactionAction(const G4Track&, const G4Track&, const std::vector<G4Track*>* products)
@@ -249,6 +410,13 @@ void ActivationObserver::EndProcessing()
 {
   if (!fFailure.empty()) return;
   ReportProgress(true);
+  if (fSnapshotWriter && fNextFrame < fSnapshotTimesNs.size())
+  {
+    // Times at the end (or after the last live track vanished): the end state.
+    const double endNs = G4Scheduler::Instance()->GetEndTime() / ns;
+    CaptureDue(endNs + 1.0e-9, false, endNs, LiveTracks());
+    if (!fFailure.empty()) return;
+  }
   try
   {
     Finish();

@@ -123,6 +123,33 @@ Outputs:
   one track, E(beam-off) and the injected deposit both equal to the final
   deposit). `history` exits with status 1 when any check fails.
 
+### Snapshots (doseCutoff, optional)
+
+`snapshots = true` (off by default; `snapshotsPerDecade`, default 3, at most
+10) writes `snapshots.h5`: the position (float32, nm) and species id (uint8) of
+every live molecule at the common-grid times closest to 3 per decade, up to
+beam-off. The species-name table is stored once (`/species`), each frame is a
+group `/frames/frameNNNNNN` with a `time_ns` attribute, and the datasets are
+chunked with shuffle and gzip when the HDF5 build has the zlib filter
+(`ledger.json` `snapshots.compressed` says which). Water tracks are not
+stored, as in the species tables.
+
+- HDF5 is optional (`-DDRS_WITH_HDF5=AUTO|ON|OFF`, default AUTO). Without it
+  `snapshots = true` is a config error (exit status 2) and no file is written.
+- Frame times are the clock times of the frames: a snapshot time is taken at the
+  first step end at or after it, and times closer than a few picoseconds to
+  another share one frame (`ledger.json` `snapshots.mergedIntoAnotherFrame`).
+  The history is stepped to each snapshot time, so with snapshots on its random
+  stream differs from a run without them: the results agree statistically, not
+  bit for bit.
+- `scripts/snapshots.py` reads the file (`snapshots.read(path)` gives the species
+  names and the frames), `scripts/movie.py snapshots.h5 --out movie.gif` makes a
+  3D scatter animation coloured by species (mp4 when ffmpeg is installed and
+  the output is `.mp4`; `--species`, `--max-points`, `--box-half-side-nm`). Both
+  need numpy, h5py and matplotlib (Pillow for GIFs).
+- `snapshots-check` (built with HDF5) validates a file against `species.csv`;
+  the `HistorySnapshots` ctest runs it.
+
 ## Build and test
 
 Build against the patched Geant4 11.4.3 install, and pass its path on the

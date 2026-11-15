@@ -45,6 +45,29 @@ std::vector<double> BuildCommonLogGrid(double startNs, int pointsPerDecade, doub
   return grid;
 }
 
+std::vector<double> SelectSnapshotTimes(const std::vector<double>& grid, int gridPointsPerDecade,
+                                        int snapshotsPerDecade)
+{
+  Require(!grid.empty(), "the grid to select snapshot times from is empty");
+  CheckDensity(gridPointsPerDecade);
+  Require(snapshotsPerDecade >= 1 && snapshotsPerDecade <= gridPointsPerDecade,
+          "snapshots per decade must be in [1, the grid's points per decade]");
+  std::vector<std::size_t> indices;
+  // The last grid point is the appended end; the regular points are before it.
+  for (std::size_t s = 0;; ++s)
+  {
+    const auto index = static_cast<std::size_t>(
+        std::llround(static_cast<double>(s) * gridPointsPerDecade / snapshotsPerDecade));
+    if (index + 1 >= grid.size()) break;
+    if (indices.empty() || index > indices.back()) indices.push_back(index);
+  }
+  std::vector<double> times;
+  times.reserve(indices.size() + 1);
+  for (const auto index : indices) times.push_back(grid[index]);
+  times.push_back(grid.back());
+  return times;
+}
+
 std::vector<AgePoint> BuildAgeGrids(const std::vector<double>& arrivalTimesNs, double startAgeNs,
                                     int pointsPerDecade, double endNs)
 {

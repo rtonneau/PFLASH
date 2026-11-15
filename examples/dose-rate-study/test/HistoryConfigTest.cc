@@ -126,6 +126,19 @@ void TestDoseCutoff()
   const auto off = Read(kDose + "steadyStateWindow = 0\n");
   CHECK(off.dose.steadyStateWindow == 0 && off.dose.steadyState.window == 1);
 
+  // Snapshots: off by default; 3 per decade when on.
+  CHECK(!config.dose.snapshots && config.dose.snapshotsPerDecade == 3);
+  const auto snaps = Read(kDose + "snapshots = true\n");
+  CHECK(snaps.dose.snapshots && snaps.dose.snapshotsPerDecade == 3);
+  const auto dense = Read(kDose + "snapshots = on\nsnapshotsPerDecade = 10\n");
+  CHECK(dense.dose.snapshots && dense.dose.snapshotsPerDecade == 10);
+  CHECK(!Read(kDose + "snapshots = false\n").dose.snapshots);
+  CHECK_THROWS(Read(kDose + "snapshots = yes\n"), "not true or false");
+  CHECK_THROWS(Read(kDose + "snapshots = true\nsnapshotsPerDecade = 0\n"), "outside");
+  CHECK_THROWS(Read(kDose + "snapshots = true\nsnapshotsPerDecade = 11\n"), "outside");
+  CHECK_THROWS(Read(kDose + "snapshotsPerDecade = 3\n"), "needs snapshots = true");
+  CHECK_THROWS(Read(kPoisson + "snapshots = true\n"), "not used by mode poisson");
+
   // The end is beam-off: no endpoint, no timed grid keys; the box is required.
   CHECK_THROWS(Read(kDose + "endpointNs = 100\n"), "not used by mode doseCutoff");
   CHECK_THROWS(Read(kDose + "gridPointsPerDecade = 5\n"), "not used by mode doseCutoff");

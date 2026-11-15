@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include "TimeGrid.hh"
+
 namespace drs
 {
 namespace
@@ -51,7 +53,8 @@ const std::set<std::string> kDoseKeys{"doseRateGyPerS",       "doseGy",
                                       "sourceSeed",           "firstPacket",
                                       "maxArrivals",          "steadyStateWindow",
                                       "steadyStateTolerance", "steadyStateMinMean",
-                                      "ageGridPointsPerDecade"};
+                                      "ageGridPointsPerDecade", "snapshots",
+                                      "snapshotsPerDecade"};
 
 std::set<std::string> AllKeys()
 {
@@ -123,6 +126,14 @@ class Entries
     const auto values = Numbers(key);
     Require(values.size() == 1, Where(key) + "expected one number");
     return values.front();
+  }
+
+  bool Bool(const std::string& key) const
+  {
+    const auto& token = Get(key).value;
+    if (token == "true" || token == "on" || token == "1") return true;
+    if (token == "false" || token == "off" || token == "0") return false;
+    Fail(Where(key) + "'" + token + "' is not true or false");
   }
 
   std::uint64_t Unsigned(const std::string& key, std::uint64_t minimum, std::uint64_t maximum) const
@@ -318,6 +329,12 @@ HistoryConfig ReadHistoryConfig(std::istream& in, const std::filesystem::path& b
     }
     if (entries.Has("ageGridPointsPerDecade"))
       d.ageGridPointsPerDecade = static_cast<int>(entries.Unsigned("ageGridPointsPerDecade", 0, 100));
+    if (entries.Has("snapshots")) d.snapshots = entries.Bool("snapshots");
+    if (entries.Has("snapshotsPerDecade"))
+    {
+      d.snapshotsPerDecade = static_cast<int>(entries.Unsigned("snapshotsPerDecade", 1, kCommonGridPointsPerDecade));
+      Require(d.snapshots, entries.Where("snapshotsPerDecade") + "needs snapshots = true");
+    }
   }
   return config;
 }

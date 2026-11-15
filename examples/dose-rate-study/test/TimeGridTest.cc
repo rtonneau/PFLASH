@@ -127,10 +127,38 @@ void TestCumulativeEnergyRejects()
   CHECK_THROWS(CumulativeEnergy({1.0}, {1}, -1), "precision");
 }
 
+void TestSnapshotTimes()
+{
+  // 1 ps to 1 ns: 30 regular points then 1 ns. Three per decade takes the
+  // grid points 0, 3, 7, 10, 13, 17, 20, 23, 27 (nearest to k * 10 / 3), then 1 ns.
+  const auto grid = BuildCommonLogGrid(kCommonGridStartNs, kCommonGridPointsPerDecade, 1.0);
+  const auto times = SelectSnapshotTimes(grid, kCommonGridPointsPerDecade, 3);
+  const std::vector<std::size_t> expected{0, 3, 7, 10, 13, 17, 20, 23, 27};
+  CHECK(times.size() == expected.size() + 1);
+  for (std::size_t k = 0; k < expected.size(); ++k) CHECK(times[k] == grid[expected[k]]);
+  CHECK(times.back() == 1.0);
+  for (std::size_t k = 1; k < times.size(); ++k) CHECK(times[k] > times[k - 1]);
+
+  // The full density is the whole grid; one per decade keeps the decades.
+  CHECK(SelectSnapshotTimes(grid, 10, 10) == grid);
+  const auto decades = SelectSnapshotTimes(grid, 10, 1);
+  CHECK(decades.size() == 4);
+  CHECK(decades[1] == grid[10] && decades[2] == grid[20] && decades.back() == 1.0);
+
+  // A one-point grid is its own selection.
+  const auto single = BuildCommonLogGrid(1e-3, 10, 1e-3);
+  CHECK(SelectSnapshotTimes(single, 10, 3) == single);
+
+  CHECK_THROWS(SelectSnapshotTimes({}, 10, 3), "empty");
+  CHECK_THROWS(SelectSnapshotTimes(grid, 10, 0), "snapshots per decade");
+  CHECK_THROWS(SelectSnapshotTimes(grid, 10, 11), "snapshots per decade");
+}
+
 }  // namespace
 
 int main()
 {
+  TestSnapshotTimes();
   TestCommonGrid();
   TestCommonGridIsSharedAcrossEnds();
   TestCommonGridRejects();

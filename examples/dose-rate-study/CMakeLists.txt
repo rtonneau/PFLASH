@@ -17,6 +17,44 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # library below never includes Geant4, so its tests run without a kernel.
 find_package(Geant4 11.4.3 REQUIRED)
 
+# ---- HDF5 (optional: the particle snapshots, snapshots.h5) ------------------
+# AUTO uses HDF5 when found, ON requires it, OFF does not look for it. Without
+# it SnapshotWriterNoHdf5.cc is built and `snapshots = true` is a config error.
+set(DRS_WITH_HDF5 "AUTO" CACHE STRING "HDF5 support for snapshots.h5: AUTO, ON or OFF")
+set_property(CACHE DRS_WITH_HDF5 PROPERTY STRINGS AUTO ON OFF)
+string(TOUPPER "${DRS_WITH_HDF5}" drsWithHdf5)
+set(DRS_HAS_HDF5 FALSE)
+if(drsWithHdf5 STREQUAL "ON")
+  find_package(HDF5 REQUIRED COMPONENTS C CXX)
+elseif(drsWithHdf5 STREQUAL "AUTO")
+  find_package(HDF5 COMPONENTS C CXX)
+elseif(NOT drsWithHdf5 STREQUAL "OFF")
+  message(FATAL_ERROR "DRS_WITH_HDF5 must be AUTO, ON or OFF (got '${DRS_WITH_HDF5}')")
+endif()
+add_library(drsHdf5 INTERFACE)
+if(NOT drsWithHdf5 STREQUAL "OFF" AND HDF5_FOUND)
+  # One link target for C + C++, whatever form find_package(HDF5) produced:
+  # the HDF5 package config (vcpkg), FindHDF5 targets, or FindHDF5 variables.
+  if(TARGET hdf5::hdf5-shared AND TARGET hdf5::hdf5_cpp-shared)
+    target_link_libraries(drsHdf5 INTERFACE hdf5::hdf5_cpp-shared hdf5::hdf5-shared)
+    set(DRS_HAS_HDF5 TRUE)
+  elseif(TARGET hdf5::hdf5 AND TARGET hdf5::hdf5_cpp)
+    target_link_libraries(drsHdf5 INTERFACE hdf5::hdf5_cpp hdf5::hdf5)
+    set(DRS_HAS_HDF5 TRUE)
+  elseif(HDF5_LIBRARIES AND HDF5_INCLUDE_DIRS)
+    target_link_libraries(drsHdf5 INTERFACE ${HDF5_LIBRARIES})
+    target_include_directories(drsHdf5 INTERFACE ${HDF5_INCLUDE_DIRS})
+    set(DRS_HAS_HDF5 TRUE)
+  elseif(drsWithHdf5 STREQUAL "ON")
+    message(FATAL_ERROR "HDF5 was found but provides no usable C + C++ link target")
+  endif()
+endif()
+if(DRS_HAS_HDF5)
+  message(STATUS "HDF5: snapshots.h5 available")
+else()
+  message(STATUS "HDF5 not used: snapshots.h5 unavailable (snapshots = true is a config error)")
+endif()
+
 # ---- Geant4-free core logic -------------------------------------------------
 add_library(drsCore STATIC
   src/PrecursorPacket.cc
@@ -27,6 +65,12 @@ add_library(drsCore STATIC
   src/ActivationObserverCheck.cc
   src/TimeGrid.cc
   src/SteadyStateDetector.cc)
+if(DRS_HAS_HDF5)
+  target_sources(drsCore PRIVATE src/SnapshotWriter.cc)
+  target_link_libraries(drsCore PUBLIC drsHdf5)
+else()
+  target_sources(drsCore PRIVATE src/SnapshotWriterNoHdf5.cc)
+endif()
 target_include_directories(drsCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(MSVC)
   target_compile_options(drsCore PUBLIC /W4 /utf-8)
@@ -40,6 +84,12 @@ set(drsPhysicsSources
   src/PureWaterChemistryList.cc
   src/PureWaterReactions.cc
   src/HistoryBoundedBrownianAction.cc)
+
+# snapshots-check: validate the snapshots.h5 of a doseCutoff history (HDF5 only).
+if(DRS_HAS_HDF5)
+  add_executable(snapshots-check src/SnapshotCheck.cc)
+  target_link_libraries(snapshots-check PRIVATE drsCore)
+endif()
 
 # ---- Geant4 application: capture ---------------------------------------------
 # capture: shoot N primaries across the capture box, write one PrecursorPacket
@@ -78,6 +128,10 @@ foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfi
   target_link_libraries(${testName} PRIVATE drsCore)
   add_test(NAME ${testName} COMMAND ${testName})
 endforeach()
+
+add_executable(SnapshotWriterTest test/SnapshotWriterTest.cc)
+target_link_libraries(SnapshotWriterTest PRIVATE drsCore)
+add_test(NAME SnapshotWriterTest COMMAND SnapshotWriterTest ${drsTestOutput}/snapshot-writer-test)
 
 add_executable(CaptureLibraryTest test/CaptureLibraryTest.cc)
 target_link_libraries(CaptureLibraryTest PRIVATE drsCore)
@@ -143,10 +197,31 @@ add_test(NAME HistoryDoseSteadyState
     -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunHistoryDose.cmake)
 set_tests_properties(HistoryDoseCutoff HistoryDoseSteadyState PROPERTIES FIXTURES_REQUIRED DrsCaptureLibrary)
 
+# ---- History snapshots (1e4 Gy/s, 0.005 Gy) -----------------------------------
+# The HistoryDoseCutoff history with `snapshots = true`: snapshots.h5 is
+# written and checked (snapshots-check: frames, species counts against
+# species.csv, positions in the box); the same history without the key writes
+# no HDF5 file. Without HDF5 the key is a config error (exit status 2).
+if(DRS_HAS_HDF5)
+  set(drsSnapshotsCheck $<TARGET_FILE:snapshots-check>)
+else()
+  set(drsSnapshotsCheck "")
+endif()
+add_test(NAME HistorySnapshots
+  COMMAND ${CMAKE_COMMAND}
+    -DHISTORY=$<TARGET_FILE:history>
+    -DSNAPSHOTS_CHECK=${drsSnapshotsCheck}
+    -DWORK_DIR=${drsTestOutput}/history-snapshots
+    -DLIBRARY=${drsCaptureLibrary}
+    "-DCONFIG=${drsDoseConfig}|doseGy = 0.005|steadyStateWindow = 0"
+    -DBOX_HALF_SIDE_NM=2000
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunHistorySnapshots.cmake)
+set_tests_properties(HistorySnapshots PROPERTIES FIXTURES_REQUIRED DrsCaptureLibrary)
+
 # The Geant4 DLLs of the install found through Geant4_DIR go first on PATH, so
 # another Geant4 on the user's PATH is never loaded by mistake.
 if(WIN32)
   get_filename_component(drsGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
-  set_tests_properties(CaptureSmoke HistorySmoke HistoryDoseCutoff HistoryDoseSteadyState PROPERTIES
+  set_tests_properties(CaptureSmoke HistorySmoke HistoryDoseCutoff HistoryDoseSteadyState HistorySnapshots PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${drsGeant4BinDir}")
 endif()
