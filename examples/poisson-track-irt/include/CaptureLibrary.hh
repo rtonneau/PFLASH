@@ -64,8 +64,18 @@ std::vector<LibraryEntry> ReadLibraryIndex(std::istream& in);
 struct PacketLibrary
 {
   std::vector<LibraryEntry> entries;
-  std::vector<PrecursorPacket> packets;  // packets[i] belongs to entries[i]
+  std::vector<PrecursorPacket> packets;  // packets[i] belongs to entries[i]; empty until loaded
 };
+
+// Reads <directory>/library.csv only; packets get one empty slot per entry.
+PacketLibrary LoadLibraryIndex(const std::filesystem::path& directory);
+
+// Reads and checks (as LoadPacketLibrary) the packets with the given indices into
+// their slots; the others are left as they are. A history needs only the packets of
+// its schedule, which is much faster than reading a large library.
+void LoadPackets(PacketLibrary& library, const std::filesystem::path& directory,
+                 const std::vector<std::size_t>& indices, const std::string& expectedTag,
+                 const PacketLimits& limits = {});
 
 // Reads <directory>/library.csv and every packet (Read with expectedTag and
 // limits), then requires each packet to match its row exactly (particle,

@@ -187,8 +187,7 @@ std::vector<LibraryEntry> ReadLibraryIndex(std::istream& in)
   return entries;
 }
 
-PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
-                                const std::string& expectedTag, const PacketLimits& limits)
+PacketLibrary LoadLibraryIndex(const std::filesystem::path& directory)
 {
   const auto indexPath = directory / kLibraryIndexName;
   std::ifstream index(indexPath, std::ios::binary);
@@ -202,10 +201,30 @@ PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
   {
     Fail(indexPath.string() + ": " + e.what());
   }
+  library.packets.resize(library.entries.size());
+  return library;
+}
 
-  library.packets.reserve(library.entries.size());
-  for (const auto& entry : library.entries)
+PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
+                                const std::string& expectedTag, const PacketLimits& limits)
+{
+  auto library = LoadLibraryIndex(directory);
+  std::vector<std::size_t> all(library.entries.size());
+  for (std::size_t i = 0; i < all.size(); ++i) all[i] = i;
+  LoadPackets(library, directory, all, expectedTag, limits);
+  return library;
+}
+
+void LoadPackets(PacketLibrary& library, const std::filesystem::path& directory,
+                 const std::vector<std::size_t>& indices, const std::string& expectedTag,
+                 const PacketLimits& limits)
+{
+  library.packets.resize(library.entries.size());
+  for (const auto i : indices)
   {
+    Require(i < library.entries.size(), "packet index " + std::to_string(i) + " is not in the library (" +
+                                            std::to_string(library.entries.size()) + " packets)");
+    const auto& entry = library.entries[i];
     const auto path = directory / entry.file;
     std::ifstream in(path, std::ios::binary);
     Require(static_cast<bool>(in), "cannot open packet file " + path.string());
@@ -224,9 +243,8 @@ PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
     Require(packet.energyDepositEv == entry.energyDepositEv, where + "energy deposit");
     Require(packet.escapedEnergyEv == entry.escapedEnergyEv, where + "escaped energy");
     Require(packet.molecules.size() == entry.moleculeCount, where + "molecule count");
-    library.packets.push_back(std::move(packet));
+    library.packets[i] = std::move(packet);
   }
-  return library;
 }
 
 LibraryTotals SumLibrary(const std::vector<LibraryEntry>& entries)

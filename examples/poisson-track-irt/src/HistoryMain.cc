@@ -409,13 +409,25 @@ int Run(int argc, char** argv)
   ptirt::PacketLibrary library;
   try
   {
-    library = ptirt::LoadPacketLibrary(config.libraryDir, ptirt::kPacketCompatibilityTag);
+    library = ptirt::LoadLibraryIndex(config.libraryDir);
   }
   catch (const std::runtime_error& error)
   {
     throw ExitError(2, "packet library " + config.libraryDir.string() + ": " + error.what());
   }
-  const auto schedule = MakeSchedule(config, library.packets.size());
+  const auto schedule = MakeSchedule(config, library.entries.size());
+  try
+  {
+    // Only the packets this history injects are read (and checked against library.csv).
+    std::vector<std::size_t> used;
+    used.reserve(schedule.arrivals.size());
+    for (const auto& arrival : schedule.arrivals) used.push_back(arrival.packetIndex);
+    ptirt::LoadPackets(library, config.libraryDir, used, ptirt::kPacketCompatibilityTag);
+  }
+  catch (const std::runtime_error& error)
+  {
+    throw ExitError(2, "packet library " + config.libraryDir.string() + ": " + error.what());
+  }
   std::vector<double> grid;
   try
   {
