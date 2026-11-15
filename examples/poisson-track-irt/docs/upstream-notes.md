@@ -1,5 +1,7 @@
 # Notes for a possible Geant4 upstream report
 
+> **Note (2026-11-14):** the stock build these notes came from was reverted (ADR 0010, status note); the example builds only against patched Geant4 again. The observations about stock Geant4 11.4.3 still apply.
+
 **Status: prepared, not submitted.** Nothing here has been sent to the Geant4
 collaboration, and no issue number exists. These are observations from Geant4 11.4.3
 (stock) in this example, with the evidence that supports each. They are candidates; the

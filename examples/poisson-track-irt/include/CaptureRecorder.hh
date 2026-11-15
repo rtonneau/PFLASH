@@ -5,66 +5,28 @@
 //                                         record the primary (particle, energy, origin)
 //   SteppingAction          AddDeposit    every step's total energy deposit
 //   TrackingAction          EndTrack      kinetic energy of tracks leaving the world
-//   CaptureTimeStepAction   StartChemistry
-//                                         the chemistry is about to start: digest the
-//                                         molecules waiting in the G4ITTrackHolder
-//                                         delayed lists (all at the 1 ps precursor age)
-//                           BeforeTimeStep
-//                                         before every chemistry step (stock only)
-//                           OnReaction    every reaction (stock only, before the capture)
-//   EventAction             EndEvent      check for coincident molecules (CoincidenceCheck.hh),
-//                                         then build, validate, write and re-read the packet
+//   CaptureTimeStepAction   CaptureAtChemistryStart
+//                                         copy the molecules waiting in the
+//                                         G4ITTrackHolder delayed lists (all at the
+//                                         1 ps precursor age), then stop the chemistry
+//   EventAction             EndEvent      build, validate, write and re-read the packet
 //
 // Capture runs inside G4DNAChemistryManager::Run (G4Scheduler::Process), so no
-// Geant4 source is instrumented. Where the molecules are read depends on the
-// build (BuildMode.hh):
-//
-//   patched  at StartChemistry: the delayed-list molecules are copied and the
-//            chemistry is stopped before its first step. No chemistry random
-//            number is drawn and nothing reacts.
-//   stock    Geant4 gives no hook before the start-up contacts, so StartChemistry
-//            only reseeds G4Random with ChemistrySeedFor(physics seed) and the
-//            chemistry runs on. Geant4 first takes zero-time steps (the start-up
-//            interaction steps, then the reactions of molecules that start in
-//            contact). BeforeTimeStep copies the main-list molecules at the first
-//            step of positive length, which is still at 1 ps, then stops the
-//            chemistry. The packet is the state after the start-up contacts;
-//            each molecule carries the id of the start-up reaction that made it
-//            (PacketMolecule::productGroup, 0 for the others).
-//
-// The library entry of each stock packet also carries its "second trial"
-// (SecondTrial in CaptureLibrary.hh): the within-Reff alive pairs and the sum of
-// their contact probabilities, which is what the IRT_syn stepper would apply on
-// its first trial of the packet. The patched build records none.
-//
-// capture.json records, per packet, the digest of the molecules waiting at
-// chemistry start and the digest of the molecules captured (PacketDigest.hh).
-//
-// Coincident molecules (two at exactly one position) fail the event with
-// PTIRT_COINCIDENT_MOLECULES count=<n> positions=<p> before anything is written,
-// unless they are the products of one start-up reaction (same nonzero
-// productGroup); those are counted, and the pairs among them that could react
-// (effective reaction radius > 0) are counted per species pair.
+// Geant4 source is instrumented. The chemistry is stopped before its first step:
+// no chemistry random number is drawn and nothing reacts.
 //
 // Errors never throw through the Geant4 kernel: the first one is stored
-// (Failure()), the chemistry is stopped and the run is aborted. A state that the
-// stock capture cannot interpret (a molecule still delayed, a stopped-but-alive
-// track, a secondary not yet merged) is reported as PTIRT_CAPTURE_STATE.
+// (Failure()), the chemistry is stopped and the run is aborted.
 #pragma once
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <filesystem>
-#include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "CaptureLibrary.hh"
-#include "CoincidenceCheck.hh"
 #include "PrecursorPacket.hh"
-#include "ReactionRadius.hh"
 
 #include "G4ThreeVector.hh"
 #include "globals.hh"
@@ -79,7 +41,9 @@ namespace ptirt
 struct CaptureSettings
 {
   std::filesystem::path outputDirectory;  // must exist; packets are written here
-  long long firstPhysicsSeed = 1;         // event i uses firstPhysicsSeed + i
+  long long firstPhysicsSeed = 1;         // event i uses firstPhysicsSeed + i (i counts every event)
+  std::size_t maxEmpty = 0;               // events without any precursor molecule that may be
+                                          // skipped (recorded, no packet); one more is an error
   PacketLimits limits;
 };
 
@@ -88,24 +52,6 @@ struct CaptureProvenance
 {
   std::array<double, 3> primaryOriginNm{};  // gun position (packet coordinates are relative to it)
   std::array<double, 3> primaryDirection{};
-  // DigestMolecules of the molecules waiting in the delayed lists when the
-  // chemistry started, and of the molecules in the packet. Equal in the patched
-  // build; the stock build captures later, so they differ once a start-up
-  // contact has changed or moved a molecule.
-  std::uint64_t chemistryStartDigest = 0;
-  std::uint64_t capturedDigest = 0;
-  // Stock only (0 in the patched build): the seed given to G4Random when the
-  // chemistry started, the zero-length steps taken before the capture and the
-  // reactions that fired in them.
-  std::uint64_t chemistrySeed = 0;
-  int startupZeroSteps = 0;
-  int startupReactions = 0;
-  // The allowed coincidences of the packet (a refused one fails the capture, so
-  // none is ever recorded): exempt positions and molecules, reactive pairs.
-  CoincidenceSummary coincidence;
-  // Stock only: the second trial by species pair (PairLabel): pairs within the
-  // effective radius, and the sum of their contact probabilities.
-  std::map<std::string, std::pair<std::size_t, double>> secondTrialPerPair;
 };
 
 class CaptureRecorder
@@ -117,6 +63,11 @@ class CaptureRecorder
   // may change it). Must be set before the first event.
   void SetCaptureHalfSide(G4double halfSide) { fHalfSide = halfSide; }
 
+  // true: BeginEvent places the primary on the -z face of the capture box
+  // (z = -halfSide + 1 nm, x and y uniform in (-halfSide, halfSide)) and aims it
+  // along +z, drawing from the packet's physics seed. Known after /run/initialize.
+  void SetEntryFace(bool entryFace) { fEntryFace = entryFace; }
+
   // Empty if the gun can be used: one particle, positive energy, unit
   // direction, position strictly inside the capture box.
   // (Non-const gun: G4VPrimaryGenerator::GetParticlePosition is not const.)
@@ -125,32 +76,36 @@ class CaptureRecorder
   void BeginEvent(G4int eventId, G4ParticleGun& gun);
   void AddDeposit(G4double energyDeposit);
   void EndTrack(const G4Track& track);
-  void StartChemistry();
-  void BeforeTimeStep(G4double timeStep);
-  void OnReaction(const G4Track& trackA, const G4Track& trackB,
-                  const std::vector<G4Track*>* products);
+  void CaptureAtChemistryStart();
   void EndEvent(const G4Event& event);
 
   const std::string& Failure() const { return fFailure; }
   const std::vector<LibraryEntry>& Entries() const { return fEntries; }
   const std::vector<CaptureProvenance>& Provenance() const { return fProvenance; }
+  // Skipped events (no precursor molecule in the capture box): seed and deposit.
+  struct SkippedEvent
+  {
+    long long physicsSeed = 0;
+    double energyDepositEv = 0;
+  };
+  const std::vector<SkippedEvent>& Skipped() const { return fSkipped; }
   G4double GetCaptureHalfSide() const { return fHalfSide; }
 
  private:
   void Fail(const std::string& message);
-  void CaptureStartupState();
-  // Stock only; reads fMolecules and fMoleculeSpecies. perPair gets the split by species pair.
-  SecondTrial ComputeSecondTrial(std::map<std::string, std::pair<std::size_t, double>>& perPair);
 
   CaptureSettings fSettings;
   G4double fHalfSide = 0;
+  bool fEntryFace = false;
   std::string fFailure;
   std::vector<LibraryEntry> fEntries;
   std::vector<CaptureProvenance> fProvenance;
+  std::vector<SkippedEvent> fSkipped;
 
   // Current event.
   G4int fEventId = -1;
   long long fPhysicsSeed = 0;
+  long long fEventsBegun = 0;
   G4String fPrimaryParticle;
   G4double fPrimaryEnergy = 0;
   G4ThreeVector fOrigin;
@@ -158,23 +113,7 @@ class CaptureRecorder
   G4double fDeposit = 0;
   G4double fEscaped = 0;
   bool fChemistryStarted = false;
-  bool fCaptured = false;  // fMolecules holds the packet molecules
   std::vector<PacketMolecule> fMolecules;
-  std::vector<std::string> fMoleculeSpecies;  // stock only: label of each fMolecules entry (fRadii)
-  ConfigurationRadii fRadii;
-  std::uint64_t fChemistryStartDigest = 0;
-  std::uint64_t fCapturedDigest = 0;
-  std::uint64_t fChemistrySeed = 0;
-  int fStartupZeroSteps = 0;
-  int fStartupReactions = 0;
-  // Stock only: the molecules made by the start-up reactions so far -> the
-  // 1-based number of the reaction. Keyed by track address, so the map does
-  // not depend on when Geant4 assigns a product's track id (11.4.3 source
-  // suggests it is already set in UserReactionAction; the first attempt keyed
-  // by id failed, cause not established). A reaction removes its reactants from the map
-  // (they die), so a later track that reuses an address is not mistaken for a
-  // product, and a later product replaces a stale entry.
-  std::map<const G4Track*, int> fProductReaction;
 };
 
 }  // namespace ptirt

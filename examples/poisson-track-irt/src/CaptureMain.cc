@@ -10,14 +10,14 @@
 //                 is issued after it if the macro did not.
 //   --output      library directory; created if missing, must be empty
 //   --count       number of primaries = packets, 1..1000000
-//   --first-seed  physics seed of packet 0; packet i uses S + i (1 <= S + i <= 2147483647;
-//                 the stock build derives the chemistry seed from it and needs
-//                 S + i <= 1073741823, see PacketDigest.hh)
+//   --first-seed  physics seed of event 0; event i uses S + i (1 <= S + i <= 2147483647)
+//   --max-empty   events without any precursor molecule in the box that may be
+//                 skipped (default 0: such an event is an error); a skipped event
+//                 gives no packet, so packet seeds are then no longer S + index;
+//                 skipped seeds and deposits are listed in capture.json
 //
 // Output: <dir>/packet-00000.txt ..., <dir>/library.csv, <dir>/capture.json
-// (see CaptureLibrary.hh). What a packet holds depends on the build: the
-// molecules at chemistry start (patched) or after the start-up contacts (stock),
-// see CaptureRecorder.hh; capture.json names the stage and the build. Exit status 0 and a "CAPTURE_DONE" line on success;
+// (see CaptureLibrary.hh). Exit status 0 and a "CAPTURE_DONE" line on success;
 // otherwise a "CAPTURE_ERROR <reason>" line on stderr and a nonzero status:
 // 2 bad arguments, 3 macro or initialization failure, 4 chemistry model is not
 // IRT_syn, 1 failure during the run or while writing the library.
@@ -33,7 +33,6 @@
 #include <string>
 #include <vector>
 
-#include "BuildMode.hh"
 #include "CaptureActions.hh"
 #include "CaptureDetectorConstruction.hh"
 #include "CaptureLibrary.hh"
@@ -41,8 +40,6 @@
 #include "ExamplePhysicsList.hh"
 #include "ExamplePhysicsTag.hh"
 #include "Ledger.hh"
-#include "LoadedModules.hh"
-#include "PacketDigest.hh"
 #include "PrecursorPacket.hh"
 
 #include "G4RunManager.hh"
@@ -57,10 +54,6 @@ namespace
 {
 
 constexpr long long kMaxSeed = std::numeric_limits<int>::max();  // G4Random::setTheSeed takes a 32-bit long on Windows
-// Highest physics seed. The stock build derives the chemistry seed from it
-// (ChemistrySeedFor) and keeps the two seed ranges apart.
-constexpr long long kMaxPhysicsSeed =
-    ptirt::kPatchedGeant4 ? kMaxSeed : static_cast<long long>(ptirt::kMaxStockPhysicsSeed);
 constexpr long long kMaxCount = 1'000'000;
 
 struct Arguments
@@ -69,6 +62,7 @@ struct Arguments
   std::filesystem::path output;
   long long count = 0;
   long long firstSeed = 0;
+  long long maxEmpty = 0;
 };
 
 class ExitError : public std::runtime_error
@@ -101,7 +95,7 @@ long long ParseInteger(const std::string& option, const std::string& text)
 Arguments ParseArguments(int argc, char** argv)
 {
   Arguments arguments;
-  bool haveMacro = false, haveOutput = false, haveCount = false, haveSeed = false;
+  bool haveMacro = false, haveOutput = false, haveCount = false, haveSeed = false, haveMaxEmpty = false;
   for (int i = 1; i < argc; ++i)
   {
     const std::string option = argv[i];
@@ -122,6 +116,11 @@ Arguments ParseArguments(int argc, char** argv)
       arguments.count = ParseInteger(option, value);
       haveCount = true;
     }
+    else if (option == "--max-empty" && !haveMaxEmpty)
+    {
+      arguments.maxEmpty = ParseInteger(option, value);
+      haveMaxEmpty = true;
+    }
     else if (option == "--first-seed" && !haveSeed)
     {
       arguments.firstSeed = ParseInteger(option, value);
@@ -134,13 +133,10 @@ Arguments ParseArguments(int argc, char** argv)
     throw ExitError(2, "usage: capture --macro <file> --output <dir> --count <N> --first-seed <S>");
   if (arguments.count < 1 || arguments.count > kMaxCount)
     throw ExitError(2, "--count must be in 1.." + std::to_string(kMaxCount));
-  if (arguments.firstSeed < 1 || arguments.firstSeed > kMaxPhysicsSeed - (arguments.count - 1))
-    throw ExitError(2, "--first-seed S needs 1 <= S and S + count - 1 <= " +
-                           std::to_string(kMaxPhysicsSeed) +
-                           (ptirt::kPatchedGeant4
-                                ? std::string()
-                                : std::string(" (stock Geant4 build: the chemistry seed is derived from "
-                                              "the physics seed and needs a physics seed below 2^30)")));
+  if (arguments.maxEmpty < 0 || arguments.maxEmpty > kMaxCount)
+    throw ExitError(2, "--max-empty must be in 0.." + std::to_string(kMaxCount));
+  if (arguments.firstSeed < 1 || arguments.firstSeed > kMaxSeed - (arguments.count + arguments.maxEmpty - 1))
+    throw ExitError(2, "--first-seed S needs 1 <= S and S + count + max-empty - 1 <= " + std::to_string(kMaxSeed));
   if (!std::filesystem::is_regular_file(arguments.macro))
     throw ExitError(2, "macro not found: " + arguments.macro.string());
   arguments.macro = std::filesystem::absolute(arguments.macro);
@@ -212,8 +208,7 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
 
   auto root = JsonValue::Object();
   root.Set("format", JsonValue::String("ptirt-capture-summary"));
-  root.Set("formatVersion", JsonValue::Integer(2));
-  root.Set("buildMode", JsonValue::String(ptirt::kBuildModeName));
+  root.Set("formatVersion", JsonValue::Integer(1));
   root.Set("compatibilityTag", JsonValue::String(ptirt::kPacketCompatibilityTag));
   root.Set("geant4Version", JsonValue::String(G4Version));
   root.Set("physics", JsonValue::String("G4EmDNAPhysics_option2"));
@@ -225,13 +220,17 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
   root.Set("captureHalfSide_nm", JsonValue::Real(halfSide / nm));
   root.Set("captureTime_ns", JsonValue::Real(picosecond / ns));
   root.Set("firstPhysicsSeed", JsonValue::Integer(arguments.firstSeed));
+  root.Set("maxEmptyEvents", JsonValue::Integer(arguments.maxEmpty));
+  auto skipped = JsonValue::Array();
+  for (const auto& s : recorder.Skipped())
+  {
+    auto item = JsonValue::Object();
+    item.Set("physicsSeed", JsonValue::Integer(s.physicsSeed));
+    item.Set("energyDeposit_eV", JsonValue::Real(s.energyDepositEv));
+    skipped.Append(item);
+  }
+  root.Set("skippedEmptyEvents", skipped);
   root.Set("libraryIndex", JsonValue::String(ptirt::kLibraryIndexName));
-
-  // Full paths of the Geant4 libraries this process loaded (empty where the
-  // operating system cannot list them).
-  auto modules = JsonValue::Array();
-  for (const auto& module : ptirt::ListLoadedGeant4Modules()) modules.Append(JsonValue::String(module));
-  root.Set("loadedGeant4Modules", modules);
 
   auto tolerance = JsonValue::Object();
   tolerance.Set("energyAbsTol_eV", JsonValue::Real(limits.energyAbsTolEv));
@@ -264,47 +263,6 @@ void WriteSummary(const std::filesystem::path& path, const Arguments& arguments,
     packet.Set("escapedEnergy_eV", JsonValue::Real(e.escapedEnergyEv));
     packet.Set("energyResidual_eV", JsonValue::Real(e.energyResidualEv));
     packet.Set("moleculeCount", JsonValue::Integer(static_cast<long long>(e.moleculeCount)));
-    if (e.secondTrial.has_value())
-    {
-      auto trial = JsonValue::Object();
-      trial.Set("pairs", JsonValue::Integer(static_cast<long long>(e.secondTrial->pairs)));
-      trial.Set("expectedReactions", JsonValue::Real(e.secondTrial->expectedReactions));
-      auto perPair = JsonValue::Object();
-      for (const auto& [label, value] : provenance[i].secondTrialPerPair)
-      {
-        auto item = JsonValue::Object();
-        item.Set("pairs", JsonValue::Integer(static_cast<long long>(value.first)));
-        item.Set("expectedReactions", JsonValue::Real(value.second));
-        perPair.Set(label, item);
-      }
-      trial.Set("perPair", perPair);
-      packet.Set("secondTrial", trial);
-    }
-    packet.Set("captureStage", JsonValue::String(ptirt::kCaptureStageName));
-    // 16 hexadecimal digits: a JSON number cannot hold all 64 bits.
-    packet.Set("chemistryStartDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].chemistryStartDigest)));
-    packet.Set("capturedDigest", JsonValue::String(ptirt::DigestToHex(provenance[i].capturedDigest)));
-    // Molecules at one position are refused (the capture fails), so this is always 0;
-    // "coincidence" holds the allowed ones: products of one start-up reaction, with the
-    // pairs among them that could react (effective reaction radius > 0).
-    packet.Set("coincidentMolecules", JsonValue::Integer(0));
-    {
-      const auto& c = provenance[i].coincidence;
-      auto perPair = JsonValue::Object();
-      for (const auto& [label, n] : c.perPair) perPair.Set(label, JsonValue::Integer(static_cast<long long>(n)));
-      auto coincidence = JsonValue::Object();
-      coincidence.Set("exempt", JsonValue::Integer(static_cast<long long>(c.exemptPositions)));  // positions
-      coincidence.Set("exemptMolecules", JsonValue::Integer(static_cast<long long>(c.exemptMolecules)));
-      coincidence.Set("reactivePairs", JsonValue::Integer(static_cast<long long>(c.reactivePairs)));
-      coincidence.Set("perPair", perPair);
-      packet.Set("coincidence", coincidence);
-    }
-    if constexpr (!ptirt::kPatchedGeant4)
-    {
-      packet.Set("chemistrySeed", JsonValue::Integer(static_cast<long long>(provenance[i].chemistrySeed)));
-      packet.Set("startupZeroSteps", JsonValue::Integer(provenance[i].startupZeroSteps));
-      packet.Set("startupReactions", JsonValue::Integer(provenance[i].startupReactions));
-    }
     packets.Append(packet);
   }
   root.Set("packets", packets);
@@ -326,6 +284,7 @@ int Run(int argc, char** argv)
   ptirt::CaptureSettings settings;
   settings.outputDirectory = arguments.output;
   settings.firstPhysicsSeed = arguments.firstSeed;
+  settings.maxEmpty = static_cast<std::size_t>(arguments.maxEmpty);
   settings.limits = limits;
   ptirt::CaptureRecorder recorder(settings);
   // Declared before the run manager so it outlives it: G4Scheduler keeps a
@@ -349,7 +308,11 @@ int Run(int argc, char** argv)
     throw ExitError(4, problem);
 
   recorder.SetCaptureHalfSide(detector->GetHalfSide());
+  recorder.SetEntryFace(detector->GetEntryFace());
   runManager->BeamOn(static_cast<G4int>(arguments.count));
+  // Skipped empty events left packets missing: one more run per round, seeds continuing.
+  while (recorder.Failure().empty() && recorder.Entries().size() < static_cast<std::size_t>(arguments.count))
+    runManager->BeamOn(static_cast<G4int>(arguments.count - static_cast<long long>(recorder.Entries().size())));
 
   if (!recorder.Failure().empty()) throw ExitError(1, recorder.Failure());
   const auto& entries = recorder.Entries();

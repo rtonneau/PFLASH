@@ -18,8 +18,8 @@ namespace
 
 constexpr const char* kHeader =
     "packetIndex,file,physicsSeed,primaryParticle,primaryEnergyEv,energyDepositEv,"
-    "escapedEnergyEv,energyResidualEv,moleculeCount,secondTrialPairs,secondTrialExpectedReactions";
-constexpr std::size_t kFieldCount = 11;
+    "escapedEnergyEv,energyResidualEv,moleculeCount";
+constexpr std::size_t kFieldCount = 9;
 
 [[noreturn]] void Fail(const std::string& message)
 {
@@ -138,16 +138,7 @@ void WriteLibraryIndex(std::ostream& out, const std::vector<LibraryEntry>& entri
     out << e.packetIndex << ',' << e.file << ',' << e.physicsSeed << ',' << e.primaryParticle << ','
         << FormatReal(e.primaryEnergyEv) << ',' << FormatReal(e.energyDepositEv) << ','
         << FormatReal(e.escapedEnergyEv) << ',' << FormatReal(e.energyResidualEv) << ','
-        << e.moleculeCount << ',';
-    if (e.secondTrial.has_value())
-    {
-      Require(std::isfinite(e.secondTrial->expectedReactions) && e.secondTrial->expectedReactions >= 0,
-              where + "second-trial expected reactions must be finite and >= 0");
-      out << e.secondTrial->pairs << ',' << FormatReal(e.secondTrial->expectedReactions);
-    }
-    else
-      out << ',';
-    out << '\n';
+        << e.moleculeCount << '\n';
   }
   if (!out) Fail("output stream failed");
 }
@@ -190,24 +181,13 @@ std::vector<LibraryEntry> ReadLibraryIndex(std::istream& in)
     Require(e.energyResidualEv == Residual(e),
             where + "energyResidualEv does not equal deposit + escaped - primary");
     e.moleculeCount = ParseCount(f[8], where);
-    Require(f[9].empty() == f[10].empty(),
-            where + "secondTrialPairs and secondTrialExpectedReactions must both be set or both empty");
-    if (!f[9].empty())
-    {
-      SecondTrial trial;
-      trial.pairs = ParseCount(f[9], where);
-      trial.expectedReactions = ParseReal(f[10], where);
-      Require(trial.expectedReactions >= 0, where + "negative expectedReactions");
-      e.secondTrial = trial;
-    }
     entries.push_back(std::move(e));
   }
   Require(!entries.empty(), "the index lists no packet");
   return entries;
 }
 
-PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
-                                const std::string& expectedTag, const PacketLimits& limits)
+PacketLibrary LoadLibraryIndex(const std::filesystem::path& directory)
 {
   const auto indexPath = directory / kLibraryIndexName;
   std::ifstream index(indexPath, std::ios::binary);
@@ -221,10 +201,30 @@ PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
   {
     Fail(indexPath.string() + ": " + e.what());
   }
+  library.packets.resize(library.entries.size());
+  return library;
+}
 
-  library.packets.reserve(library.entries.size());
-  for (const auto& entry : library.entries)
+PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
+                                const std::string& expectedTag, const PacketLimits& limits)
+{
+  auto library = LoadLibraryIndex(directory);
+  std::vector<std::size_t> all(library.entries.size());
+  for (std::size_t i = 0; i < all.size(); ++i) all[i] = i;
+  LoadPackets(library, directory, all, expectedTag, limits);
+  return library;
+}
+
+void LoadPackets(PacketLibrary& library, const std::filesystem::path& directory,
+                 const std::vector<std::size_t>& indices, const std::string& expectedTag,
+                 const PacketLimits& limits)
+{
+  library.packets.resize(library.entries.size());
+  for (const auto i : indices)
   {
+    Require(i < library.entries.size(), "packet index " + std::to_string(i) + " is not in the library (" +
+                                            std::to_string(library.entries.size()) + " packets)");
+    const auto& entry = library.entries[i];
     const auto path = directory / entry.file;
     std::ifstream in(path, std::ios::binary);
     Require(static_cast<bool>(in), "cannot open packet file " + path.string());
@@ -243,9 +243,8 @@ PacketLibrary LoadPacketLibrary(const std::filesystem::path& directory,
     Require(packet.energyDepositEv == entry.energyDepositEv, where + "energy deposit");
     Require(packet.escapedEnergyEv == entry.escapedEnergyEv, where + "escaped energy");
     Require(packet.molecules.size() == entry.moleculeCount, where + "molecule count");
-    library.packets.push_back(std::move(packet));
+    library.packets[i] = std::move(packet);
   }
-  return library;
 }
 
 LibraryTotals SumLibrary(const std::vector<LibraryEntry>& entries)

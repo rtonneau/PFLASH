@@ -3,6 +3,7 @@
 - [Next: reusable timed-source IRT_syn example](working-example-handoff.md) — current user priority, completed-work checkpoints, implementation reuse and practical delivery criteria.
 - [Poisson-track IRT_syn example: integration guide](../../examples/poisson-track-irt/README.md) — standalone example, required Geant4 patches, build and run commands, hooks and known limits.
 - [Matched intertrack result](beam-on-intertrack-result.md) — completed shared-versus-independent comparison; coupling remains unresolved in the tested regime.
+- [Continuous-beam G-values vs dose rate (0.1–1000 Gy/s)](continuous-beam-gvalues.md) — 100 keV e⁻, 5 µm box, IRT_syn to 1 ms: no effect at 1 Gy/s, onset at 10 Gy/s, strong at 100–1000 Gy/s.
 
 - [Recurring chemistry sources](recurring-chemistry-sources.md) — bounded particle reference.
 - [Mesoscopic recurring-source feasibility](mesoscopic-feasibility.md) — bounded coupling experiment, limitations and NO-GO decision.

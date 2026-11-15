@@ -41,12 +41,9 @@ struct Entry
   std::size_t line = 0;
 };
 
-// Unsigned() reads at most 10 digits.
-constexpr std::uint64_t kMaxContactLimit = 9'999'999'999;
-
 const std::set<std::string> kCommonKeys{"mode",       "libraryDir",      "endpointNs",   "chemistrySeed",
                                         "worldHalfSideUm", "halfBoxUm", "gridMinAgeNs", "gridPointsPerDecade",
-                                        "newOldContactLimit"};
+                                        "progressIntervalS"};
 const std::set<std::string> kScheduleKeys{"scheduleFile"};
 const std::set<std::string> kSingleKeys{"singleSource"};
 const std::set<std::string> kPoissonKeys{"rateHz", "exposureS", "sourceSeed", "regionCenterUm", "regionHalfSizeUm"};
@@ -193,8 +190,8 @@ HistoryConfig ReadHistoryConfig(std::istream& in, const std::filesystem::path& b
   HistoryConfig config;
   config.mode = ParseMode(entries);
   for (const auto* key : {"mode", "libraryDir", "endpointNs", "chemistrySeed", "worldHalfSideUm", "halfBoxUm",
-                          "gridMinAgeNs", "gridPointsPerDecade", "newOldContactLimit", "scheduleFile", "singleSource", "rateHz",
-                          "exposureS", "sourceSeed", "regionCenterUm", "regionHalfSizeUm"})
+                          "gridMinAgeNs", "gridPointsPerDecade", "progressIntervalS", "scheduleFile", "singleSource",
+                          "rateHz", "exposureS", "sourceSeed", "regionCenterUm", "regionHalfSizeUm"})
     if (entries.Has(key))
       Require(IsKeyOfMode(key, config.mode),
               entries.Where(key) + "not used by mode " + HistoryModeName(config.mode));
@@ -226,9 +223,11 @@ HistoryConfig ReadHistoryConfig(std::istream& in, const std::filesystem::path& b
   Require(config.gridMinAgeNs < config.endpointNs, "gridMinAgeNs must be smaller than endpointNs");
   if (entries.Has("gridPointsPerDecade"))
     config.gridPointsPerDecade = static_cast<int>(entries.Unsigned("gridPointsPerDecade", 1, 100));
-
-  if (entries.Has("newOldContactLimit"))
-    config.newOldContactLimit = entries.Unsigned("newOldContactLimit", 0, kMaxContactLimit);
+  if (entries.Has("progressIntervalS"))
+  {
+    config.progressIntervalS = entries.Number("progressIntervalS");
+    Require(config.progressIntervalS >= 0, entries.Where("progressIntervalS") + "must be zero (off) or positive");
+  }
 
   if (config.mode == HistoryMode::Deterministic || config.mode == HistoryMode::Single)
     config.scheduleFile = entries.Path("scheduleFile", baseDirectory);

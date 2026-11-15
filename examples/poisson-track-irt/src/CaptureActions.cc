@@ -57,19 +57,7 @@ void CaptureEventAction::EndOfEventAction(const G4Event* event)
 
 void CaptureTimeStepAction::StartProcessing()
 {
-  fRecorder.StartChemistry();
-}
-
-void CaptureTimeStepAction::UserPreTimeStepAction()
-{
-  // Called once the step length is chosen and before the step is taken.
-  fRecorder.BeforeTimeStep(G4Scheduler::Instance()->GetTimeStep());
-}
-
-void CaptureTimeStepAction::UserReactionAction(const G4Track& trackA, const G4Track& trackB,
-                                               const std::vector<G4Track*>* products)
-{
-  fRecorder.OnReaction(trackA, trackB, products);
+  fRecorder.CaptureAtChemistryStart();
 }
 
 void CaptureActionInitialization::Build() const

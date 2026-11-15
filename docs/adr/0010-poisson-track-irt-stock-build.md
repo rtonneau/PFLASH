@@ -1,5 +1,7 @@
 # poisson-track-irt builds on stock Geant4; patched build kept selectable
 
+> **Status: reverted (2026-11-14).** The stock build described here was removed from `main` by reverting PR #4. `examples/poisson-track-irt` again requires Geant4 11.4.3 with the local patches in `patches/geant4/11.4.3/` (see the example README). This record is kept as the history of the attempt and of what it measured.
+
 _ADR 0010, recorded 2026-11-10 (session 2026-11-10__poisson-track-irt-stock-build)._
 
 <!-- Format adapted from mattpocock-skills' domain-modeling (ADR-FORMAT.md): https://github.com/mattpocock/skills.git -->
