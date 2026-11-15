@@ -1,0 +1,19 @@
+# capture.mac: default capture configuration (read by `capture --macro`).
+# Commands are applied one line at a time; do not put /run/beamOn here
+# (capture shoots --count primaries itself).
+/control/verbose 0
+/run/verbose 0
+/tracking/verbose 0
+/scheduler/verbose 0
+
+# Geometry (PreInit): the 4 um water capture box, centred in a 20 um water world.
+/drs/capture/boxHalfSide 2 um
+/drs/capture/worldHalfSide 10 um
+
+/run/initialize
+
+# Primary: one 500 keV electron per event. capture places it 1 nm inside the
+# -z world face at a random (x, y) over the box face and aims it along +z
+# (any /gun/position or /gun/direction here is overridden).
+/gun/particle e-
+/gun/energy 500 keV

@@ -1,0 +1,125 @@
+# Runs one bounded `history` and checks its outputs.
+#   -DHISTORY=<exe> -DWORK_DIR=<dir> -DLIBRARY=<dir> -DCONFIG=<lines> [-DSCHEDULE=<rows>]
+#       (inputs: see HistoryTestInput.cmake)
+#   -DEXPECT_SOURCES=<n>     sources injected (activations.csv rows)
+#   -DEXPECT_STAGES=<n>      distinct activation times observed
+#   -DEXPECT_LAST_TIME=<t>   last record time of species.csv, as written (the endpoint)
+#   [-DSAME_GRID_AS=<dir>]   another history output whose species.csv has the same record times
+#   [-DEXPECT_BOX_NM=<x>]    the reflecting half box the ledger must report
+# The history itself fails on any activation, preservation or end check; this
+# script checks that it said so, and what it wrote.
+foreach(var EXPECT_SOURCES EXPECT_STAGES EXPECT_LAST_TIME)
+  if(NOT DEFINED ${var})
+    message(FATAL_ERROR "RunHistorySmoke.cmake: ${var} is not set")
+  endif()
+endforeach()
+include("${CMAKE_CURRENT_LIST_DIR}/HistoryTestInput.cmake")
+
+execute_process(
+  COMMAND "${HISTORY}" --config "${historyConfig}" --output "${historyOutput}"
+  RESULT_VARIABLE result
+  OUTPUT_VARIABLE out
+  ERROR_VARIABLE err)
+file(WRITE "${WORK_DIR}/history.log" "${out}\n--- stderr ---\n${err}")
+if(NOT result EQUAL 0)
+  message(FATAL_ERROR "history failed (${result}):\n${err}\n${out}")
+endif()
+string(REGEX MATCH "HISTORY_DONE[^\n]*" doneLine "${out}")
+if(doneLine STREQUAL "")
+  message(FATAL_ERROR "history printed no HISTORY_DONE line:\n${out}")
+endif()
+message(STATUS "${doneLine}")
+if(NOT doneLine MATCHES " sources=${EXPECT_SOURCES} " OR NOT doneLine MATCHES " stages=${EXPECT_STAGES} ")
+  message(FATAL_ERROR "expected sources=${EXPECT_SOURCES} and stages=${EXPECT_STAGES}")
+endif()
+
+foreach(file species.csv activations.csv ledger.json)
+  if(NOT EXISTS "${historyOutput}/${file}")
+    message(FATAL_ERROR "history did not write ${file}")
+  endif()
+endforeach()
+
+# ledger.json: every check passed, and the end-of-history checks are recorded.
+file(READ "${historyOutput}/ledger.json" ledger)
+# With no source (EXPECT_SOURCES 0) the chemistry does not run and there are no
+# end-of-history checks to report.
+if(EXPECT_SOURCES EQUAL 0)
+  set(ledgerChecks "\"allPassed\": true" "\"chemistryRan\": false" "\"chemistrySeed\": ")
+else()
+  set(ledgerChecks "\"allPassed\": true" "\"chemistryRan\": true" "\"allLiveAtEndTime\": true"
+                   "\"counterMatchesLive\": true" "\"allInsideBox\": true" "\"chemistrySeed\": ")
+endif()
+foreach(check ${ledgerChecks})
+  string(FIND "${ledger}" "${check}" found)
+  if(found EQUAL -1)
+    message(FATAL_ERROR "ledger.json lacks ${check}")
+  endif()
+endforeach()
+if(DEFINED EXPECT_BOX_NM AND NOT ledger MATCHES "\"reflectingHalfBox_nm\": ${EXPECT_BOX_NM}[,\n]")
+  message(FATAL_ERROR "ledger.json does not report the reflecting half box ${EXPECT_BOX_NM} nm")
+endif()
+
+# activations.csv: one row per source, observed activation time = expected.
+file(STRINGS "${historyOutput}/activations.csv" activationLines)
+list(POP_FRONT activationLines activationHeader)
+list(LENGTH activationLines rowCount)
+if(NOT rowCount EQUAL EXPECT_SOURCES)
+  message(FATAL_ERROR "activations.csv has ${rowCount} rows, expected ${EXPECT_SOURCES}")
+endif()
+foreach(line IN LISTS activationLines)
+  string(REPLACE "," ";" fields "${line}")
+  list(GET fields 6 expected)
+  list(GET fields 7 observed)
+  if(expected STREQUAL "" OR NOT observed STREQUAL expected)
+    message(FATAL_ERROR "activation observed at '${observed}', expected '${expected}': ${line}")
+  endif()
+endforeach()
+
+# species.csv: absolute record times, increasing, ending at the endpoint.
+# UTF-8: species names hold a degree sign, which the default ASCII reading of
+# file(STRINGS) would take as a line break.
+function(read_record_times csv outVar)
+  file(STRINGS "${csv}" lines ENCODING UTF-8)
+  list(POP_FRONT lines header)
+  if(NOT header STREQUAL "timeNs,species,count,history,chemistrySeed")
+    message(FATAL_ERROR "${csv}: unexpected header '${header}'")
+  endif()
+  set(times "")
+  foreach(line IN LISTS lines)
+    string(REGEX REPLACE ",.*" "" time "${line}")
+    if(NOT time MATCHES "^[0-9][0-9.eE+-]*$")
+      message(FATAL_ERROR "${csv}: '${time}' is not a record time: ${line}")
+    endif()
+    list(APPEND times "${time}")
+  endforeach()
+  list(REMOVE_DUPLICATES times)
+  set(${outVar} "${times}" PARENT_SCOPE)
+endfunction()
+read_record_times("${historyOutput}/species.csv" times)
+list(LENGTH times timeCount)
+if(timeCount LESS 2)
+  message(FATAL_ERROR "species.csv holds ${timeCount} record times")
+endif()
+set(previousTime "")
+foreach(time IN LISTS times)
+  if(NOT previousTime STREQUAL "" AND NOT time GREATER previousTime)
+    message(FATAL_ERROR "species.csv record times do not increase: ${previousTime} then ${time}")
+  endif()
+  set(previousTime "${time}")
+endforeach()
+string(REGEX MATCH "\"recordTimeCount\": ([0-9]+)" ledgerCount "${ledger}")
+if(NOT CMAKE_MATCH_1 EQUAL timeCount)
+  message(FATAL_ERROR "species.csv holds ${timeCount} record times, ledger.json says '${CMAKE_MATCH_1}'")
+endif()
+list(GET times -1 lastTime)
+if(NOT lastTime STREQUAL EXPECT_LAST_TIME)
+  message(FATAL_ERROR "the last record time is ${lastTime}, expected the endpoint ${EXPECT_LAST_TIME}")
+endif()
+message(STATUS "species.csv: ${timeCount} record times, last ${lastTime} ns")
+if(DEFINED SAME_GRID_AS)
+  read_record_times("${SAME_GRID_AS}/species.csv" otherTimes)
+  if(NOT times STREQUAL otherTimes)
+    message(FATAL_ERROR "the record times differ from those of ${SAME_GRID_AS}/species.csv")
+  endif()
+  message(STATUS "same record times as ${SAME_GRID_AS}/species.csv")
+endif()
