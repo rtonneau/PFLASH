@@ -2,7 +2,11 @@
 """Mean G(t) +- SE over realizations of the doseCutoff histories of a plan.
 
 Usage:
-    python analyze.py --plan <plan dir>/plan.json [--out <dir>] [--allow-partial]
+    python analyze.py --plan <plan dir>/plan.json [--plan <other plan.json> ...] [--out <dir>]
+                      [--allow-partial]
+
+Several --plan options pool their runs (a run listed by two plans, same output dir, counts once);
+--out defaults to the directory of the first plan.
 
 Reads species.csv and ledger.json of every run (run_study.ps1 output). A run without a passing
 ledger is an error unless --allow-partial, which skips it (listed in the summary).
@@ -17,7 +21,8 @@ its own beam-off row, aggregated separately (gvalues_beamoff.csv, mean beam-off 
 `extrapolated` when any realization's row is (steady-state stop: N held at the last window mean);
 `extrapolatedFraction` gives the share.
 
-Writes gvalues_time.csv and gvalues_beamoff.csv:
+Writes gvalues_time.csv and gvalues_beamoff.csv (all rates), plus one gvalues_time_rate<r>.csv per
+rate (same columns):
   rate_Gy_s,time_ns,species,G_cum,SE_cum,G_final,SE_final,n_realizations,extrapolated,extrapolatedFraction
   (beam-off: plus mean_dose_Gy, mean_beamOff_ns)
 """
@@ -108,13 +113,20 @@ def _row(time_ns, species, members):
             "extrapolated": int(nx > 0), "extrapolatedFraction": nx / len(members)}
 
 
-def load_runs(plan_path, allow_partial):
+def load_runs(plan_path, allow_partial, by_rate=None, seen=None):
+    """Adds the runs of one plan to by_rate; seen (set of normalised output dirs) skips repeats."""
     plan_dir = os.path.dirname(os.path.abspath(plan_path))
     with open(plan_path, encoding="utf-8") as handle:
         plan = json.load(handle)
-    by_rate, skipped = defaultdict(list), []
+    by_rate = defaultdict(list) if by_rate is None else by_rate
+    seen = set() if seen is None else seen
+    skipped = []
     for run in plan["runs"]:
         out = os.path.join(plan_dir, run["output"])
+        key = os.path.normcase(os.path.normpath(out))
+        if key in seen:
+            continue
+        seen.add(key)
         ledger_path = os.path.join(out, "ledger.json")
         ok = False
         if os.path.exists(ledger_path):
@@ -141,15 +153,21 @@ def write_csv(path, rows, cols):
             writer.writerow({k: ("%.10g" % v if isinstance(v, float) else v) for k, v in row.items()})
 
 
+def rate_file_name(rate):
+    return "gvalues_time_rate%s.csv" % ("%g" % rate)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--plan", required=True)
+    parser.add_argument("--plan", required=True, action="append")
     parser.add_argument("--out")
     parser.add_argument("--allow-partial", action="store_true")
     args = parser.parse_args(argv)
-    out = args.out or os.path.dirname(os.path.abspath(args.plan))
+    out = args.out or os.path.dirname(os.path.abspath(args.plan[0]))
+    by_rate, seen, skipped = defaultdict(list), set(), []
     try:
-        _, by_rate, skipped = load_runs(args.plan, args.allow_partial)
+        for plan_path in args.plan:
+            skipped += load_runs(plan_path, args.allow_partial, by_rate, seen)[2]
     except (ValueError, OSError, KeyError) as error:
         print("analyze: " + str(error), file=sys.stderr)
         return 2
@@ -162,6 +180,9 @@ def main(argv=None):
             off_rows.append(dict(row, rate_Gy_s=rate, mean_beamOff_ns=row["time_ns"]))
     os.makedirs(out, exist_ok=True)
     write_csv(os.path.join(out, "gvalues_time.csv"), time_rows, TIME_COLS)
+    for rate in sorted(by_rate):
+        write_csv(os.path.join(out, rate_file_name(rate)),
+                  [r for r in time_rows if r["rate_Gy_s"] == rate], TIME_COLS)
     write_csv(os.path.join(out, "gvalues_beamoff.csv"), off_rows,
               TIME_COLS + ["mean_dose_Gy", "mean_beamOff_ns"])
     print("analyze: %d rates, %s realizations, skipped %s"

@@ -21,7 +21,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 DISPLAY = {"e_aq^-1": "e$_{aq}^-$", "°OH^0": "·OH", "H^0": "H", "H_2^0": "H$_2$",
-           "H2O2^0": "H$_2$O$_2$", "H3O^1": "H$_3$O$^+$", "OH^-1": "OH$^-$"}
+           "H2O2^0": "H$_2$O$_2$", "H3O^1": "H$_3$O$^+$", "OH^-1": "OH$^-$",
+           "HO_2°^0": "HO$_2$·", "O_2^-1": "O$_2^-$", "HO_2^-1": "HO$_2^-$", "O_2^0": "O$_2$"}
 
 
 def read_rows(path):

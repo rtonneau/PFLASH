@@ -188,7 +188,7 @@ Python: the GEANT4 conda env (numpy, matplotlib). Tests:
 python studies/merge_libraries.py --out <lib> <capture part dir> ...     # parallel captures, distinct seeds
 python studies/make_configs.py --library <lib> --study studies/study.json --out <plan dir> [--realizations 0.1=4 ...] [--snapshots]
 pwsh studies/run_study.ps1 -Plan <plan dir>/plan.json -Parallel N [-WallTimeCapS S]
-python studies/analyze.py --plan <plan dir>/plan.json [--allow-partial]
+python studies/analyze.py --plan <plan dir>/plan.json [--plan <other plan.json> ...] [--out <dir>] [--allow-partial]
 python studies/plot.py --data <plan dir> [--norm cum|final]
 python studies/spike_report.py <dir holding plan dirs>
 ```
@@ -203,7 +203,8 @@ python studies/spike_report.py <dir holding plan dirs>
   kept). Log: `run_log.csv` next to `plan.json`.
 - `analyze.py`: mean G(t) +- SE over realizations (ratio estimator, delta-method
   SE), by cumulative dose (`G_cum`) and by final dose (`G_final`), on the common
-  grid (`gvalues_time.csv`) and at beam-off (`gvalues_beamoff.csv`); rows held
+  grid (`gvalues_time.csv`, plus one `gvalues_time_rate<r>.csv` per rate) and at
+  beam-off (`gvalues_beamoff.csv`); several `--plan` options pool their runs; rows held
   by a steady-state stop are flagged `extrapolated`.
 - `spike_report.py`: per-run wall time, peak memory, arrivals, dose reached,
   live molecules, steady-state stop, snapshot size and estimated full cost

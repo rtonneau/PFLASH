@@ -130,6 +130,35 @@ class AnalyzeTest(unittest.TestCase):
         self.assertEqual(off["A"]["N"], 7.0)
 
 
+    def test_main_pools_plans_once_and_writes_per_rate_files(self):
+        species = ("timeNs,species,count,energyDepositEv,doseGy,gCumulativePer100eV,gFinalPer100eV,extrapolated\n"
+                   "1,A,%d,100,0.1,0,0,0\n2.5,A,7,300,0.3,0,0,0\n")
+        with tempfile.TemporaryDirectory() as d:
+            def run(rid, rate, n, ok=True):
+                out = os.path.join(d, "out", rid)
+                os.makedirs(out)
+                with open(os.path.join(out, "species.csv"), "w", encoding="utf-8") as h:
+                    h.write(species % n)
+                with open(os.path.join(out, "ledger.json"), "w", encoding="utf-8") as h:
+                    json.dump({"checks": {"allPassed": ok}}, h)
+                return {"id": rid, "rate_Gy_s": rate, "output": "out/" + rid}
+            runs = [run("a", 1.0, 10), run("b", 1.0, 30), run("c", 50.0, 5), run("bad", 50.0, 9, ok=False)]
+            for name, sel in (("p1.json", runs[:3]), ("p2.json", runs[1:])):
+                with open(os.path.join(d, name), "w", encoding="utf-8") as h:
+                    json.dump({"runs": sel}, h)
+            res = os.path.join(d, "res")
+            code = analyze.main(["--plan", os.path.join(d, "p1.json"), "--plan", os.path.join(d, "p2.json"),
+                                 "--out", res, "--allow-partial"])
+            self.assertEqual(code, 0)
+            self.assertEqual(sorted(os.listdir(res)), ["gvalues_beamoff.csv", "gvalues_time.csv",
+                                                       "gvalues_time_rate1.csv", "gvalues_time_rate50.csv"])
+            with open(os.path.join(res, "gvalues_time_rate1.csv"), encoding="utf-8") as h:
+                rows = list(analyze.csv.DictReader(h))
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["n_realizations"], "2")
+            self.assertAlmostEqual(float(rows[0]["G_cum"]), 20.0)
+
+
 class MergeTest(unittest.TestCase):
     def part(self, seeds, skipped, deposit=100.0):
         header = ["packetIndex", "file", "physicsSeed", "energyDepositEv", "moleculeCount"]
