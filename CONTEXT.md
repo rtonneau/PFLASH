@@ -219,6 +219,25 @@ so species from different packets can react. Independent histories provide
 statistical replicas; distributing their interacting packets among independent
 chemistry workers would change the model.
 
+**Dose cutoff** (dose-rate study):
+The target total dose of one irradiation history (1 Gy in the dose-rate study).
+Tracks arrive (the first at t = 0, the rest Poisson at the rate set by the mean
+dose rate) until the deposited dose reaches it; that arrival is **Beam-off**, the
+end of the history's chemistry. The delivered dose overshoots by at most one track.
+_Avoid_: "dose cap" (suggests discarding tracks), "exposure duration" (that fixes
+the time window instead).
+
+**Steady-state stop** (dose-rate study):
+Ending a history before **Beam-off** once every species' mean count over the last
+window of arrivals matches the previous window within a configured tolerance; G(t)
+beyond is extrapolated as steady-state count over cumulative energy and flagged.
+_Avoid_: "equilibrium" (the system is driven, not at equilibrium).
+
+**Particle snapshot** (dose-rate study):
+The positions and species of every live tracked molecule of a particle-based history
+at one record time, written opt-in for 3D movies. Distinct from the mesoscopic
+**Spatial snapshot**, which stores counts per cell.
+
 **Exposure duration** (planned feasibility study):
 The fixed primary-arrival window length, equal to nominal dose divided by requested
 mean dose rate. Poisson arrivals make each history's actual deposited dose fluctuate;
