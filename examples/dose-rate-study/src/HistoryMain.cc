@@ -36,6 +36,8 @@
 //                    arrival (WriteAgeSpeciesCsv);
 //   activations.csv  one row per source: scheduled, expected and observed
 //                    activation times, track IDs, energies;
+//   reactions.csv    one row per two-molecule reaction: time, reactants with
+//                    the source each came from, products (ReactionLog.hh);
 //   snapshots.h5     doseCutoff with `snapshots = true` only (needs HDF5): the
 //                    position and species of every live molecule at 3 times
 //                    per decade of the common grid (SnapshotWriter.hh; read it
@@ -704,13 +706,20 @@ drs::JsonValue MakeLedger(const LedgerInput& in)
   folds.Set("dissociationProducts", Count(in.dissociationFolds));
   folds.Set("reactionProducts", Count(in.observer.ProductFoldCount()));
   root.Set("reflectingBoxFolds", folds);
+  auto reactions = JsonValue::Object();
+  reactions.Set("logged", Count(in.observer.Reactions().Records().size()));
+  reactions.Set("interSource", Count(in.observer.Reactions().InterSourceCount()));
+  reactions.Set("unknownOriginReactants", Count(in.observer.Reactions().UnknownCount()));
+  reactions.Set("bulkProductsMatchedByPosition", Count(in.observer.Reactions().PositionMatchedCount()));
+  reactions.Set("bulkReactions", Count(in.observer.Reactions().BulkCount()));
+  root.Set("reactions", reactions);
   root.Set("wallTime_s", JsonValue::Real(in.wallTimeS));
   root.Set("outputs", [dose, snapshots = in.observer.SnapshotsEnabled()] {
     auto files = JsonValue::Array();
     files.Append(JsonValue::String("species.csv"));
     if (dose) files.Append(JsonValue::String("species_age.csv"));
     if (snapshots) files.Append(JsonValue::String("snapshots.h5"));
-    for (const char* name : {"activations.csv", "ledger.json"}) files.Append(JsonValue::String(name));
+    for (const char* name : {"activations.csv", "reactions.csv", "ledger.json"}) files.Append(JsonValue::String(name));
     return files;
   }());
   return root;
@@ -870,6 +879,8 @@ int Run(int argc, char** argv)
     WriteFile(arguments.output / "species.csv", [&](std::ostream& out) { drs::WriteSpeciesCsv(out, rows, true); });
   WriteFile(arguments.output / "activations.csv",
             [&](std::ostream& out) { drs::WriteActivationsCsv(out, records); });
+  WriteFile(arguments.output / "reactions.csv",
+            [&](std::ostream& out) { drs::WriteReactionsCsv(out, observer.Reactions().Records()); });
 
   const double wallTimeS = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
   LedgerInput input{arguments, config,    library,   schedule, grid, records, observer, ran,
@@ -896,6 +907,11 @@ int Run(int argc, char** argv)
   if (dose)
     done << " stoppedEarly=" << (observer.StoppedEarly() ? 1 : 0) << " endTime_ns=" << config.endpointNs;
   if (snapshots) done << " snapshotFrames=" << observer.SnapshotFrameTimesNs().size();
+  done << " reactions=" << observer.Reactions().Records().size()
+       << " interSource=" << observer.Reactions().InterSourceCount()
+       << " unknownOrigin=" << observer.Reactions().UnknownCount()
+       << " positionMatched=" << observer.Reactions().PositionMatchedCount()
+       << " bulk=" << observer.Reactions().BulkCount();
   done << " wallTime_s=" << wallTimeS << " output=" << arguments.output.string();
   std::cout << done.str() << std::endl;
   return 0;

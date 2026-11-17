@@ -96,6 +96,11 @@ void ActivationObserver::Configure(const std::vector<InjectedSource>& sources,
   std::sort(fActivationTimesNs.begin(), fActivationTimesNs.end());
   fActivationTimesNs.erase(std::unique(fActivationTimesNs.begin(), fActivationTimesNs.end()),
                            fActivationTimesNs.end());
+  std::vector<ReactionLog::SourceRange> ranges;
+  for (const auto& source : checked)
+    ranges.push_back({static_cast<long long>(source.label), static_cast<int>(source.firstTrackId),
+                      static_cast<int>(source.lastTrackId)});
+  fReactions.Configure(std::move(ranges));
   fCheck.emplace(std::move(checked));
   fSnapshotWriter.reset();
   fSnapshotTimesNs.clear();
@@ -331,6 +336,20 @@ void ActivationObserver::UserPostTimeStepAction()
 {
   if (!fFailure.empty()) return;
   ReportProgress(false);
+  {
+    // Bulk-reaction products have no parent ID: match them to the molecule
+    // that vanished in this step (ReactionLog::ObserveStep).
+    std::vector<drs::ReactionLog::ObservedMolecule> observed;
+    observed.reserve(G4ITTrackHolder::Instance()->GetMainList()->size());
+    for (auto* track : *G4ITTrackHolder::Instance()->GetMainList())
+      if (IsLive(*track) && !IsWater(*track))  // pre-chemical water dissociates, it is no bulk reaction
+      {
+        const auto& p = track->GetPosition();
+        observed.push_back({track->GetTrackID(), track->GetParentID(), p.x(), p.y(), p.z(),
+                            &GetMolecule(track)->GetMolecularConfiguration()->GetName()});
+      }
+    fReactions.ObserveStep(G4Scheduler::Instance()->GetGlobalTime() / ns, observed);
+  }
   // The last step before the next delayed list joins: the clock reached the
   // list's time, or no track is left to step. The next call is then NewStage.
   auto* holder = G4ITTrackHolder::Instance();
@@ -387,13 +406,33 @@ void ActivationObserver::NewStage()
   // The sources were built with the counter inactive; they count from now on.
   auto* counter = G4MoleculeCounterManager::Instance();
   for (const auto i : activated) counter->AddMolecule(live[i], now);
+  // Keep the origin of every live molecule: a bulk-reaction product is
+  // resolved through its parent, which may be gone by the time it reacts.
+  for (const auto* track : live) fReactions.Learn(track->GetTrackID(), track->GetParentID());
   // No frame here: the pre-chemical molecules of this activation dissociate in
   // the first step, so the snapshot times at (or just after) it are taken at the
   // first UserPostTimeStepAction that follows.
 }
 
-void ActivationObserver::UserReactionAction(const G4Track&, const G4Track&, const std::vector<G4Track*>* products)
+void ActivationObserver::UserReactionAction(const G4Track& trackA, const G4Track& trackB,
+                                            const std::vector<G4Track*>* products)
 {
+  if (!fFailure.empty()) return;
+  {
+    // G4DNAMakeReaction pushed the products (IDs assigned) before this call.
+    std::vector<int> productIds;
+    std::vector<std::string> productNames;
+    if (products != nullptr)
+      for (const auto* product : *products)
+      {
+        productIds.push_back(product->GetTrackID());
+        productNames.push_back(GetMolecule(product)->GetMolecularConfiguration()->GetName());
+      }
+    fReactions.RecordReaction(trackA.GetGlobalTime() / ns, trackA.GetTrackID(), trackA.GetParentID(),
+                              GetMolecule(trackA)->GetMolecularConfiguration()->GetName(), trackB.GetTrackID(),
+                              trackB.GetParentID(), GetMolecule(trackB)->GetMolecularConfiguration()->GetName(),
+                              productIds, productNames);
+  }
   if (fBox == nullptr || products == nullptr) return;
   for (auto* product : *products)
   {

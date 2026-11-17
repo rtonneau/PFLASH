@@ -60,6 +60,7 @@ add_library(drsCore STATIC
   src/PrecursorPacket.cc
   src/ArrivalSchedule.cc
   src/Ledger.cc
+  src/ReactionLog.cc
   src/CaptureLibrary.cc
   src/HistoryConfig.cc
   src/ActivationObserverCheck.cc
@@ -123,7 +124,7 @@ target_link_libraries(history PRIVATE drsCore ${Geant4_LIBRARIES})
 enable_testing()
 set(drsTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
 foreach(testName PrecursorPacketTest ArrivalScheduleTest LedgerTest HistoryConfigTest ActivationObserverCheckTest
-                 TimeGridTest SteadyStateDetectorTest)
+                 TimeGridTest SteadyStateDetectorTest ReactionLogTest)
   add_executable(${testName} test/${testName}.cc)
   target_link_libraries(${testName} PRIVATE drsCore)
   add_test(NAME ${testName} COMMAND ${testName})
