@@ -17,6 +17,27 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # library below never includes Geant4, so its tests run without a kernel.
 find_package(Geant4 11.4.3 REQUIRED)
 
+# ---- Source activation API (source-contacts-experimental.patch) -------------
+# Detected at configure time: without it the history still builds and runs,
+# injecting sources as plain delayed tracks (ledger.json sourceActivation false).
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_INCLUDES ${Geant4_INCLUDE_DIRS})
+set(CMAKE_REQUIRED_LIBRARIES ${Geant4_LIBRARIES})
+set(CMAKE_REQUIRED_DEFINITIONS ${Geant4_DEFINITIONS})
+check_cxx_source_compiles([=[
+#include "G4DNAIndependentReactionTimeStepper.hh"
+int main() { G4DNAIndependentReactionTimeStepper::RegisterSourceActivation(1, 0.); return 0; }
+]=] DRS_SOURCE_ACTIVATION_FOUND)
+unset(CMAKE_REQUIRED_INCLUDES)
+unset(CMAKE_REQUIRED_LIBRARIES)
+unset(CMAKE_REQUIRED_DEFINITIONS)
+if(DRS_SOURCE_ACTIVATION_FOUND)
+  set(DRS_HAS_SOURCE_ACTIVATION 1)
+else()
+  set(DRS_HAS_SOURCE_ACTIVATION 0)
+endif()
+message(STATUS "Source activation API (RegisterSourceActivation): ${DRS_HAS_SOURCE_ACTIVATION}")
+
 # ---- HDF5 (optional: the particle snapshots, snapshots.h5) ------------------
 # AUTO uses HDF5 when found, ON requires it, OFF does not look for it. Without
 # it SnapshotWriterNoHdf5.cc is built and `snapshots = true` is a config error.
@@ -119,6 +140,7 @@ add_executable(history
   ${drsPhysicsSources})
 target_include_directories(history SYSTEM PRIVATE ${Geant4_INCLUDE_DIRS})
 target_link_libraries(history PRIVATE drsCore ${Geant4_LIBRARIES})
+target_compile_definitions(history PRIVATE DRS_HAS_SOURCE_ACTIVATION=${DRS_HAS_SOURCE_ACTIVATION})
 
 # ---- Unit tests (plain checks, active even under NDEBUG) --------------------
 enable_testing()

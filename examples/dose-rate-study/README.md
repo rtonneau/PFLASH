@@ -165,6 +165,14 @@ cmake --build examples/dose-rate-study/build-ninja
 ctest --test-dir examples/dose-rate-study/build-ninja --output-on-failure
 ```
 
+CMake checks at configure time whether the kernel has
+`G4DNAIndependentReactionTimeStepper::RegisterSourceActivation`, from
+`source-contacts-experimental.patch` (`DRS_HAS_SOURCE_ACTIVATION`). If the kernel
+lacks it, for example the stock install or a leave-one-out kernel of
+`test/dose-rate-patches`, `history` still builds. It then injects sources as plain
+delayed tracks and logs this once. `ledger.json` records the choice as
+`sourceActivation` (`true` or `false`).
+
 The tests:
 
 - Unit tests of the Geant4-free core.

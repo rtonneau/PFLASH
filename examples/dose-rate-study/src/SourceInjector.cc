@@ -191,8 +191,20 @@ void SourceInjector::Inject()
     throw std::runtime_error("cannot inject while the chemistry is running");
   fInjected = true;
 
+#if DRS_HAS_SOURCE_ACTIVATION
   // One registry per history: forget the activations of any earlier history.
   G4DNAIndependentReactionTimeStepper::ResetSourceActivations();
+#else
+  // Kernel without source-contacts-experimental.patch: sources are injected
+  // as plain delayed tracks; a new-old contact at activation is not handled.
+  static bool warned = false;
+  if (!warned) {
+    warned = true;
+    G4cerr << "SourceInjector: this Geant4 kernel has no RegisterSourceActivation "
+              "(source-contacts patch absent); new-old contacts at a source activation "
+              "are not treated as immediate contacts." << G4endl;
+  }
+#endif
 
   CounterStagingGuard guard;
   auto* holder = G4ITTrackHolder::Instance();
@@ -208,7 +220,9 @@ void SourceInjector::Inject()
     track->SetKineticEnergy(staged.kineticEnergy);
     track->SetLocalTime(staged.localTime);
     track->SetProperTime(staged.properTime);
+#if DRS_HAS_SOURCE_ACTIVATION
     G4DNAIndependentReactionTimeStepper::RegisterSourceActivation(trackId, activation);
+#endif
     // Not running yet: the holder files the track in the delayed list of its
     // global time, i.e. its activation time.
     holder->Push(track);
