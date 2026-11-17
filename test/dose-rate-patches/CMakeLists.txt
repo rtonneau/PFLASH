@@ -37,14 +37,46 @@ if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
 endif()
 message(STATUS "Kernel variant ${DRP_KERNEL_VARIANT} (patches: ${kernelPatches}), runtime ${kernelBin}")
 
+# Patch 2's API: present only on kernels carrying source-contacts-experimental.patch.
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_INCLUDES ${Geant4_INCLUDE_DIRS})
+set(CMAKE_REQUIRED_LIBRARIES ${Geant4_LIBRARIES})
+set(CMAKE_REQUIRED_DEFINITIONS ${Geant4_DEFINITIONS})
+check_cxx_source_compiles([=[
+#include "G4DNAIndependentReactionTimeStepper.hh"
+int main() { G4DNAIndependentReactionTimeStepper::RegisterSourceActivation(1, 0.); return 0; }
+]=] DRP_HAS_SOURCE_ACTIVATION)
+unset(CMAKE_REQUIRED_INCLUDES)
+unset(CMAKE_REQUIRED_LIBRARIES)
+unset(CMAKE_REQUIRED_DEFINITIONS)
+if(DRP_HAS_SOURCE_ACTIVATION)
+  set(hasSourceActivation 1)
+else()
+  set(hasSourceActivation 0)
+endif()
+message(STATUS "RegisterSourceActivation available: ${hasSourceActivation}")
+
+# Application sources for fixtures that need the project chemistry (no HDF5).
+get_filename_component(projectRoot "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+file(GLOB_RECURSE projectSources "${projectRoot}/src/*.cc")
+list(FILTER projectSources EXCLUDE REGEX "/(MesoSpatialFile|Hdf5TableFile)[.]cc$")
+
 # Job Object launcher: memory cap for fixtures whose defect exhausts memory.
 add_executable(JobLauncher JobLauncher.cc)
 target_link_libraries(JobLauncher PRIVATE psapi)
 
-# drp_fixture(<name> <patch> <source> [CAP_MIB <MiB> SECONDS <s>])
+# drp_fixture(<name> <patch> <source> [CAP_MIB <MiB> SECONDS <s>] [PROJECT])
+# PROJECT links the application sources (chemistry, physics, geometry).
 function(drp_fixture name patch source)
-  cmake_parse_arguments(arg "" "CAP_MIB;SECONDS" "" ${ARGN})
-  add_executable(${name} ${source})
+  cmake_parse_arguments(arg "PROJECT" "CAP_MIB;SECONDS" "" ${ARGN})
+  if(arg_PROJECT)
+    add_executable(${name} ${source} ${projectSources})
+    target_include_directories(${name} PRIVATE "${projectRoot}/header")
+    target_compile_definitions(${name} PRIVATE DNACHEM_HAS_HDF5=0)
+  else()
+    add_executable(${name} ${source})
+  endif()
+  target_compile_definitions(${name} PRIVATE HAS_SOURCE_ACTIVATION=${hasSourceActivation})
   target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(${name} PRIVATE ${Geant4_LIBRARIES})
   if(patch IN_LIST kernelPatches)
@@ -67,6 +99,7 @@ function(drp_fixture name patch source)
 endfunction()
 
 drp_fixture(FinderCoincidentFixture 1 FinderCoincidentFixture.cc CAP_MIB 256 SECONDS 60)
+drp_fixture(SourceContactFixture 2 SourceContactFixture.cc PROJECT)
 drp_fixture(ReboundFoldFixture 3 ReboundFoldFixture.cc)
 
 file(WRITE "${CMAKE_BINARY_DIR}/kernel-variant.txt" "${DRP_KERNEL_VARIANT}\n${Geant4_DIR}\n")
