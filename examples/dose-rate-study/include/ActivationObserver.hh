@@ -22,7 +22,9 @@
 //                           or moved). The molecules that activated are then
 //                           added to the molecule counter at t: they were built
 //                           with the counter inactive (SourceInjector.hh).
-//   UserReactionAction      with a reflecting box, folds a reaction product
+//   UserReactionAction      logs the reaction with the source of each reactant
+//                           (ReactionLog, reactions.csv); with a reflecting
+//                           box, also folds a reaction product
 //                           that IRT_syn placed outside the box back in
 //                           (G4DNAMakeReaction places products between the
 //                           reaction site and a random point, which can lie
@@ -82,6 +84,7 @@
 
 #include "ActivationObserverCheck.hh"
 #include "Ledger.hh"
+#include "ReactionLog.hh"
 #include "SnapshotWriter.hh"
 #include "SourceInjector.hh"
 #include "SteadyStateDetector.hh"
@@ -162,6 +165,8 @@ class ActivationObserver : public G4UserTimeStepAction
   const SteadyStateDetector* SteadyState() const { return fSteadyState ? &*fSteadyState : nullptr; }
   G4bool StoppedEarly() const { return fEnd.stoppedEarly; }
   std::size_t ProductFoldCount() const { return fProductFolds; }
+  // Every two-molecule reaction of the history, with the reactants' sources.
+  const ReactionLog& Reactions() const { return fReactions; }
   // Snapshots: frame times are the clock times of the
   // frames written, in order; the requested times are those of EnableSnapshots.
   G4bool SnapshotsEnabled() const { return fSnapshotWriter != nullptr; }
@@ -216,6 +221,7 @@ class ActivationObserver : public G4UserTimeStepAction
   std::vector<SpeciesRow> fRows;
   SpeciesTable fTable;
   std::size_t fProductFolds = 0;
+  ReactionLog fReactions;
   std::string fFailure;
   std::string fModelProblem;
   G4bool fFinished = false;
