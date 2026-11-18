@@ -254,7 +254,7 @@ propensities use counts, rates and volume, not that radius, so the warning is kn
 
 Every `history` run starts with repeated `G4ProcessManager::SetProcessOrderingToFirst()` warnings,
 "Set Ordering First is invoked twice for ChemReboundTransportation to H" (and other species), in
-`.scratch/tests/2026-11-16__pulse-by-pulse/plan_quick/det.log`. It is a warning only. Whether
+`${STUDIES_ROOT}/dnachem-min/2026-11-16__pulse-by-pulse/plan_quick/det.log`. It is a warning only. Whether
 Geant4's chemistry constructor or this project registers the ordering twice was not checked.
 
 ## 15. A rebuilt binary gives a different realisation (OPEN, cause not traced)

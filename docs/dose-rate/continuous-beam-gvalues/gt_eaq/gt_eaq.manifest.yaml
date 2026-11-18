@@ -13,7 +13,7 @@
   status: draft
   caption: '[TODO]'
   alt_text: '[TODO]'
-  generated_by: .scratch/tests/2026-11-14__dose-rate-gvalue-study/report/05-figures.py
+  generated_by: ${STUDIES_ROOT}/dnachem-min/2026-11-14__dose-rate-gvalue-study/report/05-figures.py
   file: gt_eaq/gt_eaq__final.png
   frame_size_px:
   - 2340

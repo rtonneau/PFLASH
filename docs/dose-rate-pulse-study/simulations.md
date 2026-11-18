@@ -5,7 +5,9 @@ All runs use `examples/dose-rate-study` (`history`, `doseCutoff` mode) built aga
 [geant4-issues.md](geant4-issues.md), issues 1–3). Each history is one single-threaded process.
 They ran in parallel on one 20-logical-core workstation, so the wall times include contention.
 
-Data root: `.scratch/tests/` (git-ignored). Paths below are relative to it.
+Data root: `${STUDIES_ROOT}/dnachem-min/` (outside git; Studies `2026-11-15__dose-rate-study` and
+`2026-11-16__pulse-by-pulse` in [docs/studies/INDEX.md](../studies/INDEX.md)). Paths below are
+relative to it. Until 2026-11-18 the data were under `.scratch/tests/`.
 
 ## Common setup
 
