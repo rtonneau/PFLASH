@@ -10,6 +10,7 @@ exits 0 only when every sufficiency and every necessity demonstration holds (a
 patch's necessity holds when at least one config demonstrates it).
 """
 import argparse
+import glob
 import json
 import os
 import sys
@@ -22,6 +23,44 @@ PATCHES = {"1": ("finder-coincident", "coincident-neighbors.patch"),
 def load(path):
     with open(path, encoding="utf-8-sig") as handle:
         return json.load(handle)
+
+
+def find_results(root, config):
+    """<root>/<config>/necessity-results.json, else the only <root>/<config>-<run set>/ one."""
+    path = os.path.join(root, config, "necessity-results.json")
+    if os.path.exists(path):
+        return path
+    found = sorted(glob.glob(os.path.join(root, config + "-*", "necessity-results.json")))
+    return found[0] if len(found) == 1 else path
+
+
+def fmt(value, spec):
+    return spec % value if value is not None else "-"
+
+
+def sweep_markdown(config, sweep):
+    ref, var = sweep["reference"], sweep["variant"]
+    md = ["### %s: patch 2 versus dose rate" % config, "",
+          "New-old source contacts at activation (%s, %s), paired defect = histories with more contacts on %s than on %s; "
+          "verdict uses G(beam-off) %s - %s." % (ref, var, ref, var, ref, var), "",
+          "| Rate (Gy/s) | Histories | %s mean | %s total | %s per activation | %s mean | %s total | %s per activation | Defect | max abs z | Verdict |" % (
+              ref, ref, ref, var, var, var), "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for r in sweep["rows"]:
+        a, b = r["contactsAll"], r["contactsAll2"]
+        verdict = r["verdict"]
+        if verdict == "partial":
+            verdict += " (about %s realizations for |z| > 3, estimate n0*(3/z0)^2)" % (
+                r["realizationsNeededEstimate"] or "unknown")
+        md.append("| %g | %d | %s | %d | %s | %s | %d | %s | %d/%d | %s | %s |" % (
+            r["rate_Gy_s"], r["histories"], fmt(a["mean"], "%.2f"), a["total"], fmt(a["perActivation"], "%.3e"),
+            fmt(b["mean"], "%.2f"), b["total"], fmt(b["perActivation"], "%.3e"),
+            r["defectHistories"], r["histories"], fmt(r["maxAbsZ"], "%.2f"), verdict))
+    md.append("")
+    for key, label in (("fitContactsAll", ref), ("fitContactsAll2", var)):
+        f = sweep.get(key)
+        md.append("- Fit %s: %s" % (label, "log10(contacts per history) = %.3f log10(rate) %+.3f over %d rates" % (
+            f["slope"], f["intercept"], f["points"]) if f else "not available (needs 2 or more rates with contacts > 0)"))
+    return md + [""]
 
 
 def main(argv=None):
@@ -53,17 +92,20 @@ def main(argv=None):
     md += ["", "## Necessity (leave-one-out histories)", ""]
     nec = {}
     for c in configs:
-        path = os.path.join(a.necessity, c, "necessity-results.json")
+        path = find_results(a.necessity, c)
         nec[c] = load(path) if os.path.exists(path) else None
         s = settings["configs"][c]
-        md.append("- `%s`: %s Gy/s to %s Gy, %s realizations per kernel" % (
-            c, s["rates"][0], s["doseGy"], list(s["realizations"].values())[0]))
+        md.append("- `%s`: %s Gy/s to %s Gy, %s realizations per kernel%s" % (
+            c, ", ".join("%g" % r for r in s["rates"]), s["doseGy"], ", ".join(
+                str(v) for v in s["realizations"].values()), " (variants %s)" % ", ".join(s["variants"]) if s.get("variants") else ""))
     md += ["", "| Patch | Config | Result | Verdict |", "|---|---|---|---|"]
     for n, (label, _) in PATCHES.items():
         per = {}
         for c in configs:
             v = (nec[c] or {}).get("verdicts", {}).get("patch" + n)
             per[c] = v
+            if v is None and (nec[c] or {}).get("sweep"):
+                continue  # a sweep config runs only the variants of patch 2
             md.append("| %s | %s | %s | %s |" % (n, c, v["line"] if v else "missing",
                                                   ("PASS" if v["pass"] else "NOT DEMONSTRATED") if v else "-"))
         holds = any(v and v["pass"] for v in per.values())
@@ -71,6 +113,14 @@ def main(argv=None):
         report["patches"][n]["necessityHolds"] = holds
         lines.append("necessity %s: %s" % (label, "PASS" if holds else "NOT DEMONSTRATED"))
         ok_all &= holds
+    sweeps = [(c, (nec[c] or {}).get("sweep")) for c in configs if (nec[c] or {}).get("sweep")]
+    if sweeps:
+        md += ["", "## Patch 2 necessity versus dose rate", ""]
+        for c, sw in sweeps:
+            md += sweep_markdown(c, sw)
+            for r in sw["rows"]:
+                lines.append("sweep %s %g Gy/s: %s" % (c, r["rate_Gy_s"], r["verdict"]))
+    report["sweep"] = {c: sw for c, sw in sweeps}
     md += ["", "## G(beam-off) delta, report only (all - variant, per 100 eV)", ""]
     for c in configs:
         for variant, rows in ((nec[c] or {}).get("gBeamOffDelta") or {}).items():
