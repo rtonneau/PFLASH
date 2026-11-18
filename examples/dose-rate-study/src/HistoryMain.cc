@@ -579,6 +579,8 @@ drs::JsonValue MakeLedger(const LedgerInput& in)
   root.Set("physics", JsonValue::String("G4EmDNAPhysics_option2"));
   root.Set("chemistry", JsonValue::String("PureWater (copied network + acid-base buffer), pH 7, IRT_syn"));
   root.Set("chemistryTimeStepModel", JsonValue::String("IRT_syn"));
+  // Built against a kernel with RegisterSourceActivation (source-contacts patch).
+  root.Set("sourceActivation", JsonValue::Bool(DRS_HAS_SOURCE_ACTIVATION != 0));
   root.Set("medium", JsonValue::String("G4_WATER, pH 7 acid-base buffer (H3Op(B), OHm(B)), no O2"));
   root.Set("approach", JsonValue::String("separately captured precursor packets injected into one shared "
                                          "standalone IRT_syn history, each source activating at its own time"));

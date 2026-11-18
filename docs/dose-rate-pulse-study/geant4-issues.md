@@ -37,6 +37,7 @@ reporting, check each item against the current Geant4 release.
 ---
 
 ## 1. Octree finder duplicates coincident molecules (PATCHED)
+Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](patch-necessity.md).
 
 - **Where:** `dna/management/include/G4Octree.icc`, `G4OctreeFinder.icc`; contact guard in
   `dna/models/src/G4DNAMakeReaction.cc`.
@@ -68,6 +69,7 @@ reporting, check each item against the current Geant4 release.
 - **Upstream:** a clean, self-contained candidate. The patch touches 3 files.
 
 ## 2. IRT_syn trials contacts only at the scheduler start time (PATCHED, experimental)
+Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](patch-necessity.md).
 
 - **Where:** `dna/models/src/G4DNAIndependentReactionTimeStepper.cc`, lines about 167–173: a pair
   already inside its effective reaction radius is trialled only while
@@ -99,6 +101,7 @@ reporting, check each item against the current Geant4 release.
   `docs/dose-rate/recurring-chemistry-sources.md`, `docs/adr/0010-poisson-track-irt-stock-build.md`.
 
 ## 3. Wrong reflection in `G4ChemReboundTransportation` (PATCHED)
+Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](patch-necessity.md).
 
 - **Where:** `dna/processes/src/G4ChemReboundTransportation.cc:322-355` (`calculateNextCoordinate`).
 - **Symptom:** on the interval [0, 1]:

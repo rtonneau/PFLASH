@@ -238,6 +238,18 @@ The positions and species of every live tracked molecule of a particle-based his
 at one record time, written opt-in for 3D movies. Distinct from the mesoscopic
 **Spatial snapshot**, which stores counts per cell.
 
+**Kernel variant** (patch-necessity suite):
+A private Geant4 11.4.3 install built from the pristine source plus a named set of
+the local dose-rate patches: `stock` (none, the shared install), `p<N>` (patch N
+alone), `all` (patches 1, 2 and the rebound fold 3), `all-<N>` (all except N).
+_Avoid_: "patched Geant4" without naming the variant.
+
+**Sufficiency check** / **Necessity check** (patch-necessity suite):
+A sufficiency check runs a minimal kernel fixture on `stock` (defect observed) and
+`p<N>` (defect gone): patch N alone fixes its issue. A necessity check runs a short
+dose-rate-study history on `all` and `all-<N>`: without patch N the dose-rate
+application shows the defect.
+
 **Study** (study tooling, global `/study` skill):
 One scientific question answered by simulation (e.g. "G(t) vs dose rate, pulse
 resolved"), with an id `YYYY-MM-DD__<slug>`, an aim, a status (planned, running,
