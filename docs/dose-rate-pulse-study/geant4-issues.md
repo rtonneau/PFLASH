@@ -56,6 +56,12 @@ Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](pa
     - `G4DNAMakeReaction` aborts (`G4DNAMakeReaction003`) on a zero-distance pair.
 - **Why it matters:** `G4DNAMakeReaction` puts all products of a reaction at one point, so
   coincident molecules do occur: 3 in 1 of 16 packets of a spike (e⁻aq + e⁻aq → 2 OH⁻ + H₂).
+  Those are three molecules of two species (OH⁻, OH⁻, H₂), and the finder builds one tree per
+  species, so no tree holds more than two of them. The defect needs three of one species at one
+  point; no built-in Chemistry produces that in IRT_syn runs without scavenger. See "Patch 1:
+  reachability" in [patch-necessity.md](patch-necessity.md): the patch stays as a guard (for
+  example a new Chemistry with a three-product channel of one species), but the dose-rate study
+  does not need it today.
 - **Fix:** `patches/geant4/11.4.3/molecular-finder/coincident-neighbors.patch`.
   - One owner per entry (equality goes to the upper half); all-coincident populations go into a
     vector leaf.
