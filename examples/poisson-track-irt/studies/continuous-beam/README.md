@@ -65,7 +65,7 @@ pwsh run_study.ps1 -Plan <plan dir>\plan.json [-DryRun] [-Limit N] [-Parallel N]
 ```
 
 Defaults: `history.exe` from `build-patched`, the patched install's `bin` from
-`.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install/bin` put first on `PATH`;
+`${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install/bin` (patch set `mf-ti`) put first on `PATH`;
 `GEANT4_DATA_DIR` must be set. Run it from PowerShell, not Git Bash. A run is skipped when its
 output holds a `ledger.json` with `checks.allPassed` true; an incomplete output directory (under
 the plan's output root only) is deleted and rerun. Each run appends to `run_log.csv` (next to

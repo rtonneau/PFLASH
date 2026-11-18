@@ -5,8 +5,11 @@
 All dose-rate runs (2026-11-15 and 2026-11-16) use a **private patched** Geant4 11.4.3 install,
 not the shared `${G4_ROOT}` (which must stay unmodified):
 
-- location: `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install` (git-ignored; also
-  the default `-Geant4Bin` of `studies/run_study.ps1`);
+- location: `${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install` (patch set `mf-ti`, marked with
+  `g4-build-info.json`; also the default `-Geant4Bin` of `studies/run_study.ps1`). The runs of
+  2026-11-15 and 2026-11-16 used it at its earlier location,
+  `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install`; it was moved unchanged on
+  2026-11-18 (same files and DLL hashes);
 - content: pristine 11.4.3 source (`${DEV_DIR}/GEANT4/geant4-v11.4.3-source`) plus three patches
   from `patches/geant4/11.4.3/`:
   - `molecular-finder/coincident-neighbors.patch` (issue 1);
