@@ -1,0 +1,63 @@
+{
+  "comment": "Leave-one-out necessity runs (ticket 06). One capture library on 'all', one plan per config (same seeds and packets for every variant). Read by RunNecessity.ps1 -Config <name> and analyze_necessity.py.",
+  "variants": [
+    "all",
+    "all-1",
+    "all-2",
+    "all-3"
+  ],
+  "reference": "all",
+  "capture": {
+    "count": 150,
+    "firstSeed": 91000,
+    "maxEmpty": 300
+  },
+  "snapshots": true,
+  "memoryCapMiB": 3072,
+  "parallel": 4,
+  "configs": {
+    "rate1e4": {
+      "rates": [
+        10000
+      ],
+      "realizations": {
+        "10000": 10
+      },
+      "doseGy": 0.1,
+      "halfBoxUm": 2.0,
+      "worldHalfSideUm": 3.0,
+      "steadyStateWindow": 0,
+      "steadyStateTolerance": 0.05,
+      "steadyStateMinMean": 0,
+      "ageGridPointsPerDecade": 0,
+      "chemistrySeedBase": 7100,
+      "sourceSeedBase": 710000,
+      "firstPacket": null,
+      "maxArrivals": 100000,
+      "progressIntervalS": 30,
+      "wallTimeCapS": 3600
+    },
+    "rate0.1": {
+      "rates": [
+        0.1
+      ],
+      "realizations": {
+        "0.1": 10
+      },
+      "doseGy": 0.1,
+      "halfBoxUm": 2.0,
+      "worldHalfSideUm": 3.0,
+      "steadyStateWindow": 0,
+      "steadyStateTolerance": 0.05,
+      "steadyStateMinMean": 0,
+      "ageGridPointsPerDecade": 0,
+      "chemistrySeedBase": 7100,
+      "sourceSeedBase": 710000,
+      "firstPacket": null,
+      "maxArrivals": 100000,
+      "progressIntervalS": 30,
+      "wallTimeCapS": 3600
+    }
+  },
+  "defaultConfig": "rate1e4"
+}

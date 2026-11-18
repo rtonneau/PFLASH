@@ -2,7 +2,10 @@
 // deadline), adapted from test/molecular-finder/JobLauncher.cc.
 //
 //   JobLauncher <capMiB> <seconds> <prefix> <exe> --expect defect|fixed [args...]
+//   JobLauncher <capMiB> <seconds> <prefix> --expect defect|fixed <exe> [args...]
 //
+// In the second form --expect is the launcher's own and is not passed to the
+// child (for programs that reject unknown options, e.g. dose-rate-study history).
 // The child's stdout/stderr go to <prefix>.log/.err and are echoed after it
 // ends, followed by RESULT lines (cap hit, exit code, peak memory) and the
 // verdict. A memory-cap hit is the observed defect: with --expect defect it is
@@ -40,8 +43,14 @@ int wmain(int argc, wchar_t** argv)
   const double deadline = std::stod(argv[2]);
   const std::wstring prefix = argv[3];
   bool expectDefect = false;
-  for (int i = 5; i + 1 < argc; ++i)
-    if (std::wstring(argv[i]) == L"--expect") expectDefect = std::wstring(argv[i + 1]) == L"defect";
+  int exeIndex = 4;
+  if (std::wstring(argv[4]) == L"--expect") {
+    expectDefect = std::wstring(argv[5]) == L"defect";
+    exeIndex = 6;
+  }
+  else
+    for (int i = 5; i + 1 < argc; ++i)
+      if (std::wstring(argv[i]) == L"--expect") expectDefect = std::wstring(argv[i + 1]) == L"defect";
 
   SECURITY_ATTRIBUTES sa{sizeof(sa), nullptr, TRUE};
   const std::wstring outPath = prefix + L".log", errPath = prefix + L".err";
@@ -62,7 +71,7 @@ int wmain(int argc, wchar_t** argv)
     return 5;
 
   std::wstring cmd;
-  for (int i = 4; i < argc; ++i) cmd += L"\"" + std::wstring(argv[i]) + L"\" ";
+  for (int i = exeIndex; i < argc; ++i) cmd += L"\"" + std::wstring(argv[i]) + L"\" ";
   STARTUPINFOW si{};
   si.cb = sizeof(si);
   si.dwFlags = STARTF_USESTDHANDLES;
@@ -70,7 +79,7 @@ int wmain(int argc, wchar_t** argv)
   si.hStdError = herr;
   si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
   PROCESS_INFORMATION pi{};
-  if (!CreateProcessW(argv[4], cmd.data(), nullptr, nullptr, TRUE, CREATE_SUSPENDED | CREATE_NO_WINDOW,
+  if (!CreateProcessW(argv[exeIndex], cmd.data(), nullptr, nullptr, TRUE, CREATE_SUSPENDED | CREATE_NO_WINDOW,
                       nullptr, nullptr, &si, &pi))
     return 7;
   if (!AssignProcessToJobObject(job, pi.hProcess)) {
