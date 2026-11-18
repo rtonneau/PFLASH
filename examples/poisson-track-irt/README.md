@@ -86,9 +86,10 @@ Recipe (never patch your shared Geant4):
    HDF5 through vcpkg, Qt off, no data download). Install to `<patched-geant4-install>`.
 4. Use `<patched-geant4-install>/lib/cmake/Geant4` as `Geant4_DIR` below.
 
-Where this repository's evidence was produced:
-`.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install` (built by `Build.cmd`
-next to it). It is read-only evidence, not a path to rely on. Background:
+This repository's evidence was produced with the install now at
+`${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install` (patch set `mf-ti`), see its `g4-build-info.json`. It was built on 2026-11-08 by `Build.cmd`
+under `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/` and moved there unchanged on
+2026-11-18. Treat it as read-only. Background:
 `docs/dose-rate/beam-on-irt.md`, `docs/dose-rate/recurring-chemistry-sources.md`.
 
 ## Build and test

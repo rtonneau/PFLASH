@@ -38,7 +38,7 @@ git-ignored and exist only on this machine.
 
 | Item | Location and identity |
 |---|---|
-| Private Geant4 11.4.3 runtime | `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install` (the shared Geant4 install is not modified). `install/bin/G4processes_core.dll` SHA-256 `11AD89C931010589B56F32277CE0885397689E1BBF8C682FBFA2BBBD81BD574B`, hardcoded at line 16 of `RunCalibratedBeamOn.ps1` |
+| Private Geant4 11.4.3 runtime | `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install` at the time, moved unchanged on 2026-11-18 to `${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install` (patch set `mf-ti`) (the shared Geant4 install is not modified). `install/bin/G4processes_core.dll` SHA-256 `11AD89C931010589B56F32277CE0885397689E1BBF8C682FBFA2BBBD81BD574B`, hardcoded at line 16 of `RunCalibratedBeamOn.ps1` |
 | Patches (`patches/geant4/11.4.3/`) | `molecular-finder/coincident-neighbors.patch` `FB6FAA46…04BE`; `timed-injection/source-contacts-experimental.patch` `F3FA0E11…9FE1`; `timed-injection/meso-boundaries-experimental.patch` `A3DB3958…94C1`. Full hashes: `Get-FileHash` on those files. They were last changed before the runtime was built (`186ccf5`, `5e60636`, `a695d57`) |
 | Not in this runtime | `meso-bulk-instrumentation-experimental.patch` |
 | Source comparison | `.scratch/tests/2026-11-08__beam-on-fresh-source-calibration/04-preflight/source-check.txt` |
@@ -79,7 +79,7 @@ Root: `.scratch/tests/2026-11-08__beam-on-fresh-source-calibration/`.
 Environment for the native checkers (from `06-audit/audit.ps1`):
 
 ```powershell
-$install = (Resolve-Path '.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install').Path
+$install = (Resolve-Path "$env:DEV_DIR/GEANT4/geant4-v11.4.3-mf-ti-install").Path
 $env:PATH = "$install/bin;$env:DEV_DIR/vcpkg/installed/x64-windows/bin;$env:PATH"
 ```
 

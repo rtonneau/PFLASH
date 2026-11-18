@@ -187,8 +187,8 @@ Python: the GEANT4 conda env (numpy, matplotlib). Tests:
 ```
 python studies/merge_libraries.py --out <lib> <capture part dir> ...     # parallel captures, distinct seeds
 python studies/make_configs.py --library <lib> --study studies/study.json --out <plan dir> [--realizations 0.1=4 ...] [--snapshots]
-pwsh studies/run_study.ps1 -Plan <plan dir>/plan.json -Parallel N [-WallTimeCapS S]
-python studies/analyze.py --plan <plan dir>/plan.json [--plan <other plan.json> ...] [--out <dir>] [--allow-partial]
+pwsh studies/run_study.ps1 -Plan <plan dir>/plan.json -Parallel N [-WallTimeCapS S] [-Study <study> [-RunSet <name>]]
+python studies/analyze.py --plan <plan dir>/plan.json [--plan <other plan.json> ...] [--out <dir>] [--runs-dir <run set dir> ...] [--allow-partial]
 python studies/plot.py --data <plan dir> [--norm cum|final]
 python studies/spike_report.py <dir holding plan dirs>
 ```
@@ -200,12 +200,19 @@ python studies/spike_report.py <dir holding plan dirs>
   still holds the target dose plus one track.
 - `run_study.ps1`: resumable, parallel; samples the peak working set; kills a
   run beyond the cap (status `truncated`, its last `HISTORY_PROGRESS` line is
-  kept). Log: `run_log.csv` next to `plan.json`.
+  kept). Log: `run_log.csv` next to `plan.json`. With `-Study`, each history is a
+  Study run (`study.ps1 run <study> <runSet> --id <run id>`, seeds and rate recorded,
+  see `docs/agents/study.md`): its output goes to
+  `${STUDIES_ROOT}/dnachem-min/<study>/runs/<runSet>/<id>/output` beside its
+  provenance stamp, the run set defaults to the plan directory's name, and a failed
+  run is retried with `--rerun`. Results that go into a report are run this way.
 - `analyze.py`: mean G(t) +- SE over realizations (ratio estimator, delta-method
   SE), by cumulative dose (`G_cum`) and by final dose (`G_final`), on the common
   grid (`gvalues_time.csv`, plus one `gvalues_time_rate<r>.csv` per rate) and at
   beam-off (`gvalues_beamoff.csv`); several `--plan` options pool their runs; rows held
-  by a steady-state stop are flagged `extrapolated`.
+  by a steady-state stop are flagged `extrapolated`. `--runs-dir` (once per `--plan`)
+  reads the outputs of a `-Study` run set; run it through `study.ps1 analyze` so the
+  tables get an analysis stamp.
 - `spike_report.py`: per-run wall time, peak memory, arrivals, dose reached,
   live molecules, steady-state stop, snapshot size and estimated full cost
   (`spike_table.md`, `spike_table.csv`).
