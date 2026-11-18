@@ -17,6 +17,7 @@ Written for two readers:
 | File | Content |
 |---|---|
 | [geant4-issues.md](geant4-issues.md) | Every Geant4 11.4.3 issue found in this project's dose-rate work: where in the source, how it shows up, status (patched, worked around, open), and why. |
+| [patch-necessity.md](patch-necessity.md) | Test suite for patches 1-3: each fixes its defect on a fixture; leave-one-out study histories at 10⁴ and 0.1 Gy/s reach only patch 2, once. |
 | [simulations.md](simulations.md) | Every simulation set: aim, main parameters, seeds, cost, output location. |
 | [findings.md](findings.md) | Main results with numbers, and their caveats. |
 | [methods.md](methods.md) | How the per-track G and the per-track reaction log are computed, and what they cannot tell. |
