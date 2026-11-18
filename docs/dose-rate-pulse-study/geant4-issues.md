@@ -76,6 +76,8 @@ Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](pa
 
 ## 2. IRT_syn trials contacts only at the scheduler start time (PATCHED, experimental)
 Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](patch-necessity.md).
+Dose-rate sweep, 10⁴ to 10⁸ Gy/s, 0 new-old contacts at every rate (not demonstrated):
+[patch-necessity.md#patch-2-vs-dose-rate](patch-necessity.md#patch-2-vs-dose-rate).
 
 - **Where:** `dna/models/src/G4DNAIndependentReactionTimeStepper.cc`, lines about 167–173: a pair
   already inside its effective reaction radius is trialled only while
