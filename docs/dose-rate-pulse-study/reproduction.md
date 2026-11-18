@@ -5,8 +5,11 @@
 All dose-rate runs (2026-11-15 and 2026-11-16) use a **private patched** Geant4 11.4.3 install,
 not the shared `${G4_ROOT}` (which must stay unmodified):
 
-- location: `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install` (git-ignored; also
-  the default `-Geant4Bin` of `studies/run_study.ps1`);
+- location: `${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install` (patch set `mf-ti`, marked with
+  `g4-build-info.json`; also the default `-Geant4Bin` of `studies/run_study.ps1`). The runs of
+  2026-11-15 and 2026-11-16 used it at its earlier location,
+  `.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install`; it was moved unchanged on
+  2026-11-18 (same files and DLL hashes);
 - content: pristine 11.4.3 source (`${DEV_DIR}/GEANT4/geant4-v11.4.3-source`) plus three patches
   from `patches/geant4/11.4.3/`:
   - `molecular-finder/coincident-neighbors.patch` (issue 1);
@@ -59,7 +62,7 @@ ctest --test-dir examples/dose-rate-study/build-ninja --output-on-failure      #
 
 ## Runs
 
-From `.scratch/tests/2026-11-16__pulse-by-pulse/` (the study JSONs are there):
+From `${STUDIES_ROOT}/dnachem-min/2026-11-16__pulse-by-pulse/` (the study JSONs are there):
 
 ```
 python examples/dose-rate-study/studies/make_configs.py --library ../2026-11-15__dose-rate-study/spike/library \
@@ -67,6 +70,10 @@ python examples/dose-rate-study/studies/make_configs.py --library ../2026-11-15_
 pwsh examples/dose-rate-study/studies/run_study.ps1 -Plan plan_pulse_rx/plan.json -Parallel 9
 # same with study_pulse_lo.json -> plan_pulse_lo_rx (-Parallel 3)
 ```
+
+These runs predate the `/study` skill (ADR 0012). A rerun whose results are used adds
+`-Study <study> [-RunSet <name>]`, so each history gets a provenance stamp under
+`${STUDIES_ROOT}` (`examples/dose-rate-study/README.md`, "Study tooling").
 
 Per run, `out/<id>/` holds:
 - `activations.csv`: one row per track, with arrival and activation time and deposit;
@@ -83,7 +90,8 @@ memory, status).
 Scripts in `.scratch/deck-20261117/` (git-ignored; Python from the GEANT4 conda env; figure
 scripts use the `ppt_figures` skill's `pptfig` module). The data root is hard-coded as `BASE` and
 the figure output as `OUT`/`PPT_RESSOURCES` at the top of each script. Edit them on another
-machine.
+machine. A copy of the `*.py` scripts as they were on 2026-11-18 is in the Study, under
+`analysis/deck-20261117/input/`, with their SHA-256 in `analysis/deck-20261117/stamp.json`.
 
 | Script | Input → output |
 |---|---|
@@ -97,7 +105,7 @@ machine.
 | `movie_slides.py` | movie frames `dose_rate_movies/` from the 2026-11-15 snapshot runs |
 
 Data outputs (`pertrack*.csv`, `tracks_rx.csv`, `taubins_rx.csv`, `rx_budget_*.csv`) are written
-to `.scratch/tests/2026-11-16__pulse-by-pulse/`.
+to `${STUDIES_ROOT}/dnachem-min/2026-11-16__pulse-by-pulse/`.
 
 ```
 cd .scratch/deck-20261117
@@ -109,10 +117,12 @@ python fig_pertrack.py
 
 (Bash; set `PYTHONIOENCODING=utf-8` when printing to the console.)
 
-## Archive before cleanup
+## Where the data live
 
-`.scratch/` is not in git. To keep this study, archive:
-- `.scratch/tests/2026-11-15__dose-rate-study/spike/library` (packet library, needed to rerun);
-- `.scratch/tests/2026-11-16__pulse-by-pulse/` (≈ all run data);
-- `.scratch/deck-20261117/` (analysis scripts);
-- the private patched install, or rebuild it as described above.
+The run data were moved out of `.scratch/` on 2026-11-18 into the Studies
+`2026-11-15__dose-rate-study` and `2026-11-16__pulse-by-pulse` under `${STUDIES_ROOT}/dnachem-min/`
+(outside git, listed in [docs/studies/INDEX.md](../studies/INDEX.md)). Each Study holds a
+`study.json` and reconstructed provenance stamps (`runs/<set>/stamp.json`). To rerun, you need:
+- `${STUDIES_ROOT}/dnachem-min/2026-11-15__dose-rate-study/spike/library` (packet library);
+- the patched install (`${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install`), or rebuild it as
+  described above.

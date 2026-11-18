@@ -269,6 +269,9 @@ Actual study command (paths relative to the repository):
  -OutDir .scratch/tests/2026-11-08__beam-on-fresh-source-calibration/04-study
 ```
 
+The private install has since moved unchanged to `${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install` (patch set `mf-ti`) (2026-11-18); a rerun passes
+that path as `-InstallPrefix`.
+
 Study start was `2026-11-08T14:57:33.4856071Z`; the original deadline was
 `2026-11-08T18:57:33.4856071Z`. Operator interruption occurred before the
 14:58:35Z post-stop analysis. Raw `processes.csv` preserves 12 accepted capture

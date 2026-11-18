@@ -5,6 +5,8 @@ Run: python -m unittest discover -s examples/dose-rate-study/studies -v
 import json
 import math
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -158,6 +160,30 @@ class AnalyzeTest(unittest.TestCase):
             self.assertEqual(rows[0]["n_realizations"], "2")
             self.assertAlmostEqual(float(rows[0]["G_cum"]), 20.0)
 
+    def test_runs_dir_reads_study_run_outputs(self):
+        species = ("timeNs,species,count,energyDepositEv,doseGy,gCumulativePer100eV,gFinalPer100eV,extrapolated\n"
+                   "1,A,%d,100,0.1,0,0,0\n2.5,A,7,300,0.3,0,0,0\n")
+        with tempfile.TemporaryDirectory() as d:
+            runs_dir = os.path.join(d, "studies", "runs", "set")
+            for rid, n in (("a", 10), ("b", 30)):
+                out = os.path.join(runs_dir, rid, "output")
+                os.makedirs(out)
+                with open(os.path.join(out, "species.csv"), "w", encoding="utf-8") as h:
+                    h.write(species % n)
+                with open(os.path.join(out, "ledger.json"), "w", encoding="utf-8") as h:
+                    json.dump({"checks": {"allPassed": True}}, h)
+            plan = os.path.join(d, "plan.json")
+            with open(plan, "w", encoding="utf-8") as h:   # run.output points nowhere: --runs-dir wins
+                json.dump({"runs": [{"id": r, "rate_Gy_s": 1.0, "output": "missing/" + r} for r in "ab"]}, h)
+            res = os.path.join(d, "res")
+            self.assertEqual(analyze.main(["--plan", plan, "--runs-dir", runs_dir, "--out", res]), 0)
+            with open(os.path.join(res, "gvalues_time_rate1.csv"), encoding="utf-8") as h:
+                rows = list(analyze.csv.DictReader(h))
+            self.assertEqual(rows[0]["n_realizations"], "2")
+            self.assertAlmostEqual(float(rows[0]["G_cum"]), 20.0)
+            with self.assertRaises(SystemExit):   # one --runs-dir per --plan
+                analyze.main(["--plan", plan, "--plan", plan, "--runs-dir", runs_dir, "--out", res])
+
 
 class MergeTest(unittest.TestCase):
     def part(self, seeds, skipped, deposit=100.0):
@@ -203,6 +229,32 @@ class SpikeReportTest(unittest.TestCase):
         # tail = last 2 lines: 5 arrivals in 30 s; 70 remaining -> +420 s
         self.assertAlmostEqual(spike_report.estimate_full_wall(130.0, p), 130.0 + 420.0)
         self.assertIsNone(spike_report.estimate_full_wall(10.0, []))
+
+
+@unittest.skipUnless(shutil.which("pwsh"), "pwsh not found")
+class RunStudyDryRunTest(unittest.TestCase):
+    """run_study.ps1 -Study -DryRun with a study.ps1 that cannot resolve the study: lists every run."""
+
+    def test_dry_run_prints_study_run_commands(self):
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "study.ps1")
+            with open(fake, "w", encoding="utf-8") as h:
+                h.write("[Console]::Error.WriteLine('study: unknown study'); exit 1\n")
+            with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as h:
+                json.dump({"study": {}, "outputRoot": "out", "runs": [
+                    {"id": "rate50_k0", "rate_Gy_s": 50, "chemistrySeed": 1001, "sourceSeed": 500001,
+                     "firstPacket": 9, "config": "runs/rate50_k0/history.cfg", "output": "out/rate50_k0"}]}, h)
+            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_study.ps1")
+            r = subprocess.run(["pwsh", "-NoProfile", "-File", script, "-Plan", os.path.join(d, "plan.json"),
+                                "-Study", "smoke", "-RunSet", "set1", "-StudyScript", fake, "-DryRun"],
+                               capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        line = next(x for x in r.stdout.splitlines() if x.startswith("rate50_k0: would run"))
+        self.assertIn(" run smoke set1 --id rate50_k0 ", line)
+        self.assertIn("--seed chemistrySeed=1001 --seed sourceSeed=500001", line)
+        self.assertIn("--param rate_Gy_s=50 --param firstPacket=9", line)
+        self.assertRegex(line, r"history\.exe --config \S+history\.cfg --output \{output\}$")
+        self.assertNotIn("--rerun", line)
 
 
 if __name__ == "__main__":

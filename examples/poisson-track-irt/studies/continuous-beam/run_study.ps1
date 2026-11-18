@@ -12,6 +12,7 @@
 .PARAMETER Plan        plan.json
 .PARAMETER History     history executable (default: ../../build-patched/history.exe)
 .PARAMETER Geant4Bin   bin directory of the PATCHED Geant4 install, put first on PATH
+                       (default ${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install/bin, patch set mf-ti)
 .PARAMETER LogCsv      run log (default: <plan dir>/run_log.csv, appended)
 .PARAMETER DryRun      print what would run; run and write nothing
 .PARAMETER Limit       run at most this many (not skipped) histories
@@ -23,7 +24,7 @@
 param(
   [Parameter(Mandatory)][string]$Plan,
   [string]$History = (Join-Path $PSScriptRoot '..\..\build-patched\history.exe'),
-  [string]$Geant4Bin = (Join-Path $PSScriptRoot '..\..\..\..\.scratch\tests\2026-11-08__beam-on-irt-beam-off-meso\install\bin'),
+  [string]$Geant4Bin = $(if ($env:DEV_DIR) { Join-Path $env:DEV_DIR 'GEANT4\geant4-v11.4.3-mf-ti-install\bin' }),
   [string]$LogCsv,
   [switch]$DryRun,
   [int]$Limit = 0,
@@ -48,6 +49,7 @@ function Test-RunPassed([string]$outDir) {
 if (-not $DryRun) {
   if (-not (Test-Path -LiteralPath $History)) { throw "history executable not found: $History" }
   $History = (Resolve-Path -LiteralPath $History).Path
+  if (-not $Geant4Bin) { throw 'DEV_DIR is not set: run ~/dotfiles/scripts/windows/setup-dev-env.ps1, or pass -Geant4Bin' }
   if (-not (Test-Path -LiteralPath $Geant4Bin)) { throw "Geant4 bin directory not found: $Geant4Bin" }
   $env:PATH = (Resolve-Path -LiteralPath $Geant4Bin).Path + [IO.Path]::PathSeparator + $env:PATH
   if (-not $env:GEANT4_DATA_DIR) { throw 'GEANT4_DATA_DIR is not set (directory with G4EMLOW..., G4PARTICLEXS...)' }

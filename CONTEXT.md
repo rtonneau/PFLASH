@@ -250,6 +250,41 @@ A sufficiency check runs a minimal kernel fixture on `stock` (defect observed) a
 dose-rate-study history on `all` and `all-<N>`: without patch N the dose-rate
 application shows the defect.
 
+**Study** (study tooling, global `/study` skill):
+One scientific question answered by simulation (e.g. "G(t) vs dose rate, pulse
+resolved"), with an id `YYYY-MM-DD__<slug>`, an aim, a status (planned, running,
+done, abandoned), its **Study runs** grouped in **Run sets**, and links to the gps
+session and the report in the repo. Its data live under the **Studies root**,
+never in git.
+_Avoid_: "session" (that is a gps session, which may host or span studies),
+"experiment", "campaign".
+
+**Run set** (study tooling):
+A named group of **Study runs** of one Study that share a configuration and differ
+by seed or swept parameter (e.g. `plan_pulse`, `plan_pulse_lo`).
+_Avoid_: "batch" (the g4run queue term), "plan" (collides with gps plans).
+
+**Study run** (study tooling):
+One process execution (e.g. `sim.exe`, `history.exe`) launched through the study
+wrapper, in its own run directory with its **Provenance stamp**, inputs, output
+and log. Smoke and unit-test runs are not Study runs.
+
+**Provenance stamp** (study tooling):
+The machine-written record of what a Study run was: command line, macro/config
+text, seeds, git commit, branch, dirty flag and diff, executable and DLL hashes
+(plus a snapshot), the Geant4 install used with its version and patch set,
+machine and hardware, start and end time, exit code, wall time, peak memory.
+_Avoid_: "manifest" (that is the simulation's own `Manifest.json` per **Dump**).
+
+**Studies root** (study tooling):
+The machine-local directory named by the `STUDIES_ROOT` user environment variable
+that holds every Study's data, per project. Paths under it are written as
+`${STUDIES_ROOT}/...` wherever they are recorded.
+
+**Study index** (study tooling):
+The committed list of a project's Studies (one line each: id, question, status,
+machine, `${STUDIES_ROOT}` path, report link). The only trace of study data in git.
+
 **Exposure duration** (planned feasibility study):
 The fixed primary-arrival window length, equal to nominal dose divided by requested
 mean dose rate. Poisson arrivals make each history's actual deposited dose fluctuate;

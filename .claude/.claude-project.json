@@ -3,6 +3,11 @@
   "geant4InstallPath": "${G4_ROOT}",
   "geant4Version": "11.4.3",
 
+  "studies": {
+    "project": "dnachem-min",
+    "index": "docs/studies/INDEX.md"
+  },
+
   "build": {
     "system": "cmake",
     "generator": "Ninja",

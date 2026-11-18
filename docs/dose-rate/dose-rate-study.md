@@ -77,7 +77,7 @@ G at beam-off (molecules / 100 eV, ± SE). The beam-off time differs by five ord
 - At 0.1 Gy/s, H₂O₂ (0.61) and H₂ (0.74) are below their 50 Gy/s values, because of the slow decrease after 1 s (above).
 - At beam-off, the last track has been active for only 1 ps. At 1 Gy (about 600 tracks), one fresh track contributes about G/600 of its initial yield, about 0.007 for e_aq⁻. This is the order of the 0.1 Gy/s radical values, so those values reflect mostly the last track.
 
-Data: `.scratch/tests/2026-11-15__dose-rate-study/prod/analysis/1Gy/`.
+Data: `${STUDIES_ROOT}/dnachem-min/2026-11-15__dose-rate-study/prod/analysis/1Gy/`.
 - `gvalues_time.csv`: all rates on the common grid.
 - `gvalues_time_rate<r>.csv`: one file per rate.
 - `gvalues_beamoff.csv`: the beam-off values.
@@ -148,4 +148,4 @@ python examples/dose-rate-study/studies/plot.py --data prod/analysis/1Gy --out d
   --norm cum --ncols 3 --species "e_aq^-1" "°OH^0" "H^0" "H2O2^0" "H_2^0" "HO_2°^0" "O_2^-1" "H3O^1" "OH^-1"
 ```
 
-(`prod` = `.scratch/tests/2026-11-15__dose-rate-study/prod`; repeat `plot.py` with `--norm final` for the final-dose plot.)
+(`prod` = `${STUDIES_ROOT}/dnachem-min/2026-11-15__dose-rate-study/prod`; repeat `plot.py` with `--norm final` for the final-dose plot.)

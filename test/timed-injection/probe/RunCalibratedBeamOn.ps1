@@ -11,7 +11,7 @@ if(Test-Path $OutDir){throw 'Use a fresh evidence directory; resuming or replaci
 $BuildDir=(Resolve-Path $BuildDir).Path; $FinderBuildDir=(Resolve-Path $FinderBuildDir).Path
 $InstallPrefix=(Resolve-Path $InstallPrefix).Path
 $repo=(Resolve-Path "$PSScriptRoot/../../..").Path
-$private=(Resolve-Path "$repo/.scratch/tests/2026-11-08__beam-on-irt-beam-off-meso/install").Path
+$private=(Resolve-Path "$env:DEV_DIR/GEANT4/geant4-v11.4.3-mf-ti-install").Path
 if($InstallPrefix -ne $private){throw 'Use the validated private runtime.'}
 if((Get-FileHash "$InstallPrefix/bin/G4processes_core.dll").Hash -ne '11AD89C931010589B56F32277CE0885397689E1BBF8C682FBFA2BBBD81BD574B'){throw 'Private core hash differs from validated runtime.'}
 $launcher="$FinderBuildDir/JobLauncher.exe"; $checker="$BuildDir/CheckCalibratedBeamOn.exe"
