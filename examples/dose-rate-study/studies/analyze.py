@@ -3,10 +3,12 @@
 
 Usage:
     python analyze.py --plan <plan dir>/plan.json [--plan <other plan.json> ...] [--out <dir>]
-                      [--allow-partial]
+                      [--runs-dir <run set dir> ...] [--allow-partial]
 
 Several --plan options pool their runs (a run listed by two plans, same output dir, counts once);
---out defaults to the directory of the first plan.
+--out defaults to the directory of the first plan. --runs-dir, given once per --plan in the same
+order, reads each run's output from <run set dir>/<id>/output (the Study runs of
+run_study.ps1 -Study) instead of the plan's run.output.
 
 Reads species.csv and ledger.json of every run (run_study.ps1 output). A run without a passing
 ledger is an error unless --allow-partial, which skips it (listed in the summary).
@@ -113,8 +115,9 @@ def _row(time_ns, species, members):
             "extrapolated": int(nx > 0), "extrapolatedFraction": nx / len(members)}
 
 
-def load_runs(plan_path, allow_partial, by_rate=None, seen=None):
-    """Adds the runs of one plan to by_rate; seen (set of normalised output dirs) skips repeats."""
+def load_runs(plan_path, allow_partial, by_rate=None, seen=None, runs_dir=None):
+    """Adds the runs of one plan to by_rate; seen (set of normalised output dirs) skips repeats.
+    runs_dir: a Study run set directory, the output of run <id> is <runs_dir>/<id>/output."""
     plan_dir = os.path.dirname(os.path.abspath(plan_path))
     with open(plan_path, encoding="utf-8") as handle:
         plan = json.load(handle)
@@ -122,8 +125,11 @@ def load_runs(plan_path, allow_partial, by_rate=None, seen=None):
     seen = set() if seen is None else seen
     skipped = []
     for run in plan["runs"]:
-        out = os.path.join(plan_dir, run["output"])
-        key = os.path.normcase(os.path.normpath(out))
+        if runs_dir:
+            out = os.path.join(runs_dir, run["id"], "output")
+        else:
+            out = os.path.join(plan_dir, run["output"])
+        key =os.path.normcase(os.path.normpath(out))
         if key in seen:
             continue
         seen.add(key)
@@ -162,12 +168,17 @@ def main(argv=None):
     parser.add_argument("--plan", required=True, action="append")
     parser.add_argument("--out")
     parser.add_argument("--allow-partial", action="store_true")
+    parser.add_argument("--runs-dir", action="append")
     args = parser.parse_args(argv)
+    if args.runs_dir and len(args.runs_dir) != len(args.plan):
+        parser.error("--runs-dir must be given once per --plan (%d plans, %d run set dirs)"
+                     % (len(args.plan), len(args.runs_dir)))
     out = args.out or os.path.dirname(os.path.abspath(args.plan[0]))
     by_rate, seen, skipped = defaultdict(list), set(), []
     try:
-        for plan_path in args.plan:
-            skipped += load_runs(plan_path, args.allow_partial, by_rate, seen)[2]
+        for i, plan_path in enumerate(args.plan):
+            runs_dir = args.runs_dir[i] if args.runs_dir else None
+            skipped += load_runs(plan_path, args.allow_partial, by_rate, seen, runs_dir)[2]
     except (ValueError, OSError, KeyError) as error:
         print("analyze: " + str(error), file=sys.stderr)
         return 2
