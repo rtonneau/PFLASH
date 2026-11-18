@@ -21,18 +21,41 @@
 .PARAMETER Parallel  histories at once (default: necessity.json parallel)
 .PARAMETER Variants  subset of the variants to run (analysis still reads all)
 .PARAMETER Python    interpreter with numpy and h5py (default python; e.g. the GEANT4 conda env)
+.PARAMETER Study     Study id or unique slug of the /study skill: launch every history as a Study run
+                     (study.ps1 run <study> <runSet> --id <variant>-<run id> ... -- JobLauncher ... history),
+                     so each run has a provenance stamp under ${STUDIES_ROOT}. The JobLauncher memory and
+                     wall caps still apply. Output: <run set>/<variant>-<run id>/{stamp.json,stdout.log,output/};
+                     the analysis reads it through links in the work directory. Without -Study nothing changes.
+.PARAMETER RunSet    run set of the Study (default: the config name). A config's runSets.<RunSet> entry
+                     overrides its study keys (rates, realizations) and gets its own work directory
+                     (<config>-<RunSet>), e.g. smoke = one realization at 1e8 Gy/s.
+.PARAMETER StudyScript  study.ps1 (default ~/.claude/skills/study/scripts/study.ps1)
 #>
 [CmdletBinding()]
-param([string]$Config, [switch]$Reuse, [int]$Parallel = 0, [string[]]$Variants, [string]$Python = 'python')
+param([string]$Config, [switch]$Reuse, [int]$Parallel = 0, [string[]]$Variants, [string]$Python = 'python',
+  [string]$Study, [string]$RunSet, [string]$StudyScript = (Join-Path $HOME '.claude\skills\study\scripts\study.ps1'))
 $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path "$PSScriptRoot/../..").Path.Replace('\', '/')
 $settings = Get-Content "$PSScriptRoot/necessity/necessity.json" -Raw | ConvertFrom-Json
-if (-not $Variants) { $Variants = $settings.variants }
-if ($Parallel -le 0) { $Parallel = $settings.parallel }
 if (-not $Config) { $Config = $settings.defaultConfig }
-$study = $settings.configs.$Config
-if (-not $study) { throw "no config '$Config' in necessity.json" }
+$sweep = $settings.configs.$Config
+if (-not $sweep) { throw "no config '$Config' in necessity.json" }
+# A config may name its own variants (rateSweep: all, all-2); -Variants wins. 'all,all-2' passed as one
+# token by `pwsh -File` is split here.
+if (-not $Variants) { $Variants = if ($sweep.variants) { @($sweep.variants) } else { $settings.variants } }
+$Variants = @($Variants | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+if ($Parallel -le 0) { $Parallel = $settings.parallel }
+# The run set's overrides (runSets.<name>) replace study keys; the plan then has its own directory.
+$workName = $Config
+if ($Study -and -not $RunSet) { $RunSet = $Config }
+if ($RunSet -and $sweep.runSets -and $sweep.runSets.$RunSet) {
+  $merged = [ordered]@{}
+  foreach ($p in $sweep.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+  foreach ($p in $sweep.runSets.$RunSet.PSObject.Properties) { $merged[$p.Name] = $p.Value }
+  $sweep = [pscustomobject]$merged
+  $workName = "$Config-$RunSet"
+}
 if (-not $env:DEV_DIR) { throw 'DEV_DIR is unset: run ~/dotfiles/scripts/windows/setup-dev-env.ps1 and restart the shell' }
 $scratch = "$root/.scratch/dose-rate-patches"
 $work = "$scratch/necessity"
@@ -49,7 +72,8 @@ function Invoke-Msvc([string]$command, [string]$log) {
 function Get-KernelBin([string]$variant) { "$root/.scratch/kernels/$variant/install/bin" }
 
 # 1. Builds.
-foreach ($v in ($settings.variants | Select-Object -Unique)) {
+$buildVariants = if ($PSBoundParameters.ContainsKey('Variants') -or $sweep.variants) { @($Variants + $settings.reference) } else { $settings.variants }
+foreach ($v in ($buildVariants | Select-Object -Unique)) {
   $b = "$scratch/drs-$v"
   if ($Reuse -and (Test-Path "$b/history.exe")) { continue }
   $kernel = "$root/.scratch/kernels/$v/install/lib/cmake/Geant4"
@@ -79,41 +103,115 @@ if (-not ($Reuse -and (Test-Path "$library/library.csv"))) {
 }
 
 # 3. Plan (shared by every variant).
-$planDir = "$work/$Config/plan"
+$planDir = "$work/$workName/plan"
 if (-not ($Reuse -and (Test-Path "$planDir/plan.json"))) {
   if (Test-Path $planDir) { Remove-Item -Recurse -Force $planDir }
-  New-Item -ItemType Directory -Force "$work/$Config" | Out-Null
-  $study | ConvertTo-Json -Depth 5 | Set-Content "$work/$Config/study.json"
+  New-Item -ItemType Directory -Force "$work/$workName" | Out-Null
+  $sweep | Select-Object -Property * -ExcludeProperty comment, variants, runSets | ConvertTo-Json -Depth 5 | Set-Content "$work/$workName/study.json"
   $snap = if ($settings.snapshots) { '--snapshots' } else { '' }
-  & $Python "$drs/studies/make_configs.py" --library $library --study "$work/$Config/study.json" --out $planDir $snap
+  & $Python "$drs/studies/make_configs.py" --library $library --study "$work/$workName/study.json" --out $planDir $snap
   if ($LASTEXITCODE -ne 0) { throw 'make_configs.py failed' }
 }
 $plan = Get-Content "$planDir/plan.json" -Raw | ConvertFrom-Json
 
 # 4. Histories: every run on every variant, under the memory and wall caps.
+# Study run ids drop the '+' of ids like r1e+08_000 (a run id allows letters, digits, '.', '_', '-').
+# With -Study each history is a Study run (study.ps1 run) whose child is JobLauncher, so the caps stay;
+# the wrapper stamps the run under ${STUDIES_ROOT}. The stamp's executable is the launcher: the history
+# executable and its config are copied to the run's input/ and listed in its command line.
+$runSetDir = $null
+if ($Study) {
+  if ($RunSet -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { throw "run set '$RunSet' must use letters, digits, '.', '_' or '-' (pass -RunSet)" }
+  if (-not (Test-Path -LiteralPath $StudyScript)) { throw "study.ps1 not found: $StudyScript (install the /study skill with claude-sync-skills.ps1)" }
+  $statusOut = & pwsh -NoProfile -File $StudyScript status $Study --json --project-root $root 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "study '$Study' not resolved: $(($statusOut | Out-String).Trim())" }
+  $info = ($statusOut | Out-String) | ConvertFrom-Json
+  $Study = $info.study.id
+  $dataPath = [string]$info.study.dataPath
+  foreach ($v in 'STUDIES_ROOT', 'DEV_DIR', 'G4_ROOT') { $dataPath = $dataPath.Replace('${' + $v + '}', [string][Environment]::GetEnvironmentVariable($v)) }
+  $runSetDir = [IO.Path]::GetFullPath((Join-Path (Join-Path $dataPath 'runs') $RunSet))
+  Write-Output "Study $Study, run set $runSetDir"
+}
 $jobs = foreach ($v in $Variants) {
   foreach ($r in $plan.runs) {
-    $out = "$work/$Config/runs/$v/$($r.id)"
-    $meta = "$out.launcher.txt"
-    if ($Reuse -and (Test-Path $meta) -and (Select-String -Path $meta -Pattern '^RESULT launcher.reason=' -Quiet)) { continue }
-    [pscustomobject]@{ Variant = $v; Id = $r.id; Config = (Join-Path $planDir $r.config).Replace('\', '/'); Out = $out; Meta = $meta }
+    $out = "$work/$workName/runs/$v/$($r.id)"
+    $cfg = (Join-Path $planDir $r.config).Replace('\', '/')
+    if ($Study) {
+      $runDir = Join-Path $runSetDir "$v-$($r.id.Replace('+', ''))"
+      $log = Join-Path $runDir 'stdout.log'
+      # A succeeded Study run is a provenance record: never rerun (the wrapper refuses it too).
+      $stampPath = Join-Path $runDir 'stamp.json'
+      if ((Test-Path $stampPath) -and ((Get-Content $stampPath -Raw | ConvertFrom-Json).status -eq 'succeeded')) { continue }
+      if ($Reuse -and (Test-Path $log) -and (Select-String -Path $log -Pattern '^RESULT launcher.reason=' -Quiet)) { continue }
+      $a = @('-NoProfile', '-File', $StudyScript, 'run', $Study, $RunSet, '--id', "$v-$($r.id.Replace('+', ''))", '--project-root', $root, '--quiet')
+      if (Test-Path $runDir) { $a += '--rerun' }
+      foreach ($k in 'chemistrySeed', 'sourceSeed') { if ($r.PSObject.Properties[$k]) { $a += @('--seed', "$k=$($r.$k)") } }
+      $a += @('--param', "rate_Gy_s=$(([double]$r.rate_Gy_s).ToString('R', [Globalization.CultureInfo]::InvariantCulture))", '--param', "variant=$v")
+      if ($null -ne $r.firstPacket) { $a += @('--param', "firstPacket=$($r.firstPacket)") }
+      [pscustomobject]@{ Variant = $v; Id = $r.id; Config = $cfg; Out = $out; Meta = "$out.launcher.txt"; StudyArgs = $a; RunDir = $runDir }
+    } else {
+      $meta = "$out.launcher.txt"
+      if ($Reuse -and (Test-Path $meta) -and (Select-String -Path $meta -Pattern '^RESULT launcher.reason=' -Quiet)) { continue }
+      [pscustomobject]@{ Variant = $v; Id = $r.id; Config = $cfg; Out = $out; Meta = $meta; StudyArgs = $null; RunDir = $null }
+    }
   }
 }
 Write-Output "histories to run: $(@($jobs).Count) (parallel $Parallel)"
 $cap = $settings.memoryCapMiB
-$wall = $study.wallTimeCapS
+$wall = $sweep.wallTimeCapS
 $jobs | ForEach-Object -ThrottleLimit $Parallel -Parallel {
   $j = $_
-  foreach ($p in @($j.Out, "$($j.Out).log", "$($j.Out).err", $j.Meta)) { if (Test-Path $p) { Remove-Item -Recurse -Force $p } }
-  New-Item -ItemType Directory -Force (Split-Path $j.Out) | Out-Null
   $bin = "$using:root/.scratch/kernels/$($j.Variant)/install/bin"
   $history = "$using:scratch/drs-$($j.Variant)/history.exe"
   $start = Get-Date
-  cmd /c "set `"PATH=$bin;%PATH%`" && `"$using:launcher`" $using:cap $using:wall `"$($j.Out)`" --expect fixed `"$history`" --config `"$($j.Config)`" --output `"$($j.Out)`" > `"$($j.Meta)`" 2>&1"
-  $reason = (Select-String -Path $j.Meta -Pattern '^RESULT launcher.reason=(.*)$').Matches.Groups[1].Value
-  '{0,-6} {1,-10} {2,-11} exit {3,-4} {4:n0} s' -f $j.Variant, $j.Id, $reason, $LASTEXITCODE, ((Get-Date) - $start).TotalSeconds
+  if ($j.StudyArgs) {
+    $launch = @("$using:launcher", "$using:cap", "$using:wall", '{run}/launcher', '--expect', 'fixed', $history, '--config', $j.Config, '--output', '{output}')
+    $all = @($j.StudyArgs) + @('--') + $launch
+    $psi = [Diagnostics.ProcessStartInfo]::new('pwsh')
+    foreach ($x in $all) { $psi.ArgumentList.Add([string]$x) }
+    $psi.UseShellExecute = $false
+    $psi.Environment['PATH'] = "$bin;$($psi.Environment['PATH'])"
+    # The wrapper snapshots the launcher into <study>/bin/<key> and edits study.json at start-up; two
+    # wrappers doing that at once collide (observed: a run left without stamp). Start them one by one,
+    # each released once its stamp.json exists.
+    $mutex = [Threading.Mutex]::new($false, 'Global\necessity_study_start')
+    [void]$mutex.WaitOne()
+    try {
+      $proc = [Diagnostics.Process]::Start($psi)
+      $stamp = Join-Path $j.RunDir 'stamp.json'
+      while (-not $proc.HasExited -and -not (Test-Path $stamp)) { Start-Sleep -Milliseconds 300 }
+    } finally { $mutex.ReleaseMutex() }
+    $proc.WaitForExit()
+    $exitCode = $proc.ExitCode
+    $m = Select-String -Path (Join-Path $j.RunDir 'stdout.log') -Pattern '^RESULT launcher.reason=(.*)$' -ErrorAction SilentlyContinue
+    $reason = if ($m) { $m.Matches.Groups[1].Value } else { 'no-result' }
+  } else {
+    foreach ($p in @($j.Out, "$($j.Out).log", "$($j.Out).err", $j.Meta)) { if (Test-Path $p) { Remove-Item -Recurse -Force $p } }
+    New-Item -ItemType Directory -Force (Split-Path $j.Out) | Out-Null
+    cmd /c "set `"PATH=$bin;%PATH%`" && `"$using:launcher`" $using:cap $using:wall `"$($j.Out)`" --expect fixed `"$history`" --config `"$($j.Config)`" --output `"$($j.Out)`" > `"$($j.Meta)`" 2>&1"
+    $reason = (Select-String -Path $j.Meta -Pattern '^RESULT launcher.reason=(.*)$').Matches.Groups[1].Value
+  }
+  '{0,-6} {1,-10} {2,-11} exit {3,-4} {4:n0} s' -f $j.Variant, $j.Id, $reason, $(if ($j.StudyArgs) { $exitCode } else { $LASTEXITCODE }), ((Get-Date) - $start).TotalSeconds
+}
+if ($Study) {
+  # The analysis reads <work>/runs/<variant>/<id>/ and <id>.launcher.txt: link each Study run's output
+  # there and copy the launcher's RESULT lines (the run's stdout.log).
+  foreach ($v in $Variants) {
+    foreach ($r in $plan.runs) {
+      $runDir = Join-Path $runSetDir "$v-$($r.id.Replace('+', ''))"
+      if (-not (Test-Path (Join-Path $runDir 'stdout.log'))) { continue }
+      $link = "$work/$workName/runs/$v/$($r.id)"
+      New-Item -ItemType Directory -Force (Split-Path $link) | Out-Null
+      if (Test-Path $link) {
+        if (-not ((Get-Item $link -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw "$link is a real directory (a run without -Study); remove it or use another config" }
+        [IO.Directory]::Delete($link)
+      }
+      New-Item -ItemType Junction -Path $link -Target (Join-Path $runDir 'output') | Out-Null
+      Copy-Item -LiteralPath (Join-Path $runDir 'stdout.log') -Destination "$link.launcher.txt" -Force
+    }
+  }
 }
 
 # 5. Analysis.
-& $Python "$PSScriptRoot/necessity/analyze_necessity.py" --settings "$PSScriptRoot/necessity/necessity.json" --config $Config --work "$work/$Config" --out "$work/$Config/necessity-results.json"
+& $Python "$PSScriptRoot/necessity/analyze_necessity.py" --settings "$PSScriptRoot/necessity/necessity.json" --config $Config --work "$work/$workName" --out "$work/$workName/necessity-results.json"
 exit $LASTEXITCODE
