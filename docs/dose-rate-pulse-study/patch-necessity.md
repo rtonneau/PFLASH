@@ -227,3 +227,8 @@ at these settings. Full tables: the generated report
 - 10 realizations per kernel and 0.1 Gy only. The z values test the means, not rare events.
 - The histories are not reproducible bit for bit, even for one binary (issue 15), so kernels are
   compared statistically, not run by run.
+
+## Decision (2026-11-19)
+
+Future kernels drop patches 1 and 3 and keep patch 2: [ADR 0013](../adr/0013-drop-patches-1-and-3.md).
+The patch files and fixtures stay on record.
