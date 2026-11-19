@@ -21,19 +21,19 @@
 .PARAMETER Parallel  histories at once (default: necessity.json parallel)
 .PARAMETER Variants  subset of the variants to run (analysis still reads all)
 .PARAMETER Python    interpreter with numpy and h5py (default python; e.g. the GEANT4 conda env)
-.PARAMETER Study     Study id or unique slug of the /study skill: launch every history as a Study run
-                     (study.ps1 run <study> <runSet> --id <variant>-<run id> ... -- JobLauncher ... history),
+.PARAMETER Study     Study id or unique slug of the /g4-study skill: launch every history as a Study run
+                     (g4-study.ps1 run <study> <runSet> --id <variant>-<run id> --target history ... -- JobLauncher ... history),
                      so each run has a provenance stamp under ${STUDIES_ROOT}. The JobLauncher memory and
                      wall caps still apply. Output: <run set>/<variant>-<run id>/{stamp.json,stdout.log,output/};
                      the analysis reads it through links in the work directory. Without -Study nothing changes.
 .PARAMETER RunSet    run set of the Study (default: the config name). A config's runSets.<RunSet> entry
                      overrides its study keys (rates, realizations) and gets its own work directory
                      (<config>-<RunSet>), e.g. smoke = one realization at 1e8 Gy/s.
-.PARAMETER StudyScript  study.ps1 (default ~/.claude/skills/study/scripts/study.ps1)
+.PARAMETER StudyScript  g4-study.ps1 (default ~/.claude/skills/g4-study/scripts/g4-study.ps1)
 #>
 [CmdletBinding()]
 param([string]$Config, [switch]$Reuse, [int]$Parallel = 0, [string[]]$Variants, [string]$Python = 'python',
-  [string]$Study, [string]$RunSet, [string]$StudyScript = (Join-Path $HOME '.claude\skills\study\scripts\study.ps1'))
+  [string]$Study, [string]$RunSet, [string]$StudyScript = (Join-Path $HOME '.claude\skills\g4-study\scripts\g4-study.ps1'))
 $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path "$PSScriptRoot/../..").Path.Replace('\', '/')
@@ -116,13 +116,15 @@ $plan = Get-Content "$planDir/plan.json" -Raw | ConvertFrom-Json
 
 # 4. Histories: every run on every variant, under the memory and wall caps.
 # Study run ids drop the '+' of ids like r1e+08_000 (a run id allows letters, digits, '.', '_', '-').
-# With -Study each history is a Study run (study.ps1 run) whose child is JobLauncher, so the caps stay;
-# the wrapper stamps the run under ${STUDIES_ROOT}. The stamp's executable is the launcher: the history
-# executable and its config are copied to the run's input/ and listed in its command line.
+# With -Study each history is a Study run (g4-study.ps1 run) whose child is JobLauncher, so the caps stay;
+# the wrapper stamps the run under ${STUDIES_ROOT}. The stamp's executable is the launcher and its target
+# (--target) is the history executable: both are snapshotted into <study>/bin/ and hashed, the launcher
+# runs the history snapshot, and the Geant4 install is looked up from the history (the variant kernel,
+# which must carry a g4-build-info.json marker: g4-study.ps1 mark). The config is copied to input/.
 $runSetDir = $null
 if ($Study) {
   if ($RunSet -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { throw "run set '$RunSet' must use letters, digits, '.', '_' or '-' (pass -RunSet)" }
-  if (-not (Test-Path -LiteralPath $StudyScript)) { throw "study.ps1 not found: $StudyScript (install the /study skill with claude-sync-skills.ps1)" }
+  if (-not (Test-Path -LiteralPath $StudyScript)) { throw "g4-study.ps1 not found: $StudyScript (install the /g4-study skill with claude-sync-skills.ps1)" }
   $statusOut = & pwsh -NoProfile -File $StudyScript status $Study --json --project-root $root 2>&1
   if ($LASTEXITCODE -ne 0) { throw "study '$Study' not resolved: $(($statusOut | Out-String).Trim())" }
   $info = ($statusOut | Out-String) | ConvertFrom-Json
@@ -166,21 +168,13 @@ $jobs | ForEach-Object -ThrottleLimit $Parallel -Parallel {
   $start = Get-Date
   if ($j.StudyArgs) {
     $launch = @("$using:launcher", "$using:cap", "$using:wall", '{run}/launcher', '--expect', 'fixed', $history, '--config', $j.Config, '--output', '{output}')
-    $all = @($j.StudyArgs) + @('--') + $launch
+    $all = @($j.StudyArgs) + @('--target', $history, '--') + $launch
     $psi = [Diagnostics.ProcessStartInfo]::new('pwsh')
     foreach ($x in $all) { $psi.ArgumentList.Add([string]$x) }
     $psi.UseShellExecute = $false
     $psi.Environment['PATH'] = "$bin;$($psi.Environment['PATH'])"
-    # The wrapper snapshots the launcher into <study>/bin/<key> and edits study.json at start-up; two
-    # wrappers doing that at once collide (observed: a run left without stamp). Start them one by one,
-    # each released once its stamp.json exists.
-    $mutex = [Threading.Mutex]::new($false, 'Global\necessity_study_start')
-    [void]$mutex.WaitOne()
-    try {
-      $proc = [Diagnostics.Process]::Start($psi)
-      $stamp = Join-Path $j.RunDir 'stamp.json'
-      while (-not $proc.HasExited -and -not (Test-Path $stamp)) { Start-Sleep -Milliseconds 300 }
-    } finally { $mutex.ReleaseMutex() }
+    # Parallel starts are safe: the wrapper serializes its own start-up (Study and project locks).
+    $proc = [Diagnostics.Process]::Start($psi)
     $proc.WaitForExit()
     $exitCode = $proc.ExitCode
     $m = Select-String -Path (Join-Path $j.RunDir 'stdout.log') -Pattern '^RESULT launcher.reason=(.*)$' -ErrorAction SilentlyContinue
