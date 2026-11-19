@@ -3,7 +3,7 @@
 # 1 ps and the energy deposited in the box); history injects packets into one
 # IRT_syn chemistry history in a reflecting box. PureWater chemistry at pH 7,
 # no mesoscopic stage. Copied (not linked) from examples/poisson-track-irt and
-# from the dnachem-min PureWater builder; this project uses no source or
+# from the PFLASH PureWater builder; this project uses no source or
 # header of either.
 cmake_minimum_required(VERSION 3.16)
 project(DoseRateStudy LANGUAGES CXX)

@@ -23,7 +23,7 @@ the chemistry itself — it is a passive scorer that reads the
 set of time points, and folds the result into a per-event G-value
 (radiochemical yield) normalised by that event's energy deposit.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 - `src/actions/ActionInitialization.cc` (`BuildMoleculeCounters`) is
   where the counter itself is set up, once per thread (called from `Build()`

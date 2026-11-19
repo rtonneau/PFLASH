@@ -3,7 +3,7 @@
 /// Standard library only.
 ///
 /// Portable and project-agnostic: standard library only, no HDF5, no Geant4, no
-/// dependency on other dnachem-min classes (adjust the include path prefix on
+/// dependency on other PFLASH classes (adjust the include path prefix on
 /// copy). Compiled instead of MesoSpatialFile.cc when HDF5 is not available
 /// (CMake option DNACHEM_WITH_HDF5). FileName/StagingDir/StagedPath are identical
 /// to the HDF5 version; AppendEvent always fails with an explanatory message and

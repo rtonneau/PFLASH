@@ -4,7 +4,7 @@
 /// Callers coordinate access to shared mutable counters.
 ///
 /// Self-contained, project-agnostic unit: no Geant4 kernel, no other
-/// dnachem-min-specific includes besides EventStat and OutputTable (both
+/// PFLASH-specific includes besides EventStat and OutputTable (both
 /// portable). Copy-paste portable to another Geant4-DNA project (adjust the
 /// include path prefix on copy). Same shape as PhysicsInteractionCounter.
 ///

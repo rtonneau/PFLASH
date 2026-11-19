@@ -8,7 +8,7 @@ outcome.
 
 - Skill: `~/dotfiles/claude/skills/study/SKILL.md` (installed as `~/.claude/skills/study`
   by `claude-sync-skills.ps1`). The wrapper is `scripts/study.ps1`; run `study.ps1 help`.
-- Data: `${STUDIES_ROOT}/dnachem-min/<studyId>/`, outside git. `STUDIES_ROOT` is a
+- Data: `${STUDIES_ROOT}/PFLASH/<studyId>/`, outside git. `STUDIES_ROOT` is a
   user env var set by `~/dotfiles/scripts/windows/setup-dev-env.ps1 -StudiesRoot <path>`.
 - This repo: the `studies` block of `.claude/.claude-project.json` names the project and
   the committed Study index, `docs/studies/INDEX.md`. Reports stay in `docs/<topic>/`

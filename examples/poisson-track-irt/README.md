@@ -8,7 +8,7 @@ separate source and chemistry seeds).
 This is an engineering example. Its checks show that the bookkeeping is right
 (activation times, identities, energy, preservation of earlier molecules, separated
 sources adding up). It is not a calibrated or validated scientific result, and it
-shows no dose-rate effect. It does not use any `dnachem-min` source or header; the
+shows no dose-rate effect. It does not use any `PFLASH` source or header; the
 rest of the repository and the main application are unchanged by it.
 
 ## Approach and scope

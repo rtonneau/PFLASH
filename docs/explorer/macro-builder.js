@@ -1,10 +1,10 @@
-// Macro builder model for the dnachem-min explorer (docs/explorer/index.html#builder).
+// Macro builder model for the PFLASH explorer (docs/explorer/index.html#builder).
 //
 // One configuration model drives the guide, the validation and the macro preview,
 // so they cannot drift apart. Pure JavaScript, no DOM, no network: build.js inlines
 // this file into index.html (window.MacroBuilder); macro-builder.test.js requires it.
 //
-// Every command, default, unit and rule below was read from the dnachem-min source
+// Every command, default, unit and rule below was read from the PFLASH source
 // or the configured Geant4 source (refs in each field's `refs`). When a messenger
 // changes, update this file and its tests; see docs/explorer/README.md.
 (function (root, factory) {
@@ -245,7 +245,7 @@
   // null = available; otherwise { kind: 'incompatible' | 'unsupported', why, fix? }.
   const RULES = {
     modeIRT: function () {
-      return { kind: 'unsupported', why: 'Classic IRT is accepted by Geant4 but dnachem-min stops at /run/initialize (UnsupportedTimeStepModel): only IRT_syn and SBS are supported.' };
+      return { kind: 'unsupported', why: 'Classic IRT is accepted by Geant4 but PFLASH stops at /run/initialize (UnsupportedTimeStepModel): only IRT_syn and SBS are supported.' };
     },
     // The time-step model decides; the mesoscopic choice follows it. Under SBS the
     // stage is off automatically and the IRT_syn choice is kept for a switch back.
@@ -287,7 +287,7 @@
       options: ['Quiet', 'Error', 'Warning', 'Info', 'Debug', 'Trace'].map(function (v) {
         return { value: v, label: v + (v === 'Quiet' ? ' (default)' : '') };
       }),
-      help: 'How much dnachem-min itself reports. Info gives one line per chemistry stage and dump; Debug and Trace are for diagnosing problems.',
+      help: 'How much PFLASH itself reports. Info gives one line per chemistry stage and dump; Debug and Trace are for diagnosing problems.',
       tech: '/dnaLogger/verbose <level>, any application state. Default Quiet (written only when changed).', refs: SRC.logger }),
     q('runVerbose', { step: 'basics', type: 'number', label: 'Geant4 run verbosity', required: false, integer: true,
       help: 'Geant4 run-manager messages. 0 is silent.', tech: '/run/verbose 0..4, default 0 (written only when changed).', refs: SRC.runVerbose }),
@@ -306,7 +306,7 @@
       options: [
         { value: 'IRT_syn', label: 'IRT_syn (default)', help: 'Independent reaction times, synchronised. Fast; can hand over to the mesoscopic stage.' },
         { value: 'SBS', label: 'SBS', help: 'Step-by-step diffusion of every molecule. Slower; every reaction fully diffusion-controlled; no mesoscopic stage (turned off automatically).' },
-        { value: 'IRT', label: 'IRT (classic)', help: 'Geant4 offers it, dnachem-min does not.', rule: 'modeIRT' }
+        { value: 'IRT', label: 'IRT (classic)', help: 'Geant4 offers it, PFLASH does not.', rule: 'modeIRT' }
       ],
       help: 'How the simulation advances chemistry in time. Choosing SBS turns the mesoscopic stage off.',
       tech: '/process/chem/TimeStepModel IRT_syn|SBS, PreInit. Always written so the mode is explicit.', refs: SRC.model }),
@@ -327,7 +327,7 @@
         { value: 'Terrisol1990', label: 'Terrisol1990' }
       ],
       help: 'How far a slowed-down electron travels before it becomes a solvated electron (e_aq). It shifts the initial e_aq distribution.',
-      tech: '/process/dna/e-SolvationSubType, PreInit. Geant4 also accepts Kreipl2009 and Meesungnoen2002_amorphous; they are not offered because no dnachem-min macro or test exercises them.', refs: SRC.solvation }),
+      tech: '/process/dna/e-SolvationSubType, PreInit. Geant4 also accepts Kreipl2009 and Meesungnoen2002_amorphous; they are not offered because no PFLASH macro or test exercises them.', refs: SRC.solvation }),
 
     q('endTimeMode', { step: 'timing', group: 'time', type: 'choice', label: 'Chemistry end time', required: true,
       options: [
@@ -673,9 +673,9 @@
     const meso = mesoOn(cfg), file = sanitizeFilename(cfg.filename);
     const title = String(cfg.title || '').replace(/[\r\n]+/g, ' ').trim();
 
-    c(title || 'dnachem-min simulation macro');
-    c('Created with the dnachem-min explorer Macro builder (docs/explorer/index.html#builder).');
-    c('Configuration checked against the dnachem-min source; this file has not been run.');
+    c(title || 'PFLASH simulation macro');
+    c('Created with the PFLASH explorer Macro builder (docs/explorer/index.html#builder).');
+    c('Configuration checked against the PFLASH source; this file has not been run.');
     c('Run from the build directory:  ./sim ' + file);
     c('Mode: ' + cfg.chemistry + ', ' + cfg.model + (meso ? ' + mesoscopic stage' : (cfg.model === 'SBS' ? '' : ', particle-based stage only')) +
       ', end time ' + describeSeconds(endTimeSeconds(cfg)) + (cfg.endTimeMode === 'custom' ? '' : ' (default)') + '.');

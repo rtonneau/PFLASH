@@ -1,12 +1,12 @@
-dnachem-min: prebuilt simulation for Windows x64
+PFLASH: prebuilt simulation for Windows x64
 =================================================
 
 Minimal Geant4-DNA simulation of water radiolysis by electron beams.
 Source, documentation and the Macro builder:
-  https://github.com/rtonneau/dnachem-min
-  https://rtonneau.github.io/dnachem-min/explorer/#builder
+  https://github.com/rtonneau/PFLASH
+  https://rtonneau.github.io/PFLASH/explorer/#builder
 
-VERSION.txt gives the dnachem-min version and the Geant4 version it was
+VERSION.txt gives the PFLASH version and the Geant4 version it was
 built against.
 
 

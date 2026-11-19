@@ -12,7 +12,7 @@
 // A non-finite value (e.g. an activation that was never observed) is written
 // as an empty CSV field and as null in JSON.
 //
-// The tiny JsonValue tree is adapted from the dnachem-min DataNode/JsonWriter
+// The tiny JsonValue tree is adapted from the PFLASH DataNode/JsonWriter
 // idea (ordered tree, Add on an existing key replaces it in place) but shares
 // no code or header with it.
 #pragma once

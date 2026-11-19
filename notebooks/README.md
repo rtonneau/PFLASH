@@ -1,4 +1,4 @@
-# Demonstration data for dnachem-min notebooks
+# Demonstration data for PFLASH notebooks
 
 These two small, seeded runs provide input for the notebook series below.
 They are workflow examples, not converged radiolysis results. Keep generated
@@ -59,7 +59,7 @@ seed in each pair appears in `Manifest.json`. These seeds do not guarantee
 byte-identical chemistry results across runs.
 
 The notebook's configuration cell defines `IRT_DUMP` and `MESO_DUMP`, defaulting
-to `DEV_DIR/GEANT4/SIM/dnachem-min/.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the/irt`
+to `DEV_DIR/GEANT4/SIM/PFLASH/.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the/irt`
 and `.../meso-spatial`, respectively.
 Edit those variables for your own absolute or relative dump paths. Use
 unprefixed dump directories containing their own `Manifest.json`, not the

@@ -1,6 +1,6 @@
 # Farokhi2023 G-value comparison
 
-Time-dependent G-values from dnachem-min's `Farokhi2023` chemistry, compared against
+Time-dependent G-values from PFLASH's `Farokhi2023` chemistry, compared against
 Farokhi et al. 2023 ("Effects of the Oxygen depletion in FLASH irradiation investigated
 through Geant4-DNA toolkit", Radiat. Phys. Chem. 212, 111184), with a statistical-adequacy
 check on the underlying Monte Carlo runs.
@@ -19,7 +19,7 @@ recording times (10 per decade, 1 ps to ~1 us):
 Run on 2026-10-09, output at `<G4_DATA_OUTPUT>/261009_Farokhi2023_{proton,electron}/o2_*`
 (machine-specific directory, not part of this repo; `plot_gvalues.py` reads it via the
 `G4_DATA_OUTPUT` environment variable). O2 percentages are the paper's own Henry's-law
-conversion at 37 C, not dnachem-min's `%` scavenger shortcut (see the macros' header comments
+conversion at 37 C, not PFLASH's `%` scavenger shortcut (see the macros' header comments
 for the conversion).
 
 A follow-up box-size check for the proton run, same beam and O2 levels but a 20x20x20 um^3
@@ -194,9 +194,9 @@ was last generated; rerun the script once it finishes to pick it up.
 
 ## Caveats (indicative only, not a reproduction)
 
-- dnachem-min models a single homogeneous water box (10x10x10 um^3 for the proton runs, 500 um
+- PFLASH models a single homogeneous water box (10x10x10 um^3 for the proton runs, 500 um
   default for the electron runs), not the paper's nested sensitive-volume geometry.
-- dnachem-min's `PhysicsList` uses `G4EmDNAPhysics_option2`; the paper does not state which
+- PFLASH's `PhysicsList` uses `G4EmDNAPhysics_option2`; the paper does not state which
   `G4EmDNAPhysics` option (if any beyond "Geant4-DNA") it used.
 - The reference points were read by eye off rendered pages of
   `docs/literature/Farokhi2023_Effects_of_the_Oxygen_depletion_in_FLASH_irradiation_investigated_through_geant4_DNA_toolkit.pdf`,

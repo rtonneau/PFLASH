@@ -4,7 +4,7 @@
 /// Callers coordinate filesystem changes and resolver access.
 ///
 /// Portable and project-agnostic: standard library only, no dependency on
-/// other dnachem-min classes (adjust the include path prefix on copy).
+/// other PFLASH classes (adjust the include path prefix on copy).
 /// Design record: the addendum of docs/adr/0005-manifest-per-dump.md.
 ///
 /// Staging folder: <outdir>/.pending_prechem/. Each event writes one

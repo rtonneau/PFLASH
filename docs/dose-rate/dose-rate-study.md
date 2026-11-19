@@ -10,7 +10,7 @@ How do the radiolysis G-values of pure water change with the dose rate when a 4 
 - **Capture:** each 500 keV e⁻ starts 1 nm inside the −z face of a 20 µm water world, at a uniform random (x, y) over the face of the 4 µm box, and travels along +z. The molecules inside the box at 1 ps and the energy deposited in the box form one packet.
 - **Packet library:** 2400 packets from 12 parallel captures (`spike/library`). 215 crossings that missed the box were skipped and count as 0 eV, so the hit fraction is 0.918. The mean deposit is 653 eV per packet, or 600 eV per launched primary. The library holds 3.93 Gy in total.
 - **Box:** 4 µm side (half side 2 µm), mass 6.4e-14 kg, reflecting walls. 1 Gy is 3.99e5 eV, about 600 packets.
-- **Physics and chemistry:** `G4EmDNAPhysics_option2`; the dnachem-min `PureWater` reaction network (no O₂); pH 7 acid-base buffer as bulk species; IRT_syn only, no mesoscopic stage.
+- **Physics and chemistry:** `G4EmDNAPhysics_option2`; the PFLASH `PureWater` reaction network (no O₂); pH 7 acid-base buffer as bulk species; IRT_syn only, no mesoscopic stage.
 - **Arrivals:** a homogeneous Poisson process at the launch rate Ḋ·m / ⟨E per launched primary⟩, thinned by the hit fraction. Each arrival injects the next library packet. It is activated 1 ps after its arrival time. Each run starts at a random library offset.
 - **Dose cutoff:** scheduling stops at the first arrival whose cumulative box deposit reaches 1 Gy, so the overshoot is less than one track (mean final dose 1.001 to 1.003 Gy). Beam-off is 1 ps after the last activation, and the chemistry stops there. There is no post-beam relaxation.
 - **Grid:** one absolute log grid from 1 ps at 10 points per decade, the same for every rate, plus one extra row at each run's beam-off.
@@ -77,7 +77,7 @@ G at beam-off (molecules / 100 eV, ± SE). The beam-off time differs by five ord
 - At 0.1 Gy/s, H₂O₂ (0.61) and H₂ (0.74) are below their 50 Gy/s values, because of the slow decrease after 1 s (above).
 - At beam-off, the last track has been active for only 1 ps. At 1 Gy (about 600 tracks), one fresh track contributes about G/600 of its initial yield, about 0.007 for e_aq⁻. This is the order of the 0.1 Gy/s radical values, so those values reflect mostly the last track.
 
-Data: `${STUDIES_ROOT}/dnachem-min/2026-11-15__dose-rate-study/prod/analysis/1Gy/`.
+Data: `${STUDIES_ROOT}/PFLASH/2026-11-15__dose-rate-study/prod/analysis/1Gy/`.
 - `gvalues_time.csv`: all rates on the common grid.
 - `gvalues_time_rate<r>.csv`: one file per rate.
 - `gvalues_beamoff.csv`: the beam-off values.
@@ -148,4 +148,4 @@ python examples/dose-rate-study/studies/plot.py --data prod/analysis/1Gy --out d
   --norm cum --ncols 3 --species "e_aq^-1" "°OH^0" "H^0" "H2O2^0" "H_2^0" "HO_2°^0" "O_2^-1" "H3O^1" "OH^-1"
 ```
 
-(`prod` = `${STUDIES_ROOT}/dnachem-min/2026-11-15__dose-rate-study/prod`; repeat `plot.py` with `--norm final` for the final-dose plot.)
+(`prod` = `${STUDIES_ROOT}/PFLASH/2026-11-15__dose-rate-study/prod`; repeat `plot.py` with `--norm final` for the final-dose plot.)

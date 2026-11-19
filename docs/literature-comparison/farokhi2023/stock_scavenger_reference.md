@@ -1,7 +1,7 @@
 # Stock scavenger example reference: e_aq G(t), 1 ps to 1 ns
 
 Reference run of the unmodified Geant4 11.4.1 `examples/extended/medical/dna/scavenger`
-example, for comparing against dnachem-min's `Farokhi2023` e_aq curve. Result:
+example, for comparing against PFLASH's `Farokhi2023` e_aq curve. Result:
 `data/stock_scavenger_eaq.csv` (columns `time_s,G_eaq_per_100eV,SEM,n_events`; 31 log-spaced times,
 10 per decade; e_aq G = 4.18 at 1 ps, 3.76 at 1 ns).
 
@@ -10,12 +10,12 @@ example, for comparing against dnachem-min's `Farokhi2023` e_aq curve. Result:
 | Item | Value |
 |---|---|
 | Beam | 500 keV e-, `/gps/particle e-`, `/gps/energy 500 keV` |
-| PrimaryKiller | `eLossMin 12.5 keV`; `eLossMax 1 MeV` (the example hardcodes 1 keV, which aborts every event, so it must be set; 1 MeV is dnachem-min's default) |
+| PrimaryKiller | `eLossMin 12.5 keV`; `eLossMax 1 MeV` (the example hardcodes 1 keV, which aborts every event, so it must be set; 1 MeV is PFLASH's default) |
 | Events | 250 (one `/run/beamOn 250`), 8 worker threads |
 | O2 | 0 %: stock `Rtable_O2.txt` copied to `Rtable_O2_0pct.txt` with `scavenger: O2 0.0` (the three O2 reactions are then dropped with `parchem01`/`parchem03` warnings, expected) |
-| Solvation subtype | `Meesungnoen2002` (the stock `beam.in` choice; dnachem-min's Farokhi macros use `Ritchie1994`, so this is NOT matched) |
+| Solvation subtype | `Meesungnoen2002` (the stock `beam.in` choice; PFLASH's Farokhi macros use `Ritchie1994`, so this is NOT matched) |
 | Physics | stock `G4EmDNAPhysics_option2` + stock `EmDNAChemistry` (IRT, no mesoscopic stage) |
-| Seed | `G4Random::setTheSeed(12345)` via the example's second CLI argument, same value as dnachem-min's default seed (`kDefaultSeed`, `sim.cc`) |
+| Seed | `G4Random::setTheSeed(12345)` via the example's second CLI argument, same value as PFLASH's default seed (`kDefaultSeed`, `sim.cc`) |
 | End time | `/scheduler/endTime 1.01 ns`; recording times added explicitly with `/scorer/species/addTimeToRecord` at 10^(k/10) ps, k = 0..30 |
 
 ## Build commands

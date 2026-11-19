@@ -30,7 +30,7 @@ log says which form it used (`-- HDF5: using ...`). Without HDF5, choosing the
 `"hdf5": false`; everything else works, including `root`.
 Note that `find_package(Geant4)` itself pulls in HDF5 when Geant4 was built
 with HDF5 analysis support
-(`GEANT4_USE_HDF5=ON`). dnachem-min's own code then no longer needs HDF5, but a
+(`GEANT4_USE_HDF5=ON`). PFLASH's own code then no longer needs HDF5, but a
 fully HDF5-free build also needs a Geant4 built without HDF5
 (`GEANT4_USE_HDF5=OFF`, the Geant4 default).
 
@@ -38,8 +38,8 @@ fully HDF5-free build also needs a Geant4 built without HDF5
 
 <details><summary>Windows steps</summary>
 
-No build setup? A prebuilt `dnachem-min-win64.zip` (`sim.exe`, the HDF5 DLLs and
-`macro/`) is attached to each [GitHub Release](https://github.com/rtonneau/dnachem-min/releases/latest).
+No build setup? A prebuilt `PFLASH-win64.zip` (`sim.exe`, the HDF5 DLLs and
+`macro/`) is attached to each [GitHub Release](https://github.com/rtonneau/PFLASH/releases/latest).
 It still needs your own Geant4 install, of the same version and build options;
 see `packaging/README.txt` in the zip and [`docs/release.md`](release.md).
 
@@ -196,7 +196,7 @@ run tree first, or set `-DCATALOG_EXPORT_SIM=<path>`).
 HDF5 (e.g. vcpkg's), which fails to compile (`ssize_t` conflict in
 `H5public.h`). Set `appendWindowsPath=false` under `[interop]` in
 `/etc/wsl.conf` and restart WSL (`wsl --shutdown`). Clone the repository into the
-Linux file system (e.g. `~/dnachem-min`), not under `/mnt/c`: builds there are
+Linux file system (e.g. `~/PFLASH`), not under `/mnt/c`: builds there are
 much slower.
 
 </details>

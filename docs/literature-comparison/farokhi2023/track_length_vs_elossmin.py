@@ -95,7 +95,7 @@ def plot_panels(out_path, data):
         ax.set_ylabel(ylabel)
     axes[0][0].legend(loc="best", fontsize=9)
     fig.suptitle(
-        "dnachem-min -- 500 keV electron, Farokhi2023, TrackLengths summary vs. "
+        "PFLASH -- 500 keV electron, Farokhi2023, TrackLengths summary vs. "
         "PrimaryKiller eLossMin, 250 events/point, mean +/- SEM")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.savefig(out_path, dpi=150, bbox_inches="tight")

@@ -6,7 +6,7 @@ A clickable guide to the code for newcomers and non-coders: module map, run flow
 
 Double-click `docs/explorer/index.html` (or open it in any browser). It works offline and needs no server.
 
-Online: https://rtonneau.github.io/dnachem-min/explorer/ (GitHub Pages, branch `main`, folder `/docs`; `docs/.nojekyll` turns off Jekyll). Opened from disk, file links go to your working copy (`../../<path>`); served over http(s), including a local test server, they open the file on GitHub at `main`.
+Online: https://rtonneau.github.io/PFLASH/explorer/ (GitHub Pages, branch `main`, folder `/docs`; `docs/.nojekyll` turns off Jekyll). Opened from disk, file links go to your working copy (`../../<path>`); served over http(s), including a local test server, they open the file on GitHub at `main`.
 
 ## Edit it
 
@@ -113,6 +113,6 @@ node docs/explorer/export-catalog.test.js  # exporter tests, no sim required
 
 Whether `catalog.json` still matches the live chemistry is not checked here (it needs a built `sim`); `CatalogExportCheck` does that.
 
-It also checks box roles (present, at most 40 characters), step numbering, the chemistry-mode data (one mode step in the first phase, unique branch ids, one default, `modes` keys that name a branch), run overviews, embedded JavaScript syntax and the absence of external assets or runtime network loaders (an inline `data:` URI, such as the favicon built from `docs/assets/dnachem-min-icon.svg`, is allowed). These structural offline checks complement browser inspection over a temporary loopback server; they do not constitute a browser test of `file://`.
+It also checks box roles (present, at most 40 characters), step numbering, the chemistry-mode data (one mode step in the first phase, unique branch ids, one default, `modes` keys that name a branch), run overviews, embedded JavaScript syntax and the absence of external assets or runtime network loaders (an inline `data:` URI, such as the favicon built from `docs/assets/PFLASH-icon.svg`, is allowed). These structural offline checks complement browser inspection over a temporary loopback server; they do not constitute a browser test of `file://`.
 
 Needs Node only for rebuilding and checking, not for reading.

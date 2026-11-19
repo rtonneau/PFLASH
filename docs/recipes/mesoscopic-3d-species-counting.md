@@ -33,9 +33,9 @@ and the current time, so user code can read the mesh's per-cell molecule
 counts at that instant. Reading the mesh and folding species counts into an
 external counter — rather than relying on the scheduler's own counter map —
 is what this recipe's `G4UserMeshAction` subclass does; the reasons to
-bypass the scheduler's own map are in the dnachem-min section below.
+bypass the scheduler's own map are in the PFLASH section below.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 - `src/chemistry/TimeStepAction.cc` drives both chemistry stages per event.
   `StartProcessing` (`TimeStepAction.cc`) decides whether the

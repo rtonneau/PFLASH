@@ -18,7 +18,7 @@ not repeated here.
    is a smaller worked example (26 reactions, no acid-base buffer). Copy both
    files, rename the pair, and adjust the include-path prefix — each file is
    deliberately self-contained (no `DnaChemistryWorld`, `DnaLogger`, or other
-   dnachem-min-specific include; only `chemistry/ChemistryTypes.hh` plus
+   PFLASH-specific include; only `chemistry/ChemistryTypes.hh` plus
    standard Geant4/Geant4-DNA headers), so it is copy-paste portable to
    another Geant4-DNA project (`PureWaterReactions.hh`).
 
@@ -175,5 +175,5 @@ No command-broadcast or synchronization behavior is changed in this pass.
   messenger pattern (`ChemistrySelectMessenger`, a plain `G4UImessenger`
   attaching to the pre-existing `/chem/` directory) and the MT command-replay
   mechanism. Replay and actual dispatch are distinct, as described above.
-- [`dnachem-min-macro-command-reference.md`](dnachem-min-macro-command-reference.md)
+- [`pflash-macro-command-reference.md`](pflash-macro-command-reference.md)
   — `/chem/select` and `/chem/list` alongside every other macro command.

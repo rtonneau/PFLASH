@@ -29,7 +29,7 @@ New logic (fold, coincidence finder, contact counter, box guard, build compariso
 - Do not change Geant4 sources or the shared install `${G4_ROOT}`.
 - Do not subclass or copy kernel classes (`G4ChemReboundTransportation`, the stepper, the finder).
 - Keep `patches/geant4/11.4.3/*` and their READMEs byte-identical; link to them.
-- Out of scope: the mesoscopic stage, O2/scavengers, pulse structure, dose-rate claims, and changes to the main dnachem-min app (`src/`, `header/`, `macro/` at the repo root). Exception: the doc corrections in task 10.
+- Out of scope: the mesoscopic stage, O2/scavengers, pulse structure, dose-rate claims, and changes to the main PFLASH app (`src/`, `header/`, `macro/` at the repo root). Exception: the doc corrections in task 10.
 - C++ follows Geant4 style: PascalCase classes and files, camelCase variables. Match the surrounding file.
 - Never hardcode Geant4 paths. Scripts read `Geant4_DIR` from each build's `CMakeCache.txt`.
 - Build and test following `.claude/geant4-instructions.md` (MSVC environment, Ninja, absolute paths).

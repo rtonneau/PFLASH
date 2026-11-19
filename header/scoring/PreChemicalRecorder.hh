@@ -1,7 +1,7 @@
 /// \file PreChemicalRecorder.hh
 /// \brief Records the pre-chemical species of one event as an OutputTable.
 /// Dependencies: G4VPhysChemIO (Geant4 header only, no kernel service), OutputTable,
-/// OutputFormats, TableWriters; no other dnachem-min class.
+/// OutputFormats, TableWriters; no other PFLASH class.
 /// Thread safety: one recorder per event and thread. The process-wide staged table
 /// (AppendStaged / TakeStaged) is guarded by a mutex; call TakeStaged between runs.
 ///

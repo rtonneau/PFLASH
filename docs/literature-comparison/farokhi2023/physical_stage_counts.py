@@ -167,7 +167,7 @@ def plot_bar(out_path, proton_stats, electron_stats):
     ax.set_yscale("log")
     ax.legend()
     ax.set_title("Physical/pre-chemical stage interaction counts per event\n"
-                 "dnachem-min, Farokhi2023 chemistry, error bars = +-1 SEM")
+                 "PFLASH, Farokhi2023 chemistry, error bars = +-1 SEM")
     fig.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
