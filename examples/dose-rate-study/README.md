@@ -3,7 +3,7 @@
 Standalone Geant4-DNA example for the dose-rate study of a 4 um water box
 (ADR 0011, `docs/adr/0011-reflecting-box-for-dose-rate-study.md`). It is copied
 from `examples/poisson-track-irt` (packet format, capture, history, source
-injection, reflecting box) and from the dnachem-min `PureWater` Chemistry
+injection, reflecting box) and from the PFLASH `PureWater` Chemistry
 (`PureWaterReactions.cc`, `ChemistryTypes.hh`). It does not link or include
 either; a change there does not reach this example.
 
@@ -18,7 +18,7 @@ including the doseCutoff mode (constant dose rate up to a set dose).
   and the pH 7 acid-base buffer (`H3Op(B)`, `OHm(B)`, as per-molecule
   `G4DNAScavengerProcess` with a `G4DNAScavengerMaterial`). No O2.
 - IRT_syn time-step model only, no mesoscopic stage.
-- The bulk buffer has its own reservoir (500 um half side, the dnachem-min
+- The bulk buffer has its own reservoir (500 um half side, the PFLASH
   default), not the 4 um box. Geant4 rounds the bulk molecule count down to
   `floor(N_A c V)` and computes the propensity from it. In a (4 um)^3 box,
   pH 7 gives 3 H3O+ instead of 3.85, so the buffer rates would be 22 % low.
@@ -211,7 +211,7 @@ python studies/spike_report.py <dir holding plan dirs>
   kept). Log: `run_log.csv` next to `plan.json`. With `-Study`, each history is a
   Study run (`study.ps1 run <study> <runSet> --id <run id>`, seeds and rate recorded,
   see `docs/agents/study.md`): its output goes to
-  `${STUDIES_ROOT}/dnachem-min/<study>/runs/<runSet>/<id>/output` beside its
+  `${STUDIES_ROOT}/PFLASH/<study>/runs/<runSet>/<id>/output` beside its
   provenance stamp, the run set defaults to the plan directory's name, and a failed
   run is retried with `--rerun`. Results that go into a report are run this way.
 - `analyze.py`: mean G(t) +- SE over realizations (ratio estimator, delta-method

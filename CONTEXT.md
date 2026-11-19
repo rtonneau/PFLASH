@@ -1,4 +1,4 @@
-# dnachem-min
+# PFLASH
 
 Minimal Geant4-DNA water-radiolysis chemistry. This glossary tracks the chemistry
 vocabulary used in `DnaChemistryList`/`DnaChemistryWorld` and related design

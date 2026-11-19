@@ -102,7 +102,7 @@ Run from the G4Utils checkout in the GEANT4 environment to reproduce the
 validation (all paths are configurable):
 
 ```powershell
-$sim = Join-Path $env:DEV_DIR 'GEANT4/SIM/dnachem-min'
+$sim = Join-Path $env:DEV_DIR 'GEANT4/SIM/PFLASH'
 $demo = Join-Path $sim '.scratch/tests/2026-11-03__read-notebooks-plan.md-and-implement-1-establish-the'
 $old = Join-Path $sim '.scratch/tests/2026-10-08__verify-feature-combinations-and-add-three-example-macros-with'
 $spatial = Join-Path $sim '.scratch/tests/2026-10-09__add-a-md-file-in-docs-output-describing-the-directory-tree-and/01-spatial'
@@ -119,7 +119,7 @@ is retained outside Git in the G4Utils checkout at
 `06-real-output.json`, `06-real-output.log`, `06-pytest.log`, and `06-help.log`.
 The suite used scratch `--basetemp` and pytest cache paths. Generated inputs
 remain in their original ignored directories. These two documentation edits
-in dnachem-min are left uncommitted for separate integration; unrelated local
+in PFLASH are left uncommitted for separate integration; unrelated local
 changes are preserved.
 
 ### Deferred scientific and environment limits

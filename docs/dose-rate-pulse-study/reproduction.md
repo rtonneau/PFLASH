@@ -62,7 +62,7 @@ ctest --test-dir examples/dose-rate-study/build-ninja --output-on-failure      #
 
 ## Runs
 
-From `${STUDIES_ROOT}/dnachem-min/2026-11-16__pulse-by-pulse/` (the study JSONs are there):
+From `${STUDIES_ROOT}/PFLASH/2026-11-16__pulse-by-pulse/` (the study JSONs are there):
 
 ```
 python examples/dose-rate-study/studies/make_configs.py --library ../2026-11-15__dose-rate-study/spike/library \
@@ -105,7 +105,7 @@ machine. A copy of the `*.py` scripts as they were on 2026-11-18 is in the Study
 | `movie_slides.py` | movie frames `dose_rate_movies/` from the 2026-11-15 snapshot runs |
 
 Data outputs (`pertrack*.csv`, `tracks_rx.csv`, `taubins_rx.csv`, `rx_budget_*.csv`) are written
-to `${STUDIES_ROOT}/dnachem-min/2026-11-16__pulse-by-pulse/`.
+to `${STUDIES_ROOT}/PFLASH/2026-11-16__pulse-by-pulse/`.
 
 ```
 cd .scratch/deck-20261117
@@ -120,9 +120,9 @@ python fig_pertrack.py
 ## Where the data live
 
 The run data were moved out of `.scratch/` on 2026-11-18 into the Studies
-`2026-11-15__dose-rate-study` and `2026-11-16__pulse-by-pulse` under `${STUDIES_ROOT}/dnachem-min/`
+`2026-11-15__dose-rate-study` and `2026-11-16__pulse-by-pulse` under `${STUDIES_ROOT}/PFLASH/`
 (outside git, listed in [docs/studies/INDEX.md](../studies/INDEX.md)). Each Study holds a
 `study.json` and reconstructed provenance stamps (`runs/<set>/stamp.json`). To rerun, you need:
-- `${STUDIES_ROOT}/dnachem-min/2026-11-15__dose-rate-study/spike/library` (packet library);
+- `${STUDIES_ROOT}/PFLASH/2026-11-15__dose-rate-study/spike/library` (packet library);
 - the patched install (`${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install`), or rebuild it as
   described above.

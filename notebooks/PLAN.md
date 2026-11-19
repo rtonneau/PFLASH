@@ -1,9 +1,9 @@
-# dnachem-min demonstration notebooks: implementation plan
+# PFLASH demonstration notebooks: implementation plan
 
 ## Goal
 
 Create reproducible, explanatory Jupyter notebooks that demonstrate mining and
-visualizing dnachem-min output across the physical, physico-chemical and
+visualizing PFLASH output across the physical, physico-chemical and
 chemical stages. Use G4Utils for reusable data access and analysis; improve it
 where the notebook work establishes a need. The first pass is a vertical slice
 and a report, followed by library work and the final notebook series.

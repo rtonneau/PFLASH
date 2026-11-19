@@ -51,7 +51,7 @@ variant under `JobLauncher` (memory and wall caps). `-Reuse` keeps finished runs
 `rateSweep` (in `necessity.json`): 1e4, 1e5, 1e6, 1e7, 1e8 Gy/s, 10 realizations each, 0.1 Gy, 2 um half box, on
 `all` and `all-2` (the config's `variants`), same capture library and seed scheme as the other configs.
 `-Study <id>` launches every history through `study.ps1 run` (as `run_study.ps1 -Study` does), so each run has a
-provenance stamp under `${STUDIES_ROOT}/dnachem-min/<study>/runs/<runSet>/<variant>-<run id>/`
+provenance stamp under `${STUDIES_ROOT}/PFLASH/<study>/runs/<runSet>/<variant>-<run id>/`
 (`stamp.json`, `stdout.log`, `output/`; a `+` of ids such as `r1e+08_000` is dropped in the Study run id).
 The JobLauncher memory and wall caps still apply (the launcher is the wrapper's child; the history executable
 and config are in the stamp's command line and `input/`). Without `-Study` nothing changes.

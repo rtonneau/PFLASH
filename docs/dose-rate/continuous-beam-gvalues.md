@@ -91,7 +91,7 @@ Data:
 - `continuous-beam-gvalues/gvalues_1ms.csv`
 - `continuous-beam-gvalues/gvalues_time.csv`
 
-Raw data: `${STUDIES_ROOT}/dnachem-min/2026-11-14__dose-rate-gvalue-study/production/` (local only). It contains:
+Raw data: `${STUDIES_ROOT}/PFLASH/2026-11-14__dose-rate-gvalue-study/production/` (local only). It contains:
 - the library (checked with `capture-check`: `CAPTURE_CHECK_OK packets=37000`);
 - the plan and the run log (14094/14094 runs ok);
 - the per-run outputs.

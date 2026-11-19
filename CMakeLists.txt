@@ -143,7 +143,7 @@ target_include_directories(ReactionCounterTest PRIVATE ${project_include_dirs})
 add_test(NAME ReactionCounterTest COMMAND ReactionCounterTest)
 
 # Standalone unit test for PhysicsInteractionCounter (fully generic,
-# portable, no dnachem-min-specific dependency -- no OutputDir.cc needed).
+# portable, no PFLASH-specific dependency -- no OutputDir.cc needed).
 add_executable(PhysicsInteractionCounterTest test/PhysicsInteractionCounterTest.cc src/scoring/PhysicsInteractionCounter.cc src/scoring/EventStat.cc src/scoring/OutputTable.cc)
 target_link_libraries(PhysicsInteractionCounterTest ${Geant4_LIBRARIES})
 target_include_directories(PhysicsInteractionCounterTest PRIVATE ${project_include_dirs})
@@ -296,7 +296,7 @@ add_custom_command(
 )
 
 # ---- Release package (GitHub Release asset, built locally, see docs/release.md) ----
-# `cpack` in the run build dir produces dnachem-min-win64.zip: sim.exe, the two
+# `cpack` in the run build dir produces PFLASH-win64.zip: sim.exe, the two
 # HDF5 DLLs (vcpkg, no further dependency), macro/, a README and an environment
 # check. Geant4, Qt and the MSVC runtime are NOT shipped: the user's own Geant4
 # install provides them (sim.exe loads the G4*.dll by name, so it must be the
@@ -323,16 +323,16 @@ install(CODE "
                     OUTPUT_VARIABLE _version OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   endif()
   file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/VERSION.txt\"
-       \"dnachem-min \${_version}\\nbuilt against Geant4 ${Geant4_VERSION}\\n\")
+       \"PFLASH \${_version}\\nbuilt against Geant4 ${Geant4_VERSION}\\n\")
 ")
-set(CPACK_PACKAGE_NAME dnachem-min)
+set(CPACK_PACKAGE_NAME PFLASH)
 if(WIN32)
   set(CPACK_GENERATOR ZIP)
-  set(CPACK_PACKAGE_FILE_NAME dnachem-min-win64)
+  set(CPACK_PACKAGE_FILE_NAME PFLASH-win64)
 else()
   # tar.gz keeps the executable bit, which a zip may lose.
   set(CPACK_GENERATOR TGZ)
-  set(CPACK_PACKAGE_FILE_NAME dnachem-min-linux-x64)
+  set(CPACK_PACKAGE_FILE_NAME PFLASH-linux-x64)
 endif()
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
 include(CPack)

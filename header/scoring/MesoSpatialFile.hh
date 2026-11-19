@@ -4,7 +4,7 @@
 /// AppendEvent serializes HDF5 access; MoveStaged requires writers to be idle.
 ///
 /// Portable and project-agnostic: standard library and HDF5 C++ only, no Geant4,
-/// no dependency on other dnachem-min classes (adjust the include path prefix on
+/// no dependency on other PFLASH classes (adjust the include path prefix on
 /// copy). Each event appends its groups to one staged file
 /// (<outdir>/.pending_meso_spatial/SpeciesMesoSpatial.h5); at dump time
 /// MoveStaged() moves it to a target chosen by the caller.

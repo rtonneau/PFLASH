@@ -1572,7 +1572,7 @@
       "audience": "everyone",
       "summary": "Reference list of every custom /command with the states in which it is allowed.",
       "docs": [
-        "docs/recipes/dnachem-min-macro-command-reference.md"
+        "docs/recipes/pflash-macro-command-reference.md"
       ],
       "files": []
     },
