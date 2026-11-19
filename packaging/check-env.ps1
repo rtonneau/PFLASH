@@ -15,7 +15,7 @@ function FindOnPath($name) {
 }
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-Write-Host "dnachem-min environment check ($here)"
+Write-Host "PFLASH environment check ($here)"
 
 Report (Test-Path (Join-Path $here 'sim.exe')) 'sim.exe present'
 Report ((Test-Path (Join-Path $here 'hdf5.dll')) -and (Test-Path (Join-Path $here 'hdf5_cpp.dll'))) 'hdf5.dll and hdf5_cpp.dll next to sim.exe'

@@ -1,6 +1,6 @@
 # Standalone example: inject several primary-track precursor clouds into one shared
 # IRT_syn chemistry history (arrival times deterministic or Poisson).
-# This project does not use any dnachem-min source or header.
+# This project does not use any PFLASH source or header.
 cmake_minimum_required(VERSION 3.16)
 project(PoissonTrackIrt LANGUAGES CXX)
 

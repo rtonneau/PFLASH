@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b1020">
-<meta name="description" content="Explore dnachem-min: a guide to the code, simulation lifecycle, scientific catalogues and Geant4-DNA macro configuration.">
-<title>dnachem-min architecture explorer</title>
+<meta name="description" content="Explore PFLASH: a guide to the code, simulation lifecycle, scientific catalogues and Geant4-DNA macro configuration.">
+<title>PFLASH architecture explorer</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InQiPgogIDx0aXRsZSBpZD0idCI+ZG5hY2hlbS1taW46IGFuIGVsZWN0cm9uIHRyYWNrIGlvbml6aW5nIHdhdGVyPC90aXRsZT4KICA8IS0tIGJhY2tncm91bmQ6IHNhbWUgdGVhbCBmYW1pbHkgYXMgdGhlIGV4cGxvcmVyIGJhZGdlICgjMGE3ZWE0KSAtLT4KICA8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjI2IiBmaWxsPSIjMGIzZDUyIi8+CiAgPCEtLSBlbGVjdHJvbiB0cmFjazogamFnZ2VkIHBhdGgsIGFzIGluIGEgR2VhbnQ0LUROQSB0cmFjayAtLT4KICA8cG9seWxpbmUgcG9pbnRzPSIxMCwxMTggMjYsOTYgMjAsNzYgMzgsNTggMzEsNDAgNTIsMjYgNzYsMTggMTE4LDEwIgogICAgICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiM3ZmQzZjIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPCEtLSBpb25pemF0aW9uIC8gZXhjaXRhdGlvbiBldmVudHMgYWxvbmcgdGhlIHRyYWNrIC0tPgogIDxjaXJjbGUgY3g9IjI2IiBjeT0iOTYiIHI9IjYiIGZpbGw9IiNmNWI5NDIiLz4KICA8Y2lyY2xlIGN4PSIzOCIgY3k9IjU4IiByPSI2IiBmaWxsPSIjZjViOTQyIi8+CiAgPGNpcmNsZSBjeD0iNTIiIGN5PSIyNiIgcj0iNiIgZmlsbD0iI2Y1Yjk0MiIvPgogIDwhLS0gd2F0ZXIgbW9sZWN1bGUgKEgtTy1ILCB+MTA0LjUgZGVncmVlcykgLS0+CiAgPGcgc3Ryb2tlPSIjZjJmNGY1IiBzdHJva2Utd2lkdGg9IjciIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iODAiIHkxPSI4NCIgeDI9IjU4IiB5Mj0iMTAxIi8+CiAgICA8bGluZSB4MT0iODAiIHkxPSI4NCIgeDI9IjEwMiIgeTI9IjEwMSIvPgogIDwvZz4KICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjgyIiByPSIxOCIgZmlsbD0iI2U0NTcyZSIvPgogIDxjaXJjbGUgY3g9IjU2IiBjeT0iMTAzIiByPSIxMSIgZmlsbD0iI2YyZjRmNSIvPgogIDxjaXJjbGUgY3g9IjEwNCIgY3k9IjEwMyIgcj0iMTEiIGZpbGw9IiNmMmY0ZjUiLz4KICA8IS0tIHJhZGljYWwgZG90OiB0aGUgY2hlbWlzdHJ5IHRoYXQgZm9sbG93cyAtLT4KICA8Y2lyY2xlIGN4PSI5OCIgY3k9IjYyIiByPSI1IiBmaWxsPSIjZjViOTQyIi8+Cjwvc3ZnPgo=">
 <style>
   :root {
@@ -691,10 +691,10 @@
 <header>
   <div class="brand">
     <span class="brand-mark" id="brand-mark" aria-hidden="true"></span>
-    <div><h1>dnachem-min</h1><p>Architecture explorer</p></div>
+    <div><h1>PFLASH</h1><p>Architecture explorer</p></div>
   </div>
   <div role="tablist" id="tabs" aria-label="Views"></div>
-  <a class="repo-link" href="https://github.com/rtonneau/dnachem-min" target="_blank" rel="noopener" id="repo-link">Source on GitHub</a>
+  <a class="repo-link" href="https://github.com/rtonneau/PFLASH" target="_blank" rel="noopener" id="repo-link">Source on GitHub</a>
 </header>
 <main>
   <section id="stage" role="tabpanel" tabindex="-1"></section>
@@ -731,7 +731,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   let overviewY = 0;
   // Opened from disk: links are relative to docs/explorer/index.html (repo files two levels up).
   // Served over http(s), e.g. GitHub Pages publishing only docs/: links open the file on GitHub (main).
-  const REPO_WEB = 'https://github.com/rtonneau/dnachem-min/blob/main/';
+  const REPO_WEB = 'https://github.com/rtonneau/PFLASH/blob/main/';
   const REPO = location.protocol === 'file:' ? '../../' : REPO_WEB;
   const narrow = window.matchMedia('(max-width: 900px)');
 
@@ -966,7 +966,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   function renderViewHeading(view, intro) {
     stage.classList.remove('connections-mode');
     const titles = { map:'Explore the architecture', flow:'Follow a simulation', tasks:'Find your next step', builder:'Build a simulation macro' };
-    stage.appendChild(el('p', { class: 'view-eyebrow' }, [icon(VIEW_ICONS[view]), viewLabel(view) + ' / dnachem-min']));
+    stage.appendChild(el('p', { class: 'view-eyebrow' }, [icon(VIEW_ICONS[view]), viewLabel(view) + ' / PFLASH']));
     stage.appendChild(el('h2', { class: 'view-heading', text: titles[view] }));
     stage.appendChild(el('p', { class: 'intro', text: intro }));
     if (view === 'map') stage.appendChild(el('div', { class: 'view-stats' }, [
@@ -1431,7 +1431,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     }));
   }
   // Chemistry and particle choices of the run flow, kept with the mode for the session.
-  const FLOW_KEY = 'dnachem-min-explorer-run-flow';
+  const FLOW_KEY = 'pflash-explorer-run-flow';
   const CHEMISTRIES = CatalogView.chemistryNames(CATALOG);
   const PARTICLES = Object.keys(PHYSICS.particles);
   let flowChemistry = CHEMISTRIES.indexOf('PureWater') >= 0 ? 'PureWater' : CHEMISTRIES[0];
@@ -1778,7 +1778,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   // the model in macro-builder.js (window.MacroBuilder): nothing here decides what
   // a command means, which values are valid or which choices are compatible.
   const MB = window.MacroBuilder;
-  const BUILDER_KEY = 'dnachem-min-explorer-macro-builder';
+  const BUILDER_KEY = 'pflash-explorer-macro-builder';
   const builderStepById = {};
   MB.STEPS.forEach(function (s, i) { s.index = i; builderStepById[s.id] = s; });
   const KIND_LABEL = { incomplete: 'Incomplete', invalid: 'Invalid', incompatible: 'Incompatible', unsupported: 'Unsupported', warning: 'Note', info: 'Info' };
@@ -2039,7 +2039,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
   function whyBlock(a, fieldId) {
     const auto = a.kind === 'automatic';
     const box = el('span', { class: 'b-why' }, [icon(a.kind === 'unsupported' ? 'warning' : 'info'), ' ', el('span', { class: 'k',
-      text: auto ? 'Set automatically: ' : a.kind === 'unsupported' ? 'Not supported by dnachem-min: ' : 'Unavailable: ' }), a.why]);
+      text: auto ? 'Set automatically: ' : a.kind === 'unsupported' ? 'Not supported by PFLASH: ' : 'Unavailable: ' }), a.why]);
     if (a.fix) {
       const b = el('button', { type: 'button', class: 'b-btn small', text: (auto ? 'To choose: ' : 'To make it available: ') + a.fix.label });
       b.addEventListener('click', function (ev) { ev.preventDefault(); applyResolution(a.fix, fieldId); });
@@ -2279,7 +2279,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     box.appendChild(dl);
     box.appendChild(el('h4', { text: errs.length ? 'Problems that block export (' + errs.length + ')' : 'No blocking problems' }));
     if (errs.length) box.appendChild(issueList(errs, true));
-    else box.appendChild(el('p', { class: 'b-note', text: 'The configuration is valid for the current dnachem-min code. This is a configuration check, not a simulation run.' }));
+    else box.appendChild(el('p', { class: 'b-note', text: 'The configuration is valid for the current PFLASH code. This is a configuration check, not a simulation run.' }));
     const notes = bissues.filter(function (i) { return i.severity !== 'error'; });
     if (notes.length) { box.appendChild(el('h4', { text: 'Warnings and notes (' + notes.length + ')' })); box.appendChild(issueList(notes, true)); }
 
@@ -2307,7 +2307,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     box.appendChild(el('p', { class: 'b-note', id: 'b-export-note', role: 'status' }, [errs.length ?
       'Export is disabled until the ' + errs.length + ' problem' + (errs.length > 1 ? 's' : '') + ' above are fixed.' : (bExportNote || 'The file contains exactly the macro shown in the preview.')]));
     box.appendChild(el('div', { class: 'b-help' }, [
-      el('p', {}, ['Recommended destination: the project\'s ', el('code', { text: 'macro/' }), ' folder, where every dnachem-min macro lives. ',
+      el('p', {}, ['Recommended destination: the project\'s ', el('code', { text: 'macro/' }), ' folder, where every PFLASH macro lives. ',
         'The build copies ', el('code', { text: 'macro/' }), ' next to the executable, so after saving there, rebuild (or copy the file into ', el('code', { text: 'build/<config>/macro/' }),
         ') and run it from the build directory: ', el('code', { text: './sim ' + finalName }), '.']),
       el('p', {}, [canPick ?
@@ -2316,7 +2316,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
         ' Download saves to the browser\'s download location (usually your Downloads folder); move the file into macro/ yourself. ',
         'A web page cannot write into the repository or create folders there on its own.']),
       el('p', {}, ['No build of your own? Download ',
-        el('a', { href: SIM_ZIP_URL, text: 'dnachem-min-win64.zip' }),
+        el('a', { href: SIM_ZIP_URL, text: 'PFLASH-win64.zip' }),
         ' from the latest GitHub release: sim.exe with its HDF5 DLLs and the example macros, for Windows x64. ',
         'It runs on your own Geant4 install, which must be the same version (11.4.1) and build (MSVC x64, shared, multithreaded, with Qt and OpenGL) with its bin folder on PATH; ',
         'README.txt and check-env.ps1 in the zip explain and check this. Unzip it, put the macro into its ',
@@ -2324,7 +2324,7 @@ const PHYSICS = /*__PHYSICS_JSON__*/null;
     panel.appendChild(box);
   }
   // Prebuilt package (docs/release.md): stable asset name, so this always points at the newest release.
-  const SIM_ZIP_URL = 'https://github.com/rtonneau/dnachem-min/releases/latest/download/dnachem-min-win64.zip';
+  const SIM_ZIP_URL = 'https://github.com/rtonneau/PFLASH/releases/latest/download/PFLASH-win64.zip';
   function downloadMacro() {
     if (MB.errors(MB.validate(bcfg)).length) return;
     const name = MB.sanitizeFilename(bcfg.filename);

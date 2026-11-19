@@ -1,4 +1,4 @@
-"""e_aq G(t) at 0 % O2, 500 keV e-: why dnachem-min was ~3.4 % below Farokhi at 1 ps.
+"""e_aq G(t) at 0 % O2, 500 keV e-: why PFLASH was ~3.4 % below Farokhi at 1 ps.
 
 Sources (all in the repo, no simulation re-run):
   - Ritchie1994  : column IRT_syn of ../simulation_vs_literature_comparison.csv (e_aq, O2_pct 0)
@@ -28,8 +28,8 @@ T_MAX = 1.0e-9
 FINDING = """## Finding
 
 The 3.3 % gap to the stock Geant4-DNA `scavenger` example (and 4 % to Farokhi) was mostly the electron solvation subtype:
-dnachem-min's Farokhi macros set `Ritchie1994`, the example sets `Meesungnoen2002`. With `Meesungnoen2002`
-(`macro/beam_farokhi_electron_o2_0pct_meesungnoen.in`, 250 events, eLossMin 12.5 keV) dnachem-min is 0.6 % below the stock run,
+PFLASH's Farokhi macros set `Ritchie1994`, the example sets `Meesungnoen2002`. With `Meesungnoen2002`
+(`macro/beam_farokhi_electron_o2_0pct_meesungnoen.in`, 250 events, eLossMin 12.5 keV) PFLASH is 0.6 % below the stock run,
 inside the 1 % target, and 1.5 % below the digitized Farokhi value, inside its reading error. The remainder is consistent with
 the B1A1 autoionisation probability (0.55 stock vs 0.50 option1), see `dissociation_channels_comparison.md`; it was not isolated.
 Boscolo (4.49) comes from a different code and is not a target.
@@ -83,8 +83,8 @@ def main():
                 w.writerow([f"{t:.6e}", f"{g:.6f}", f"{e:.6f}", n])
 
     series = {
-        "dnachem-min, Ritchie1994": comparison_column("IRT_syn"),
-        "dnachem-min, Meesungnoen2002": read_csv(MEESUNGNOEN, "time_s", "G_eaq_per_100eV", "SEM"),
+        "PFLASH, Ritchie1994": comparison_column("IRT_syn"),
+        "PFLASH, Meesungnoen2002": read_csv(MEESUNGNOEN, "time_s", "G_eaq_per_100eV", "SEM"),
         "stock scavenger (Meesungnoen2002)": read_csv(STOCK, "time_s", "G_eaq_per_100eV", "SEM"),
         "Farokhi 2023 (digitized)": comparison_column("Farokhi"),
     }

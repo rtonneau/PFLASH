@@ -5,7 +5,7 @@ All runs use `examples/dose-rate-study` (`history`, `doseCutoff` mode) built aga
 [geant4-issues.md](geant4-issues.md), issues 1–3). Each history is one single-threaded process.
 They ran in parallel on one 20-logical-core workstation, so the wall times include contention.
 
-Data root: `${STUDIES_ROOT}/dnachem-min/` (outside git; Studies `2026-11-15__dose-rate-study` and
+Data root: `${STUDIES_ROOT}/PFLASH/` (outside git; Studies `2026-11-15__dose-rate-study` and
 `2026-11-16__pulse-by-pulse` in [docs/studies/INDEX.md](../studies/INDEX.md)). Paths below are
 relative to it. Until 2026-11-18 the data were under `.scratch/tests/`.
 
@@ -17,7 +17,7 @@ relative to it. Until 2026-11-18 the data were under `.scratch/tests/`.
 | Packet library | 2400 packets from 12 parallel captures (`2026-11-15__dose-rate-study/spike/library`). One packet = the molecules inside the box at 1 ps + the energy deposited in it. Mean 653 eV per packet (600 eV per launched primary, hit fraction 0.918). 3.93 Gy in total. |
 | Box | 4 µm side (half side 2 µm), 6.4e-14 kg, reflecting walls (ADR 0011). 1 Gy = 3.99e5 eV ≈ 600 tracks. History world half side 3 µm. |
 | Physics | `G4EmDNAPhysics_option2` (capture only) |
-| Chemistry | dnachem-min `PureWater` network (`PureWaterChemistryList`, same `PureWaterReactions.cc` as `src/chemistry/catalog/`): 40 molecules, 12 dissociation channels, 65 pair reactions, 23 bulk reactions. pH 7, fixed in code (`kDefaultPH`): bulk H₃O⁺(B) and OH⁻(B) at 10⁻⁷ M in the 500 µm half-side reservoir (`PureWaterChemistryList.cc:89-90`). No O₂, so the three O₂ bulk reactions are inert. ·OH, H₂O₂ and H₂ have no bulk reaction. IRT_syn only, no mesoscopic stage. Ledger string: "PureWater (copied network + acid-base buffer), pH 7, IRT_syn". |
+| Chemistry | PFLASH `PureWater` network (`PureWaterChemistryList`, same `PureWaterReactions.cc` as `src/chemistry/catalog/`): 40 molecules, 12 dissociation channels, 65 pair reactions, 23 bulk reactions. pH 7, fixed in code (`kDefaultPH`): bulk H₃O⁺(B) and OH⁻(B) at 10⁻⁷ M in the 500 µm half-side reservoir (`PureWaterChemistryList.cc:89-90`). No O₂, so the three O₂ bulk reactions are inert. ·OH, H₂O₂ and H₂ have no bulk reaction. IRT_syn only, no mesoscopic stage. Ledger string: "PureWater (copied network + acid-base buffer), pH 7, IRT_syn". |
 | Arrivals | Homogeneous Poisson process at the launch rate Ḋ·m / ⟨E per launched primary⟩, thinned by the hit fraction. Each arrival injects the next library packet, activated 1 ps after its arrival time. Each run starts at its own random library offset (`firstPacket`). |
 | Stop | First arrival whose cumulative deposit reaches the target dose; beam-off = 1 ps after the last activation, chemistry stops there. No post-beam relaxation. |
 | Contacts | Each new track's molecules are trialled against the molecules already present (timed-injection patch) |

@@ -36,7 +36,7 @@ to preserve when copying them into another project. They share these conventions
   into `fCounts[bin][label]` per bin/label pair. Repeating a merge adds the
   source counts again; callers must avoid merging the same contribution twice.
 
-## dnachem-min reference implementation
+## PFLASH reference implementation
 
 Two actual examples, read from source rather than assumed from the class
 names:

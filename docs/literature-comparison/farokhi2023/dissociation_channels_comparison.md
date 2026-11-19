@@ -1,11 +1,11 @@
-# Dissociation channels: stock scavenger example vs dnachem-min (option1)
+# Dissociation channels: stock scavenger example vs PFLASH (option1)
 
 Compared by reading the Geant4 11.4.1 sources:
 `examples/extended/medical/dna/scavenger/src/EmDNAChemistry.cc` (the example Farokhi et al. 2023 built on) and
 `source/physics_lists/constructors/electromagnetic/src/G4ChemDissociationChannels_option1.cc` (used by `DnaChemistryList`
 for every Chemistry).
 
-| Item | Stock scavenger example | dnachem-min (option1) |
+| Item | Stock scavenger example | PFLASH (option1) |
 |---|---|---|
 | A¹B₁ excitation | relaxation 0.35 / dissociative decay 0.65 | same |
 | B¹A₁ excitation | relaxation 0.30 / dissociative decay 0.15 / **autoionisation 0.55** | relaxation 0.175 / 2 dissociative decays 0.0325 + 0.039 / A¹B₁-type decay 0.2535 / **autoionisation 0.50** |
@@ -23,8 +23,8 @@ Measured (500 keV e-, eLossMin 12.5 keV, 250 events, 0 % O2, e_aq G at 1 ps):
 
 | Run | Solvation | G(e_aq, 1 ps) |
 |---|---|---|
-| dnachem-min, original | Ritchie1994 | 4.036 |
-| dnachem-min, `beam_farokhi_electron_o2_0pct_meesungnoen.in` | Meesungnoen2002 | 4.150 +/- 0.006 |
+| PFLASH, original | Ritchie1994 | 4.036 |
+| PFLASH, `beam_farokhi_electron_o2_0pct_meesungnoen.in` | Meesungnoen2002 | 4.150 +/- 0.006 |
 | stock scavenger example | Meesungnoen2002 | 4.176 +/- 0.006 |
 
 The solvation subtype accounts for 0.114 of the 0.140 gap (81 %). The remaining 0.026 (0.6 %) is inside the 1 % target and is

@@ -510,7 +510,7 @@ void AddDoseLedger(drs::JsonValue& root, drs::JsonValue& checks, const drs::Hist
   checks.Set("allPassed", JsonValue::Bool(c.AllPassed()));
 }
 
-// Registered before /run/initialize, like dnachem-min: G4DNAChemistryManager
+// Registered before /run/initialize, like PFLASH: G4DNAChemistryManager
 // initializes the counters it finds. One counter per species configuration,
 // H2O ignored, times within kCounterPrecisionNs (1 fs) merged: a source counts
 // at a record time t when its activation - t < 1 fs, the rule CumulativeEnergy
