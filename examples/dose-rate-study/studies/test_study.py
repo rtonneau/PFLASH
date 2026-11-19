@@ -233,11 +233,11 @@ class SpikeReportTest(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("pwsh"), "pwsh not found")
 class RunStudyDryRunTest(unittest.TestCase):
-    """run_study.ps1 -Study -DryRun with a study.ps1 that cannot resolve the study: lists every run."""
+    """run_study.ps1 -Study -DryRun with a g4-study.ps1 that cannot resolve the study: lists every run."""
 
     def test_dry_run_prints_study_run_commands(self):
         with tempfile.TemporaryDirectory() as d:
-            fake = os.path.join(d, "study.ps1")
+            fake = os.path.join(d, "g4-study.ps1")
             with open(fake, "w", encoding="utf-8") as h:
                 h.write("[Console]::Error.WriteLine('study: unknown study'); exit 1\n")
             with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as h:

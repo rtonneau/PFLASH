@@ -209,7 +209,7 @@ python studies/spike_report.py <dir holding plan dirs>
 - `run_study.ps1`: resumable, parallel; samples the peak working set; kills a
   run beyond the cap (status `truncated`, its last `HISTORY_PROGRESS` line is
   kept). Log: `run_log.csv` next to `plan.json`. With `-Study`, each history is a
-  Study run (`study.ps1 run <study> <runSet> --id <run id>`, seeds and rate recorded,
+  Study run (`g4-study.ps1 run <study> <runSet> --id <run id>`, seeds and rate recorded,
   see `docs/agents/study.md`): its output goes to
   `${STUDIES_ROOT}/PFLASH/<study>/runs/<runSet>/<id>/output` beside its
   provenance stamp, the run set defaults to the plan directory's name, and a failed
@@ -219,7 +219,7 @@ python studies/spike_report.py <dir holding plan dirs>
   grid (`gvalues_time.csv`, plus one `gvalues_time_rate<r>.csv` per rate) and at
   beam-off (`gvalues_beamoff.csv`); several `--plan` options pool their runs; rows held
   by a steady-state stop are flagged `extrapolated`. `--runs-dir` (once per `--plan`)
-  reads the outputs of a `-Study` run set; run it through `study.ps1 analyze` so the
+  reads the outputs of a `-Study` run set; run it through `g4-study.ps1 analyze` so the
   tables get an analysis stamp.
 - `spike_report.py`: per-run wall time, peak memory, arrivals, dose reached,
   live molecules, steady-state stop, snapshot size and estimated full cost

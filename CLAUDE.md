@@ -28,7 +28,7 @@ Output data is organised in **Output products** (`Species`, `SpeciesMeso`, `Reac
 
 ## Simulation studies
 
-Runs whose results are used (a report, a figure, a number) are **Study runs**: launch each through the global `/study` skill (`study run`), which writes a provenance stamp (git commit and diff, exe hashes, Geant4 install and patch set, machine) beside the output. Smoke, ctest and debugging runs stay in `.scratch/tests/<session>/`. Study data live under the machine-local `STUDIES_ROOT` (`${STUDIES_ROOT}/PFLASH/<studyId>/`), never in git; the committed Study index is `docs/studies/INDEX.md` (the `studies` block of `.claude/.claude-project.json`). The repo keeps the report text and its few final figures. See `docs/agents/study.md` and `docs/adr/0012-study-tooling-replaces-g4run.md`.
+Runs whose results are used (a report, a figure, a number) are **Study runs**: launch each through the global `/g4-study` skill (`g4-study run`), which writes a provenance stamp (git commit and diff, exe hashes, Geant4 install and patch set, machine) beside the output. Smoke, ctest and debugging runs stay in `.scratch/tests/<session>/`. Study data live under the machine-local `STUDIES_ROOT` (`${STUDIES_ROOT}/PFLASH/<studyId>/`), never in git; the committed Study index is `docs/studies/INDEX.md` (the `studies` block of `.claude/.claude-project.json`). The repo keeps the report text and its few final figures. See `docs/agents/study.md` and `docs/adr/0012-study-tooling-replaces-g4run.md`.
 
 ## Source layout
 
