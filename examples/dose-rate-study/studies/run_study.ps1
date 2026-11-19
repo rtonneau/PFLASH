@@ -14,8 +14,8 @@
     id,rate_Gy_s,startUtc,wallTime_s,peakWorkingSet_MB,exitCode,status,lastProgress,historyDone
   Console output of each run goes to <outputRoot>/logs/<id>.log (stderr to <id>.err).
 
-  With -Study, each history is a Study run of the /study skill instead:
-    study.ps1 run <study> <runSet> --id <id> --seed ... --param ... -- history.exe --config <cfg> --output {output}
+  With -Study, each history is a Study run of the /g4-study skill instead:
+    g4-study.ps1 run <study> <runSet> --id <id> --seed ... --param ... -- history.exe --config <cfg> --output {output}
   Its output goes to ${STUDIES_ROOT}/<project>/<study>/runs/<runSet>/<id>/output (not the plan's
   run.output), beside the run's stamp.json and stdout.log. Resume reads the ledger there; a failed
   attempt is rerun with --rerun (the wrapper keeps it as <id>.prev-<time>). The wrapper's own
@@ -32,9 +32,9 @@
 .PARAMETER PollS         memory sampling interval in s (default 2)
 .PARAMETER Only          run only these run ids
 .PARAMETER DryRun        print what would run
-.PARAMETER Study         Study id or unique slug: launch each history through study.ps1 run
+.PARAMETER Study         Study id or unique slug: launch each history through g4-study.ps1 run
 .PARAMETER RunSet        run set of the Study (default: the plan file's directory name)
-.PARAMETER StudyScript   study.ps1 (default ~/.claude/skills/study/scripts/study.ps1)
+.PARAMETER StudyScript   g4-study.ps1 (default ~/.claude/skills/g4-study/scripts/g4-study.ps1)
 #>
 [CmdletBinding()]
 param(
@@ -49,7 +49,7 @@ param(
   [switch]$DryRun,
   [string]$Study,
   [string]$RunSet,
-  [string]$StudyScript = (Join-Path $HOME '.claude\skills\study\scripts\study.ps1')
+  [string]$StudyScript = (Join-Path $HOME '.claude\skills\g4-study\scripts\g4-study.ps1')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,12 +64,12 @@ $outputRoot = [IO.Path]::GetFullPath((Join-Path $planDir $planDoc.outputRoot))
 $logDir = Join-Path $outputRoot 'logs'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 
-# -Study: find the run set directory under STUDIES_ROOT (study.ps1 status --json).
+# -Study: find the run set directory under STUDIES_ROOT (g4-study.ps1 status --json).
 $runSetDir = $null
 if ($Study) {
   if (-not $RunSet) { $RunSet = Split-Path -Leaf $planDir }
   if ($RunSet -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { throw "run set '$RunSet' must use letters, digits, '.', '_' or '-' (pass -RunSet)" }
-  if (-not (Test-Path -LiteralPath $StudyScript)) { throw "study.ps1 not found: $StudyScript (install the /study skill with claude-sync-skills.ps1)" }
+  if (-not (Test-Path -LiteralPath $StudyScript)) { throw "g4-study.ps1 not found: $StudyScript (install the /g4-study skill with claude-sync-skills.ps1)" }
   $statusOut = & pwsh -NoProfile -File $StudyScript status $Study --json --project-root $repoRoot 2>&1
   if ($LASTEXITCODE -eq 0) {
     $info = ($statusOut | Out-String) | ConvertFrom-Json
@@ -85,7 +85,7 @@ if ($Study) {
   }
 }
 
-# study.ps1 run arguments of one run; the wrapper replaces {output} by the run's output/.
+# g4-study.ps1 run arguments of one run; the wrapper replaces {output} by the run's output/.
 function Get-StudyArgs($t) {
   $inv = [Globalization.CultureInfo]::InvariantCulture
   $a = @('-NoProfile', '-File', $StudyScript, 'run', $Study, $RunSet, '--id', $t.id, '--project-root', $repoRoot, '--quiet')

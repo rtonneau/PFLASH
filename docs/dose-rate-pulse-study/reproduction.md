@@ -71,7 +71,7 @@ pwsh examples/dose-rate-study/studies/run_study.ps1 -Plan plan_pulse_rx/plan.jso
 # same with study_pulse_lo.json -> plan_pulse_lo_rx (-Parallel 3)
 ```
 
-These runs predate the `/study` skill (ADR 0012). A rerun whose results are used adds
+These runs predate the `/g4-study` skill (named `/study` then, ADR 0012). A rerun whose results are used adds
 `-Study <study> [-RunSet <name>]`, so each history gets a provenance stamp under
 `${STUDIES_ROOT}` (`examples/dose-rate-study/README.md`, "Study tooling").
 

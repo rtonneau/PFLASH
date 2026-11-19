@@ -50,11 +50,13 @@ variant under `JobLauncher` (memory and wall caps). `-Reuse` keeps finished runs
 
 `rateSweep` (in `necessity.json`): 1e4, 1e5, 1e6, 1e7, 1e8 Gy/s, 10 realizations each, 0.1 Gy, 2 um half box, on
 `all` and `all-2` (the config's `variants`), same capture library and seed scheme as the other configs.
-`-Study <id>` launches every history through `study.ps1 run` (as `run_study.ps1 -Study` does), so each run has a
+`-Study <id>` launches every history through `g4-study.ps1 run` (as `run_study.ps1 -Study` does), so each run has a
 provenance stamp under `${STUDIES_ROOT}/PFLASH/<study>/runs/<runSet>/<variant>-<run id>/`
 (`stamp.json`, `stdout.log`, `output/`; a `+` of ids such as `r1e+08_000` is dropped in the Study run id).
-The JobLauncher memory and wall caps still apply (the launcher is the wrapper's child; the history executable
-and config are in the stamp's command line and `input/`). Without `-Study` nothing changes.
+The JobLauncher memory and wall caps still apply (the launcher is the wrapper's child). The history executable
+is the run's `--target`: it is snapshotted and hashed beside the launcher, the launcher runs the snapshot, and
+the stamp's Geant4 block is the variant kernel. `g4-study run` refuses an Unmarked kernel, so mark each
+`.scratch/kernels/<variant>/install` with `g4-study.ps1 mark` before the runs. Without `-Study` nothing changes.
 
 ```powershell
 pwsh -File test/dose-rate-patches/RunNecessity.ps1 -Config rateSweep -Variants all,all-2 -Reuse -Study <study-id> -RunSet smoke -Python <python>
