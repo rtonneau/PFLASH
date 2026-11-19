@@ -66,14 +66,138 @@ wall cap. Two dose rates: 10⁴ Gy/s (10 µs of beam, about 27 s of wall time pe
 What the histories contain:
 
 - **Patch 1:** each 10⁴ Gy/s history has 16 to 31 reactions with three products at one point
-  (e⁻aq + e⁻aq → 2 OH⁻ + H₂), the trigger of the defect. Even so, `all-1` never builds the octree
-  with three or more coincident molecules in it: no history comes near the memory cap.
+  (e⁻aq + e⁻aq → 2 OH⁻ + H₂). That is not the trigger: the three products are of two species
+  (OH⁻, OH⁻, H₂), and the finder keeps one octree per species, so each tree holds at most two of
+  them. `all-1` never builds a tree with three coincident molecules: no history comes near the
+  memory cap. The trigger is unreachable here, see "Patch 1: reachability" below.
 - **Patch 2:** a new molecule must land within the effective reaction radius (about 0.1-0.5 nm)
   of an old one. At about 4000 live molecules in (4 µm)³, that happens about once in 10⁴
   activations. In all 40 histories at 10⁴ Gy/s, 135 reactions per history are between sources,
   but none at the instant of activation.
 - **Patch 3:** the stock code fails only when one step goes past a wall by more than the box length
   (4 µm). IRT_syn moves a molecule only when it reacts; even at 0.1 Gy/s no such step occurs.
+
+## Patch 1: reachability
+
+Question: can the trigger of patch 1 (three or more molecules of one species at one exact point)
+occur in IRT_syn dose-rate runs? Verdict: **unreachable** with the four built-in Chemistries and
+no exogenous scavenger, which is the dose-rate study's setting. Script:
+`python test/dose-rate-patches/necessity/coincidence_audit.py --catalog docs/explorer/catalog.json --runs .scratch/dose-rate-patches/necessity`
+(exit 0 = unreachable, 1 = reachable, 2 = missing input).
+
+**Source facts** (the script re-checks each line in Geant4 11.4.3 and reports `ok`):
+
+- The finder keeps one octree per species. `G4OctreeFinder.icc:336` builds a tree per list key, the
+  track lists are keyed by molecule ID (`G4ITTrackHolder.cc:403`), and a molecule's `ITSubType` is
+  its configuration ID (`G4Molecule.hh:127`). OH⁻ and H₂ never share a tree.
+- A leaf holds at most 2 entries (`G4Octree.hh:53`) and the depth limit is 100 (`G4Octree.hh:54`).
+  A node with more than 2 entries is split (`G4Octree.icc:144`), an entry is copied into every
+  child that contains it (`:221`) and the depth counter is shared across siblings (`:226`). A third
+  coincident entry in one tree can therefore never be separated.
+- `G4DNAMakeReaction.cc:124` puts all products of a reaction at one point.
+  `G4DNAScavengerProcess.cc:294` puts the products of a bulk reaction at the reactant's position.
+  `G4DNAWaterDissociationDisplacer.cc:229` gives dissociation products random displacements, so
+  they do not coincide.
+- IRT_syn rebuilds the trees on every interaction step with the products included
+  (`G4DNAIndependentReactionTimeStepper.cc:63`, `:75`) and searches partners per partner species
+  (`:140`). Products are therefore in the trees, and only same-species coincidence matters.
+
+**Argument**, in four independent checks (each prints in the script output):
+
+1. **Direct events.** In the catalogue (`docs/explorer/catalog.json`, all four Chemistries, 23
+   dissociation channels each) no channel, bimolecular reaction or bulk reaction has three products
+   of one species. The most is two (OH⁻ + OH⁻, e.g. e⁻aq + e⁻aq → H₂ + 2 OH⁻; 11, 5, 13 and 5 events
+   with exactly two, for PureWater, BoscoloChem, Tonneau2025 and Farokhi2023).
+2. **Stacking.** Repeated events can pile products at one point: a bulk reaction on a member
+   (position kept), or a reaction between two coincident molecules. The script computes the closure
+   of the species multiset at one point. With the baseline bulk reactions (pH buffer partners) the
+   largest same-species count stays at 2 in all four Chemistries. Adding the O₂-gated bulk
+   reactions leaves it at 2 as well. The one route to 3 (OH⁻ ×3, via a distance-zero e⁻aq + O⁻
+   reaction) needs two coincident reactive molecules to react at distance 0, which stock Geant4
+   never does (the stock query drops distance-zero partners, the secondary defect that patch 1 also
+   fixes). It is listed in the script output as an upper bound only.
+3. **Recorded logs.** The 80 necessity-run histories (`reactions.csv`, 8 kernel x rate groups of 10)
+   hold 61 096 to 61 394 reactions per 10 histories at 0.1 Gy/s and 15 673 to 16 031 at 10⁴ Gy/s,
+   and 282 to 331 reactions with two products of one species per group (2014 of the 2476
+   such reactions overall are e⁻aq + e⁻aq → H₂ + 2 OH⁻). The number of reactions with three or more products of
+   one species is **0**. The logs hold no positions, so this checks the products of each logged
+   reaction, not coordinates; stacking across reactions is covered by check 2.
+4. **Captured packets.** In the 150 packets of the capture library (9446 molecules), the largest
+   number of same-species molecules at one bit-identical position is 1, within a packet and across
+   all packets. Packets are never reused within a history, so sources do not stack.
+
+**Caveats:**
+
+- The snapshots (h5) were not scanned for coincident positions (no h5py in the audit run), so the
+  logs and the closure stand in for them.
+- The verdict holds for the four built-in Chemistries. A new Chemistry with a reaction or channel
+  that has three products of one species would reach the trigger directly; the script flags it
+  (`direct>=3`) when run on that Chemistry's catalogue.
+- The coincident-pair half of patch 1 is a separate matter. Stock drops distance-zero partners, so
+  a reactive pair created at one point (22, 12, 24 and 11 events per Chemistry have such a pair
+  among their products) cannot react with its coincident partner. This is not the memory blow-up
+  and was not measured here.
+
+Consequence: patch 1 stays as a guard, as the conclusion below says, but the study's histories
+cannot depend on it at these settings. The "three products at one point" of e⁻aq + e⁻aq is not its
+trigger.
+
+## Patch 2 vs dose rate
+
+Question: does patch 2 matter at higher dose rates, where more molecules are alive when a new
+track lands? Study `2026-11-18__patch2-necessity-vs-dose-rate` (index: [docs/studies/INDEX.md](../studies/INDEX.md)),
+run set `rateSweep`, launched as Study runs with
+`pwsh -File test/dose-rate-patches/RunNecessity.ps1 -Config rateSweep -Variants all,all-2 -Reuse -Study <id> -Python <python with numpy and h5py>`.
+Same setup as above (same library, 0.1 Gy, `halfBoxUm = 2`, snapshots on), kernels `all` and
+`all-2`, 5 rates from 10⁴ to 10⁸ Gy/s, 10 realizations per rate and kernel: 100 histories, all
+`complete` (none aborted, none capped). The same seeds and packets run on both kernels.
+
+Measure: new-old contacts at the activation instant (a new molecule inside the reaction radius of
+an old one, the case patch 2 fixes), counted on both kernels. Verdict per rate: the defect must
+appear in some history (more contacts on `all` than on `all-2`) and G(beam-off) `all − all-2` must
+differ (|z| > 3 on a species).
+
+| Rate (Gy/s) | Histories per kernel | Activations | Contacts, all / all-2 | Defect histories | Max abs z, G(beam-off) | Verdict |
+|---|---|---|---|---|---|---|
+| 10⁴ | 10 | 658 | 0 / 0 | 0/10 | 1.94 (•O) | not demonstrated |
+| 10⁵ | 10 | 667 | 0 / 0 | 0/10 | 2.12 (O₂⁻) | not demonstrated |
+| 10⁶ | 10 | 648 | 0 / 0 | 0/10 | 1.52 (O⁻) | not demonstrated |
+| 10⁷ | 10 | 664 | 0 / 0 | 0/10 | 1.03 (O⁻) | not demonstrated |
+| 10⁸ | 10 | 668 | 0 / 0 | 0/10 | 3.20 (O⁻) | not demonstrated |
+
+- **Contacts versus rate:** zero at every rate on both kernels, so the contacts-versus-rate fit
+  has nothing to fit ("not available: needs 2 or more rates with contacts > 0" for both
+  kernels). No slope can be given. At 0.1 Gy/s the earlier run found 1 event in 10 histories (see
+  "Necessity" above); that rate is outside this sweep.
+- **G deltas:** pooled over the 5 rates (50 histories per kernel), all − all-2 per 100 eV: H₂O₂
+  +0.012 (z 0.68), H₃O⁺ +0.004 (0.05), e⁻aq +0.010 (0.10), •OH −0.008 (−0.07), H• −0.005 (−0.60),
+  H₂ −0.002 (−0.14), OH⁻ −0.010 (−0.37), O⁻ +0.003 (0.98), •O −0.007 (−1.92). Per rate, one value
+  passes |z| > 3: O⁻ at 10⁸ Gy/s (3.20). It has no contact mechanism behind it (0 contacts on
+  both kernels), it is 1 of about 80 species-rate tests, and the pooled z of O⁻ is 0.98. Read it
+  as a fluctuation (issue 15: a rebuilt binary gives another realization), not as a patch-2 effect.
+  The verdict rule requires a defect history first, so it stays "not demonstrated".
+- **Why no contacts (reading, not measured separately):** each history has about 65 activations
+  (the 0.1 Gy dose fixes the number of tracks), and a contact needs a new molecule within about
+  0.1-0.5 nm of an old one; the earlier estimate at 10⁴ Gy/s was about 1 per 10⁴ activations.
+  Within this dose and box, raising the rate to 10⁸ Gy/s did not produce any. A demonstration
+  would need more activations per history (larger dose or box), not a higher rate at 0.1 Gy.
+
+Wall-time cost of the demonstration (launcher seconds per history, mean over 10; 4 histories at
+once):
+
+| Rate (Gy/s) | all | all-2 |
+|---|---|---|
+| 10⁴ | 34.2 s | 33.5 s |
+| 10⁵ | 31.5 s | 32.3 s |
+| 10⁶ | 31.6 s | 32.2 s |
+| 10⁷ | 30.1 s | 30.5 s |
+| 10⁸ | 26.6 s | 27.2 s |
+
+The full sweep is 3097 s of history time (52 min), about 13 min elapsed at 4 in parallel, far
+under the 10 h budget, so nothing was trimmed. One rate on both kernels (20 histories) costs about
+11 min of history time, 3 min elapsed. Not included: the kernel builds and the capture library
+(reused from the earlier runs, not timed here). Memory peaks at about 65 MB per history. Patch 2
+needs no longer runs; what is missing is a trigger, not statistics.
 
 ## G(beam-off) differences (report only)
 

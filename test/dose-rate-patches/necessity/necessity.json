@@ -57,6 +57,50 @@
       "maxArrivals": 100000,
       "progressIntervalS": 30,
       "wallTimeCapS": 3600
+    },
+    "rateSweep": {
+      "comment": "Patch-2 necessity versus dose rate (patch-1-2-demonstration-cost, ticket 02). Run on the variants in 'variants' (all, all-2). The runSets entry named like -RunSet overrides the study keys for that run set (smoke: one realization at 1e8 Gy/s).",
+      "variants": [
+        "all",
+        "all-2"
+      ],
+      "rates": [
+        10000,
+        100000,
+        1000000,
+        10000000,
+        100000000
+      ],
+      "realizations": {
+        "10000": 10,
+        "100000": 10,
+        "1e+06": 10,
+        "1e+07": 10,
+        "1e+08": 10
+      },
+      "runSets": {
+        "smoke": {
+          "rates": [
+            100000000
+          ],
+          "realizations": {
+            "1e+08": 1
+          }
+        }
+      },
+      "doseGy": 0.1,
+      "halfBoxUm": 2.0,
+      "worldHalfSideUm": 3.0,
+      "steadyStateWindow": 0,
+      "steadyStateTolerance": 0.05,
+      "steadyStateMinMean": 0,
+      "ageGridPointsPerDecade": 0,
+      "chemistrySeedBase": 7100,
+      "sourceSeedBase": 710000,
+      "firstPacket": null,
+      "maxArrivals": 100000,
+      "progressIntervalS": 30,
+      "wallTimeCapS": 3600
     }
   },
   "defaultConfig": "rate1e4"

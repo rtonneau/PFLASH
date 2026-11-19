@@ -46,6 +46,28 @@ variant under `JobLauncher` (memory and wall caps). `-Reuse` keeps finished runs
 `PASS` when the variant without the patch shows the defect and `all` does not, otherwise
 `NOT DEMONSTRATED`.
 
+### Necessity as Study runs (dose-rate sweep)
+
+`rateSweep` (in `necessity.json`): 1e4, 1e5, 1e6, 1e7, 1e8 Gy/s, 10 realizations each, 0.1 Gy, 2 um half box, on
+`all` and `all-2` (the config's `variants`), same capture library and seed scheme as the other configs.
+`-Study <id>` launches every history through `study.ps1 run` (as `run_study.ps1 -Study` does), so each run has a
+provenance stamp under `${STUDIES_ROOT}/PFLASH/<study>/runs/<runSet>/<variant>-<run id>/`
+(`stamp.json`, `stdout.log`, `output/`; a `+` of ids such as `r1e+08_000` is dropped in the Study run id).
+The JobLauncher memory and wall caps still apply (the launcher is the wrapper's child; the history executable
+and config are in the stamp's command line and `input/`). Without `-Study` nothing changes.
+
+```powershell
+pwsh -File test/dose-rate-patches/RunNecessity.ps1 -Config rateSweep -Variants all,all-2 -Reuse -Study <study-id> -RunSet smoke -Python <python>
+```
+
+`-RunSet <name>` names the run set (default: the config name). A `runSets.<name>` entry of the config
+overrides study keys for that run set and gets its own plan directory (`<config>-<name>`): `smoke` is one
+realization at 1e8 Gy/s. `-Variants all,all-2` also works as one token (split on commas). The analysis reads the
+Study runs through links in `.scratch/dose-rate-patches/necessity/<config[-runSet]>/runs/`; with a variant
+subset it reports the missing variants and the other patches as `NOT DEMONSTRATED`. A succeeded Study run is
+never rerun; a failed one is rerun (the wrapper keeps the earlier attempt as `<id>.prev-<time>`). Study of the
+sweep: `2026-11-18__patch2-necessity-vs-dose-rate`.
+
 ## Whole suite and report
 
 ```powershell
