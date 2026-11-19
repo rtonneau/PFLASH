@@ -2,6 +2,11 @@
 
 All notable changes to this project. Versions follow [semantic versioning](https://semver.org/).
 
+## 1.4.0 (2026-11-19)
+
+- The project is now PFLASH (continued from dnachem-min). Release assets are `PFLASH-win64.zip` and `PFLASH-linux-x64.tar.gz`; the architecture explorer is at https://rtonneau.github.io/PFLASH/explorer/; `/study` data live under `${STUDIES_ROOT}/PFLASH/`.
+- Dose-rate work since 1.3.1: the `examples/poisson-track-irt/` and `examples/dose-rate-study/` standalone examples, the dose-rate studies in `docs/dose-rate/` and `docs/dose-rate-pulse-study/`, and the `/study` provenance tooling (ADR 0012).
+
 ## 1.3.1 (2026-11-05)
 
 - Releases now also carry a prebuilt Linux x86-64 package (`dnachem-min-linux-x64.tar.gz`; Geant4 and HDF5 are not bundled). The README now opens with a glossary and the explorer links, with Quick start before Installation.

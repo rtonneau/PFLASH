@@ -102,7 +102,7 @@ def plot_panels(out_path, data_by_box):
         ax.set_ylabel(ylabel)
     axes[0].legend(loc="best", fontsize=9)
     fig.suptitle(
-        "dnachem-min -- 90 MeV proton, instrumented TrackLengths.csv, "
+        "PFLASH -- 90 MeV proton, instrumented TrackLengths.csv, "
         "50 events/box (20 um, 40 um), one point per event")
     fig.tight_layout(rect=(0, 0, 1, 0.94))
     fig.savefig(out_path, dpi=150, bbox_inches="tight")

@@ -4,7 +4,7 @@
 /// Callers coordinate access to shared mutable counters.
 ///
 /// Self-contained, project-agnostic unit: no OutputDir, DnaLogger, or other
-/// dnachem-min-specific includes -- only globals.hh (G4String), EventStat and
+/// PFLASH-specific includes -- only globals.hh (G4String), EventStat and
 /// OutputTable (both portable) and the standard library. Copy-paste portable
 /// to another Geant4-DNA project.
 ///

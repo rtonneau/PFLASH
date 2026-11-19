@@ -1,9 +1,9 @@
 # Prebuilt release (Windows x64 and Linux x86-64)
 
-Each GitHub Release carries `dnachem-min-win64.zip` and `dnachem-min-linux-x64.tar.gz`, so that someone with a
+Each GitHub Release carries `PFLASH-win64.zip` and `PFLASH-linux-x64.tar.gz`, so that someone with a
 Geant4 install but no build setup can run a macro from the explorer's Macro
 builder. The Macro builder links to
-`https://github.com/rtonneau/dnachem-min/releases/latest/download/dnachem-min-win64.zip`;
+`https://github.com/rtonneau/PFLASH/releases/latest/download/PFLASH-win64.zip`;
 the asset name is fixed, so that URL always serves the newest release.
 
 ## What the zip holds
@@ -33,7 +33,7 @@ root, on a clean, tagged commit so `VERSION.txt` carries the tag:
 ```powershell
 git tag v1.1.0
 cmake --build build --target sim
-cd build; cpack -G ZIP; cd ..        # -> build/dnachem-min-win64.zip
+cd build; cpack -G ZIP; cd ..        # -> build/PFLASH-win64.zip
 ```
 
 Smoke-test the zip outside the repository: unzip it to an empty folder, run
@@ -44,16 +44,16 @@ Publish:
 
 ```powershell
 git push origin v1.1.0
-gh release create v1.1.0 build/dnachem-min-win64.zip --title "dnachem-min v1.1.0" --notes "..."
+gh release create v1.1.0 build/PFLASH-win64.zip --title "PFLASH v1.1.0" --notes "..."
 ```
 
-Keep the asset name `dnachem-min-win64.zip` (the explorer link depends on it).
+Keep the asset name `PFLASH-win64.zip` (the explorer link depends on it).
 A macro from the Macro builder can use commands an older `sim.exe` lacks, so
 publish a new release when macro commands change.
 
 ## Linux package
 
-`dnachem-min-linux-x64.tar.gz` holds `sim`, `macro/`, `VERSION.txt` and
+`PFLASH-linux-x64.tar.gz` holds `sim`, `macro/`, `VERSION.txt` and
 `README.txt` (from `packaging/README-linux.txt`). HDF5 is not bundled (system
 `libhdf5`), nor is Geant4. Built on Ubuntu 24.04 (WSL), so it needs glibc 2.39.
 In the Linux checkout, with `geant4.sh` sourced, on the tagged commit:
@@ -61,11 +61,11 @@ In the Linux checkout, with `geant4.sh` sourced, on the tagged commit:
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDNACHEM_WITH_HDF5=ON
 cmake --build build --target sim
-cd build && cpack          # -> build/dnachem-min-linux-x64.tar.gz
+cd build && cpack          # -> build/PFLASH-linux-x64.tar.gz
 ```
 
 Smoke-test like the Windows zip (`./sim example_irt.in`), then upload both:
 
 ```bash
-gh release upload v1.3.1 build/dnachem-min-linux-x64.tar.gz --clobber
+gh release upload v1.3.1 build/PFLASH-linux-x64.tar.gz --clobber
 ```

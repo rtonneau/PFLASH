@@ -4,7 +4,7 @@
   "geant4Version": "11.4.3",
 
   "studies": {
-    "project": "dnachem-min",
+    "project": "PFLASH",
     "index": "docs/studies/INDEX.md"
   },
 

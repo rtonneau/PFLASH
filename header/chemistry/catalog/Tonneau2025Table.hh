@@ -6,7 +6,7 @@
 ///
 /// All 73 reactions of the paper's Table 2 (reactants, products, rate constant,
 /// unit, row number R1..R73, source letter A..D). Standard library only: no
-/// Geant4, no other dnachem-min header. Copy-paste portable to another project
+/// Geant4, no other PFLASH header. Copy-paste portable to another project
 /// (adjust the include path prefix on copy).
 ///
 /// Tonneau2025Reactions builds reaction-table entries and bulk reactions from

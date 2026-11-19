@@ -4,7 +4,7 @@
 /// Thread safety: process-wide state, written only at PreInit on the master before
 /// any worker starts (like MesoSettings::Current()); concurrent reads are safe.
 ///
-/// Portable and project-agnostic (no Geant4, no dependency on other dnachem-min
+/// Portable and project-agnostic (no Geant4, no dependency on other PFLASH
 /// classes; adjust the include path prefix on copy). Knows the Output products,
 /// their macro command names and file stems, and which formats each accepts.
 /// A format list is chosen per product, or inherited from the default format

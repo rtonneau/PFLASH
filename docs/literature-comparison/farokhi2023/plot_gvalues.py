@@ -5,7 +5,7 @@ Paper: Farokhi et al., Radiat. Phys. Chem. 212 (2023) 111184,
 docs/literature/Farokhi2023_Effects_of_the_Oxygen_depletion_in_FLASH_irradiation_investigated_through_geant4_DNA_toolkit.pdf.
 
 Usage: python plot_gvalues.py
-Reads the production dnachem-min runs from <G4_DATA_OUTPUT>/<RUN_DIR_NAME>
+Reads the production PFLASH runs from <G4_DATA_OUTPUT>/<RUN_DIR_NAME>
 (environment variable G4_DATA_OUTPUT, falling back to D:\\DATA\\Geant4 if
 unset -- machine-specific, see README.md):
 
@@ -41,7 +41,7 @@ Writes, next to this script:
     recorded times where it exceeds 25 %.
 
 Mean and SEM per (run, species, time) come directly from the Species table
-dnachem-min already writes (Species.csv: nEvents, gMean, gStdErr, built from
+PFLASH already writes (Species.csv: nEvents, gMean, gStdErr, built from
 each EVENT's own G-value, n_mol / eventEdep_eV * 100, with the Bessel-corrected
 sample variance; src/scoring/ProductTable) -- no re-running of the
 simulation, no re-derivation of G from a run-level ratio:
@@ -51,10 +51,10 @@ simulation, no re-derivation of G from a run-level ratio:
 
 Caveats -- this comparison is indicative only, not a reproduction (same as
 the earlier session-local check this directory supersedes for Farokhi2023):
-  - dnachem-min models a single homogeneous water box (10x10x10 um^3 for the
+  - PFLASH models a single homogeneous water box (10x10x10 um^3 for the
     proton runs, 500 um default for the electron runs), not the paper's
     nested sensitive-volume geometry.
-  - dnachem-min's PhysicsList uses G4EmDNAPhysics_option2; the paper does not
+  - PFLASH's PhysicsList uses G4EmDNAPhysics_option2; the paper does not
     state which G4EmDNAPhysics option (if any beyond "Geant4-DNA") it used.
   - The reference points are hand-digitized off rendered PDF pages (read
     visually, not with a digitizing tool), carrying a reading error of order
@@ -176,7 +176,7 @@ def plot_gvalues_proton(out_path, runs):
             sem = [p[2] if not math.isnan(p[2]) else 0.0 for p in pts]
             lo = [m - s for m, s in zip(mean, sem)]
             hi = [m + s for m, s in zip(mean, sem)]
-            ax.plot(t, mean, color=O2_COLORS[o2], label=f"dnachem-min {o2}% O2")
+            ax.plot(t, mean, color=O2_COLORS[o2], label=f"PFLASH {o2}% O2")
             ax.fill_between(t, lo, hi, color=O2_COLORS[o2], alpha=0.25, linewidth=0)
         ref = REFERENCE_PROTON_21PCT.get(label)
         if ref:
@@ -193,7 +193,7 @@ def plot_gvalues_proton(out_path, runs):
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.02))
     fig.suptitle(
-        "dnachem-min vs. Farokhi et al. 2023 Fig. 2/3 -- 90 MeV proton, 16 events/run, "
+        "PFLASH vs. Farokhi et al. 2023 Fig. 2/3 -- 90 MeV proton, 16 events/run, "
         "shaded = +-1 SEM")
     fig.tight_layout(rect=(0, 0.05, 1, 0.95))
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
@@ -214,7 +214,7 @@ def plot_gvalues_electron(out_path, runs):
             sem = [p[2] if not math.isnan(p[2]) else 0.0 for p in pts]
             lo = [m - s for m, s in zip(mean, sem)]
             hi = [m + s for m, s in zip(mean, sem)]
-            ax.plot(t, mean, color=O2_COLORS[o2], label=f"dnachem-min {o2}% O2")
+            ax.plot(t, mean, color=O2_COLORS[o2], label=f"PFLASH {o2}% O2")
             ax.fill_between(t, lo, hi, color=O2_COLORS[o2], alpha=0.25, linewidth=0)
             ref = REFERENCE_ELECTRON.get(label, {}).get(o2)
             if ref:
@@ -233,7 +233,7 @@ def plot_gvalues_electron(out_path, runs):
         seen.setdefault(l, h)
     fig.legend(seen.values(), seen.keys(), loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.14), fontsize=8)
     fig.suptitle(
-        "dnachem-min vs. Farokhi et al. 2023 Fig. 5 -- 500 keV electron, 56 events/run, "
+        "PFLASH vs. Farokhi et al. 2023 Fig. 5 -- 500 keV electron, 56 events/run, "
         "shaded = +-1 SEM")
     fig.tight_layout(rect=(0, 0.2, 1, 0.92))
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
@@ -277,7 +277,7 @@ def plot_proton_boxsize_comparison(out_path, runs_10um, runs_20um, runs_40um):
         seen.setdefault(l, h)
     fig.legend(seen.values(), seen.keys(), loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.05), fontsize=8)
     fig.suptitle(
-        "dnachem-min box-size check -- 90 MeV proton, 10x10x10 um^3 (solid, 16 ev) vs. "
+        "PFLASH box-size check -- 90 MeV proton, 10x10x10 um^3 (solid, 16 ev) vs. "
         "20x20x20 um^3 (dashed, 50 ev) vs. 40x40x40 um^3 (dotted, 50 ev), shaded = +-1 SEM")
     fig.tight_layout(rect=(0, 0.08, 1, 0.95))
     fig.savefig(out_path, dpi=150, bbox_inches="tight")

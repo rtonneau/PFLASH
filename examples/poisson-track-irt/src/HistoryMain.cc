@@ -187,7 +187,7 @@ Schedule MakeSchedule(const ptirt::HistoryConfig& config, std::size_t libraryPac
   return schedule;
 }
 
-// Registered before /run/initialize, like dnachem-min: G4DNAChemistryManager
+// Registered before /run/initialize, like PFLASH: G4DNAChemistryManager
 // initializes the counters it finds. One counter per species configuration,
 // H2O ignored, times within 1 ps merged (the record grid keeps kGridGuardNs
 // away from the arrivals). Reset before each event: there is no event here, so
