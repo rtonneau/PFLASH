@@ -250,7 +250,7 @@ A sufficiency check runs a minimal kernel fixture on `stock` (defect observed) a
 dose-rate-study history on `all` and `all-<N>`: without patch N the dose-rate
 application shows the defect.
 
-**Study** (study tooling, global `/study` skill):
+**Study** (study tooling, global `/g4-study` skill):
 One scientific question answered by simulation (e.g. "G(t) vs dose rate, pulse
 resolved"), with an id `YYYY-MM-DD__<slug>`, an aim, a status (planned, running,
 done, abandoned), its **Study runs** grouped in **Run sets**, and links to the gps
