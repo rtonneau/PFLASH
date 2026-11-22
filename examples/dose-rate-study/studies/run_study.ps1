@@ -22,7 +22,16 @@
   console goes to <run set>.logs/ beside the run set. Analyze with
   analyze.py --plan <plan> --runs-dir <run set dir>.
 
-.PARAMETER Plan         plan.json
+  With -Study -Orket, each history is submitted to orket (the local scheduler) instead of run:
+    g4-study.ps1 submit-run <study> <runSet> --id <id> --seed ... --param ... -- history.exe ...
+  The runs are queued one after the other (slowest rates first) and the script returns once they
+  are all queued: no run_log.csv row, no wall-time cap (pass -WallTimeCapS 0 when the plan sets
+  one), -Parallel is ignored (orket throttles). A run already submitted or succeeded is skipped.
+  The orket job runs in this script's working directory, which must be under DEV_DIR or
+  STUDIES_ROOT. Follow the runs with g4-study.ps1 status <study>; complete their stamps with
+  g4-study.ps1 sync <study> once they finish, then analyze as above.
+
+.PARAMETER Plan        plan.json
 .PARAMETER History       history executable (default ../build-ninja/history.exe)
 .PARAMETER Geant4Bin     bin directory of the PATCHED Geant4 install, put first on PATH
                          (default ${DEV_DIR}/GEANT4/geant4-v11.4.3-mf-ti-install/bin, patch set mf-ti)
@@ -35,6 +44,7 @@
 .PARAMETER Study         Study id or unique slug: launch each history through g4-study.ps1 run
 .PARAMETER RunSet        run set of the Study (default: the plan file's directory name)
 .PARAMETER StudyScript   g4-study.ps1 (default ~/.claude/skills/g4-study/scripts/g4-study.ps1)
+.PARAMETER Orket         with -Study: submit each history to orket (g4-study.ps1 submit-run), do not wait
 #>
 [CmdletBinding()]
 param(
@@ -49,7 +59,8 @@ param(
   [switch]$DryRun,
   [string]$Study,
   [string]$RunSet,
-  [string]$StudyScript = (Join-Path $HOME '.claude\skills\g4-study\scripts\g4-study.ps1')
+  [string]$StudyScript = (Join-Path $HOME '.claude\skills\g4-study\scripts\g4-study.ps1'),
+  [switch]$Orket
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +70,10 @@ $planDoc = Get-Content -LiteralPath $planPath -Raw -Encoding utf8 | ConvertFrom-
 if (-not $LogCsv) { $LogCsv = Join-Path $planDir 'run_log.csv' }
 if ($WallTimeCapS -lt 0) {
   $WallTimeCapS = if ($planDoc.study.wallTimeCapS) { [double]$planDoc.study.wallTimeCapS } else { 0 }
+}
+if ($Orket) {
+  if (-not $Study) { throw '-Orket needs -Study: orket jobs are Study runs (g4-study.ps1 submit-run)' }
+  if ($WallTimeCapS -gt 0) { throw "-Orket cannot apply the wall-time cap of $WallTimeCapS s (orket runs each history to its end): pass -WallTimeCapS 0" }
 }
 $outputRoot = [IO.Path]::GetFullPath((Join-Path $planDir $planDoc.outputRoot))
 $logDir = Join-Path $outputRoot 'logs'
@@ -85,16 +100,27 @@ if ($Study) {
   }
 }
 
-# g4-study.ps1 run arguments of one run; the wrapper replaces {output} by the run's output/.
+# g4-study.ps1 run (or submit-run with -Orket) arguments of one run; the wrapper replaces
+# {output} by the run's output/.
 function Get-StudyArgs($t) {
   $inv = [Globalization.CultureInfo]::InvariantCulture
-  $a = @('-NoProfile', '-File', $StudyScript, 'run', $Study, $RunSet, '--id', $t.id, '--project-root', $repoRoot, '--quiet')
+  $a = @('-NoProfile', '-File', $StudyScript)
+  if ($Orket) { $a += @('submit-run', $Study, $RunSet, '--id', $t.id, '--project-root', $repoRoot) }
+  else { $a += @('run', $Study, $RunSet, '--id', $t.id, '--project-root', $repoRoot, '--quiet') }
   if ($t.rerun) { $a += '--rerun' }
   foreach ($k in $t.seeds.Keys) { $a += @('--seed', "$k=$($t.seeds[$k])") }
   $a += @('--param', "rate_Gy_s=$($t.rate.ToString('R', $inv))")
   if ($null -ne $t.firstPacket) { $a += @('--param', "firstPacket=$($t.firstPacket)") }
   $a += @('--', $History, '--config', $t.config, '--output', '{output}')
   return , $a
+}
+
+# Status of a Study run's stamp.json ('' when there is none or it cannot be read).
+function Get-StampStatus([string]$runDir) {
+  $stamp = Join-Path $runDir 'stamp.json'
+  if (-not (Test-Path -LiteralPath $stamp)) { return '' }
+  try { return [string](Get-Content -LiteralPath $stamp -Raw -Encoding utf8 | ConvertFrom-Json).status }
+  catch { return '' }
 }
 
 function Test-RunPassed([string]$outDir) {
@@ -112,6 +138,11 @@ foreach ($run in $planDoc.runs) {
     # The wrapper owns the run directory; an earlier failed attempt is set aside by --rerun.
     $outDir = if ($runSetDir) { Join-Path (Join-Path $runSetDir $run.id) 'output' } else { $null }
     if ($outDir -and (Test-RunPassed $outDir)) { Write-Host "$($run.id): done, skipped"; continue }
+    if ($runSetDir) {
+      # A run handed to orket is not rerun before g4-study sync has completed its stamp.
+      $st = Get-StampStatus (Join-Path $runSetDir $run.id)
+      if ($st -in 'submitted', 'succeeded') { Write-Host "$($run.id): $st, skipped"; continue }
+    }
     $rerun = [bool]($runSetDir -and (Test-Path -LiteralPath (Join-Path $runSetDir $run.id)))
   } else {
     $outDir = [IO.Path]::GetFullPath((Join-Path $planDir $run.output))
@@ -135,7 +166,8 @@ if ($DryRun) {
       Write-Host "$($t.id): would run  history --config $($t.config) --output $($t.outDir)"
     }
   }
-  Write-Host "run_study: $($todo.Count) would run (parallel $Parallel, cap $WallTimeCapS s)"
+  if ($Orket) { Write-Host "run_study: $($todo.Count) would be submitted to orket" }
+  else { Write-Host "run_study: $($todo.Count) would run (parallel $Parallel, cap $WallTimeCapS s)" }
   exit 0
 }
 if (-not (Test-Path -LiteralPath $History)) { throw "history executable not found: $History" }
@@ -145,6 +177,23 @@ if (-not $Geant4Bin) { throw 'DEV_DIR is not set: run ~/dotfiles/scripts/windows
 if (-not (Test-Path -LiteralPath $Geant4Bin)) { throw "Geant4 bin directory not found: $Geant4Bin" }
 $env:PATH = (Resolve-Path -LiteralPath $Geant4Bin).Path + [IO.Path]::PathSeparator + $env:PATH
 if (-not $env:GEANT4_DATA_DIR) { throw 'GEANT4_DATA_DIR is not set' }
+
+if ($Orket) {
+  # One submit-run per history, slowest rates first; the wrapper copies the Geant4 DLLs found
+  # on PATH (the patched install above) into each run's Binary snapshot. Nothing is waited for.
+  $failed = 0
+  foreach ($t in @($todo | Sort-Object -Property rate)) {
+    & pwsh @($t.studyArgs)
+    if ($LASTEXITCODE -ne 0) { $failed++; Write-Host "$($t.id): submit FAILED, exit $LASTEXITCODE" }
+    else { Write-Host "$($t.id): submitted" }
+  }
+  Write-Host "run_study: $($todo.Count - $failed) submitted to orket, $failed failed"
+  Write-Host "  follow them with: pwsh -File `"$StudyScript`" status $Study --project-root `"$repoRoot`""
+  Write-Host "  once they finish: pwsh -File `"$StudyScript`" sync $Study --project-root `"$repoRoot`""
+  if ($failed -gt 0) { exit 1 }
+  exit 0
+}
+
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 if (-not (Test-Path -LiteralPath $LogCsv)) {
   'id,rate_Gy_s,startUtc,wallTime_s,peakWorkingSet_MB,exitCode,status,lastProgress,historyDone' |
