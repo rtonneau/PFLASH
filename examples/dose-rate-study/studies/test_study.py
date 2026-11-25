@@ -233,7 +233,7 @@ class SpikeReportTest(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("pwsh"), "pwsh not found")
 class RunStudyDryRunTest(unittest.TestCase):
-    """run_study.ps1 -Study -DryRun with a g4-study.ps1 that cannot resolve the study: lists every run."""
+    """run_study.ps1 -Study with a fake g4-study.ps1 (-DryRun: one that cannot resolve the study)."""
 
     def test_dry_run_prints_study_run_commands(self):
         with tempfile.TemporaryDirectory() as d:
@@ -255,6 +255,75 @@ class RunStudyDryRunTest(unittest.TestCase):
         self.assertIn("--param rate_Gy_s=50 --param firstPacket=9", line)
         self.assertRegex(line, r"history\.exe --config \S+history\.cfg --output \{output\}$")
         self.assertNotIn("--rerun", line)
+
+    def _run(self, *extra):
+        """run_study.ps1 on a one-run plan with a g4-study.ps1 that cannot resolve the study."""
+        with tempfile.TemporaryDirectory() as d:
+            fake = os.path.join(d, "g4-study.ps1")
+            with open(fake, "w", encoding="utf-8") as h:
+                h.write("[Console]::Error.WriteLine('study: unknown study'); exit 1\n")
+            with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as h:
+                json.dump({"study": {}, "outputRoot": "out", "runs": [
+                    {"id": "rate50_k0", "rate_Gy_s": 50, "chemistrySeed": 1001, "sourceSeed": 500001,
+                     "config": "runs/rate50_k0/history.cfg", "output": "out/rate50_k0"}]}, h)
+            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_study.ps1")
+            return subprocess.run(["pwsh", "-NoProfile", "-File", script, "-Plan", os.path.join(d, "plan.json"),
+                                   "-RunSet", "set1", "-StudyScript", fake, *extra],
+                                  capture_output=True, text=True)
+
+    def test_orket_dry_run_prints_submit_run_commands(self):
+        r = self._run("-Study", "smoke", "-Orket", "-DryRun")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        line = next(x for x in r.stdout.splitlines() if x.startswith("rate50_k0: would run"))
+        self.assertIn(" submit-run smoke set1 --id rate50_k0 ", line)
+        self.assertIn("--seed chemistrySeed=1001 --seed sourceSeed=500001", line)
+        self.assertNotIn("--quiet", line)
+        self.assertIn("1 would be submitted to orket", r.stdout)
+
+    def test_orket_refuses_a_wall_time_cap(self):
+        r = self._run("-Study", "smoke", "-Orket", "-DryRun", "-WallTimeCapS", "600")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("-WallTimeCapS 0", r.stdout + r.stderr)
+
+    def test_orket_submits_each_run_and_skips_submitted_ones(self):
+        with tempfile.TemporaryDirectory() as d:
+            data = os.path.join(d, "data")
+            os.makedirs(os.path.join(data, "runs", "set1", "rate1_k0"))
+            with open(os.path.join(data, "runs", "set1", "rate1_k0", "stamp.json"), "w", encoding="utf-8") as h:
+                json.dump({"status": "submitted"}, h)
+            calls = os.path.join(d, "calls.txt")
+            fake = os.path.join(d, "g4-study.ps1")
+            with open(fake, "w", encoding="utf-8") as h:
+                h.write("if ($args[0] -eq 'status') { @{ study = @{ id = 'S1-smoke'; dataPath = '%s' } } | "
+                        "ConvertTo-Json; exit 0 }\n" % data.replace("'", "''"))
+                h.write("Add-Content -LiteralPath '%s' -Value ($args -join ' '); exit 0\n" % calls.replace("'", "''"))
+            history = os.path.join(d, "history.exe")
+            open(history, "w").close()
+            with open(os.path.join(d, "plan.json"), "w", encoding="utf-8") as h:
+                json.dump({"study": {}, "outputRoot": "out", "runs": [
+                    {"id": i, "rate_Gy_s": rate, "chemistrySeed": 1, "sourceSeed": 2,
+                     "config": "runs/%s/history.cfg" % i, "output": "out/" + i}
+                    for i, rate in (("rate50_k0", 50), ("rate1_k0", 1), ("rate5_k0", 5))]}, h)
+            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_study.ps1")
+            env = dict(os.environ, GEANT4_DATA_DIR=d)
+            r = subprocess.run(["pwsh", "-NoProfile", "-File", script, "-Plan", os.path.join(d, "plan.json"),
+                                "-Study", "smoke", "-RunSet", "set1", "-StudyScript", fake, "-Orket",
+                                "-History", history, "-Geant4Bin", d],
+                               capture_output=True, text=True, env=env)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            with open(calls, encoding="utf-8") as h:
+                lines = h.read().splitlines()
+            self.assertFalse(os.path.exists(os.path.join(d, "run_log.csv")))
+        self.assertIn("rate1_k0: submitted, skipped", r.stdout)
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(lines[0].startswith("submit-run S1-smoke set1 --id rate5_k0 "), lines[0])
+        self.assertTrue(lines[1].startswith("submit-run S1-smoke set1 --id rate50_k0 "), lines[1])
+        self.assertIn("2 submitted to orket, 0 failed", r.stdout)
+
+    def test_orket_needs_study(self):
+        r = self._run("-Orket", "-DryRun")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("-Orket needs -Study", r.stdout + r.stderr)
 
 
 if __name__ == "__main__":

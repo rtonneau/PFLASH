@@ -30,11 +30,18 @@
                      overrides its study keys (rates, realizations) and gets its own work directory
                      (<config>-<RunSet>), e.g. smoke = one realization at 1e8 Gy/s.
 .PARAMETER StudyScript  g4-study.ps1 (default ~/.claude/skills/g4-study/scripts/g4-study.ps1)
+.PARAMETER Orket     with -Study: submit every history to orket (g4-study.ps1 submit-run, same arguments and
+                     JobLauncher caps) instead of running it, then stop: no links, no analysis. A run already
+                     submitted or succeeded is skipped. The orket jobs run in the repo root. Once they finish,
+                     g4-study.ps1 sync <study> completes their stamps; rerun with -Study -Reuse (no -Orket)
+                     to link the outputs and analyze.
 #>
 [CmdletBinding()]
 param([string]$Config, [switch]$Reuse, [int]$Parallel = 0, [string[]]$Variants, [string]$Python = 'python',
-  [string]$Study, [string]$RunSet, [string]$StudyScript = (Join-Path $HOME '.claude\skills\g4-study\scripts\g4-study.ps1'))
+  [string]$Study, [string]$RunSet, [string]$StudyScript = (Join-Path $HOME '.claude\skills\g4-study\scripts\g4-study.ps1'),
+  [switch]$Orket)
 $ErrorActionPreference = 'Stop'
+if ($Orket -and -not $Study) { throw '-Orket needs -Study: orket jobs are Study runs (g4-study.ps1 submit-run)' }
 
 $root = (Resolve-Path "$PSScriptRoot/../..").Path.Replace('\', '/')
 $settings = Get-Content "$PSScriptRoot/necessity/necessity.json" -Raw | ConvertFrom-Json
@@ -134,6 +141,9 @@ if ($Study) {
   $runSetDir = [IO.Path]::GetFullPath((Join-Path (Join-Path $dataPath 'runs') $RunSet))
   Write-Output "Study $Study, run set $runSetDir"
 }
+$cap = $settings.memoryCapMiB
+$wall = $sweep.wallTimeCapS
+$verb = if ($Orket) { 'submit-run' } else { 'run' }
 $jobs = foreach ($v in $Variants) {
   foreach ($r in $plan.runs) {
     $out = "$work/$workName/runs/$v/$($r.id)"
@@ -141,15 +151,19 @@ $jobs = foreach ($v in $Variants) {
     if ($Study) {
       $runDir = Join-Path $runSetDir "$v-$($r.id.Replace('+', ''))"
       $log = Join-Path $runDir 'stdout.log'
-      # A succeeded Study run is a provenance record: never rerun (the wrapper refuses it too).
+      # A succeeded Study run is a provenance record: never rerun (the wrapper refuses it too); a run
+      # handed to orket is not rerun before g4-study sync has completed its stamp.
       $stampPath = Join-Path $runDir 'stamp.json'
-      if ((Test-Path $stampPath) -and ((Get-Content $stampPath -Raw | ConvertFrom-Json).status -eq 'succeeded')) { continue }
+      if ((Test-Path $stampPath) -and ((Get-Content $stampPath -Raw | ConvertFrom-Json).status -in 'succeeded', 'submitted')) { continue }
       if ($Reuse -and (Test-Path $log) -and (Select-String -Path $log -Pattern '^RESULT launcher.reason=' -Quiet)) { continue }
-      $a = @('-NoProfile', '-File', $StudyScript, 'run', $Study, $RunSet, '--id', "$v-$($r.id.Replace('+', ''))", '--project-root', $root, '--quiet')
+      $a = @('-NoProfile', '-File', $StudyScript, $verb, $Study, $RunSet, '--id', "$v-$($r.id.Replace('+', ''))", '--project-root', $root)
+      if (-not $Orket) { $a += '--quiet' }
       if (Test-Path $runDir) { $a += '--rerun' }
       foreach ($k in 'chemistrySeed', 'sourceSeed') { if ($r.PSObject.Properties[$k]) { $a += @('--seed', "$k=$($r.$k)") } }
       $a += @('--param', "rate_Gy_s=$(([double]$r.rate_Gy_s).ToString('R', [Globalization.CultureInfo]::InvariantCulture))", '--param', "variant=$v")
       if ($null -ne $r.firstPacket) { $a += @('--param', "firstPacket=$($r.firstPacket)") }
+      $history = "$scratch/drs-$v/history.exe"
+      $a += @('--target', $history, '--', $launcher, "$cap", "$wall", '{run}/launcher', '--expect', 'fixed', $history, '--config', $cfg, '--output', '{output}')
       [pscustomobject]@{ Variant = $v; Id = $r.id; Config = $cfg; Out = $out; Meta = "$out.launcher.txt"; StudyArgs = $a; RunDir = $runDir }
     } else {
       $meta = "$out.launcher.txt"
@@ -158,19 +172,37 @@ $jobs = foreach ($v in $Variants) {
     }
   }
 }
+if ($Orket) {
+  # One submit-run per history, one after the other; nothing is waited for. The variant kernel's bin
+  # goes first on the wrapper's PATH: the wrapper copies its DLLs into the history's Binary snapshot,
+  # so the orket job (which starts with the orket daemon's PATH) loads that kernel.
+  Write-Output "histories to submit: $(@($jobs).Count)"
+  $failed = 0
+  foreach ($j in $jobs) {
+    $psi = [Diagnostics.ProcessStartInfo]::new('pwsh')
+    foreach ($x in $j.StudyArgs) { $psi.ArgumentList.Add([string]$x) }
+    $psi.UseShellExecute = $false
+    $psi.WorkingDirectory = $root
+    $psi.Environment['PATH'] = "$(Get-KernelBin $j.Variant);$($psi.Environment['PATH'])"
+    $proc = [Diagnostics.Process]::Start($psi)
+    $proc.WaitForExit()
+    $state = if ($proc.ExitCode -eq 0) { 'submitted' } else { $failed++; 'FAILED' }
+    '{0,-6} {1,-10} {2,-11} exit {3}' -f $j.Variant, $j.Id, $state, $proc.ExitCode
+  }
+  Write-Output "$(@($jobs).Count - $failed) submitted to orket, $failed failed"
+  Write-Output "follow them with: pwsh -File `"$StudyScript`" status $Study --project-root `"$root`""
+  Write-Output "once they finish: pwsh -File `"$StudyScript`" sync $Study --project-root `"$root`", then rerun with -Study -Reuse (no -Orket) to analyze"
+  exit $(if ($failed -gt 0) { 1 } else { 0 })
+}
 Write-Output "histories to run: $(@($jobs).Count) (parallel $Parallel)"
-$cap = $settings.memoryCapMiB
-$wall = $sweep.wallTimeCapS
 $jobs | ForEach-Object -ThrottleLimit $Parallel -Parallel {
   $j = $_
   $bin = "$using:root/.scratch/kernels/$($j.Variant)/install/bin"
   $history = "$using:scratch/drs-$($j.Variant)/history.exe"
   $start = Get-Date
   if ($j.StudyArgs) {
-    $launch = @("$using:launcher", "$using:cap", "$using:wall", '{run}/launcher', '--expect', 'fixed', $history, '--config', $j.Config, '--output', '{output}')
-    $all = @($j.StudyArgs) + @('--target', $history, '--') + $launch
     $psi = [Diagnostics.ProcessStartInfo]::new('pwsh')
-    foreach ($x in $all) { $psi.ArgumentList.Add([string]$x) }
+    foreach ($x in $j.StudyArgs) { $psi.ArgumentList.Add([string]$x) }
     $psi.UseShellExecute = $false
     $psi.Environment['PATH'] = "$bin;$($psi.Environment['PATH'])"
     # Parallel starts are safe: the wrapper serializes its own start-up (Study and project locks).
