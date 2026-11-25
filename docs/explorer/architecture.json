@@ -1690,7 +1690,7 @@
       "id": "decisions",
       "title": "Read the design decisions",
       "audience": "everyone",
-      "summary": "The twelve architecture decision records and the project glossary.",
+      "summary": "The thirteen architecture decision records and the project glossary.",
       "docs": [
         "CONTEXT.md",
         "docs/adr/0001-baseline-acid-base-buffer.md",
@@ -1704,7 +1704,8 @@
         "docs/adr/0009-standardized-output-products.md",
         "docs/adr/0010-poisson-track-irt-stock-build.md",
         "docs/adr/0011-reflecting-box-for-dose-rate-study.md",
-        "docs/adr/0012-study-tooling-replaces-g4run.md"
+        "docs/adr/0012-study-tooling-replaces-g4run.md",
+        "docs/adr/0013-drop-patches-1-and-3.md"
       ],
       "files": []
     }

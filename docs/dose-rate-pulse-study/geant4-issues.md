@@ -6,7 +6,7 @@ Paths are relative to the Geant4 source root
 (`geant4SourcePath` in `.claude/.claude-project.json`, i.e. `${DEV_DIR}/GEANT4/geant4-v11.4.3-source`),
 and `source/processes/electromagnetic/dna/` is shortened to `dna/`.
 
-**Status legend:** **PATCHED**: fixed by a local patch in `patches/geant4/11.4.3/`, used by the
+**Status legend:** **DROPPED**: patched in past runs, left out of future kernels ([ADR 0013](../adr/0013-drop-patches-1-and-3.md)); the patch stays in `patches/geant4/11.4.3/`. **PATCHED**: fixed by a local patch in `patches/geant4/11.4.3/`, used by the
 production runs. **WORKAROUND**: avoided in project code, Geant4 unchanged. **OPEN**: not
 solved. **NOTE**: a limit or quirk of the API, not a bug.
 
@@ -18,9 +18,9 @@ reporting, check each item against the current Geant4 release.
 
 | # | Component | Problem | Status |
 |---|---|---|---|
-| 1 | Octree molecule finder | Coincident molecules are duplicated into all 8 children until memory runs out | PATCHED |
+| 1 | Octree molecule finder | Coincident molecules are duplicated into all 8 children until memory runs out | PATCHED, DROPPED for future kernels (ADR 0013) |
 | 2 | IRT_syn time stepper | Contact trial only at the scheduler start time: later tracks never trialled, first track trialled twice | PATCHED (experimental patch) |
-| 3 | `G4ChemReboundTransportation` | Wrong reflection when a step overshoots a wall by more than the box, or lands on it | PATCHED |
+| 3 | `G4ChemReboundTransportation` | Wrong reflection when a step overshoots a wall by more than the box, or lands on it | PATCHED, DROPPED for future kernels (ADR 0013) |
 | 4 | `G4DNAMesh::ConvertIndex` | 32-bit int overflow above 65536 cells per side | WORKAROUND (cap) |
 | 5 | `G4DNAEventScheduler::Voxelizing` | Radiolytic O₂ left alive at the hand-over; IRT_syn then loops forever | WORKAROUND |
 | 6 | `G4DNAEventScheduler::RecordTime` | Records only after a reaction step; late counts stale | WORKAROUND |
@@ -36,7 +36,7 @@ reporting, check each item against the current Geant4 release.
 
 ---
 
-## 1. Octree finder duplicates coincident molecules (PATCHED)
+## 1. Octree finder duplicates coincident molecules (PATCHED, DROPPED for future kernels: ADR 0013)
 Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](patch-necessity.md).
 
 - **Where:** `dna/management/include/G4Octree.icc`, `G4OctreeFinder.icc`; contact guard in
@@ -108,7 +108,7 @@ Dose-rate sweep, 10⁴ to 10⁸ Gy/s, 0 new-old contacts at every rate (not demo
 - **Details:** `patches/geant4/11.4.3/timed-injection/README.md`,
   `docs/dose-rate/recurring-chemistry-sources.md`, `docs/adr/0010-poisson-track-irt-stock-build.md`.
 
-## 3. Wrong reflection in `G4ChemReboundTransportation` (PATCHED)
+## 3. Wrong reflection in `G4ChemReboundTransportation` (PATCHED, DROPPED for future kernels: ADR 0013)
 Tested on its own (fixture and leave-one-out histories): [patch-necessity.md](patch-necessity.md).
 
 - **Where:** `dna/processes/src/G4ChemReboundTransportation.cc:322-355` (`calculateNextCoordinate`).
