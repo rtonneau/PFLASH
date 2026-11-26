@@ -30,8 +30,8 @@ DataNode Unsigned(std::uint64_t value)
 
 // Checks the histories, returns the content digest (history table, then
 // records, as encoded) and the record count.
-std::uint64_t DigestAndCheck(const std::vector<RecordedHistory>& histories, std::uint64_t& recordCount,
-                             double& totalDepositEv)
+std::uint64_t DigestAndCheck(const std::vector<RecordedHistory>& histories, bool singleBox,
+                             std::uint64_t& recordCount, double& totalDepositEv)
 {
   Fnv1a64 hash;
   recordCount = 0;
@@ -40,9 +40,14 @@ std::uint64_t DigestAndCheck(const std::vector<RecordedHistory>& histories, std:
   {
     const RecordedHistory& history = histories[i];
     const std::string where = "history " + std::to_string(i) + " (stage-1 event " +
-                              std::to_string(history.stage1EventId) + ")";
-    if (i > 0 && history.stage1EventId <= histories[i - 1].stage1EventId)
-      throw std::runtime_error(where + ": histories must be in strictly increasing stage-1 event ID order");
+                              std::to_string(history.stage1EventId) + ", box " + std::to_string(history.boxIx) +
+                              ", " + std::to_string(history.boxIy) + ")";
+    if (i > 0 && HistoryOrderKey(history.stage1EventId, history.boxIx, history.boxIy) <=
+                     HistoryOrderKey(histories[i - 1].stage1EventId, histories[i - 1].boxIx, histories[i - 1].boxIy))
+      throw std::runtime_error(where +
+                               ": histories must be in strictly increasing (stage-1 event ID, box iy, box ix) order");
+    if (singleBox && (history.boxIx != 0 || history.boxIy != 0))
+      throw std::runtime_error(where + ": with a single box (pitch 0) the box must be (0, 0)");
     if (history.records.empty())
       throw std::runtime_error(where + " has no record (count such primaries in primariesFired only)");
     if (!std::isfinite(history.inBoxDepositEv) || history.inBoxDepositEv < 0)
@@ -58,7 +63,8 @@ std::uint64_t DigestAndCheck(const std::vector<RecordedHistory>& histories, std:
         throw std::runtime_error(where + ", record " + std::to_string(r) + ": " + e.what());
       }
     }
-    const HistoryEntry entry{i, history.stage1EventId, recordCount, history.records.size(), history.inBoxDepositEv};
+    const HistoryEntry entry{i,         history.stage1EventId,  recordCount, history.records.size(),
+                             history.inBoxDepositEv, history.boxIx, history.boxIy};
     const HistoryEntryBytes bytes = EncodeHistoryEntry(entry);
     hash.Update(bytes.data(), bytes.size());
     recordCount += history.records.size();
@@ -143,7 +149,8 @@ WrittenFile WritePhaseSpaceFile(const std::filesystem::path& phspPath, const Fil
   FileHeader& header = written.header;
   try
   {
-    header.contentDigest = DigestAndCheck(histories, header.recordsWritten, written.totalInBoxDepositEv);
+    header.contentDigest = DigestAndCheck(histories, description.latticePitchNm == 0, header.recordsWritten,
+                                          written.totalInBoxDepositEv);
     header.stage1Seed = description.stage1Seed;
     header.primariesFired = description.primariesFired;
     header.historiesWritten = histories.size();
@@ -170,8 +177,13 @@ WrittenFile WritePhaseSpaceFile(const std::filesystem::path& phspPath, const Fil
     std::uint64_t firstRecord = 0;
     for (std::size_t i = 0; i < histories.size(); ++i)
     {
-      const HistoryEntry entry{i, histories[i].stage1EventId, firstRecord, histories[i].records.size(),
-                               histories[i].inBoxDepositEv};
+      const HistoryEntry entry{i,
+                               histories[i].stage1EventId,
+                               firstRecord,
+                               histories[i].records.size(),
+                               histories[i].inBoxDepositEv,
+                               histories[i].boxIx,
+                               histories[i].boxIy};
       const HistoryEntryBytes bytes = EncodeHistoryEntry(entry);
       Write(out, bytes.data(), bytes.size());
       firstRecord += entry.recordCount;

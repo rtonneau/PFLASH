@@ -299,9 +299,11 @@ read it.
 _Avoid_: "track packet" (that is a species cloud at 1 ps, not particles).
 
 **Phase-space history** (phase-space-source):
-All records of one stage-1 primary, identified by (file ID, history index), the index
-counting written histories 0..N-1 in file order. Primaries with no crossing are not
-written but are counted in the header. One phase-space history is one stage-2 event.
+All records of one stage-1 primary in one scoring box (lattice box index ix, iy),
+identified by (file ID, history index), the index counting written histories 0..N-1 in
+file order (sorted by stage-1 event ID, then box). A primary entering several lattice
+boxes gives several histories. Primaries with no crossing are not written but are
+counted in the header. One phase-space history is one stage-2 event.
 _Avoid_: "track" for the group (a history holds many tracks).
 
 **Inward crossing** (phase-space-source):

@@ -94,8 +94,13 @@ void PhaseSpaceReader::Open()
                      std::to_string(nextRecord);
       else if (entry.recordCount == 0 || entry.recordCount > records - nextRecord)
         firstError = where + "recordCount " + std::to_string(entry.recordCount) + " is 0 or past the records";
-      else if (i > 0 && entry.stage1EventId <= fHistories.back().stage1EventId)
-        firstError = where + "stage-1 event IDs are not strictly increasing";
+      else if (i > 0 && HistoryOrderKey(entry.stage1EventId, entry.boxIx, entry.boxIy) <=
+                            HistoryOrderKey(fHistories.back().stage1EventId, fHistories.back().boxIx,
+                                       fHistories.back().boxIy))
+        firstError = where + "(stage-1 event ID, box iy, box ix) is not strictly increasing";
+      else if (fHeader.latticePitchNm == 0 && (entry.boxIx != 0 || entry.boxIy != 0))
+        firstError = where + "box (" + std::to_string(entry.boxIx) + ", " + std::to_string(entry.boxIy) +
+                     ") with a single box (pitch 0); expected (0, 0)";
       else if (!std::isfinite(entry.inBoxDepositEv) || entry.inBoxDepositEv < 0)
         firstError = where + "inBoxDepositEv is not finite and >= 0";
     }

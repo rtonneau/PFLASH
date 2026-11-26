@@ -132,6 +132,8 @@ HistoryEntryBytes EncodeHistoryEntry(const HistoryEntry& entry)
   PutU64(&bytes[16], entry.firstRecord);
   PutU64(&bytes[24], entry.recordCount);
   PutF64(&bytes[32], entry.inBoxDepositEv);
+  PutI32(&bytes[40], entry.boxIx);
+  PutI32(&bytes[44], entry.boxIy);
   return bytes;
 }
 
@@ -143,6 +145,8 @@ HistoryEntry DecodeHistoryEntry(const HistoryEntryBytes& bytes)
   entry.firstRecord = GetU64(&bytes[16]);
   entry.recordCount = GetU64(&bytes[24]);
   entry.inBoxDepositEv = GetF64(&bytes[32]);
+  entry.boxIx = GetI32(&bytes[40]);
+  entry.boxIy = GetI32(&bytes[44]);
   return entry;
 }
 
@@ -186,10 +190,11 @@ void ValidateHeader(const FileHeader& header)
   if (header.latticePitchNm < 0 || (header.latticePitchNm > 0 && header.latticePitchNm < header.boxSideNm))
     throw std::runtime_error("phase-space header latticePitchNm must be 0 (single box) or >= boxSideNm "
                              "(non-overlapping boxes)");
-  if (header.historiesWritten > header.primariesFired)
+  // One history per (primary, box): only a single box bounds the histories by the primaries.
+  if (header.latticePitchNm == 0 && header.historiesWritten > header.primariesFired)
     throw std::runtime_error("phase-space header has more histories written (" +
                              std::to_string(header.historiesWritten) + ") than primaries fired (" +
-                             std::to_string(header.primariesFired) + ")");
+                             std::to_string(header.primariesFired) + ") with a single box (pitch 0)");
   if (header.recordsWritten < header.historiesWritten)
     throw std::runtime_error("phase-space header has fewer records than histories (every history has >= 1 record)");
   if (header.fileId != DeriveFileId(header.stage1Seed, header.contentDigest))

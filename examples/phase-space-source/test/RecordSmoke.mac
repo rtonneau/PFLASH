@@ -1,0 +1,27 @@
+# RecordSmoke (CTest): a small, fast lattice run. 1 mm phantom, 4 um boxes at
+# 0.2 mm depth on a 20 um lattice (49 x 49 boxes, each in a 6 um DNA shell),
+# 500 keV e- uniform over one 20 um cell, 1000 primaries. Not the production
+# geometry (macros/record.mac).
+/control/verbose 0
+/run/verbose 0
+/process/em/verbose 0
+
+/phsp/geom/phantomSide 1 mm
+/phsp/geom/depth 0.2 mm
+/phsp/geom/boxSide 4 um
+/phsp/geom/shell 1 um
+/phsp/geom/latticePitch 20 um
+
+/run/initialize
+
+/gps/particle e-
+/gps/ene/type Mono
+/gps/ene/mono 500 keV
+/gps/direction 0 0 1
+/gps/pos/type Plane
+/gps/pos/shape Square
+/gps/pos/centre 0 0 -0.5 mm
+/gps/pos/halfx 10 um
+/gps/pos/halfy 10 um
+
+/run/beamOn 1000

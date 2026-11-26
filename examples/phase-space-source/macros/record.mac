@@ -1,0 +1,39 @@
+# phsp-record default macro: 500 keV e- along +z into a 5 mm water phantom,
+# one 4 um scoring box per 100 um lattice cell at 1 mm depth.
+#
+#   phsp-record macros/record.mac --threads 4 --seed 1 --output <dir>/<name>
+#
+# Broad-beam equivalence (ADR 0014): the beam is uniform over ONE lattice cell
+# (a P x P square centred on the axis, P = latticePitch), so the fluence is
+# primaries / P^2. Keep /gps/pos/halfx and halfy = P / 2 when changing the
+# pitch, and the source z on the phantom's -z face (-phantomSide / 2) when
+# changing the phantom. For pitch 0 (single box), use a square wider than the
+# lateral spread of the beam at the box depth instead.
+#
+# No /random/ commands: the seed is phsp-record's --seed.
+
+/control/verbose 1
+/run/verbose 1
+/process/em/verbose 0
+
+# ---- Geometry (PreInit) ----
+/phsp/geom/phantomSide 5 mm
+/phsp/geom/depth 1 mm
+/phsp/geom/boxSide 4 um
+/phsp/geom/shell 1 um
+/phsp/geom/latticePitch 100 um
+
+/run/initialize
+
+# ---- Beam: 500 keV e-, +z, uniform over one 100 um x 100 um cell ----
+/gps/particle e-
+/gps/ene/type Mono
+/gps/ene/mono 500 keV
+/gps/direction 0 0 1
+/gps/pos/type Plane
+/gps/pos/shape Square
+/gps/pos/centre 0 0 -2.5 mm
+/gps/pos/halfx 50 um
+/gps/pos/halfy 50 um
+
+/run/beamOn 10000

@@ -69,7 +69,7 @@ void TestHeaderLayout()
   const HeaderBytes bytes = EncodeHeader(h);
   CHECK(std::memcmp(bytes.data(), "PFPHSP\r\n", 8) == 0);
   CHECK(bytes[8] == 1 && bytes[9] == 0 && bytes[10] == 0 && bytes[11] == 0);  // version, little-endian
-  CHECK(bytes[12] == 128 && bytes[16] == 40 && bytes[20] == 80);              // block sizes
+  CHECK(bytes[12] == 128 && bytes[16] == 48 && bytes[20] == 80);              // block sizes
   CHECK(bytes[24] == 0x2a && bytes[31] == 0xd4);                              // fileId LSB first
   CHECK(bytes[48] == 0xe8 && bytes[49] == 0x03);                              // primariesFired = 1000
   for (std::size_t i = 104; i < kHeaderSize; ++i)
@@ -111,6 +111,8 @@ void TestHeaderErrors()
   h = MakeHeader();
   h.historiesWritten = 1001;
   h.recordsWritten = 2000;
+  ValidateHeader(h);  // a lattice: one primary may give a history in each of several boxes
+  h.latticePitchNm = 0;
   CHECK_THROWS(ValidateHeader(h), "more histories written");
   h = MakeHeader();
   h.recordsWritten = 6;
@@ -122,10 +124,15 @@ void TestHeaderErrors()
 
 void TestEntryAndRecord()
 {
-  const HistoryEntry e{3, 17, 12, 5, 1234.25};
+  const HistoryEntry e{3, 17, 12, 5, 1234.25, -2, 7};
   const HistoryEntryBytes eb = EncodeHistoryEntry(e);
   CHECK(eb[0] == 3 && eb[8] == 17 && eb[16] == 12 && eb[24] == 5);
+  CHECK(eb[40] == 0xfe && eb[43] == 0xff && eb[44] == 7 && eb[47] == 0);  // box (-2, 7), i32 little-endian
   CHECK(DecodeHistoryEntry(eb) == e);
+  // Order: stage-1 event ID, then box iy, then box ix.
+  CHECK(HistoryOrderKey(3, 5, 0) < HistoryOrderKey(3, -5, 1));
+  CHECK(HistoryOrderKey(3, -1, 1) < HistoryOrderKey(3, 0, 1));
+  CHECK(HistoryOrderKey(3, 9, 9) < HistoryOrderKey(4, -9, -9));
 
   PhaseSpaceRecord r = MakeRecord();
   RecordBytes rb = EncodeRecord(r);

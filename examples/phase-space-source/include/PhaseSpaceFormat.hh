@@ -27,13 +27,19 @@
 //   96  u64 headerChecksum  FNV-1a 64 over header bytes 0..95 (the digest does not cover the header)
 //  104  24 reserved bytes, zero
 //
-// History table entry (40 bytes), one per written history, in stage-1 event ID
-// order (strictly increasing); historyIndex counts 0..N-1:
+// History table entry (48 bytes), one per written history. A history is the
+// records of one stage-1 primary in ONE box of the Scoring lattice: a primary
+// whose tracks enter several boxes gives one history per box, so a history
+// never mixes the frames of two boxes. Entries are in strictly increasing
+// order of HistoryOrderKey (stage-1 event ID, then box iy, then box ix);
+// historyIndex counts 0..N-1:
 //    0  u64 historyIndex
 //    8  u64 stage1EventId
 //   16  u64 firstRecord     index of its first record; histories are contiguous
-//   24  u64 recordCount     >= 1 (a primary with no record is not written)
-//   32  f64 inBoxDepositEv  stage-1 energy deposited in the boxes by this history
+//   24  u64 recordCount     >= 1 (a primary with no record in a box gives no history for it)
+//   32  f64 inBoxDepositEv  stage-1 energy deposited in this box by this primary
+//   40  i32 boxIx           lattice box (ix, iy), centred at (ix P, iy P, depth);
+//   44  i32 boxIy           (0, 0) when latticePitchNm is 0 (single box)
 //
 // Record (80 bytes), one Inward crossing, in the frame of the box it entered
 // (origin at the box centre, axes of the phantom):
@@ -52,6 +58,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <tuple>
 
 namespace phsp
 {
@@ -59,7 +66,7 @@ namespace phsp
 inline constexpr std::array<char, 8> kMagic = {'P', 'F', 'P', 'H', 'S', 'P', '\r', '\n'};
 inline constexpr std::uint32_t kFormatVersion = 1;
 inline constexpr std::size_t kHeaderSize = 128;
-inline constexpr std::size_t kHistoryEntrySize = 40;
+inline constexpr std::size_t kHistoryEntrySize = 48;
 inline constexpr std::size_t kRecordSize = 80;
 
 // Relative tolerance on |direction| - 1 accepted by ValidateRecord.
@@ -87,8 +94,18 @@ struct HistoryEntry
   std::uint64_t firstRecord = 0;
   std::uint64_t recordCount = 0;
   double inBoxDepositEv = 0;
+  std::int32_t boxIx = 0;
+  std::int32_t boxIy = 0;
   bool operator==(const HistoryEntry&) const = default;
 };
+
+// The order of the histories in a file: stage-1 event ID, then box iy, then
+// box ix (row-major lattice order, the copy-number order of phsp-record).
+inline std::tuple<std::uint64_t, std::int32_t, std::int32_t> HistoryOrderKey(std::uint64_t stage1EventId,
+                                                                        std::int32_t boxIx, std::int32_t boxIy)
+{
+  return {stage1EventId, boxIy, boxIx};
+}
 
 struct PhaseSpaceRecord
 {
@@ -121,7 +138,9 @@ PhaseSpaceRecord DecodeRecord(const RecordBytes& bytes);
 
 // Throw std::runtime_error with a message naming the offending field.
 // ValidateHeader checks the values (finite geometry, box side > 0, pitch 0 or
-// >= box side, histories <= primaries) and that fileId matches DeriveFileId.
+// >= box side, records >= histories, and histories <= primaries for pitch 0
+// only: with a lattice one primary can give a history in each of several
+// boxes) and that fileId matches DeriveFileId.
 void ValidateHeader(const FileHeader& header);
 // pdg != 0, trackId >= 1, finite fields, energy >= 0, weight > 0, unit direction.
 void ValidateRecord(const PhaseSpaceRecord& record);

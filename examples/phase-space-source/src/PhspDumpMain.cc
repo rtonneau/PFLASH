@@ -43,15 +43,15 @@ void PrintHeader(const phsp::PhaseSpaceReader& reader, std::ostream& out)
 
 void PrintHistories(const phsp::PhaseSpaceReader& reader, std::ostream& out)
 {
-  out << "historyIndex,stage1EventId,firstRecord,recordCount,inBoxDepositEv\n";
+  out << "historyIndex,stage1EventId,boxIx,boxIy,firstRecord,recordCount,inBoxDepositEv\n";
   for (const phsp::HistoryEntry& e : reader.Histories())
-    out << e.historyIndex << "," << e.stage1EventId << "," << e.firstRecord << "," << e.recordCount << ","
-        << Real(e.inBoxDepositEv) << "\n";
+    out << e.historyIndex << "," << e.stage1EventId << "," << e.boxIx << "," << e.boxIy << "," << e.firstRecord
+        << "," << e.recordCount << "," << Real(e.inBoxDepositEv) << "\n";
 }
 
 void PrintRecords(const phsp::PhaseSpaceReader& reader, std::ostream& out)
 {
-  out << "historyIndex,stage1EventId,recordIndex,pdg,trackId,kineticEnergyEv,xNm,yNm,zNm,"
+  out << "historyIndex,stage1EventId,boxIx,boxIy,recordIndex,pdg,trackId,kineticEnergyEv,xNm,yNm,zNm,"
          "directionX,directionY,directionZ,timeNs,weight\n";
   for (std::uint64_t i = 0; i < reader.HistoryCount(); ++i)
   {
@@ -59,8 +59,8 @@ void PrintRecords(const phsp::PhaseSpaceReader& reader, std::ostream& out)
     for (std::size_t r = 0; r < history.records.size(); ++r)
     {
       const phsp::PhaseSpaceRecord& p = history.records[r];
-      out << history.entry.historyIndex << "," << history.entry.stage1EventId << ","
-          << history.entry.firstRecord + r << "," << p.pdg << "," << p.trackId << "," << Real(p.kineticEnergyEv)
+      out << history.entry.historyIndex << "," << history.entry.stage1EventId << "," << history.entry.boxIx << ","
+          << history.entry.boxIy << "," << history.entry.firstRecord + r << "," << p.pdg << "," << p.trackId << "," << Real(p.kineticEnergyEv)
           << "," << Real(p.positionNm[0]) << "," << Real(p.positionNm[1]) << "," << Real(p.positionNm[2]) << ","
           << Real(p.direction[0]) << "," << Real(p.direction[1]) << "," << Real(p.direction[2]) << ","
           << Real(p.timeNs) << "," << Real(p.weight) << "\n";

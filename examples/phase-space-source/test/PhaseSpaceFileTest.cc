@@ -34,12 +34,13 @@ PhaseSpaceRecord MakeRecord(int pdg, int trackId, double energyEv, double x)
   return r;
 }
 
+// Event 3 enters two lattice boxes, (0, 0) then (-1, 1): two histories.
 std::vector<RecordedHistory> MakeHistories()
 {
   return {
-      {3, 1500.5, {MakeRecord(11, 1, 4.9e5, 10.0), MakeRecord(11, 7, 1234.5, -1999.0)}},
-      {4, 0.0, {MakeRecord(22, 3, 2.0e4, 0.1)}},
-      {11, 98765.4321, {MakeRecord(11, 1, 4.8e5, 1.0 / 3.0), MakeRecord(-11, 9, 7.0, 2.0), MakeRecord(11, 12, 0.0, 5.0)}},
+      {3, 1500.5, {MakeRecord(11, 1, 4.9e5, 10.0), MakeRecord(11, 7, 1234.5, -1999.0)}, 0, 0},
+      {3, 0.0, {MakeRecord(22, 3, 2.0e4, 0.1)}, -1, 1},
+      {11, 98765.4321, {MakeRecord(11, 1, 4.8e5, 1.0 / 3.0), MakeRecord(-11, 9, 7.0, 2.0), MakeRecord(11, 12, 0.0, 5.0)}, 0, 0},
   };
 }
 
@@ -95,6 +96,7 @@ void TestRoundTrip(const fs::path& dir)
     CHECK(h.fileId == written.header.fileId);
     CHECK(h.entry.historyIndex == i);
     CHECK(h.entry.stage1EventId == histories[i].stage1EventId);
+    CHECK(h.entry.boxIx == histories[i].boxIx && h.entry.boxIy == histories[i].boxIy);
     CHECK(h.entry.inBoxDepositEv == histories[i].inBoxDepositEv);
     CHECK(h.entry.firstRecord == first);
     CHECK(h.records == histories[i].records);  // bit-exact
@@ -137,7 +139,11 @@ void TestWriterRefusals(const fs::path& dir)
   const auto good = MakeHistories();
   CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.dat", MakeDescription(), good), "must end in .phsp");
   auto histories = good;
-  histories[2].stage1EventId = 4;
+  histories[2].stage1EventId = 3;  // (3, box 0, 0) after (3, box -1, 1)
+  CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", MakeDescription(), histories), "strictly increasing");
+  histories = good;
+  histories[1].boxIx = 0;  // same (event, box) twice
+  histories[1].boxIy = 0;
   CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", MakeDescription(), histories), "strictly increasing");
   histories = good;
   histories[1].records.clear();
@@ -149,8 +155,15 @@ void TestWriterRefusals(const fs::path& dir)
   histories[2].records[1].trackId = 0;
   CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", MakeDescription(), histories), "record 1: phase-space record has track ID 0");
   FileDescription d = MakeDescription();
+  d.primariesFired = 2;  // 3 histories from 2 primaries: fine on a lattice
+  CHECK(WritePhaseSpaceFile(dir / "lattice-two-primaries.phsp", d, good).header.historiesWritten == 3);
+  d.latticePitchNm = 0;
+  CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", d, good), "must be (0, 0)");
+  const std::vector<RecordedHistory> singleBox = {good[0], good[2]};
+  d.primariesFired = 1;
+  CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", d, singleBox), "more histories written");
   d.primariesFired = 2;
-  CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", d, good), "more histories written");
+  CHECK(WritePhaseSpaceFile(dir / "single-box.phsp", d, singleBox).header.historiesWritten == 2);
   d = MakeDescription();
   d.latticePitchNm = 1000.0;
   CHECK_THROWS(WritePhaseSpaceFile(dir / "bad.phsp", d, good), "latticePitchNm");
