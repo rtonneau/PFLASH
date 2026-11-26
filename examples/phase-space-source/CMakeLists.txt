@@ -53,6 +53,22 @@ add_executable(phsp-record
 target_include_directories(phsp-record SYSTEM PRIVATE ${Geant4_INCLUDE_DIRS})
 target_link_libraries(phsp-record PRIVATE phspCore ${Geant4_LIBRARIES})
 
+# ---- Geant4 application: phsp-replay (stage 2, physics only) -------------------
+# A water box of the files' box side (region DnaRegion, stage-1 physics setup by
+# default); one Phase-space history per event, reseeded per history (ADR 0015).
+# RecordPhysicsList.cc is shared so that the stage-1 cuts and DNA option come
+# from one place.
+add_executable(phsp-replay
+  src/ReplayMain.cc
+  src/ReplayDetectorConstruction.cc
+  src/ReplayPhysicsList.cc
+  src/PhaseSpaceSource.cc
+  src/ReplayActions.cc
+  src/ReplayMessenger.cc
+  src/RecordPhysicsList.cc)
+target_include_directories(phsp-replay SYSTEM PRIVATE ${Geant4_INCLUDE_DIRS})
+target_link_libraries(phsp-replay PRIVATE phspCore ${Geant4_LIBRARIES})
+
 # ---- Unit tests (TestCheck.hh: active in every build type) -------------------
 enable_testing()
 set(phspTestOutput ${CMAKE_CURRENT_BINARY_DIR}/test-output)
@@ -110,9 +126,65 @@ add_test(NAME RecordRejectsTouchingBoxes
   COMMAND phsp-record ${CMAKE_CURRENT_SOURCE_DIR}/test/RecordTouchingBoxes.mac --output ${phspTestOutput}/record-touching/x)
 set_tests_properties(RecordRejectsTouchingBoxes PROPERTIES
   PASS_REGULAR_EXPRESSION "RECORD_ERROR RecordTouchingBoxes.mac:[0-9]+: inconsistent geometry: latticePitch .* must be 0 .single box. or greater than boxSide")
+# RecordSmoke's 1-thread file is the input of the Replay* tests.
+set_tests_properties(RecordSmoke PROPERTIES FIXTURES_SETUP PhspRecordSmokeFile)
+set(phspSmokeFile ${phspTestOutput}/record-smoke/t1/smoke.phsp)
+
+# ---- phsp-replay (runs the Geant4 kernel) ---------------------------------------
+# ReplayRepeat: the whole RecordSmoke file replayed twice, split into two runs,
+# and on 2 threads: identical Histories.csv rows; another base seed changes the
+# stage-2 deposits. ReplayEnergy: stage-2 vs stage-1 mean deposit per history,
+# |z| < 3 on the paired difference.
+foreach(check Repeat Energy)
+  add_test(NAME Replay${check}
+    COMMAND ${CMAKE_COMMAND}
+      -DREPLAY=$<TARGET_FILE:phsp-replay>
+      -DDUMP=$<TARGET_FILE:phsp-dump>
+      -DPHSP=${phspSmokeFile}
+      -DOUTPUT_DIR=${phspTestOutput}/replay-${check}
+      -DBASE_SEED=20261126
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/test/RunReplay${check}.cmake)
+  set_tests_properties(Replay${check} PROPERTIES FIXTURES_REQUIRED PhspRecordSmokeFile)
+endforeach()
+
+# Fatal cases, each before any event runs. The macros are written here because
+# they name the RecordSmoke file.
+set(phspReplayMacros ${CMAKE_CURRENT_BINARY_DIR}/test-macros)
+set(phspReplayHead "/control/verbose 0\n/run/verbose 0\n/process/em/verbose 0\n")
+file(WRITE ${phspReplayMacros}/ReplayDuplicateFile.mac
+  "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/phsp/source/addFile ${phspSmokeFile}\n/run/initialize\n/run/beamOn 1\n")
+file(WRITE ${phspReplayMacros}/ReplayRangePastEnd.mac
+  "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/run/initialize\n/phsp/source/first 1000000\n/run/beamOn 1\n")
+file(WRITE ${phspReplayMacros}/ReplayOverlap.mac
+  "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/run/initialize\n/phsp/source/first 0\n/run/beamOn 2\n/phsp/source/first 1\n/run/beamOn 1\n")
+file(WRITE ${phspReplayMacros}/ReplayBoxSideMismatch.mac
+  "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/phsp/geom/boxSide 5 um\n/run/initialize\n/run/beamOn 1\n")
+set(phspReplayFatalTests ReplayRejectsDuplicateFile ReplayRejectsRangePastEnd ReplayRejectsOverlap
+                         ReplayRejectsBoxSideMismatch)
+set(phspReplayFatalMacros ReplayDuplicateFile ReplayRangePastEnd ReplayOverlap ReplayBoxSideMismatch)
+set(phspReplayFatalRegex
+  "PhspReplay003.*given twice"
+  "PhspReplay007.*goes past the end"
+  "PhspReplay008.*overlap histories 0..1 already replayed"
+  "PhspReplay005.*boxSide 5 um differs from the box side of the phase-space files .4 um.")
+foreach(i RANGE 3)
+  list(GET phspReplayFatalTests ${i} name)
+  list(GET phspReplayFatalMacros ${i} macro)
+  list(GET phspReplayFatalRegex ${i} regex)
+  add_test(NAME ${name}
+    COMMAND phsp-replay ${phspReplayMacros}/${macro}.mac --output ${phspTestOutput}/replay-fatal/${macro})
+  set_tests_properties(${name} PROPERTIES
+    FIXTURES_REQUIRED PhspRecordSmokeFile
+    PASS_REGULAR_EXPRESSION "${regex}"
+    FAIL_REGULAR_EXPRESSION "REPLAY_DONE")
+endforeach()
+add_test(NAME ReplayUsage COMMAND phsp-replay)
+set_tests_properties(ReplayUsage PROPERTIES PASS_REGULAR_EXPRESSION "REPLAY_ERROR usage: phsp-replay")
+
 if(WIN32)
   # The Geant4 DLLs are in <install>/bin.
   get_filename_component(phspGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
-  set_tests_properties(RecordSmoke RecordUsage RecordRejectsTouchingBoxes PROPERTIES
+  set_tests_properties(RecordSmoke RecordUsage RecordRejectsTouchingBoxes ReplayRepeat ReplayEnergy
+                       ${phspReplayFatalTests} ReplayUsage PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${phspGeant4BinDir}")
 endif()

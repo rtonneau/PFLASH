@@ -3,6 +3,10 @@
 #
 #   phsp-record macros/record.mac --threads 4 --seed 1 --output <dir>/<name>
 #
+# 10^5 primaries give about 260 histories (hit fraction 0.0026; 259 with
+# --seed 1, for any thread count), about 100 thread-seconds. macros/replay.mac
+# replays the first 100 of them.
+#
 # Broad-beam equivalence (ADR 0014): the beam is uniform over ONE lattice cell
 # (a P x P square centred on the axis, P = latticePitch), so the fluence is
 # primaries / P^2. Keep /gps/pos/halfx and halfy = P / 2 when changing the
@@ -36,4 +40,4 @@
 /gps/pos/halfx 50 um
 /gps/pos/halfy 50 um
 
-/run/beamOn 10000
+/run/beamOn 100000

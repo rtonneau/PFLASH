@@ -1,0 +1,30 @@
+# phsp-replay default macro: replay the first 100 Phase-space histories of the
+# file written by macros/record.mac, physics only. That file holds about 260
+# histories (259 with --seed 1); a range past its end is fatal.
+#
+#   phsp-record macros/record.mac --threads 4 --seed 1 --output phsp/record
+#   phsp-replay macros/replay.mac --threads 4 --output replay
+#
+# Paths in /phsp/source/addFile are relative to the working directory. The
+# global history index runs over the files in the order given, then over each
+# file's history index; /phsp/source/first k + /run/beamOn N replays global
+# histories k..k+N-1 (past the end is fatal). Several first/beamOn pairs may
+# follow each other, but their ranges must not overlap. Results depend on the
+# base seed and the history IDs only (ADR 0015), not on /random/ commands, the
+# thread count or how the range is split.
+
+/control/verbose 1
+/run/verbose 1
+/process/em/verbose 0
+
+# ---- Source (PreInit) ----
+/phsp/source/addFile phsp/record.phsp
+/phsp/source/baseSeed 1
+# Optional: the expected box side; a mismatch with the file is fatal.
+#/phsp/geom/boxSide 4 um
+
+/run/initialize
+
+# ---- Replay ----
+/phsp/source/first 0
+/run/beamOn 100

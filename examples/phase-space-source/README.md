@@ -17,8 +17,9 @@ The example copies the code it needs (`DataNode`/`JsonWriter` from PFLASH
 `src/scoring/`) and links nothing from PFLASH `sim` or the other examples; a
 change there does not reach this example.
 
-Status: ticket 02. The Geant4-free core, `phsp-dump` and stage 1
-(`phsp-record`) are complete. Stage 2 (`phsp-replay`) comes in later tickets.
+Status: ticket 03. The Geant4-free core, `phsp-dump`, stage 1
+(`phsp-record`) and the stage-2 physics replay (`phsp-replay`) are complete.
+Stage-2 chemistry comes in ticket 04.
 
 ## Core library (`phspCore`, Geant4-free)
 
@@ -166,8 +167,9 @@ existing files of that name are replaced.
   FatalException aborts.
 
 The default macro is `macros/record.mac`: 500 keV e- along +z from the -z
-face of a 5 mm phantom, uniform over one 100 um x 100 um lattice cell, 10000
-primaries.
+face of a 5 mm phantom, uniform over one 100 um x 100 um lattice cell,
+10^5 primaries: 259 histories with `--seed 1` (for any thread count), about
+100 thread-seconds. `macros/replay.mac` replays the first 100 of them.
 
 ### Geometry
 
@@ -307,6 +309,190 @@ changed. Errors are one standard error.
 - One primary enters more than one box in 0.3 % (P = 100 um) and 5.9 %
   (P = 20 um) of the hit primaries. Each of those boxes gives its own history.
 
+## phsp-replay (stage 2, physics only)
+
+```
+phsp-replay <macro> --output <dir> [--threads N] [--physics stage1|option2]
+```
+
+`phsp-replay` replays Phase-space histories in a water box of the stage-1
+box side, one history per event, and writes `<dir>/Histories.csv` and
+`<dir>/Manifest.json` (`<dir>` is created if it is missing, and existing
+files are replaced).
+
+- The macro is applied line by line, like `phsp-record`'s. Before
+  `/run/initialize` come the `/phsp/source/addFile` commands (one or more, in
+  order) and `/phsp/source/baseSeed`. After it come any number of
+  `/phsp/source/first k` + `/run/beamOn N` pairs, each replaying global
+  histories k..k+N-1. The default macro is `macros/replay.mac`.
+- `--threads N` (1..256, default 1) always uses the MT run manager.
+  `--physics` selects the stage-2 physics (below; default `stage1`).
+- On success the last line is `REPLAY_DONE histories=.. stage1MeanEv=..
+  stage1SeEv=.. stage2MeanEv=.. stage2SeEv=.. diffMeanEv=.. diffSeEv=.. z=..
+  tracksKilledOutsideBox=.. physics=.. threads=.. wallTimeS=.. output=..`
+  over every history of the process, where diff = stage 2 - stage 1 per
+  history and z = diffMean / diffSe.
+- Exit status: 0 on success, 2 on bad arguments, 3 on a macro or
+  initialization failure, 1 on a failure during the run or the write (a
+  `REPLAY_ERROR` line on stderr). A `G4Exception` FatalException aborts.
+
+| Command | State | Meaning |
+|---|---|---|
+| `/phsp/source/addFile <path>` | PreInit | append a `.phsp` file to the ordered list (path relative to the working directory) |
+| `/phsp/source/baseSeed <s>` | PreInit | stage-2 base seed, unsigned 64-bit, default 1 |
+| `/phsp/source/first <k>` | PreInit, Idle | global index of the first history of the next `/run/beamOn`, default 0 |
+| `/phsp/geom/boxSide <value> <unit>` | PreInit | optional: the expected box side; it must equal the files' |
+
+These are FatalExceptions, each raised before any event runs:
+
+- at `/run/initialize`: no file, a file that does not open or validate, the
+  same file ID twice (the same file listed twice, or a copy of it), files
+  with different box sides, or a `/phsp/geom/boxSide` other than the files'
+  (relative tolerance 10^-9, because the header stores nm);
+- at `/run/beamOn N`: a range past the end, or a range that overlaps one
+  already replayed in this process. `Histories.csv` holds one row per
+  history, so to replay a history twice, run another process.
+
+The files need the same box side but nothing else: the lattice pitch, the
+depth and the stage-1 physics may differ. The reader uses the binary file
+only, so the stage-1 physics in the `.json` sidecar is not checked. Keep
+the stage-2 physics option consistent with the files yourself.
+
+### Geometry
+
+The box is a G4_WATER cube of the files' box side, centred at the origin and
+not rotated. This is the stage-1 box frame, so a record's position is used
+as it is. The box is the region `DnaRegion`, with the stage-1 region cuts.
+The world is a G4_Galactic cube 1 um wider than the box on every side.
+The box needs a world around it, because region-specific DNA models cannot
+be attached to the world region. Nothing is tracked in the world: every
+track is killed at the end of the step that leaves the box, and a track
+found outside the box (none so far) is killed at its first step and counted
+in `tracksKilledOutsideBox`.
+
+### Source and seeding (ADR 0015)
+
+- Event e of a run replays global history first + e. The master assigns
+  event IDs in order, so this does not depend on the thread count.
+- `GeneratePrimaries` reseeds the engine with `G4Random::setTheSeeds` from
+  `HistoryEngineSeeds(baseSeed, fileId, historyIndex)`. It runs after
+  `G4WorkerRunManager::GenerateEvent` has seeded the event from the master's
+  list (checked in the 11.4.3 source), so the per-history seed replaces it.
+  The seed array is a member of the generator, because MixMax keeps the
+  pointer it was given. Nothing draws a random number between
+  `GeneratePrimaries` and tracking.
+- Every record of the history becomes one primary vertex: its box-frame
+  position, its time minus the earliest record time of the history (the
+  history starts at t = 0), and one primary with the record's PDG code
+  (particle table, then ion table), kinetic energy, direction and weight.
+- The result of a history therefore depends only on the base seed, the file
+  ID and the history index. `/random/` commands have no effect, and the
+  manifest records the base seed and the file IDs. `ReplayRepeat` checks
+  this (below).
+- Without the reseed, a repeat, a split into runs in one process, and
+  another thread count would still give the same rows. `G4MTRunManager`
+  draws the per-event seeds from the master engine in event-ID order, and a
+  second run continues the master's seed stream. Only two cases need the
+  per-history reseed: another `/random/setSeeds`, and a range started in a
+  fresh process at k > 0 (history k would get the seeds of event 0).
+  `ReplayRepeat` tests both.
+
+### Scoring and output
+
+The stage-2 deposit of a history is the energy deposited in steps whose
+pre-step point is in the box, which is how stage 1 defines its in-box
+deposit (`RecordSteppingAction`). The two agree in the mean over the same
+histories (ADR 0014). A track that leaves the box and comes back gave a
+record of its own in stage 1, which stage 2 replays as a primary. A
+secondary born in the box is produced in stage 2 too. So every in-box track
+segment of stage 1 is either replayed or produced again. Deposits are not
+weighted: stage 1 does not weight them, and every stage-1 record has
+weight 1.
+
+Each worker adds one row per event to a mutex-protected store. `main()`
+sorts the rows by global index and writes `Histories.csv`:
+
+```
+globalIndex,fileId,historyIndex,stage1EventId,boxIx,boxIy,recordCount,stage1InBoxDepositEv,stage2DepositEv,tracksKilledOutsideBox
+```
+
+Reals are printed in the shortest form that reads back to the same double.
+The file holds no thread count or timing, so for the same files, base seed
+and histories it is byte-identical for any thread count or range split.
+
+`Manifest.json` holds the Geant4 version, the run manager, the thread count,
+the engine, the base seed, the macro commands, and the files: position,
+path, file ID, content digest, stage-1 seed, counts, first global index, box
+side, pitch and depth. It also holds the ranges replayed, the geometry, the
+physics option with its cuts and the EM flags that differ between the
+options (`dnaFast`, `fluorescence`, `auger`, `deexcitationIgnoreCut`), the
+number of histories, `tracksKilledOutsideBox`, and the wall time.
+
+### Stage-2 physics: stage 1 vs `G4EmDNAPhysics_option2`
+
+The e- processes and models were compared with `/particle/process/dump`,
+`/process/em/printParameters` and the `/process/em/verbose 1` model tables.
+Stage 1 is `phsp-record`; stage 2 is `phsp-replay` with both options.
+
+| | stage 1 (option4 + `G4EmDNAPhysicsActivator` in `DnaRegion`) | `G4EmDNAPhysics_option2` constructor |
+|---|---|---|
+| e- processes | Transportation, msc, eIoni, eBrem, ePairProd, CoulombScat, the six `e-_G4DNA*` processes | the same without ePairProd and CoulombScat |
+| e- DNA models in the box | solvation (Meesungnoen2002) below 7.4 eV, Champion elastic up to 1 MeV, Born excitation and ionisation up to 1 MeV, Sanche below 100 eV, Melton below 13 eV | the same |
+| standard e- models in the box | GS msc, Moller-Bhabha and SB brems active only above 1 MeV; ePairProd (Mephi) and CoulombScat (above 100 MeV) from the world region | GS msc, Moller-Bhabha, SB above 1 MeV |
+| gamma below 1 MeV | Livermore photoelectric, LowEP Compton, Livermore Rayleigh, grouped in the general gamma process (`Use general process 1`) | the same models as separate processes |
+| `DNAFast` | false | true (set by the constructor) |
+| Auger, de-excitation ignores cuts | off, off | on, on |
+| fluorescence | on | on |
+
+These differences matter for the energy check:
+
+- `DNAFast`: `G4DNABornIonisationModel1` reads `G4EmParameters::DNAFast()`
+  in its constructor. With it on, the energy of the ejected electron is
+  sampled from cumulated tables (`sigmadiff_cumulated_ionisation_e_born_hp`).
+  With it off, it is sampled by rejection on the differential tables, about
+  1 ms per ionisation. So the two stages would use different samplings of
+  the same model.
+- Auger: `G4DNABornIonisationModel1` calls the de-excitation for oxygen
+  K-shell ionisations without cuts. With Auger on, the binding energy left
+  over after fluorescence leaves as an Auger electron instead of being
+  deposited locally. This is a small effect at the box edges.
+- ePairProd and CoulombScat do not act on a 500 keV e- or its secondaries,
+  and msc, eIoni and eBrem are inactive below 1 MeV in the box. Inactivating
+  each of these five in a replay left every per-history deposit unchanged.
+
+**Choice:** `--physics stage1`, the default, builds stage 2 with the
+stage-1 setup applied to the box: `G4EmStandardPhysics_option4`, then
+`AddDNA("DnaRegion", "DNA_Opt2")`, then `G4EmDNAPhysicsActivator`. The
+constructor order, the default cut and the region cuts are those of
+`RecordPhysicsList`, which is compiled into `phsp-replay`. The physics in
+the box is then the same by construction. The `/process/em/verbose 1` EM
+model tables and the `printParameters` output of stage 1 and stage 2 are
+identical, line for line. `--physics option2` is kept for comparison.
+
+Do not change `/process/dna/UseDNAFast` (or other EM parameters) in one
+stage only: the physics would differ again. The manifest records
+`dnaFast`.
+
+Measured, with stage 1 = the `RecordSmoke` geometry with 10^5 primaries
+(seed 20261127, 7749 histories) and stage 2 with base seed 12345 on 18
+threads (`.scratch/tests/2026-11-26__phase-space-source/evidence/03-measurements.txt`):
+
+| | `--physics stage1` | `--physics option2` |
+|---|---|---|
+| stage-1 in-box deposit per history | 595.6 +/- 11.9 eV | 595.6 +/- 11.9 eV |
+| stage-2 deposit per history | 597.7 +/- 12.0 eV | 602.3 +/- 12.6 eV |
+| stage 2 - stage 1 (paired) | 2.1 +/- 12.3 eV, z = 0.17 | 6.7 +/- 12.2 eV, z = 0.55 |
+| time per history (1 thread, `RecordSmoke` file) | 47 ms | 2.8 ms |
+
+Both options pass the energy check at this precision (2 %). The 17-fold
+cost of `stage1` is entirely `DNAFast`: with `/process/dna/UseDNAFast true`
+added, `stage1` also takes 2.8 ms per history. The step counts of the two
+options agree. Stage 1 pays the same price. `RecordSmoke` with
+`/process/dna/UseDNAFast true` takes 1.15 ms per primary instead of 13.9 ms
+(1 thread). Turning `DNAFast` on in both stages together would keep them
+identical and make both about 12 to 17 times faster. It changes the stage-1
+physics of the files, so it is left to ticket 05.
+
 ## Build and test
 
 Build RelWithDebInfo against the stock Geant4 11.4.3 install: a Debug build
@@ -336,7 +522,15 @@ The tests use `test/TestCheck.hh`, which stays active under `NDEBUG`, unlike
 | `PhspDump*` | `phsp-dump` output, a corrupted file and the usage message |
 | `RecordSmoke` | `phsp-record` on `test/RecordSmoke.mac` (1 mm phantom, box at 0.2 mm, P = 20 um, 1000 primaries) with 1 and 2 threads and the same seed: byte-identical `.phsp` and `.json`; `phsp-dump` reads the file; records = sum of the history record counts; primaries with records (distinct event IDs in the history table) <= primaries, and = the `RECORD_DONE` count; prints the run figures (about 30 s) |
 | `RecordUsage`, `RecordRejectsTouchingBoxes` | the usage message; a pitch equal to the box side (so <= box + 2 x shell) is refused before `/run/initialize` |
+| `ReplayRepeat` | `phsp-replay` on the histories of the `RecordSmoke` file (84), seven times: (a) one run, (b) the same again, (c) split into two runs in one process, (d) on 2 threads, (f) another `/random/setSeeds`, (g) the second half alone in a fresh process, (e) another base seed. b, c, d and f give the same `Histories.csv` rows as a, and g gives a's rows 42..83. e changes stage-2 deposits (82 of 84) and no stage-1 column. f and g fail without the per-history reseed; b, c and d would pass without it (about 40 s) |
+| `ReplayEnergy` | the same histories once: prints the stage-1 and stage-2 mean deposit per history with their SE and the z score of the paired difference; passes for \|z\| < 3 and no track found outside the box (84 histories: 709.5 +/- 171.0 eV vs 802.2 +/- 187.0 eV, z = 0.87) |
+| `ReplayRejects*`, `ReplayUsage` | FatalExceptions before any event: a duplicate file, a range past the end, a range overlapping an earlier run, a `/phsp/geom/boxSide` other than the file's; the usage message |
 
-`RecordSmoke` and the other `Record*` tests need the Geant4 DLLs
+The `Replay*` tests read the 1-thread file of `RecordSmoke` (a CTest fixture),
+so `ctest -R Replay` also runs `RecordSmoke`. With 84 histories the energy
+check resolves about 15 % of the mean deposit; the 7749-history measurement in
+"Stage-2 physics" resolves 2 %.
+
+`RecordSmoke` and the other `Record*`/`Replay*` tests need the Geant4 DLLs
 (`<install>/bin`, which CTest adds to `PATH`) and the Geant4 data variables
 (`G4LEDATA`, ...) in the environment.
