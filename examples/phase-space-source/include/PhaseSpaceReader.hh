@@ -36,6 +36,12 @@ struct PhaseSpaceHistory
   std::vector<PhaseSpaceRecord> records;  // entry.recordCount records, in file order
 };
 
+// Stage-2 start times of a history's records (ns): each record's time minus
+// the earliest record time of the history, so the history starts at t = 0
+// (ReplaySource gives these to the primary vertices). Same order as `records`;
+// empty for no record.
+std::vector<double> ReplayTimesNs(const std::vector<PhaseSpaceRecord>& records);
+
 class PhaseSpaceReader
 {
 public:

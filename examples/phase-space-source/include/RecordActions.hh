@@ -56,11 +56,23 @@ struct RecordOutcome
   std::uint64_t primariesFired = 0;
   std::vector<RecordedHistory> histories;  // sorted by HistoryOrderKey
   // (Event, box) pairs with an in-box deposit but no record (a primary
-  // started inside a box): not written, reported as a warning.
+  // started inside a box): not written, reported as a warning. The total is
+  // summed in (event ID, copy number) order, so it does not depend on the
+  // thread count (the sidecar records it).
   std::uint64_t depositWithoutRecordEvents = 0;
   G4double depositWithoutRecordEv = 0;
   G4double wallTimeS = 0;  // master BeginOfRunAction to EndOfRunAction
   G4int threads = 0;
+};
+
+// One (event, box) pair that deposited energy in a box without an inward
+// crossing. Kept as a list and summed by the master after sorting, so the
+// floating-point total does not depend on the thread count.
+struct DepositWithoutRecord
+{
+  std::uint64_t stage1EventId = 0;
+  G4int copy = 0;
+  G4double depositEv = 0;
 };
 
 // Records and in-box deposit of the current event in one box.
@@ -78,19 +90,17 @@ class RecordRun : public G4Run
 {
  public:
   void AddHistory(RecordedHistory history) { fHistories.push_back(std::move(history)); }
-  void AddDepositWithoutRecord(G4double depositEv);
+  void AddDepositWithoutRecord(std::uint64_t stage1EventId, G4int copy, G4double depositEv);
   // Appends the worker run's histories (moved out of it: the worker run is
   // deleted after the merge) and its counters.
   void Merge(const G4Run* run) override;
 
   std::vector<RecordedHistory>& Histories() { return fHistories; }
-  std::uint64_t DepositWithoutRecordEvents() const { return fDepositWithoutRecordEvents; }
-  G4double DepositWithoutRecordEv() const { return fDepositWithoutRecordEv; }
+  std::vector<DepositWithoutRecord>& DepositsWithoutRecord() { return fDepositsWithoutRecord; }
 
  private:
   mutable std::vector<RecordedHistory> fHistories;  // mutable: Merge moves from the worker run
-  std::uint64_t fDepositWithoutRecordEvents = 0;
-  G4double fDepositWithoutRecordEv = 0;
+  mutable std::vector<DepositWithoutRecord> fDepositsWithoutRecord;
 };
 
 class RecordPrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction

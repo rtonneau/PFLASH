@@ -141,6 +141,17 @@ void PhaseSpaceReader::Open()
     throw std::runtime_error(*firstError);
 }
 
+std::vector<double> ReplayTimesNs(const std::vector<PhaseSpaceRecord>& records)
+{
+  std::vector<double> times;
+  if (records.empty()) return times;
+  double earliest = records.front().timeNs;
+  for (const PhaseSpaceRecord& record : records) earliest = std::min(earliest, record.timeNs);
+  times.reserve(records.size());
+  for (const PhaseSpaceRecord& record : records) times.push_back(record.timeNs - earliest);
+  return times;
+}
+
 PhaseSpaceHistory PhaseSpaceReader::ReadHistory(std::uint64_t historyIndex) const
 {
   if (historyIndex >= fHistories.size())

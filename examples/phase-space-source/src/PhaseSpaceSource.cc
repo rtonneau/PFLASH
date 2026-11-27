@@ -168,13 +168,13 @@ void PhaseSpaceSource::GeneratePrimaries(G4Event* event)
   fSeeds = HistoryEngineSeeds(fSource.BaseSeed(), key.fileId, key.historyIndex);
   G4Random::setTheSeeds(fSeeds.data());
 
-  G4double earliestNs = history.records.front().timeNs;
-  for (const PhaseSpaceRecord& record : history.records) earliestNs = std::min(earliestNs, record.timeNs);
-
-  for (const PhaseSpaceRecord& record : history.records)
+  // The history starts at t = 0: each record's time minus the earliest one.
+  const std::vector<double> timesNs = ReplayTimesNs(history.records);
+  for (std::size_t r = 0; r < history.records.size(); ++r)
   {
+    const PhaseSpaceRecord& record = history.records[r];
     const G4ThreeVector position(record.positionNm[0] * nm, record.positionNm[1] * nm, record.positionNm[2] * nm);
-    auto* vertex = new G4PrimaryVertex(position, (record.timeNs - earliestNs) * ns);
+    auto* vertex = new G4PrimaryVertex(position, timesNs[r] * ns);
     auto* primary = new G4PrimaryParticle(ParticleOfPdg(record.pdg));
     primary->SetKineticEnergy(record.kineticEnergyEv * eV);
     primary->SetMomentumDirection(G4ThreeVector(record.direction[0], record.direction[1], record.direction[2]));

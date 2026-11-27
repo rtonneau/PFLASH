@@ -8,6 +8,8 @@ This is the CDR base case only; ultra-high-dose-rate (UHDR) studies are meant to
 
 The geometry is one homogeneous water box. Do not introduce voxelization or G4Vox-based geometry. The chemistry runs the **Particle-based stage** (IRT_syn, or SBS) and, with IRT_syn, can hand over at the **Hand-over time** to the **Mesoscopic stage** (counts per cell on Geant4's cell mesh, which exists only inside the chemistry, not in the geometry) up to the end time. Three modes are selectable: SBS; IRT_syn alone; IRT_syn + mesoscopic (the default). Pulse structure and multi-track dose effects are future work (stage 2). Design records: `docs/adr/0006-irt-syn-and-mesoscopic-chemistry.md` and `docs/adr/0008-selectable-chemistry-modes.md`.
 
+Standalone examples (own CMake projects, nothing linked into `sim`): `examples/dose-rate-study/` replays species packets (chemistry species clouds captured at 1 ps); `examples/phase-space-source/` records a particle phase space (every inward crossing of a scoring box) and replays those particles through Geant4-DNA physics + chemistry (see its `README.md`).
+
 ## Build and Run
 
 Requirements: Geant4 with DNA models (verified here with 11.4.3; older versions are not verified), CMake 3.16+, a C++20 compiler, and HDF5 with C++ support (optional: `-DDNACHEM_WITH_HDF5=AUTO|ON|OFF`, default AUTO; needed only for `SpeciesMesoSpatial.h5`).

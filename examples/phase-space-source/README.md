@@ -5,7 +5,20 @@ in a water phantom once, save the particles that enter a small scoring box at
 depth in a reusable **Phase-space file**, and replay that file in several
 Geant4-DNA physics + chemistry runs of the box. The same histories are
 replayed in the same order with the same physics in every run, so chemistry
-variants can be compared history by history and a run can be repeated exactly.
+variants can be compared history by history and the physical stage of a run
+can be repeated exactly (the chemistry stage only statistically, see
+"Limits").
+
+Purpose: a 500 keV e- has a CSDA range of about 1.8 mm in water, so
+Geant4-DNA physics over the whole phantom is slow, and a 4 um box at 1 mm
+depth under a beam of its own size gets almost no primaries. Stage 1 runs the
+phantom once with condensed-history physics outside thin DNA shells around
+the boxes; stage 2 then runs only the box, as often as needed.
+
+Not to be confused with `examples/dose-rate-study`, which captures
+**Track packets** (chemistry species clouds at 1 ps) and replays species.
+This example records and replays **particles** (a phase space), so stage 2
+redoes the physical, pre-chemical and chemical stages in the box.
 
 Design records: `docs/adr/0014-phase-space-crossing-rule.md` (every inward
 crossing is recorded, stage 1 kills nothing, the Scoring lattice) and
@@ -18,10 +31,59 @@ The example copies the code it needs (`DataNode`/`JsonWriter` from PFLASH
 `src/chemistry/`) and links nothing from PFLASH `sim` or the other examples;
 a change there does not reach this example.
 
-Status: ticket 04. The Geant4-free core, `phsp-dump`, stage 1
-(`phsp-record`) and stage 2 (`phsp-replay`: physics, then an IRT_syn
-chemistry stage) are complete. The acceptance runs and the defaults come in
-ticket 05.
+Status: complete (tickets 01 to 05). The acceptance results are in
+"Acceptance", the defaults and their measurements in "Defaults: shell and
+pitch", and what the example does not do in "Limits".
+
+## Workflow
+
+Two executables and a dump tool, built in `build/` (see "Build and test"),
+run from the example directory:
+
+```
+# Stage 1: 500 keV e- into the phantom; writes phsp/record.phsp + .json
+build/phsp-record macros/record.mac --threads 4 --seed 1 --output phsp/record
+# Inspect the file
+build/phsp-dump phsp/record.phsp --section header
+# Stage 2: replay histories 0..99 with physics + chemistry; writes replay/
+build/phsp-replay macros/replay.mac --threads 4 --output replay
+# The four acceptance checks (about 13 min on 18 threads)
+python scripts/acceptance.py --build build --out <dir>
+```
+
+1. `phsp-record` (stage 1) fires the beam (`/gps/...`) into a water phantom
+   and writes every Inward crossing of a scoring box into one Phase-space
+   file. Each box sits in its own thin shell of Geant4-DNA physics; the rest
+   of the phantom is condensed history.
+2. `phsp-replay` (stage 2) reads one or more files and replays a range of
+   their histories, one history per event, in a water box of the same side
+   with Geant4-DNA physics, then (by default) an IRT_syn chemistry stage. A
+   chemistry variant (pH, O2, end time) is another `phsp-replay` run of the
+   same range.
+3. Outputs: stage 1 writes `<name>.phsp` (binary, below) and `<name>.json`
+   (sidecar); stage 2 writes `Histories.csv` (one row per history: deposits,
+   pre-chemical counts), `Species.csv` (species counts and G-values on a time
+   grid) and `Manifest.json` (files, seeds, ranges, settings).
+
+## Crossing rule and lattice equivalence (ADR 0014)
+
+- Every Inward crossing of any track into a scoring box is one record, and
+  stage 1 kills nothing. A track that leaves the box and comes back gives a
+  second record, and the secondaries of an excursion outside the box are
+  recorded when they enter. Stage 2 kills every particle when it leaves the
+  box. So every in-box track segment of stage 1 is replayed or produced
+  again in stage 2, and the mean in-box deposit is the same (the ENERGY
+  check). Track by track it is not: a recorded re-entry of a secondary born
+  in the box is not correlated with the secondary that stage 2 draws itself.
+- Because nothing is killed, the boxes do not shadow each other, and a broad
+  uniform beam can be replaced by a beam uniform over one cell of a lateral
+  Scoring lattice of pitch P, with one box per cell: the fluence is
+  N_primaries / P^2. This holds for a laterally uniform broad beam and a
+  phantom wider than the lateral reach of the radiation; pitch 0 is a single
+  box on the axis under any GPS field (fluence = N_primaries / field area for
+  a uniform field). The LATTICE check compares the two.
+- A history is the records of one primary in one box; a primary entering two
+  boxes gives two histories, so stage 2 never superposes two boxes' tracks.
 
 ## Core library (`phspCore`, Geant4-free)
 
@@ -151,7 +213,12 @@ existing files of that name are replaced.
 - The macro is applied line by line. `/phsp/geom/...` comes before
   `/run/initialize`, then `/gps/...`, then exactly one `/run/beamOn N`.
   `/random/...` commands are refused, because the seed is `--seed` (an
-  unsigned 64-bit integer, default 1) and is written in the file header.
+  unsigned 64-bit integer, default 1) and is written in the file header. So
+  is every way of running a command that this line-by-line check would not
+  see: `/control/execute`, `/control/loop`, `/control/foreach`,
+  `/control/macroPath`, `/control/alias` (and `{...}` alias uses),
+  `/control/shell`, and a macro argument to `/run/beamOn` (exit status 3,
+  `RECORD_ERROR <macro>:<line>: ...`).
 - `--threads N` (1..256, default 1) always uses the MT run manager. The master
   draws the seeds of every event in event order, so the file does not depend
   on N.
@@ -169,9 +236,10 @@ existing files of that name are replaced.
   FatalException aborts.
 
 The default macro is `macros/record.mac`: 500 keV e- along +z from the -z
-face of a 5 mm phantom, uniform over one 100 um x 100 um lattice cell,
-10^5 primaries: 259 histories with `--seed 1` (for any thread count), about
-100 thread-seconds. `macros/replay.mac` replays the first 100 of them.
+face of a 5 mm phantom, uniform over one 50 um x 50 um lattice cell,
+3 x 10^4 primaries: 311 histories with `--seed 1` (for any thread count),
+about 90 thread-seconds (5 s of run time on 18 threads). `macros/replay.mac`
+replays the first 100 of them.
 
 ### Geometry
 
@@ -180,8 +248,8 @@ face of a 5 mm phantom, uniform over one 100 um x 100 um lattice cell,
 | `/phsp/geom/phantomSide` | 5 mm | side of the G4_WATER phantom cube, centred at the origin; the beam enters through its -z face |
 | `/phsp/geom/depth` | 1 mm | depth of the box centres below the -z face |
 | `/phsp/geom/boxSide` | 4 um | side of a cubic scoring box |
-| `/phsp/geom/shell` | 1 um (provisional) | DNA water on each side of the box |
-| `/phsp/geom/latticePitch` | 100 um (provisional) | 0 = one box on the axis, else P > boxSide + 2 x shell |
+| `/phsp/geom/shell` | 1 um | DNA water on each side of the box (see "Defaults: shell and pitch") |
+| `/phsp/geom/latticePitch` | 50 um | 0 = one box on the axis, else P > boxSide + 2 x shell (see "Defaults: shell and pitch") |
 
 The world is G4_Galactic, 0.1 mm wider than the phantom on every side. Each
 scoring box sits at the centre of its own DNA shell: a G4_WATER cube of side
@@ -190,7 +258,7 @@ boxSide + 2 x shell, a daughter of the phantom; the shells form the region
 shells is condensed history. For P > 0 the shells sit at (ix P, iy P) at the
 box depth, for |ix|, |iy| <= n with
 n = floor((phantomSide - boxSide - 2 x shell) / (2 P)), so every shell is
-inside the phantom (49 x 49 by default). For P = 0 there is one shell on the
+inside the phantom (99 x 99 by default). For P = 0 there is one shell on the
 axis. The copy number of a shell is the box index
 (iy + n)(2n + 1) + (ix + n); the box index of a point in a box is the copy
 number of its mother shell.
@@ -200,15 +268,9 @@ exits with status 3 for a pitch in (0, boxSide + 2 x shell], a shell that
 does not fit in the phantom, or more than 10^6 boxes. With such a pitch
 neighbouring shells would overlap or share a face (with shell 0, neighbouring
 boxes would share a face and a crossing point on it would belong to two
-boxes).
-
-The shell and the pitch are provisional; ticket 05 settles them from
-measurements. Why 1 um is enough for the shell for now: outside the region,
-condensed-history delta rays are produced only above the e- production
-threshold. With the default 1 um cut, that threshold is 990 eV in water (the
-lower edge of the cut table, read from the cut-table printout). A delta ray
-below it, which the condensed history does not produce, has a range in water
-of order 0.05 um, so it could not reach the box from beyond the shell.
+boxes). CTest checks pitches 4, 5 and 6 um with the default 4 um box and
+1 um shell (`RecordRejectsTouchingBoxes`, `RecordRejectsPitch5um`,
+`RecordRejectsPitch6um`).
 
 ### Physics
 
@@ -277,39 +339,75 @@ and the recording rule. It holds nothing that depends on the thread count or
 on timing, so for the same seed the `.json` is byte-identical between thread
 counts, like the `.phsp`. The thread count and the times are only printed.
 
-### Measured (default geometry, box at 1 mm, P = 100 um and 20 um)
+### Defaults: shell and pitch
 
-`macros/record.mac` (5 mm phantom, 4 um box at 1 mm, 1 um shell, 500 keV
-e-), seed 1, 18 threads, stock Geant4 11.4.3 on a 20-core Windows machine.
-For P = 20 um the macro's pitch and the beam's `halfx`/`halfy` (10 um) were
-changed. Errors are one standard error.
+The defaults (1 um shell, 50 um pitch) were chosen from the measurements
+below: stage 1 only, the default geometry (5 mm phantom, 4 um box at 1 mm
+depth, 500 keV e-, beam uniform over one cell), `--seed 1`, 18 threads, stock
+Geant4 11.4.3 on a 20-core Windows machine, `DNAFast` off. Times are thread
+time of the run (wall time x threads; the start-up before the run is not
+included), errors one standard error. Script:
+`.scratch/tests/2026-11-26__phase-space-source/05-measure-defaults.py`,
+results in `05-defaults/results.jsonl`.
 
-| Quantity | P = 100 um | P = 20 um |
-|---|---|---|
-| primaries fired | 2 x 10^6 | 10^5 |
-| hit fraction (primaries with a record) | 0.00260 +/- 0.00004 | 0.0585 +/- 0.0007 |
-| histories (one per primary and box) | 5213 | 6243 |
-| histories per hit primary | 1.003 (16 primaries in 2 boxes) | 1.067 (304 in 2 boxes, 39 in 3 to 5) |
-| records per history | 1.22 | 1.22 |
-| records by particle | 6217 e- (4944 of them the primary), 118 gamma | 7470 e- (5941 the primary), 140 gamma |
-| histories by record count | 4878 with 1, 335 with 2 to 37 | 5839 with 1, 404 with 2 to 35 |
-| mean in-box deposit per history | 909 eV | 909 eV |
-| mean in-box deposit per primary | 2.37 +/- 0.06 eV | 56.8 +/- 1.4 eV |
-| deposit per unit fluence (per primary x P^2) | (2.37 +/- 0.06) x 10^4 eV um^2 | (2.27 +/- 0.06) x 10^4 eV um^2 |
-| time per primary (thread time) | 0.96 ms | 13.6 ms |
-| primaries for 10^4 histories | 3.8 x 10^6 (about 1 thread-hour) | 1.6 x 10^5 (about 0.6 thread-hour) |
+**Shell.** Outside `DnaRegion`, the condensed history produces delta rays
+only above the e- production threshold. With the default 1 um cut that
+threshold is 990 eV in water (the lower edge of the cut table, from the
+cut-table printout), and a 990 eV electron has a range in water of order
+0.05 um. So a delta ray that the condensed history does not produce could
+not reach the box from beyond even a 0.1 um shell. The shell also makes the
+low-energy electrons that the condensed history does produce (a few keV,
+ranges of order 1 um) reach the box on DNA models. Pitch 20 um, shell
+varied:
 
-- The hit fraction is about 1.5 times the box's share of the lattice cell,
-  (4 / P)^2, because the side faces are crossed too.
-- The deposit per unit fluence agrees between the two pitches (1.1 standard
-  errors apart), as the broad-beam equivalence of ADR 0014 expects. Ticket 05
-  runs the full lattice-vs-single-box check.
-- The time per primary scales with the number of DNA shells, that is with the
-  share of the phantom area they cover, (6 / P)^2. Before the per-box shells
-  (one full-width DNA layer) it was 107 ms per primary at P = 100 um, almost
-  all of it in DNA steps in the layer.
-- One primary enters more than one box in 0.3 % (P = 100 um) and 5.9 %
-  (P = 20 um) of the hit primaries. Each of those boxes gives its own history.
+| shell | histories (2 x 10^4 primaries) | records per history | deposit per unit fluence (eV um^2) | ms per primary | ms per history |
+|---|---|---|---|---|---|
+| 0.25 um | 1284 | 1.18 | 21900 +/- 1100 | 8.8 | 138 |
+| 0.5 um | 1260 | 1.16 | 22900 +/- 1300 | 10.1 | 160 |
+| 1 um | 1294 | 1.21 | 23400 +/- 1300 | 13.9 | 216 |
+| 2 um | 1245 | 1.24 | 22400 +/- 1300 | 27.2 | 437 |
+
+The deposit does not depend on the shell at this 5 % precision. 1 um is
+kept as the default: it is about 20 times the range at the production
+threshold, and it puts the last micrometre of every electron of a few keV
+on DNA models, for 1.6 times the stage-1 cost of a 0.25 um shell. A thinner
+shell is an open option (see "Limits").
+
+**Pitch.** The cost of a history is the time per primary divided by the
+histories per primary. The DNA cost grows with the share of the phantom
+area covered by shells, (6 um / P)^2, and the hits with the box share,
+about 1.5 (4 um / P)^2 (side faces are crossed too), so it levels off at
+small P, where one primary enters several boxes more often. Shell 1 um:
+
+| pitch | primaries | histories | hit fraction | hit primaries in 2+ boxes | deposit per unit fluence (eV um^2) | ms per primary | ms per history |
+|---|---|---|---|---|---|---|---|
+| 10 um | 4 x 10^3 | 980 | 0.196 | 16 % | 24200 +/- 1600 | 69.6 | 284 |
+| 20 um | 2 x 10^4 | 1294 | 0.0608 | 5.4 % | 23400 +/- 1300 | 13.9 | 216 |
+| 50 um | 10^5 | 1044 | 0.0103 | 0.9 % | 22400 +/- 1300 | 2.59 | 248 |
+| 100 um | 3 x 10^5 | 790 | 0.00263 | 0.1 % | 25500 +/- 1800 | 0.99 | 376 |
+
+The deposit per unit fluence (per primary x P^2) agrees between the
+pitches, as the lattice equivalence expects. 50 um costs 15 % more per
+history than 20 um, but under 1 % of its hit primaries give two correlated
+histories (5.4 % at 20 um), and it has 99 x 99 boxes instead of 249 x 249.
+A 10^4-history file at the default geometry then takes about 10^6
+primaries, 0.7 thread-hours. (Ticket 02 measured P = 100 um with
+2 x 10^6 primaries: hit fraction 0.00260 +/- 0.00004, 0.96 ms per primary.)
+
+The stage-2 cost per history (47 ms with chemistry off on 1 thread, see
+"Stage-2 physics") does not depend on these choices.
+
+Lateral reach. On the lattice, box (ix, iy) sits at the offset (ix P, iy P)
+from the beam cell, so the deposit per box ring shows how far sideways the
+radiation that reaches a box comes from. At 50 um depth (P = 50 um,
+2 x 10^5 primaries, 1901 histories, 5.6 ms per primary), the boxes with
+max(|ix|, |iy|) <= k collect, of the whole deposit: 84 % for k = 0, 88 % for
+k = 1, 90 % for k = 5, 93 % for k = 10 and 99.5 % for k = 20. The tail is
+electrons backscattered from deeper in the phantom; it reaches about 1 mm.
+A single box under a square beam of half side W = (k + 1/2) P sees exactly
+these offsets, so it misses the rest of the broad-beam deposit: about 10 %
+for W = 275 um (`05-defaults/lateral-p50.txt`). The LATTICE acceptance check
+uses this.
 
 ## phsp-replay (stage 2)
 
@@ -744,15 +842,136 @@ added, `stage1` also takes 2.8 ms per history. The step counts of the two
 options agree. Stage 1 pays the same price. `RecordSmoke` with
 `/process/dna/UseDNAFast true` takes 1.15 ms per primary instead of 13.9 ms
 (1 thread). Turning `DNAFast` on in both stages together would keep them
-identical and make both about 12 to 17 times faster. It changes the stage-1
-physics of the files, so it is left to ticket 05.
+identical and make both about 12 to 17 times faster. It changes the
+stage-1 physics of the files, so it stays off; it is an open option (see
+"Limits").
+
+## Acceptance
+
+`scripts/acceptance.py` (Python 3, standard library only) runs the built
+executables and prints one PASS/FAIL line per check with its numbers. It exits
+with 0 only when every check passes:
+
+```
+python examples/phase-space-source/scripts/acceptance.py --build examples/phase-space-source/build `
+       --out .scratch/tests/2026-11-26__phase-space-source/acceptance [--threads N] [--checks energy,repeat,lattice,chemvariant]
+```
+
+It adds `<install>/bin` (from `Geant4_DIR` in `CMakeCache.txt`) to `PATH`, as
+the CTests do. Each run's log is in the output directory, and the result lines
+are in `acceptance.txt`. ENERGY, REPEAT and CHEMVARIANT use a fresh stage-1
+file from `macros/record.mac` (`--seed 1`, 311 histories). All replays use
+base seed 20261127.
+
+| Check | Definition | Result (18 threads, 2026-11-27) |
+|---|---|---|
+| ENERGY | stage 2 with chemistry off vs the stage-1 in-box deposit, per history over the same histories; paired difference d = stage 2 - stage 1, \|mean(d) / SE(d)\| < 3, and no track outside the box | 311 histories: stage 1 872.1 +/- 71.1 eV, stage 2 860.7 +/- 70.1 eV; d = -11.4 +/- 74.9 eV, z = -0.15; 0 tracks outside |
+| REPEAT | chemistry on, end time 10 ns; every `Histories.csv` column (stage-2 deposit, pre-chemical counts, end time) against run a (one run, 1 thread): b the same again, c the range split into two runs in one process, g the second half alone in a fresh process, d 2 threads, f another `/random/setSeeds` with the same base seed. `Species.csv` is not compared ("Limits") | 0 differing rows in b (of 311), c (311), g (156), d (311) and f (311) |
+| LATTICE | box at 50 um depth (default phantom, box, shell and pitch); recorded and replayed end to end (chemistry off) as a lattice (P = 50 um, beam uniform over one P x P cell, 2 x 10^5 primaries) and as a single box (pitch 0, beam uniform over a 2W x 2W square, W = 5.5 P = 275 um, 10^7 primaries); mean stage-2 deposit per unit fluence within 3 combined SE, for the whole lattice and for the lattice restricted to the field | lattice 15060 +/- 610 eV um^2 (1945 histories), single box 14380 +/- 1050 eV um^2 (697 histories): z = 0.55; restricted lattice 13440 +/- 580 eV um^2, z = -0.78; 10.7 % of the broad-beam deposit is outside the field. Stage-1 deposits: z = 1.93 (whole) and 0.56 (restricted) |
+| CHEMVARIANT | chemistry on, 1 us, dissolved O2 0 and 21 % on the same histories: identical `Histories.csv`; G(e_aq) at 1 us lower with O2 by more than 3 combined SE; no molecule killed outside water | 0 differing rows of 311; G(e_aq) = 2.536 +/- 0.070 without O2 and 0.0222 +/- 0.0031 with 21 % O2 per 100 eV (35.9 combined SE apart); 0 molecules killed outside water |
+
+The whole run took 789 s (13 min) on 18 threads. Most of it is the single-box
+stage 1 (277 s) and the two 1 us chemistry replays (115 s without O2, 116 s with
+O2). Output: `.scratch/tests/2026-11-26__phase-space-source/acceptance/`.
+
+How the LATTICE numbers are computed:
+
+- Fluence. On the lattice, each primary is fired uniformly over one cell of
+  area P^2, and every cell holds one box, so the fluence seen by a box is
+  N / P^2 (ADR 0014). For the single box, the beam is uniform over a square of
+  area (2W)^2 that contains the box, so the fluence is N / (2W)^2. N is the
+  number of primaries fired (`primariesFired` in the header), including those
+  with no record.
+- Deposit per unit fluence = (sum of the deposits / N) x area, in eV um^2.
+  The standard error is taken over the N primaries: the deposits of the
+  histories of one primary (several boxes) are added first, and primaries
+  with no history count as 0.
+- With W = (k + 1/2) P, the lattice boxes with max(|ix|, |iy|) <= k see
+  exactly the primary-to-box offsets that the single box sees under its
+  field (translation invariance). The "restricted" comparison is therefore
+  free of the field-size bias. The deposit of the other lattice boxes, 10.7 %
+  here, is what a 275 um half field misses from the broad beam: the electrons
+  backscattered from deeper in the phantom ("Defaults: shell and pitch").
+  The whole-lattice comparison carries that bias (about 1 combined SE). A
+  field wide enough to make it negligible (W of about 1 mm) would need about
+  14 times as many single-box primaries.
+
+The CTests `ReplayRepeat`, `ReplayEnergy` and `ReplayChemVariant` run reduced
+versions of the same checks on the 84-history `RecordSmoke` file.
+
+## Limits
+
+What the results mean:
+
+- Only the physical stage is bit-repeatable: `Histories.csv` (deposit,
+  pre-chemical counts) is identical for a repeat, a range split, another
+  thread count or another `/random/setSeeds`. `Species.csv` is not, even for
+  the same command: `G4DNAScavengerProcess` picks the bulk partner in the
+  order of a map keyed by configuration pointers, which changes from process
+  to process ("Chemistry reproducibility"). Chemistry variants share their
+  physical and pre-chemical stages history by history; their chemistry
+  stages are independent samples.
+- Chemistry on and chemistry off are two different samples of each
+  history's physics: with the chemistry active, the e_aq thermalisation
+  draws a displacement during tracking (ADR 0015 addendum). The means agree.
+  Compare chemistry variants with the chemistry on in every run.
+- The two stages agree in the mean, not track by track (ADR 0014): a
+  recorded re-entry of a secondary born in the box is not correlated with
+  the secondary that stage 2 draws itself.
+- Lattice mode assumes a laterally uniform broad beam and a phantom wider
+  than the lateral reach of the radiation (about 1 mm at 500 keV, from
+  backscatter). Two histories of one primary in two boxes are correlated
+  (0.9 % of the hit primaries at the default pitch); the standard errors
+  treat histories as independent.
+- A single box (pitch 0) gets the deposit of its beam only: a field narrower
+  than the lateral reach misses part of the broad-beam deposit (about 10 %
+  for a half side of 275 um at 50 um depth, "Defaults: shell and pitch").
+- Stage 2 reads only the binary file: the stage-1 physics in the sidecar is
+  not checked. Keep the stage-2 physics option and the EM parameters equal
+  to stage 1's (`--physics stage1`, the default, does this).
+- The Sanche extension to 0.025 eV has no effect in 11.4.3 (as in PFLASH and
+  the Geant4 examples), and stage 1 prints the known `Run0111` "Duplication
+  of processes" warning (`nuclearStopping` for `GenericIon`).
+
+Open options, measured but not changed (a decision for the user):
+
+- **`DNAFast`** is off in both stages, as the stage-1 setup (option4 +
+  `G4EmDNAPhysicsActivator`) leaves it. With `/process/dna/UseDNAFast true`,
+  `G4DNABornIonisationModel1` samples the ejected-electron energy from
+  cumulated tables instead of by rejection: stage 2 takes 2.8 ms per
+  history instead of 47 ms (1 thread, `RecordSmoke` file, chemistry off)
+  and stage 1 1.15 ms per primary instead
+  of 13.9 ms (`RecordSmoke`), with the same step counts ("Stage-2 physics").
+  It must be switched in both stages together, and it changes the stage-1
+  physics of every new file.
+- **Water margin.** The 2 um G4_WATER margin around the stage-2 box keeps
+  the molecules that diffuse out of the box (without it G at 1 us was 5 to
+  11 % low), but it makes the chemistry 2 to 10 times slower:
+  `G4DNABrownianTransportation` shortens time steps near the box/margin
+  boundary (`RecordSmoke` file, 1 thread: 8.1 s without the margin, 12.6 s
+  with it; 7749 histories on 18 threads: 56 s and 263 s). The UHDR
+  example's `G4ChemReboundTransportation` with a reflecting
+  `G4DNABoundingBox` would avoid the boundary steps, but it is another
+  transport model than PFLASH's ("Chemistry").
+- **Thinner shell.** A 0.25 um shell costs 37 % less per stage-1 history
+  than the default 1 um, with no change of the in-box deposit at the 5 %
+  precision of "Defaults: shell and pitch".
+
+Not done: the IAEA phase-space format, recycling or rotating histories, the
+mesoscopic stage, Chemistries other than PureWater (+ pH, O2), beam pulse
+structure, changes to PFLASH `sim`. The acceptance runs are verification
+runs, not Study runs.
 
 ## Build and test
 
 Build RelWithDebInfo against the stock Geant4 11.4.3 install: a Debug build
 crashes on the first `G4String` against the release install. Configure from
-the MSVC x64 environment (`.claude/geant4-instructions.md`), with the vcpkg
-toolchain, which provides the ZLIB and HDF5 that the Geant4 config looks for:
+the MSVC x64 environment (`.claude/geant4-instructions.md`). A fresh build
+directory needs `-DCMAKE_TOOLCHAIN_FILE=<DEV_DIR>/vcpkg/scripts/buildsystems/vcpkg.cmake`:
+the Geant4 11.4.3 config calls `find_dependency(ZLIB 1.3.1)`
+(`Geant4Config.cmake`), and without the vcpkg toolchain ZLIB is not found and
+the configure fails. Once configured, the toolchain stays in the cache, and a
+rebuild needs only `cmake --build`:
 
 ```
 cmake -S examples/phase-space-source -B examples/phase-space-source/build -G Ninja `
@@ -769,17 +988,19 @@ The tests use `test/TestCheck.hh`, which stays active under `NDEBUG`, unlike
 | Test | Checks |
 |---|---|
 | `PhaseSpaceFormatTest` | byte layout, encode/decode round trips, FNV-1a and splitmix64 reference values, header and record validation |
-| `PhaseSpaceFileTest` | writer + reader round trip, sidecar, writer refusals, truncated and corrupted files |
+| `PhaseSpaceFileTest` | writer + reader round trip, sidecar, writer refusals, truncated and corrupted files; the reader's own table refusals on re-sealed files (valid digest, file ID and header checksum): entries out of (event ID, box iy, box ix) order, a duplicate key, a box other than (0, 0) at pitch 0; the stage-2 start times (`ReplayTimesNs`: record time minus the earliest of the history); writes `box-5um.phsp` for `ReplayRejectsBoxSideMismatchFiles` |
 | `HistoryCatalogTest` | global numbering, ranges past the end, duplicate file ID, concurrent reads |
 | `HistorySeedTest` | pinned seed values, engine-seed range |
 | `LatticeFoldTest` | cell edges, negative cells, rounding, pitch 0 |
 | `PhspDump*` | `phsp-dump` output, a corrupted file and the usage message |
 | `RecordSmoke` | `phsp-record` on `test/RecordSmoke.mac` (1 mm phantom, box at 0.2 mm, P = 20 um, 1000 primaries) with 1 and 2 threads and the same seed: byte-identical `.phsp` and `.json`; `phsp-dump` reads the file; records = sum of the history record counts; primaries with records (distinct event IDs in the history table) <= primaries, and = the `RECORD_DONE` count; prints the run figures (about 30 s) |
-| `RecordUsage`, `RecordRejectsTouchingBoxes` | the usage message; a pitch equal to the box side (so <= box + 2 x shell) is refused before `/run/initialize` |
+| `RecordUsage`, `RecordRejectsTouchingBoxes`, `RecordRejectsPitch5um`, `RecordRejectsPitch6um` | the usage message; pitches of 4, 5 and 6 um with a 4 um box and a 1 um shell (in (0, box + 2 x shell]) are refused before `/run/initialize` |
+| `RecordRejects{Execute,Foreach,Loop,MacroPath,Alias,BeamOnMacro}` | `/control/execute` (of a macro holding `/random/setSeeds`), `/control/foreach`, `/control/loop`, `/control/macroPath`, `/control/alias` and `/run/beamOn 1 <macro>` are refused at their line |
 | `ReplayRepeat` | `phsp-replay` on the histories of the `RecordSmoke` file (84), physics only (`/phsp/chem/enable false`), seven times: (a) one run, (b) the same again, (c) split into two runs in one process, (d) on 2 threads, (f) another `/random/setSeeds`, (g) the second half alone in a fresh process, (e) another base seed. b, c, d and f give the same `Histories.csv` rows as a, and g gives a's rows 42..83. e changes stage-2 deposits (82 of 84) and no stage-1 column. f and g fail without the per-history reseed; b, c and d would pass without it (about 40 s) |
 | `ReplayEnergy` | the same histories once, physics only: prints the stage-1 and stage-2 mean deposit per history with their SE and the z score of the paired difference; passes for \|z\| < 3 and no track found outside the box (84 histories: 709.5 +/- 171.0 eV vs 802.2 +/- 187.0 eV, z = 0.87) |
 | `ReplayChemVariant` | the same histories with the chemistry on and the default end time: (a) no O2 on 1 thread, (b) `/phsp/chem/o2 21 %` on 2 threads, (c) no O2 with the range split into two runs in one process. `Histories.csv` of b and c identical to a in every column (stage-2 deposit, pre-chemical counts, end time 1000 ns); pre-chemical products present (4988), none outside the box; no molecule killed outside water; the manifest records the O2, the 2 um margin and the kill count; e_aq at 1 us summed over the histories lower with O2 (about 10 vs 1260). About 40 s |
-| `ReplayRejects*`, `ReplayUsage` | FatalExceptions before any event: a duplicate file, a range past the end, a range overlapping an earlier run, a `/phsp/geom/boxSide` other than the file's, an unknown `/phsp/chem/o2` unit, a time-step model other than IRT_syn, `/run/initialize` from a nested macro with the chemistry on; the usage message |
+| `ReplayMultiFile` | two files, [`RecordSmoke` file, round-trip file]: the second file's 3 histories alone (global 84..86), then that file alone, then the same content under another file ID (`other-seed.phsp`). The rows carry the second file's ID and history indices 0..2; they equal the single-file run in every column but `globalIndex` (the seed comes from the file ID and history index, not the global index or the file's position); the other file ID changes stage-2 deposits (2 of 3); `Manifest.json` lists both files in order with their IDs and first global indices (0, 84), the range, the base seed (about 7 s) |
+| `ReplayRejects*`, `ReplayUsage` | FatalExceptions before any event: a duplicate file, a range past the end, a range overlapping an earlier run, a `/phsp/geom/boxSide` other than the file's, two files with different box sides (4 and 5 um, `PhspReplay004`), an unknown `/phsp/chem/o2` unit, a time-step model other than IRT_syn, `/run/initialize` from a nested macro with the chemistry on; the usage message |
 
 The `Replay*` tests read the 1-thread file of `RecordSmoke` (a CTest fixture),
 so `ctest -R Replay` also runs `RecordSmoke`. With 84 histories the energy

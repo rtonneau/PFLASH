@@ -1,7 +1,7 @@
 # phsp-replay default macro: replay the first 100 Phase-space histories of the
 # file written by macros/record.mac, physics + chemistry (IRT_syn, PureWater
-# network, pH 7, no dissolved O2, 1 us). That file holds about 260 histories
-# (259 with --seed 1); a range past its end is fatal.
+# network, pH 7, no dissolved O2, 1 us). That file holds about 310 histories
+# (311 with --seed 1); a range past its end is fatal.
 #
 #   phsp-record macros/record.mac --threads 4 --seed 1 --output phsp/record
 #   phsp-replay macros/replay.mac --threads 4 --output replay

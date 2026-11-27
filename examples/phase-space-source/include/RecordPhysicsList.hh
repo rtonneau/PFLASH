@@ -20,7 +20,7 @@
 // - It also switches fluorescence on (SetFluo(true)).
 //
 // Production cuts: the default cut (outside the region) is kDefaultCut,
-// provisional: 1 um, which in water is below the 990 eV lower edge of the cut
+// 1 um, which in water is below the 990 eV lower edge of the cut
 // table, so condensed-history delta rays are produced above 990 eV (range in
 // water of order 0.05 um, much less than the shell). The region gets the cuts of
 // dna/microdosimetry's DNA region (0.7 mm for gamma, e-, e+ and 1 um for

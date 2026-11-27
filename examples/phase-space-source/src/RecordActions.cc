@@ -34,10 +34,9 @@ constexpr G4double kSurfaceTolerance = 1e-8 * mm;
 
 // ---- RecordRun ----------------------------------------------------------------
 
-void RecordRun::AddDepositWithoutRecord(G4double depositEv)
+void RecordRun::AddDepositWithoutRecord(std::uint64_t stage1EventId, G4int copy, G4double depositEv)
 {
-  ++fDepositWithoutRecordEvents;
-  fDepositWithoutRecordEv += depositEv;
+  fDepositsWithoutRecord.push_back({stage1EventId, copy, depositEv});
 }
 
 void RecordRun::Merge(const G4Run* run)
@@ -46,8 +45,9 @@ void RecordRun::Merge(const G4Run* run)
   fHistories.insert(fHistories.end(), std::make_move_iterator(other->fHistories.begin()),
                     std::make_move_iterator(other->fHistories.end()));
   other->fHistories.clear();
-  fDepositWithoutRecordEvents += other->fDepositWithoutRecordEvents;
-  fDepositWithoutRecordEv += other->fDepositWithoutRecordEv;
+  fDepositsWithoutRecord.insert(fDepositsWithoutRecord.end(), other->fDepositsWithoutRecord.begin(),
+                                other->fDepositsWithoutRecord.end());
+  other->fDepositsWithoutRecord.clear();
   G4Run::Merge(run);
 }
 
@@ -132,7 +132,8 @@ void RecordEventAction::EndOfEventAction(const G4Event* event)
     const G4double depositEv = box.deposit / eV;
     if (box.records.empty())
     {
-      if (depositEv > 0) run->AddDepositWithoutRecord(depositEv);
+      if (depositEv > 0)
+        run->AddDepositWithoutRecord(static_cast<std::uint64_t>(event->GetEventID()), copy, depositEv);
       continue;
     }
     G4int ix = 0, iy = 0;
@@ -172,8 +173,14 @@ void RecordRunAction::EndOfRunAction(const G4Run* run)
   ++fOutcome->runsWithEvents;
   fOutcome->primariesFired = static_cast<std::uint64_t>(run->GetNumberOfEvent());
   fOutcome->histories = std::move(histories);
-  fOutcome->depositWithoutRecordEvents = recordRun->DepositWithoutRecordEvents();
-  fOutcome->depositWithoutRecordEv = recordRun->DepositWithoutRecordEv();
+  // Sum in (event ID, copy) order: the same floating-point total for any thread count.
+  std::vector<DepositWithoutRecord>& orphans = recordRun->DepositsWithoutRecord();
+  std::sort(orphans.begin(), orphans.end(), [](const DepositWithoutRecord& a, const DepositWithoutRecord& b) {
+    return a.stage1EventId != b.stage1EventId ? a.stage1EventId < b.stage1EventId : a.copy < b.copy;
+  });
+  fOutcome->depositWithoutRecordEvents = orphans.size();
+  fOutcome->depositWithoutRecordEv = 0;
+  for (const DepositWithoutRecord& orphan : orphans) fOutcome->depositWithoutRecordEv += orphan.depositEv;
   fOutcome->wallTimeS = std::chrono::duration<double>(std::chrono::steady_clock::now() - fStart).count();
   fOutcome->threads = G4RunManager::GetRunManager()->GetNumberOfThreads();
 }

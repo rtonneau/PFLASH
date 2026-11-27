@@ -1,8 +1,11 @@
-// Writer + reader: file round trip, sidecar, writer refusals, and the reader's
-// errors on truncated and corrupted files.
+// Writer + reader: file round trip, sidecar, writer refusals, the reader's
+// errors on truncated, corrupted and inconsistent files, and the stage-2
+// start times (t = 0 shift).
 //
 //   PhaseSpaceFileTest <output dir>
-// Leaves <output dir>/roundtrip.phsp (+ .json) for the phsp-dump tests.
+// Leaves <output dir>/roundtrip.phsp (+ .json) for the phsp-dump tests and the
+// multi-file replay test, and <output dir>/box-5um.phsp (a 5 um box side) for
+// the box-side mismatch replay test.
 #include "PhaseSpaceReader.hh"
 #include "PhaseSpaceWriter.hh"
 
@@ -207,6 +210,103 @@ void TestReaderErrors(const fs::path& dir)
   ExpectRefused(dir, "future-version", bytes, "unsupported phase-space format version 9");
 }
 
+// Re-seals a modified file image: recomputes the content digest over the
+// table and records and the file ID, and re-encodes the header with its
+// checksum, so the reader gets past the digest and reports the table problem.
+std::string Reseal(std::string bytes, const FileHeader& header)
+{
+  Fnv1a64 hash;
+  hash.Update(reinterpret_cast<const std::uint8_t*>(bytes.data()) + kHeaderSize, bytes.size() - kHeaderSize);
+  FileHeader sealed = header;
+  sealed.contentDigest = hash.Value();
+  sealed.fileId = DeriveFileId(sealed.stage1Seed, sealed.contentDigest);
+  const HeaderBytes headerBytes = EncodeHeader(sealed);
+  bytes.replace(0, kHeaderSize, reinterpret_cast<const char*>(headerBytes.data()), kHeaderSize);
+  return bytes;
+}
+
+// Replaces history-table entry `i` of a file image.
+void PutEntry(std::string& bytes, std::size_t i, const HistoryEntry& entry)
+{
+  const HistoryEntryBytes entryBytes = EncodeHistoryEntry(entry);
+  bytes.replace(kHeaderSize + i * kHistoryEntrySize, kHistoryEntrySize,
+                reinterpret_cast<const char*>(entryBytes.data()), kHistoryEntrySize);
+}
+
+// The reader's own table checks, which the writer never lets through: entries
+// out of (event ID, box iy, box ix) order, a duplicate key, and a box other
+// than (0, 0) with pitch 0. Each file is re-sealed (digest, file ID, header
+// checksum), so the refusal comes from the table check, not the digest.
+void TestReaderTableRefusals(const fs::path& dir)
+{
+  const std::string good = ReadText(dir / "roundtrip.phsp");
+  const PhaseSpaceReader reader(dir / "roundtrip.phsp");
+  const FileHeader header = reader.Header();
+  const std::vector<HistoryEntry> entries = reader.Histories();
+  CHECK(entries.size() == 3);
+
+  // The re-seal alone gives back the same, valid file.
+  CHECK(Reseal(good, header) == good);
+
+  // Entry 2 (event 11) moved to event 3, box (0, 0): (3, 0, 0) after (3, iy 1, ix -1).
+  std::string bytes = good;
+  HistoryEntry entry = entries[2];
+  entry.stage1EventId = 3;
+  PutEntry(bytes, 2, entry);
+  ExpectRefused(dir, "table-out-of-order", Reseal(bytes, header),
+                "history-table entry 2: (stage-1 event ID, box iy, box ix) is not strictly increasing");
+
+  // Entry 1 given the key of entry 0: (3, 0, 0) twice.
+  bytes = good;
+  entry = entries[1];
+  entry.boxIx = 0;
+  entry.boxIy = 0;
+  PutEntry(bytes, 1, entry);
+  ExpectRefused(dir, "table-duplicate-key", Reseal(bytes, header),
+                "history-table entry 1: (stage-1 event ID, box iy, box ix) is not strictly increasing");
+
+  // Pitch 0 (single box) with entry 1 in box (-1, 1).
+  FileHeader singleBox = header;
+  singleBox.latticePitchNm = 0;
+  ExpectRefused(dir, "table-pitch0-box", Reseal(good, singleBox),
+                "history-table entry 1: box (-1, 1) with a single box (pitch 0); expected (0, 0)");
+  // The same with every box at (0, 0) and distinct events is accepted.
+  bytes = good;
+  entry = entries[1];
+  entry.stage1EventId = 5;
+  entry.boxIx = 0;
+  entry.boxIy = 0;
+  PutEntry(bytes, 1, entry);
+  WriteText(dir / "table-pitch0-ok.phsp", Reseal(bytes, singleBox));
+  CHECK(PhaseSpaceReader(dir / "table-pitch0-ok.phsp").Header().latticePitchNm == 0);
+}
+
+// The stage-2 start times: record time minus the earliest time of the history.
+void TestReplayTimes()
+{
+  CHECK(ReplayTimesNs({}).empty());
+  std::vector<PhaseSpaceRecord> records = {MakeRecord(11, 1, 1.0, 0.0), MakeRecord(11, 2, 1.0, 0.0),
+                                           MakeRecord(22, 3, 1.0, 0.0)};
+  records[0].timeNs = 3.5;
+  records[1].timeNs = 1.25;  // the earliest need not be the first record
+  records[2].timeNs = 2.0;
+  const std::vector<double> times = ReplayTimesNs(records);
+  CHECK(times.size() == 3);
+  CHECK(times[0] == 2.25 && times[1] == 0.0 && times[2] == 0.75);
+  records.resize(1);
+  CHECK(ReplayTimesNs(records) == std::vector<double>{0.0});
+}
+
+// A valid file with a 5 um box side (the round-trip file has 4 um), for the
+// replay test that refuses files with different box sides.
+void WriteOtherBoxSide(const fs::path& dir)
+{
+  FileDescription d = MakeDescription(99);
+  d.boxSideNm = 5000.0;
+  const WrittenFile written = WritePhaseSpaceFile(dir / "box-5um.phsp", d, MakeHistories());
+  CHECK(PhaseSpaceReader(written.phspPath).Header().boxSideNm == 5000.0);
+}
+
 }  // namespace
 
 int main(int argc, char** argv)
@@ -219,5 +319,8 @@ int main(int argc, char** argv)
   TestEmptyFile(dir);
   TestWriterRefusals(dir);
   TestReaderErrors(dir);
+  TestReaderTableRefusals(dir);
+  TestReplayTimes();
+  WriteOtherBoxSide(dir);
   return 0;
 }

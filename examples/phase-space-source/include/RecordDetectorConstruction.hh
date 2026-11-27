@@ -41,14 +41,18 @@ namespace phsp
 
 class RecordMessenger;
 
-// Provisional defaults (ticket 05 settles shell and pitch from measurements).
+// Defaults chosen from measurements (README.md, "Defaults: shell and pitch"):
+// a 1 um shell is about 20 times the range of the lowest-energy delta ray the
+// condensed history produces (990 eV, about 0.05 um), and shells of 0.25 to
+// 2 um gave the same in-box deposit; a 50 um pitch costs within 15 % of the
+// cheapest per history (20 um) with under 1 % of hit primaries in two boxes.
 struct RecordGeometry
 {
   G4double phantomSide = 5. * mm;
   G4double depth = 1. * mm;           // of the box centre, below the -z face
   G4double boxSide = 4. * um;
   G4double shell = 1. * um;           // DNA water around the box, each side
-  G4double latticePitch = 100. * um;  // 0 = single box; else > boxSide + 2 x shell
+  G4double latticePitch = 50. * um;   // 0 = single box; else > boxSide + 2 x shell
 };
 
 // Empty when the geometry is consistent, else what is wrong: a non-finite or

@@ -9,7 +9,10 @@
 //               /run/initialize, then /gps/... and exactly one /run/beamOn N.
 //               /run/initialize is issued after the macro if it did not.
 //               /random/... commands are refused: the seed is --seed, and it is
-//               written in the file header.
+//               written in the file header. So are nested macros and loops
+//               (/control/execute, loop, foreach, macroPath), aliases
+//               (/control/alias, {...}), /control/shell and a macro argument
+//               to /run/beamOn, which would hide commands from that check.
 //   --output    writes <dir>/<name>.phsp and <dir>/<name>.json (a trailing
 //               ".phsp" is accepted); <dir> is created if missing; existing
 //               files of that name are replaced
@@ -167,6 +170,29 @@ void CheckGeometry(const phsp::RecordDetectorConstruction& detector, const std::
     throw ExitError(3, where + ": inconsistent geometry: " + problem);
 }
 
+// Why `command` may not appear in a phsp-record macro, or "" if it may.
+// The stage-1 seed is --seed and is written in the file header, so nothing may
+// reseed the engine: /random/... is refused, and so is every way of running
+// commands this line-by-line check would not see (a nested macro, a loop, a
+// macro search path, an alias, or the macro argument of /run/beamOn).
+std::string RefusedCommand(const std::string& command)
+{
+  std::istringstream tokens(command);
+  std::string name;
+  tokens >> name;
+  std::vector<std::string> arguments;
+  for (std::string token; tokens >> token;) arguments.push_back(token);
+  if (name.rfind("/random/", 0) == 0) return "/random/ commands are not allowed (the stage-1 seed is --seed)";
+  for (const char* nested : {"/control/execute", "/control/loop", "/control/foreach", "/control/macroPath",
+                             "/control/alias", "/control/shell"})
+    if (name == nested)
+      return std::string(nested) + " is not allowed: every command must be in this macro, where the /random/ check sees it";
+  if (command.find('{') != std::string::npos) return "aliases ({...}) are not allowed";
+  if (name == "/run/beamOn" && arguments.size() > 1)
+    return "/run/beamOn takes only the number of events here (no macro file or event selection)";
+  return {};
+}
+
 // Applies the macro line by line; returns the commands applied.
 std::vector<std::string> ApplyMacro(const std::filesystem::path& macro, const phsp::RecordDetectorConstruction& detector)
 {
@@ -182,8 +208,8 @@ std::vector<std::string> ApplyMacro(const std::filesystem::path& macro, const ph
     const auto command = Trim(line);
     if (command.empty() || command.front() == '#') continue;
     const auto where = macro.filename().string() + ":" + std::to_string(lineNumber);
-    if (command.rfind("/random/", 0) == 0)
-      throw ExitError(3, where + ": /random/ commands are not allowed (the stage-1 seed is --seed): " + command);
+    if (const std::string refusal = RefusedCommand(command); !refusal.empty())
+      throw ExitError(3, where + ": " + refusal + ": " + command);
     if (command.rfind("/run/initialize", 0) == 0 && CurrentState() == G4State_PreInit) CheckGeometry(detector, where);
     if (const int status = ui->ApplyCommand(command); status != 0)
       throw ExitError(3, where + ": command failed (G4UImanager code " + std::to_string(status) + "): " + command);
