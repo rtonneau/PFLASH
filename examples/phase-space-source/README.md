@@ -14,12 +14,14 @@ Phase-space file, Phase-space history, Inward crossing, Scoring lattice in
 `CONTEXT.md`.
 
 The example copies the code it needs (`DataNode`/`JsonWriter` from PFLASH
-`src/scoring/`) and links nothing from PFLASH `sim` or the other examples; a
-change there does not reach this example.
+`src/scoring/`, `PureWaterReactions` and `ChemistryTypes` from PFLASH
+`src/chemistry/`) and links nothing from PFLASH `sim` or the other examples;
+a change there does not reach this example.
 
-Status: ticket 03. The Geant4-free core, `phsp-dump`, stage 1
-(`phsp-record`) and the stage-2 physics replay (`phsp-replay`) are complete.
-Stage-2 chemistry comes in ticket 04.
+Status: ticket 04. The Geant4-free core, `phsp-dump`, stage 1
+(`phsp-record`) and stage 2 (`phsp-replay`: physics, then an IRT_syn
+chemistry stage) are complete. The acceptance runs and the defaults come in
+ticket 05.
 
 ## Core library (`phspCore`, Geant4-free)
 
@@ -309,27 +311,32 @@ changed. Errors are one standard error.
 - One primary enters more than one box in 0.3 % (P = 100 um) and 5.9 %
   (P = 20 um) of the hit primaries. Each of those boxes gives its own history.
 
-## phsp-replay (stage 2, physics only)
+## phsp-replay (stage 2)
 
 ```
 phsp-replay <macro> --output <dir> [--threads N] [--physics stage1|option2]
 ```
 
 `phsp-replay` replays Phase-space histories in a water box of the stage-1
-box side, one history per event, and writes `<dir>/Histories.csv` and
-`<dir>/Manifest.json` (`<dir>` is created if it is missing, and existing
-files are replaced).
+box side, one history per event, and writes `<dir>/Histories.csv`,
+`<dir>/Species.csv` (chemistry on only) and `<dir>/Manifest.json` (`<dir>`
+is created if it is missing, and existing files are replaced). With the
+chemistry on (the default), each history runs an IRT_syn chemistry stage
+after its physics (see "Chemistry").
 
 - The macro is applied line by line, like `phsp-record`'s. Before
   `/run/initialize` come the `/phsp/source/addFile` commands (one or more, in
-  order) and `/phsp/source/baseSeed`. After it come any number of
+  order), `/phsp/source/baseSeed` and the `/phsp/chem/` settings. After it
+  come `/scheduler/endTime` (optional) and any number of
   `/phsp/source/first k` + `/run/beamOn N` pairs, each replaying global
   histories k..k+N-1. The default macro is `macros/replay.mac`.
 - `--threads N` (1..256, default 1) always uses the MT run manager.
   `--physics` selects the stage-2 physics (below; default `stage1`).
 - On success the last line is `REPLAY_DONE histories=.. stage1MeanEv=..
   stage1SeEv=.. stage2MeanEv=.. stage2SeEv=.. diffMeanEv=.. diffSeEv=.. z=..
-  tracksKilledOutsideBox=.. physics=.. threads=.. wallTimeS=.. output=..`
+  tracksKilledOutsideBox=.. physics=.. chemistry=on|off [endTimeNs=..
+  preChemOutsideBox=.. moleculesKilledOutsideWater=..] threads=..
+  wallTimeS=.. output=..`
   over every history of the process, where diff = stage 2 - stage 1 per
   history and z = diffMean / diffSe.
 - Exit status: 0 on success, 2 on bad arguments, 3 on a macro or
@@ -342,6 +349,11 @@ files are replaced).
 | `/phsp/source/baseSeed <s>` | PreInit | stage-2 base seed, unsigned 64-bit, default 1 |
 | `/phsp/source/first <k>` | PreInit, Idle | global index of the first history of the next `/run/beamOn`, default 0 |
 | `/phsp/geom/boxSide <value> <unit>` | PreInit | optional: the expected box side; it must equal the files' |
+| `/phsp/geom/chemMargin <value> <unit>` | PreInit | water margin around the box in which the molecules diffuse, >= 0, default 2 um (see "Geometry") |
+| `/phsp/chem/enable <bool>` | PreInit | chemistry on (default) or off (physics only, the ticket-03 output) |
+| `/phsp/chem/pH <value>` | PreInit | pH of the acid-base buffer, in (0, 14), default 7 |
+| `/phsp/chem/o2 <value> <unit>` | PreInit | dissolved O2, unit `M`, `mM`, `uM` or `%` of O2 saturation (kH = 1.3 mM, so 21 % = 0.273 mM); default 0 (absent) |
+| `/scheduler/endTime <value> <unit>` | Idle | chemistry end time (Geant4 command, after `/run/initialize`), default 1 us |
 
 These are FatalExceptions, each raised before any event runs:
 
@@ -351,7 +363,17 @@ These are FatalExceptions, each raised before any event runs:
   (relative tolerance 10^-9, because the header stores nm);
 - at `/run/beamOn N`: a range past the end, or a range that overlaps one
   already replayed in this process. `Histories.csv` holds one row per
-  history, so to replay a history twice, run another process.
+  history, so to replay a history twice, run another process;
+- at the command: a `/phsp/chem/pH` outside (0, 14), a negative
+  `/phsp/chem/o2` or an unknown unit;
+- just before `/run/initialize`, with the chemistry on: a
+  `/process/chem/TimeStepModel` other than IRT_syn;
+- at the first real `/run/beamOn` (the `BeamOn(0)` inside `/run/initialize`
+  is a fake run, which returns before `BeginOfRunAction`), still before
+  any event: the chemistry is on but was not built, because
+  `/run/initialize` came from a nested macro (`/control/execute`).
+  `main()` adds the chemistry just before a `/run/initialize` line of the
+  top-level macro.
 
 The files need the same box side but nothing else: the lattice pitch, the
 depth and the stage-1 physics may differ. The reader uses the binary file
@@ -363,12 +385,26 @@ the stage-2 physics option consistent with the files yourself.
 The box is a G4_WATER cube of the files' box side, centred at the origin and
 not rotated. This is the stage-1 box frame, so a record's position is used
 as it is. The box is the region `DnaRegion`, with the stage-1 region cuts.
-The world is a G4_Galactic cube 1 um wider than the box on every side.
+
+Around it is a G4_WATER margin, `ChemMargin`, of thickness
+`/phsp/geom/chemMargin` (default 2 um; 0 builds no margin). It is in the
+world region, not in `DnaRegion`. It is water for the molecules that diffuse
+out of the box: `G4DNABrownianTransportation` kills a molecule whose step
+starts outside water (`G4DNABrownianTransportation.cc`, `Diffusion`,
+lines 494-521). No physics track ever steps in the margin:
+
+- every track is killed at the end of the step that leaves the box;
+- `ReplayTrackingAction` kills a track that starts outside the box (it is
+  located before `PreUserTrackingAction`) before its first step;
+- either case is counted in `tracksKilledOutsideBox`; there have been none.
+
+The world is a G4_Galactic cube 1 um wider than the margin on every side.
 The box needs a world around it, because region-specific DNA models cannot
-be attached to the world region. Nothing is tracked in the world: every
-track is killed at the end of the step that leaves the box, and a track
-found outside the box (none so far) is killed at its first step and counted
-in `tracksKilledOutsideBox`.
+be attached to the world region.
+
+With the chemistry off, the margin changes nothing: `Histories.csv` is
+byte-identical to the ticket-03 output, which had no margin (see
+"Chemistry").
 
 ### Source and seeding (ADR 0015)
 
@@ -385,10 +421,11 @@ in `tracksKilledOutsideBox`.
   position, its time minus the earliest record time of the history (the
   history starts at t = 0), and one primary with the record's PDG code
   (particle table, then ion table), kinetic energy, direction and weight.
-- The result of a history therefore depends only on the base seed, the file
-  ID and the history index. `/random/` commands have no effect, and the
-  manifest records the base seed and the file IDs. `ReplayRepeat` checks
-  this (below).
+- The physical stage of a history therefore depends only on the base seed,
+  the file ID and the history index. `/random/` commands have no effect, and
+  the manifest records the base seed and the file IDs. `ReplayRepeat` checks
+  this (below). The chemistry stage is not bit-reproducible from one process
+  to the next (see "Chemistry reproducibility").
 - Without the reseed, a repeat, a split into runs in one process, and
   another thread count would still give the same rows. `G4MTRunManager`
   draws the per-event seeds from the master engine in event-ID order, and a
@@ -416,9 +453,14 @@ sorts the rows by global index and writes `Histories.csv`:
 globalIndex,fileId,historyIndex,stage1EventId,boxIx,boxIy,recordCount,stage1InBoxDepositEv,stage2DepositEv,tracksKilledOutsideBox
 ```
 
+With the chemistry on, five columns follow:
+`preChemIonisedH2O,preChemExcitedH2O,preChemAttachedH2O,preChemEaq,chemistryEndTimeNs`
+(see "Chemistry"). With it off the file is the ticket-03 file, byte for byte.
+
 Reals are printed in the shortest form that reads back to the same double.
 The file holds no thread count or timing, so for the same files, base seed
-and histories it is byte-identical for any thread count or range split.
+and histories it is byte-identical for any thread count, range split or
+chemistry setting (pH, O2, end time; the end-time column excepted).
 
 `Manifest.json` holds the Geant4 version, the run manager, the thread count,
 the engine, the base seed, the macro commands, and the files: position,
@@ -426,7 +468,219 @@ path, file ID, content digest, stage-1 seed, counts, first global index, box
 side, pitch and depth. It also holds the ranges replayed, the geometry, the
 physics option with its cuts and the EM flags that differ between the
 options (`dnaFast`, `fluorescence`, `auger`, `deexcitationIgnoreCut`), the
-number of histories, `tracksKilledOutsideBox`, and the wall time.
+number of histories, `tracksKilledOutsideBox`, and the wall time. The
+`chemistry` object holds `enabled` and, when on, the network, the
+time-step model, `pH`, `o2` (as given) and `o2_M`, the bulk reservoir,
+`endTime_ns` (the master's) and `endTimesUsed_ns` (the values the workers
+used, from `Histories.csv`), the species time grid, the counter precision,
+`sancheExtendedTo0025eV`, `preChemicalOutsideBox`,
+`moleculesKilledOutsideWater`, a `diffusion` object (fastest species, its
+diffusion coefficient, sqrt(6 D t_end), the margin) and a reproducibility
+note. `geometry` records `chemMargin_nm`.
+
+### Chemistry
+
+With `/phsp/chem/enable true` (the default), every history runs one
+chemistry stage after its physics, with all its records' molecules (they
+are primaries of the same event). `ReplayChemistryList` builds it like
+PFLASH's `DnaChemistryList` and `examples/dose-rate-study`'s
+`PureWaterChemistryList`:
+
+- The PureWater network, copied from PFLASH: `src/PureWaterReactions.cc`,
+  `include/PureWaterReactions.hh` and `include/ChemistryTypes.hh`, with the
+  include paths adjusted (the same copy as dose-rate-study's). Molecules and
+  water dissociation from `G4ChemDissociationChannels_option1`.
+- IRT_syn (`G4DNAIndependentReactionTimeModel`) only, no mesoscopic stage.
+  The partially diffusion-controlled pairs are type 1.
+- The bulk reactions (`BuildPureWaterBulkReactions`): the acid-base buffer
+  against `H2O`, `H3Op(B)`, `OHm(B)`, and e_aq, H, O- + O2. They act through
+  one `G4DNAScavengerProcess` per molecule and one `G4DNAScavengerMaterial`
+  per thread. The dissolved O2 is the `O2` configuration, so a bulk reaction
+  that produces O2 returns it to the bulk. At 0 it is left out of the
+  material, and the O2 reactions are inert.
+- The bulk reservoir is a cube of half side 500 um, as in dose-rate-study,
+  not the 4 um box. `G4DNAScavengerMaterial` holds floor(N_A c V) molecules
+  per species, and `G4DNAScavengerProcess` divides by V again, so V only sets
+  the rounding and the depletion. In the box, pH 7 would give 3 H3O+
+  instead of 3.85. H2O, H3O+(B) and OH-(B) are never consumed. The O2 at
+  21 % is 1.6e14 molecules in the reservoir, so a history uses a negligible
+  part of it. `G4Scheduler` resets the material before every chemistry
+  stage, so each history starts with the full bulk.
+- The end time is the `G4Scheduler`'s: 1 us by default (set in
+  `ConstructProcess` on the master and every worker), or
+  `/scheduler/endTime` after `/run/initialize`, which every worker replays
+  before its next run.
+- Space: the molecules diffuse with `G4DNABrownianTransportation` in box +
+  water margin (see "Geometry") and are counted wherever they are. IRT_syn
+  has no bounding box of its own: the only `G4DNABoundingBox` here is the
+  bulk reservoir, which is a volume for the bulk concentrations, not a wall.
+  Each Brownian transport carries a `G4BrownianAction`
+  (`OutsideWaterAction`), which kills a molecule outside water as Geant4
+  does and counts it. The count is `moleculesKilledOutsideWater`. It was 0 in
+  every run with the default margin and end time.
+- At the start of each run, the master warns (`G4Exception` JustWarning
+  `PhspReplay035`) when sqrt(6 D_max t_end) > margin / 3. D_max is the
+  fastest tracked species, H3O+ at 9.46e-9 m2/s. That length is 238 nm at
+  1 us, against 667 nm for the default margin. At 10 us it is 753 nm, so
+  that warning fires.
+
+Why the margin. Without it, the box sat in vacuum, and a molecule that
+diffused out of the box, or a dissociation product placed just outside it,
+was killed and dropped out of `Species.csv`. Measured on the 7749-history
+file (base seed 12345, 18 threads, pH 7, no O2, 1 us;
+`evidence/04-margin-gvalues.txt`):
+
+| | no margin (first version) | 2 um margin |
+|---|---|---|
+| molecules killed outside water | 36433 | 0 |
+| G(e_aq) at 1 us | 2.29 | 2.46 |
+| G(OH) at 1 us | 2.45 | 2.57 |
+| G(H2O2) at 1 us | 0.46 | 0.49 |
+| G(H2) at 1 us | 0.42 | 0.45 |
+| G(H3O+) at 1 us | 2.69 | 2.98 |
+| wall time, 18 threads (physics alone: 32 s) | 56 s | 263 s |
+
+The loss biased the G-values low by 5 to 11 % at 1 us. It would grow with
+the end time. At 1 ps the two agree (G(e_aq) = 3.90, G(OH) = 4.72), and
+the pre-chemical yields are the same.
+
+The margin costs time. On the `RecordSmoke` file on 1 thread, the run takes
+8.1 s without the margin and 12.6 s with it (5 um: 15.4 s). The scheduler
+takes 30 % more steps. On the large file the chemistry part is about 10
+times slower, because the cost grows with the number of molecules.
+`G4DNABrownianTransportation` limits the time step of a molecule near a
+volume boundary, and the box/margin interface is one: the box has to stay
+its own volume for `DnaRegion`. The UHDR example's IRT_syn transport,
+`G4ChemReboundTransportation` with a reflecting `G4DNABoundingBox`, does not
+step on geometry boundaries. It would remove this cost, but it is a
+different transport model from PFLASH's, so it is not used here.
+
+How it is switched on. The `/phsp/chem/` settings are PreInit, but the
+physics list is handed to the run manager before the macro, and that is
+when Geant4 builds the particles (`G4RunManagerKernel::SetupPhysics`). So
+`main()` calls `ReplayPhysicsList::EnableChemistry` just before
+`/run/initialize`, and only if the chemistry is on. That call:
+
+- sets the time-step model to IRT_syn, or stops if the macro chose another
+  one;
+- builds the molecules (still in PreInit, which `G4ParticleDefinition`
+  requires) and gives each its definition ID, as `SetupPhysics` does;
+- activates the Geant4-DNA chemistry (`SetChemistryList`), before the DNA
+  models are initialised: `G4DNABornIonisationModel1::Initialise` keeps the
+  chemistry manager only if the chemistry is active by then;
+- adds the chemistry as the last physics constructor, after the EM ones,
+  whose e- processes it extends.
+
+With `/phsp/chem/enable false` none of this runs: no molecule and no chemistry
+list. The physics is then that of ticket 03. `Histories.csv` was compared,
+byte for byte, with the ticket-03 binary on the `RecordSmoke` file (2
+threads, both `--physics` options) and on the 7749-history file of
+"Stage-2 physics" (18 threads); all three were identical
+(`.scratch/tests/2026-11-26__phase-space-source/04-baseline/`,
+`04-big/`).
+
+Order within an event (checked in the 11.4.3 source):
+
+- During tracking, the DNA models only create the pre-chemical tracks.
+  `G4DNAChemistryManager::CreateWaterMolecule` and `CreateSolvatedElectron`
+  build an H2O (ionised, excited or attached) or e_aq track at 1 ps and
+  stack it in `G4ITTrackHolder`. They draw no random number.
+- `ReplayStackingAction::NewStage` calls `G4DNAChemistryManager::Run` once
+  the physics stack is empty (chem1 to chem6, UHDR). The H2O dissociation
+  (`G4DNAMolecularDissociation`, `G4DNAWaterDissociationDisplacer`), the
+  bulk reactions and the IRT reactions run inside that stage.
+- So the chemistry settings (pH, O2, end time) cannot change the physical
+  stage of a history. `ReplayChemVariant` checks this.
+- Turning the chemistry on does change the physics, because the
+  thermalisation model then draws the e_aq displacement
+  (`G4DNAOneStepThermalizationModel`, only if the chemistry is active). The
+  per-history deposits therefore differ from the chemistry-off run, but the
+  mean does not: on the 7749-history file (base seed 12345, 18 threads), the
+  stage-2 deposit per history is 589.1 +/- 11.7 eV with the chemistry on,
+  597.7 +/- 12.0 eV off, and 595.6 +/- 11.9 eV in stage 1 (paired z =
+  -0.54 with the chemistry on).
+- The Sanche vibrational-excitation extension to 0.025 eV of
+  `G4EmDNAChemistry_option3` is in the code but has no effect in 11.4.3.
+  `G4EmDNABuilder` adds the model with `AddEmModel`, so
+  `G4VEmProcess::EmModel()` returns null. The same holds in option3, UHDR
+  and PFLASH. The manifest records it (`sancheExtendedTo0025eV`).
+
+Pre-chemical counts. A `G4VPhysChemIO` per event (`PreChemicalCounter`)
+counts the products that the physics hands to the chemistry. These are
+ionised H2O (`preChemIonisedH2O`), excited H2O (`preChemExcitedH2O`), H2O
+after dissociative attachment (`preChemAttachedH2O`) and solvated
+electrons (`preChemEaq`). They are taken at
+`G4UserTimeStepAction::StartProcessing`, so before the first chemistry step
+and before any chemistry random number. They are the species at chemistry
+start, before the H2O dissociation. A count whose parent track is outside
+the box is also counted. That count is printed as `preChemOutsideBox`, and
+it was 0 in every run: only the box has DNA models, and tracks outside it
+are killed.
+
+`Species.csv`, long layout:
+
+```
+globalIndex,timeNs,species,count,gPer100Ev
+```
+
+- One row per history, grid time and species that the counter recorded in
+  that history. A species that is missing from a history had a count of 0
+  throughout.
+- The species name is `G4MolecularConfiguration::GetName()`, as in PFLASH's
+  `Species.*`: `e_aq^-1`, `°OH^0`, `H3O^1`, `O_2^-1`, ... The file is UTF-8.
+- The counts come from one `G4MoleculeCounter` per worker, as in chem4 to
+  chem6: H2O ignored, 1 ps time precision, reset before each event.
+- The time grid is 1 ps x 10^(k/5) for k = 0, 1, ..., up to the end time,
+  plus the end time itself: 5 points per decade from 1 ps, the start of the
+  chemistry. The default 1 us gives 31 times, ending at exactly 1000 ns.
+  Points below about 10 ps are only resolved to the 1 ps precision of the
+  counter.
+- G = count per 100 eV of that history's stage-2 deposit. It is empty when
+  the deposit is 0.
+
+Pooled over the 7749 histories with the 2 um margin (sum of counts / sum
+of deposits, pH 7, no dissolved O2, `evidence/04-margin-gvalues.txt`): at
+1 us, G(e_aq) = 2.46, G(OH) = 2.57, G(H3O+) = 2.98, G(H) = 0.65,
+G(H2) = 0.45 and G(H2O2) = 0.49 per 100 eV. At 1 ps, G(e_aq) = 3.90 and
+G(OH) = 4.72. The pre-chemical yields are 4.77 ionisations, 0.57
+excitations and 4.69 e_aq per 100 eV. `ReplayChemVariant` (84 histories)
+gives, summed at 1 us, about 1260 e_aq without O2 and 10 with 21 % O2, and
+about 1270 O2- with O2. The exact numbers change from run to run; see
+"Chemistry reproducibility". At 0.273 mM, k = 1.74e10 /M/s gives e_aq a
+lifetime of 210 ns.
+
+### Chemistry reproducibility
+
+Only the physical stage is bit-reproducible. The pre-chemical counts in
+`Histories.csv` and its other columns do not depend on the chemistry
+settings, the thread count or the range split. `Species.csv` is not
+bit-reproducible from one process to the next, even for the same command.
+Two 1-thread runs of the `RecordSmoke` file with 21 % O2 differ in 20 of 80
+histories, and 1, 2 and 4 threads or a split range give the same picture
+(`evidence/04-chemistry-reproducibility.txt`).
+
+The cause is in Geant4. `G4DNAScavengerProcess` keeps the bulk partners of
+each molecule in a `std::map` keyed by `G4MolecularConfiguration*`.
+`PostStepGetPhysicalInteractionLength` adds their propensities in that map
+order and picks the partner with one random number
+(`G4DNAScavengerProcess.cc`, lines 141-185). The map order is the order of
+the configurations' heap addresses, and the heap layout changes from one
+process to the next. A temporary debug print of that order for `H2O`,
+`H3Op(B)`, `OHm(B)` and `O2` was run five times. Runs with the same or an
+equivalent order gave byte-identical `Species.csv` files, and the others
+did not. So with a fixed address order the chemistry stage is
+deterministic, and the only problem is the process-dependent order.
+
+Consequences:
+
+- Chemistry variants compared history by history share the same physical
+  stage and the same pre-chemical species.
+- Their chemistry stages are independent samples, so species yields agree
+  between repeats only within their statistical errors.
+- Making the chemistry bit-reproducible would need a change in Geant4 (key
+  the partner map by molecule ID) or one scavenger process per bulk
+  partner, which `G4PhysicsListHelper` refuses for the same molecule (same
+  process subtype). Neither is done here.
 
 ### Stage-2 physics: stage 1 vs `G4EmDNAPhysics_option2`
 
@@ -522,9 +776,10 @@ The tests use `test/TestCheck.hh`, which stays active under `NDEBUG`, unlike
 | `PhspDump*` | `phsp-dump` output, a corrupted file and the usage message |
 | `RecordSmoke` | `phsp-record` on `test/RecordSmoke.mac` (1 mm phantom, box at 0.2 mm, P = 20 um, 1000 primaries) with 1 and 2 threads and the same seed: byte-identical `.phsp` and `.json`; `phsp-dump` reads the file; records = sum of the history record counts; primaries with records (distinct event IDs in the history table) <= primaries, and = the `RECORD_DONE` count; prints the run figures (about 30 s) |
 | `RecordUsage`, `RecordRejectsTouchingBoxes` | the usage message; a pitch equal to the box side (so <= box + 2 x shell) is refused before `/run/initialize` |
-| `ReplayRepeat` | `phsp-replay` on the histories of the `RecordSmoke` file (84), seven times: (a) one run, (b) the same again, (c) split into two runs in one process, (d) on 2 threads, (f) another `/random/setSeeds`, (g) the second half alone in a fresh process, (e) another base seed. b, c, d and f give the same `Histories.csv` rows as a, and g gives a's rows 42..83. e changes stage-2 deposits (82 of 84) and no stage-1 column. f and g fail without the per-history reseed; b, c and d would pass without it (about 40 s) |
-| `ReplayEnergy` | the same histories once: prints the stage-1 and stage-2 mean deposit per history with their SE and the z score of the paired difference; passes for \|z\| < 3 and no track found outside the box (84 histories: 709.5 +/- 171.0 eV vs 802.2 +/- 187.0 eV, z = 0.87) |
-| `ReplayRejects*`, `ReplayUsage` | FatalExceptions before any event: a duplicate file, a range past the end, a range overlapping an earlier run, a `/phsp/geom/boxSide` other than the file's; the usage message |
+| `ReplayRepeat` | `phsp-replay` on the histories of the `RecordSmoke` file (84), physics only (`/phsp/chem/enable false`), seven times: (a) one run, (b) the same again, (c) split into two runs in one process, (d) on 2 threads, (f) another `/random/setSeeds`, (g) the second half alone in a fresh process, (e) another base seed. b, c, d and f give the same `Histories.csv` rows as a, and g gives a's rows 42..83. e changes stage-2 deposits (82 of 84) and no stage-1 column. f and g fail without the per-history reseed; b, c and d would pass without it (about 40 s) |
+| `ReplayEnergy` | the same histories once, physics only: prints the stage-1 and stage-2 mean deposit per history with their SE and the z score of the paired difference; passes for \|z\| < 3 and no track found outside the box (84 histories: 709.5 +/- 171.0 eV vs 802.2 +/- 187.0 eV, z = 0.87) |
+| `ReplayChemVariant` | the same histories with the chemistry on and the default end time: (a) no O2 on 1 thread, (b) `/phsp/chem/o2 21 %` on 2 threads, (c) no O2 with the range split into two runs in one process. `Histories.csv` of b and c identical to a in every column (stage-2 deposit, pre-chemical counts, end time 1000 ns); pre-chemical products present (4988), none outside the box; no molecule killed outside water; the manifest records the O2, the 2 um margin and the kill count; e_aq at 1 us summed over the histories lower with O2 (about 10 vs 1260). About 40 s |
+| `ReplayRejects*`, `ReplayUsage` | FatalExceptions before any event: a duplicate file, a range past the end, a range overlapping an earlier run, a `/phsp/geom/boxSide` other than the file's, an unknown `/phsp/chem/o2` unit, a time-step model other than IRT_syn, `/run/initialize` from a nested macro with the chemistry on; the usage message |
 
 The `Replay*` tests read the 1-thread file of `RecordSmoke` (a CTest fixture),
 so `ctest -R Replay` also runs `RecordSmoke`. With 84 histories the energy

@@ -2,7 +2,8 @@
 # Stage 1 (phsp-record) records every inward crossing of a scoring box into a
 # Phase-space file; stage 2 (phsp-replay) replays its histories in a DNA box.
 # This project copies the code it needs (DataNode/JsonWriter from PFLASH
-# src/scoring/) and links nothing from PFLASH `sim` or the other examples.
+# src/scoring/, PureWaterReactions/ChemistryTypes from PFLASH src/chemistry/)
+# and links nothing from PFLASH `sim` or the other examples.
 cmake_minimum_required(VERSION 3.16)
 project(PhaseSpaceSource LANGUAGES CXX)
 
@@ -53,15 +54,19 @@ add_executable(phsp-record
 target_include_directories(phsp-record SYSTEM PRIVATE ${Geant4_INCLUDE_DIRS})
 target_link_libraries(phsp-record PRIVATE phspCore ${Geant4_LIBRARIES})
 
-# ---- Geant4 application: phsp-replay (stage 2, physics only) -------------------
+# ---- Geant4 application: phsp-replay (stage 2) -----------------------------------
 # A water box of the files' box side (region DnaRegion, stage-1 physics setup by
-# default); one Phase-space history per event, reseeded per history (ADR 0015).
+# default); one Phase-space history per event, reseeded per history (ADR 0015),
+# then (/phsp/chem/enable true, the default) an IRT_syn chemistry stage with the
+# copied PureWater network, the pH buffer and optional dissolved O2.
 # RecordPhysicsList.cc is shared so that the stage-1 cuts and DNA option come
 # from one place.
 add_executable(phsp-replay
   src/ReplayMain.cc
   src/ReplayDetectorConstruction.cc
   src/ReplayPhysicsList.cc
+  src/ReplayChemistryList.cc
+  src/PureWaterReactions.cc
   src/PhaseSpaceSource.cc
   src/ReplayActions.cc
   src/ReplayMessenger.cc
@@ -134,8 +139,11 @@ set(phspSmokeFile ${phspTestOutput}/record-smoke/t1/smoke.phsp)
 # ReplayRepeat: the whole RecordSmoke file replayed twice, split into two runs,
 # and on 2 threads: identical Histories.csv rows; another base seed changes the
 # stage-2 deposits. ReplayEnergy: stage-2 vs stage-1 mean deposit per history,
-# |z| < 3 on the paired difference.
-foreach(check Repeat Energy)
+# |z| < 3 on the paired difference. Both run with /phsp/chem/enable false
+# (physics only). ReplayChemVariant: the same histories with the chemistry on,
+# dissolved O2 0 and 21 %: identical stage-2 deposits and pre-chemical counts
+# per history, less e_aq at the end time (1 us) with O2.
+foreach(check Repeat Energy ChemVariant)
   add_test(NAME Replay${check}
     COMMAND ${CMAKE_COMMAND}
       -DREPLAY=$<TARGET_FILE:phsp-replay>
@@ -159,15 +167,29 @@ file(WRITE ${phspReplayMacros}/ReplayOverlap.mac
   "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/run/initialize\n/phsp/source/first 0\n/run/beamOn 2\n/phsp/source/first 1\n/run/beamOn 1\n")
 file(WRITE ${phspReplayMacros}/ReplayBoxSideMismatch.mac
   "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/phsp/geom/boxSide 5 um\n/run/initialize\n/run/beamOn 1\n")
+file(WRITE ${phspReplayMacros}/ReplayBadO2Unit.mac
+  "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/phsp/chem/o2 21 ppm\n/run/initialize\n/run/beamOn 1\n")
+file(WRITE ${phspReplayMacros}/ReplayNotIrtSyn.mac
+  "${phspReplayHead}/phsp/source/addFile ${phspSmokeFile}\n/process/chem/TimeStepModel SBS\n/run/initialize\n/run/beamOn 1\n")
+# /run/initialize from a nested macro skips EnableChemistry: refused at the first run.
+file(WRITE ${phspReplayMacros}/ReplayNestedInitSub.mac
+  "/phsp/source/addFile ${phspSmokeFile}\n/run/initialize\n/run/beamOn 1\n")
+file(WRITE ${phspReplayMacros}/ReplayNestedInit.mac
+  "${phspReplayHead}/control/execute ${phspReplayMacros}/ReplayNestedInitSub.mac\n")
 set(phspReplayFatalTests ReplayRejectsDuplicateFile ReplayRejectsRangePastEnd ReplayRejectsOverlap
-                         ReplayRejectsBoxSideMismatch)
-set(phspReplayFatalMacros ReplayDuplicateFile ReplayRangePastEnd ReplayOverlap ReplayBoxSideMismatch)
+                         ReplayRejectsBoxSideMismatch ReplayRejectsBadO2Unit ReplayRejectsNotIrtSyn
+                         ReplayRejectsNestedInitialize)
+set(phspReplayFatalMacros ReplayDuplicateFile ReplayRangePastEnd ReplayOverlap ReplayBoxSideMismatch
+                          ReplayBadO2Unit ReplayNotIrtSyn ReplayNestedInit)
 set(phspReplayFatalRegex
   "PhspReplay003.*given twice"
   "PhspReplay007.*goes past the end"
   "PhspReplay008.*overlap histories 0..1 already replayed"
-  "PhspReplay005.*boxSide 5 um differs from the box side of the phase-space files .4 um.")
-foreach(i RANGE 3)
+  "PhspReplay005.*boxSide 5 um differs from the box side of the phase-space files .4 um."
+  "PhspReplay022.*unknown O2 unit 'ppm'"
+  "PhspChem010.*IRT_syn only"
+  "PhspReplay034.*chemistry was not built")
+foreach(i RANGE 6)
   list(GET phspReplayFatalTests ${i} name)
   list(GET phspReplayFatalMacros ${i} macro)
   list(GET phspReplayFatalRegex ${i} regex)
@@ -185,6 +207,6 @@ if(WIN32)
   # The Geant4 DLLs are in <install>/bin.
   get_filename_component(phspGeant4BinDir "${Geant4_DIR}/../../../bin" ABSOLUTE)
   set_tests_properties(RecordSmoke RecordUsage RecordRejectsTouchingBoxes ReplayRepeat ReplayEnergy
-                       ${phspReplayFatalTests} ReplayUsage PROPERTIES
+                       ReplayChemVariant ${phspReplayFatalTests} ReplayUsage PROPERTIES
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${phspGeant4BinDir}")
 endif()

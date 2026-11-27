@@ -1,5 +1,5 @@
-# ReplayEnergy: replay every history of the phase-space file PHSP once and
-# compare, over the same histories, the stage-2 mean deposit per history with
+# ReplayEnergy: replay every history of the phase-space file PHSP once,
+# physics only (/phsp/chem/enable false), and compare, over the same histories, the stage-2 mean deposit per history with
 # the stage-1 in-box deposit per history (the history table). Both are the
 # energy deposited in steps whose pre-step point is in the box. The test is
 # on the per-history difference d = stage 2 - stage 1 (paired: both stages see
@@ -20,7 +20,7 @@ phsp_histories_written("${PHSP}" historyCount)
 if(historyCount LESS 2)
   message(FATAL_ERROR "${PHSP} holds ${historyCount} histories; a standard error needs at least 2")
 endif()
-phsp_write_replay_macro("${OUTPUT_DIR}/full.mac" "${PHSP}" ${BASE_SEED} "" "0 ${historyCount}")
+phsp_write_replay_macro("${OUTPUT_DIR}/full.mac" "${PHSP}" ${BASE_SEED} "/phsp/chem/enable false" "0 ${historyCount}")
 phsp_run_replay(energy "${OUTPUT_DIR}/full.mac" 1 done)
 message(STATUS "${done}")
 

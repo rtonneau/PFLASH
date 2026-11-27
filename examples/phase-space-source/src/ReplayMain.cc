@@ -1,8 +1,9 @@
-// phsp-replay: stage 2 of the phase-space source, physics only. Replays the
-// Phase-space histories of an ordered list of Phase-space files in a water box
-// of the stage-1 box side, one history per event, reseeded per history
-// (ADR 0015), and writes the stage-2 deposit of each history next to its
-// stage-1 in-box deposit.
+// phsp-replay: stage 2 of the phase-space source. Replays the Phase-space
+// histories of an ordered list of Phase-space files in a water box of the
+// stage-1 box side, one history per event, reseeded per history (ADR 0015),
+// and writes the stage-2 deposit of each history next to its stage-1 in-box
+// deposit. With the chemistry on (/phsp/chem/enable, default true), each
+// history then runs its own IRT_syn chemistry stage (ReplayChemistryList).
 //
 //   phsp-replay <macro> --output <dir> [--threads N] [--physics stage1|option2]
 //
@@ -12,18 +13,23 @@
 //               /run/initialize, then any number of
 //               `/phsp/source/first k` + `/run/beamOn N` pairs, each replaying
 //               global histories k..k+N-1. /run/initialize is issued after the
-//               macro if it did not.
-//   --output    directory for Histories.csv and Manifest.json (created if
-//               missing; existing files are replaced)
+//               macro if it did not. The /phsp/chem/ settings are PreInit:
+//               just before /run/initialize, main() adds the chemistry to the
+//               physics list if it is enabled (ReplayPhysicsList::EnableChemistry).
+//   --output    directory for Histories.csv, Species.csv (chemistry only) and
+//               Manifest.json (created if missing; existing files are replaced)
 //   --threads   worker threads, 1..256 (default 1); always the MT run manager
 //   --physics   stage1 (default: the stage-1 physics setup applied to the box)
 //               or option2 (the G4EmDNAPhysics_option2 constructor); see
 //               ReplayPhysicsList.hh
 //
 // Output: Histories.csv (one row per replayed history, sorted by global index,
-// identical for any thread count or range split), Manifest.json, and a line
+// identical for any thread count or range split; with the chemistry on it
+// gains the pre-chemical counts and the end time), Species.csv (chemistry
+// only: per history, species counts and G-values on a log time grid),
+// Manifest.json, and a line
 //   REPLAY_DONE histories=.. stage1MeanEv=.. stage1SeEv=.. stage2MeanEv=..
-//   stage2SeEv=.. diffMeanEv=.. diffSeEv=.. z=.. ...
+//   stage2SeEv=.. diffMeanEv=.. diffSeEv=.. z=.. ... chemistry=on|off ...
 // where diff = stage 2 - stage 1 per history and z = diffMean / diffSe.
 // Exit status: 0 success, 2 bad arguments, 3 macro or initialization failure,
 // 1 failure during the run or while writing. A G4Exception (FatalException:
@@ -35,8 +41,10 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -51,6 +59,7 @@
 #include "PhaseSpaceFormat.hh"
 #include "PhaseSpaceSource.hh"
 #include "ReplayActions.hh"
+#include "ReplayChemistryList.hh"
 #include "ReplayDetectorConstruction.hh"
 #include "ReplayPhysicsList.hh"
 
@@ -60,6 +69,7 @@
 #include "G4RegionStore.hh"
 #include "G4RunManager.hh"
 #include "G4RunManagerFactory.hh"
+#include "G4Scheduler.hh"
 #include "G4StateManager.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4UImanager.hh"
@@ -168,7 +178,8 @@ G4ApplicationState CurrentState()
 }
 
 // Applies the macro line by line; returns the commands applied.
-std::vector<std::string> ApplyMacro(const std::filesystem::path& macro)
+// `beforeInitialize` runs once, just before the first /run/initialize.
+std::vector<std::string> ApplyMacro(const std::filesystem::path& macro, const std::function<void()>& beforeInitialize)
 {
   std::ifstream in(macro);
   if (!in) throw ExitError(3, "cannot open macro " + macro.string());
@@ -182,6 +193,7 @@ std::vector<std::string> ApplyMacro(const std::filesystem::path& macro)
     const auto command = Trim(line);
     if (command.empty() || command.front() == '#') continue;
     const auto where = macro.filename().string() + ":" + std::to_string(lineNumber);
+    if (command == "/run/initialize" || command.rfind("/run/initialize ", 0) == 0) beforeInitialize();
     if (const int status = ui->ApplyCommand(command); status != 0)
       throw ExitError(3, where + ": command failed (G4UImanager code " + std::to_string(status) + "): " + command);
     applied.push_back(command);
@@ -198,17 +210,49 @@ std::string Real(double value)
   return std::string(buffer, result.ptr);
 }
 
-void WriteHistoriesCsv(const std::filesystem::path& path, const std::vector<phsp::ReplayHistoryRow>& rows)
+// The ticket-03 columns; with the chemistry on, the pre-chemical counts and
+// the chemistry end time follow (without it the file is the ticket-03 file).
+void WriteHistoriesCsv(const std::filesystem::path& path, const std::vector<phsp::ReplayHistoryRow>& rows,
+                       bool chemistry)
 {
   std::ofstream out(path, std::ios::trunc);
   if (!out) throw ExitError(1, "cannot write " + path.string());
   out << "globalIndex,fileId,historyIndex,stage1EventId,boxIx,boxIy,recordCount,stage1InBoxDepositEv,"
-         "stage2DepositEv,tracksKilledOutsideBox\n";
+         "stage2DepositEv,tracksKilledOutsideBox";
+  if (chemistry) out << ",preChemIonisedH2O,preChemExcitedH2O,preChemAttachedH2O,preChemEaq,chemistryEndTimeNs";
+  out << '\n';
   for (const auto& row : rows)
+  {
     out << row.globalIndex << ',' << phsp::FormatId(row.fileId) << ',' << row.historyIndex << ','
         << row.stage1EventId << ',' << row.boxIx << ',' << row.boxIy << ',' << row.recordCount << ','
-        << Real(row.stage1DepositEv) << ',' << Real(row.stage2DepositEv) << ',' << row.tracksKilledOutsideBox
-        << '\n';
+        << Real(row.stage1DepositEv) << ',' << Real(row.stage2DepositEv) << ',' << row.tracksKilledOutsideBox;
+    if (chemistry)
+      out << ',' << row.preChemical.ionisedWater << ',' << row.preChemical.excitedWater << ','
+          << row.preChemical.attachedWater << ',' << row.preChemical.solvatedElectrons << ','
+          << Real(row.chemistryEndTimeNs);
+    out << '\n';
+  }
+  out.flush();
+  if (!out) throw ExitError(1, "error writing " + path.string());
+}
+
+// Long layout: one row per history, grid time and species recorded in that
+// history, G = count per 100 eV of the history's stage-2 deposit (empty when
+// the deposit is 0).
+void WriteSpeciesCsv(const std::filesystem::path& path, const std::vector<phsp::ReplayHistoryRow>& rows)
+{
+  std::ofstream out(path, std::ios::trunc);
+  if (!out) throw ExitError(1, "cannot write " + path.string());
+  out << "globalIndex,timeNs,species,count,gPer100Ev\n";
+  for (const auto& row : rows)
+    for (std::size_t t = 0; t < row.speciesTimesNs.size(); ++t)
+      for (const auto& series : row.species)
+      {
+        const int count = series.counts.at(t);
+        out << row.globalIndex << ',' << Real(row.speciesTimesNs[t]) << ',' << series.name << ',' << count << ',';
+        if (row.stage2DepositEv > 0) out << Real(100. * count / row.stage2DepositEv);
+        out << '\n';
+      }
   out.flush();
   if (!out) throw ExitError(1, "error writing " + path.string());
 }
@@ -250,14 +294,68 @@ struct EffectiveSettings
   G4double defaultCut = 0;
 };
 
+DataNode MakeChemistry(const phsp::ReplayChemistrySettings& chemistry, const std::vector<phsp::ReplayHistoryRow>& rows)
+{
+  DataNode node = DataNode::MakeObject();
+  node.Add("enabled", static_cast<bool>(chemistry.enabled));
+  if (!chemistry.enabled) return node;
+  node.Add("network", "PureWater (PFLASH PureWaterReactions.cc + ChemistryTypes.hh, copied): pure-water radiolysis, "
+                      "the O2-/HO2/HO2-/O-/O3- network, the pH acid-base buffer and the dissolved-O2 reactions as "
+                      "bulk reactions (G4DNAScavengerProcess + G4DNAScavengerMaterial)");
+  node.Add("molecules", "G4ChemDissociationChannels_option1");
+  node.Add("timeStepModel", "IRT_syn (G4DNAIndependentReactionTimeModel)");
+  node.Add("mesoscopicStage", false);
+  node.Add("pH", chemistry.pH);
+  node.Add("o2", chemistry.o2Text);
+  node.Add("o2_M", chemistry.o2Molarity);
+  node.Add("o2SaturationMolarity_M", phsp::ReplayChemistrySettings::kO2SaturationMolarity);
+  node.Add("bulkReservoirHalfSide_um", phsp::ReplayChemistrySettings::kBulkReservoirHalfSide / um);
+  node.Add("endTime_ns", G4Scheduler::Instance()->GetEndTime() / ns);
+  std::set<double> endTimes;
+  for (const auto& row : rows) endTimes.insert(row.chemistryEndTimeNs);
+  DataNode used = DataNode::MakeArray();
+  for (const double endTime : endTimes) used.Push(DataNode(endTime));
+  node.Add("endTimesUsed_ns", used);
+  node.Add("speciesTimeGrid", "1 ps x 10^(k/" + std::to_string(phsp::kSpeciesTimesPerDecade) +
+                                  "), k = 0, 1, ..., up to the end time, and the end time");
+  node.Add("moleculeCounterTimePrecision_ps", 1.);
+  node.Add("gValue", "count per 100 eV of the history's stage-2 deposit");
+  node.Add("preChemical", "products of the physical stage handed to the chemistry, counted with a G4VPhysChemIO and "
+                          "taken when the chemistry starts (G4UserTimeStepAction::StartProcessing)");
+  node.Add("sancheExtendedTo0025eV", static_cast<bool>(phsp::ReplayChemistryList::SancheExtended()));
+  node.Add("reproducibility",
+           "the physical stage and the pre-chemical counts of a history do not depend on the chemistry settings, "
+           "the thread count or the range split; the chemistry stage (Species.csv) is not bit-reproducible from one "
+           "process to the next: G4DNAScavengerProcess picks a bulk partner by walking a std::map keyed by "
+           "G4MolecularConfiguration pointers, whose order follows the heap addresses of the process (README.md)");
+  std::uint64_t outside = 0;
+  for (const auto& row : rows) outside += row.preChemical.outsideBox;
+  node.Add("preChemicalOutsideBox", static_cast<long long>(outside));
+  const phsp::FastestSpecies fastest = phsp::FindFastestSpecies();
+  const G4double endTime = G4Scheduler::Instance()->GetEndTime();
+  DataNode diffusion = DataNode::MakeObject();
+  diffusion.Add("fastestSpecies", fastest.name);
+  diffusion.Add("diffusionCoefficient_m2_s", fastest.diffusionCoefficient / (m2 / s));
+  diffusion.Add("lengthAtEndTime_nm", std::sqrt(6. * fastest.diffusionCoefficient * endTime) / nm);
+  diffusion.Add("chemMargin_nm", chemistry.chemMargin / nm);
+  diffusion.Add("rule", "a JustWarning when sqrt(6 D t_end) > chemMargin / 3");
+  node.Add("diffusion", diffusion);
+  std::uint64_t killed = 0;
+  for (const auto& row : rows) killed += row.moleculesKilledOutsideWater;
+  node.Add("moleculesKilledOutsideWater", static_cast<long long>(killed));
+  node.Add("output", "Species.csv");
+  return node;
+}
+
 DataNode MakeManifest(const Arguments& arguments, const EffectiveSettings& effective,
                       const std::vector<std::string>& commands,
                       const phsp::ReplaySource& source, const phsp::ReplayResults& results,
+                      const phsp::ReplayChemistrySettings& chemistry,
                       const std::vector<phsp::ReplayHistoryRow>& rows, std::uint64_t tracksOutside)
 {
   DataNode manifest = DataNode::MakeObject();
   manifest.Add("application", "phsp-replay");
-  manifest.Add("stage", "stage 2, physics only");
+  manifest.Add("stage", chemistry.enabled ? "stage 2, physics + chemistry" : "stage 2, physics only");
   manifest.Add("geant4Version", G4Version);
   manifest.Add("runManager", "MT (G4RunManagerType::MTOnly)");
   manifest.Add("threads", effective.threads);
@@ -307,7 +405,10 @@ DataNode MakeManifest(const Arguments& arguments, const EffectiveSettings& effec
   DataNode geometry = DataNode::MakeObject();
   geometry.Add("box", "G4_WATER cube centred at the origin (the stage-1 box frame), region DnaRegion");
   geometry.Add("boxSide_nm", source.BoxSide() / nm);
-  geometry.Add("world", "G4_Galactic cube around the box; every track is killed when it leaves the box");
+  geometry.Add("chemMargin", "G4_WATER cube around the box, in the world region (not DnaRegion): water for the "
+                             "molecules that diffuse out of the box; no physics track steps in it");
+  geometry.Add("chemMargin_nm", chemistry.chemMargin / nm);
+  geometry.Add("world", "G4_Galactic cube around the margin; every physics track is killed when it leaves the box");
   geometry.Add("worldMargin_nm", phsp::ReplayDetectorConstruction::kWorldMargin / nm);
   manifest.Add("geometry", geometry);
 
@@ -333,6 +434,7 @@ DataNode MakeManifest(const Arguments& arguments, const EffectiveSettings& effec
     physics.Add("dnaRegionCuts_nm", regionCuts);
   }
   manifest.Add("physics", physics);
+  manifest.Add("chemistry", MakeChemistry(chemistry, rows));
 
   DataNode scoring = DataNode::MakeObject();
   scoring.Add("primaries", "one event per history: every record as a primary, times shifted so that the "
@@ -341,7 +443,7 @@ DataNode MakeManifest(const Arguments& arguments, const EffectiveSettings& effec
                                "in-box deposit definition)");
   scoring.Add("historiesReplayed", static_cast<long long>(rows.size()));
   scoring.Add("tracksKilledOutsideBox", static_cast<long long>(tracksOutside));
-  scoring.Add("output", "Histories.csv");
+  scoring.Add("output", chemistry.enabled ? "Histories.csv, Species.csv" : "Histories.csv");
   manifest.Add("scoring", scoring);
   manifest.Add("wallTime_s", results.WallTimeS());
   return manifest;
@@ -354,21 +456,32 @@ int Run(int argc, char** argv)
   // Declared before the run manager: the user actions refer to them.
   phsp::ReplaySource source;
   phsp::ReplayResults results;
+  phsp::ReplayChemistrySettings chemistry;
 
   std::unique_ptr<G4RunManager> runManager(
       G4RunManagerFactory::CreateRunManager(G4RunManagerType::MTOnly, arguments.threads));
   runManager->SetNumberOfThreads(arguments.threads);
 
-  auto* detector = new phsp::ReplayDetectorConstruction(source);
+  auto* detector = new phsp::ReplayDetectorConstruction(source, chemistry);
   runManager->SetUserInitialization(detector);
   auto* physicsList = new phsp::ReplayPhysicsList(arguments.physics);
   runManager->SetUserInitialization(physicsList);
-  runManager->SetUserInitialization(new phsp::ReplayActionInitialization(source, results, *detector));
+  runManager->SetUserInitialization(new phsp::ReplayActionInitialization(source, results, *detector, chemistry));
 
-  const std::vector<std::string> commands = ApplyMacro(arguments.macro);
-  if (CurrentState() == G4State_PreInit &&
-      G4UImanager::GetUIpointer()->ApplyCommand("/run/initialize") != 0)
-    throw ExitError(3, "/run/initialize failed");
+  // The chemistry joins the physics list once the PreInit /phsp/chem/
+  // settings are known, before /run/initialize builds the processes.
+  bool prepared = false;
+  const auto prepareChemistry = [&]() {
+    if (prepared || CurrentState() != G4State_PreInit) return;
+    prepared = true;
+    if (chemistry.enabled) physicsList->EnableChemistry(chemistry);
+  };
+  const std::vector<std::string> commands = ApplyMacro(arguments.macro, prepareChemistry);
+  if (CurrentState() == G4State_PreInit)
+  {
+    prepareChemistry();
+    if (G4UImanager::GetUIpointer()->ApplyCommand("/run/initialize") != 0) throw ExitError(3, "/run/initialize failed");
+  }
   if (CurrentState() != G4State_Idle) throw ExitError(3, "Geant4 is not Idle after the macro");
   if (source.Runs().empty())
     throw ExitError(3, "the macro must replay histories (/phsp/source/first k, /run/beamOn N with N >= 1)");
@@ -395,12 +508,13 @@ int Run(int argc, char** argv)
   {
     throw ExitError(1, e.what());
   }
-  WriteHistoriesCsv(arguments.outputDir / "Histories.csv", rows);
+  WriteHistoriesCsv(arguments.outputDir / "Histories.csv", rows, chemistry.enabled);
+  if (chemistry.enabled) WriteSpeciesCsv(arguments.outputDir / "Species.csv", rows);
   {
     const auto manifestPath = arguments.outputDir / "Manifest.json";
     std::ofstream out(manifestPath, std::ios::trunc);
     if (!out) throw ExitError(1, "cannot write " + manifestPath.string());
-    JsonWriter::Write(out, MakeManifest(arguments, effective, commands, source, results, rows, tracksOutside));
+    JsonWriter::Write(out, MakeManifest(arguments, effective, commands, source, results, chemistry, rows, tracksOutside));
     if (!out) throw ExitError(1, "error writing " + manifestPath.string());
   }
 
@@ -414,7 +528,17 @@ int Run(int argc, char** argv)
   done << "REPLAY_DONE histories=" << rows.size() << " stage1MeanEv=" << stage1.mean << " stage1SeEv=" << stage1.se
        << " stage2MeanEv=" << stage2.mean << " stage2SeEv=" << stage2.se << " diffMeanEv=" << diff.mean
        << " diffSeEv=" << diff.se << " z=" << z << " tracksKilledOutsideBox=" << tracksOutside
-       << " physics=" << phsp::ReplayPhysicsName(arguments.physics) << " threads=" << effective.threads
+       << " physics=" << phsp::ReplayPhysicsName(arguments.physics) << " chemistry=" << (chemistry.enabled ? "on" : "off");
+  if (chemistry.enabled)
+  {
+    std::uint64_t outside = 0;
+    for (const auto& row : rows) outside += row.preChemical.outsideBox;
+    std::uint64_t killed = 0;
+    for (const auto& row : rows) killed += row.moleculesKilledOutsideWater;
+    done << " endTimeNs=" << G4Scheduler::Instance()->GetEndTime() / ns << " preChemOutsideBox=" << outside
+         << " moleculesKilledOutsideWater=" << killed;
+  }
+  done << " threads=" << effective.threads
        << " wallTimeS=" << results.WallTimeS() << " output=" << arguments.outputDir.string();
   std::cout << done.str() << std::endl;
   return 0;

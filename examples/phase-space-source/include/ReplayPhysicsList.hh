@@ -20,6 +20,17 @@
 // the stage-1 in-box deposits of the same histories; the same physics in the
 // box makes that comparison exact in the mean. See README.md for the measured
 // process and model lists of both stages.
+//
+// Chemistry (ticket 04): EnableChemistry adds ReplayChemistryList as the last
+// physics constructor, after the EM ones (it extends their e- processes). It
+// is called by phsp-replay's main() just before /run/initialize, when the
+// PreInit /phsp/chem/ settings are known, and only with /phsp/chem/enable
+// true. The other constructors built their particles when the list was given
+// to the run manager (G4RunManagerKernel::SetupPhysics), so EnableChemistry
+// builds the molecules itself, still in PreInit (G4ParticleDefinition
+// requires it), and gives each new particle its definition ID as SetupPhysics
+// does. With the chemistry off none of this runs: the physics is that of
+// ticket 03.
 #pragma once
 
 #include "G4VModularPhysicsList.hh"
@@ -37,6 +48,9 @@ enum class ReplayPhysics
 const char* ReplayPhysicsName(ReplayPhysics physics);
 const char* ReplayPhysicsDescription(ReplayPhysics physics);
 
+class ReplayChemistryList;
+struct ReplayChemistrySettings;
+
 class ReplayPhysicsList : public G4VModularPhysicsList
 {
  public:
@@ -44,8 +58,15 @@ class ReplayPhysicsList : public G4VModularPhysicsList
   ~ReplayPhysicsList() override = default;
   ReplayPhysics Physics() const { return fPhysics; }
 
+  // PreInit, once, before /run/initialize. FatalException if the chemistry
+  // time-step model was set to anything but IRT_syn (/process/chem/TimeStepModel);
+  // an unset model is set to IRT_syn.
+  void EnableChemistry(const ReplayChemistrySettings& settings);
+  G4bool ChemistryEnabled() const { return fChemistry != nullptr; }
+
  private:
   ReplayPhysics fPhysics;
+  ReplayChemistryList* fChemistry = nullptr;  // owned by G4VModularPhysicsList
 };
 
 }  // namespace phsp

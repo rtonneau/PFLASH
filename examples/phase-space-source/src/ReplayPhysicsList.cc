@@ -1,12 +1,16 @@
 #include "ReplayPhysicsList.hh"
 
 #include "RecordPhysicsList.hh"
+#include "ReplayChemistryList.hh"
 #include "ReplayDetectorConstruction.hh"
 
+#include "G4ChemTimeStepModel.hh"
 #include "G4EmDNAPhysicsActivator.hh"
 #include "G4EmDNAPhysics_option2.hh"
 #include "G4EmParameters.hh"
 #include "G4EmStandardPhysics_option4.hh"
+#include "G4Exception.hh"
+#include "G4ParticleTable.hh"
 
 namespace phsp
 {
@@ -39,6 +43,36 @@ ReplayPhysicsList::ReplayPhysicsList(ReplayPhysics physics) : fPhysics(physics)
   {
     RegisterPhysics(new G4EmDNAPhysics_option2());
   }
+}
+
+void ReplayPhysicsList::EnableChemistry(const ReplayChemistrySettings& settings)
+{
+  if (fChemistry != nullptr) return;
+  auto* parameters = G4EmParameters::Instance();
+  const G4ChemTimeStepModel model = parameters->GetTimeStepModel();
+  if (model == G4ChemTimeStepModel::Unknown)
+    parameters->SetTimeStepModel(G4ChemTimeStepModel::IRT_syn);
+  else if (model != G4ChemTimeStepModel::IRT_syn)
+  {
+    G4Exception("ReplayPhysicsList::EnableChemistry", "PhspChem010", FatalException,
+                "/process/chem/TimeStepModel: phsp-replay runs IRT_syn only (remove the command)");
+    return;
+  }
+
+  // The molecule definitions created by ConstructParticle get no definition
+  // ID from SetupPhysics, which ran before; give them one, as SetupPhysics
+  // does for every particle that is not a general ion.
+  fChemistry = new ReplayChemistryList(settings);
+  fChemistry->ConstructParticle();
+  auto* iterator = G4ParticleTable::GetParticleTable()->GetIterator();
+  iterator->reset();
+  while ((*iterator)())
+  {
+    G4ParticleDefinition* particle = iterator->value();
+    if (!particle->IsGeneralIon() && particle->GetInstanceID() < 0) particle->SetParticleDefinitionID();
+  }
+  // Last: its ConstructProcess extends the e- processes of the EM constructors.
+  RegisterPhysics(fChemistry);
 }
 
 }  // namespace phsp

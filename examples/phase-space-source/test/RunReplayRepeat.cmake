@@ -1,5 +1,6 @@
 # ReplayRepeat: replay the histories of the phase-space file PHSP with
-# phsp-replay seven times and compare the Histories.csv rows:
+# phsp-replay seven times, physics only (/phsp/chem/enable false), and compare
+# the Histories.csv rows:
 #   a  the whole range in one run, 1 thread
 #   b  the same again (a repeat)
 #   c  the same range split into two runs (first 0 + K, first K + N - K) in one process
@@ -36,11 +37,12 @@ math(EXPR splitAt "${historyCount} / 2")
 math(EXPR secondCount "${historyCount} - ${splitAt}")
 math(EXPR otherSeed "${BASE_SEED} + 1")
 
-phsp_write_replay_macro("${OUTPUT_DIR}/full.mac" "${PHSP}" ${BASE_SEED} "" "0 ${historyCount}")
-phsp_write_replay_macro("${OUTPUT_DIR}/split.mac" "${PHSP}" ${BASE_SEED} "" "0 ${splitAt}" "${splitAt} ${secondCount}")
-phsp_write_replay_macro("${OUTPUT_DIR}/run-seeds.mac" "${PHSP}" ${BASE_SEED} "/random/setSeeds 987654 321" "0 ${historyCount}")
-phsp_write_replay_macro("${OUTPUT_DIR}/second-part.mac" "${PHSP}" ${BASE_SEED} "" "${splitAt} ${secondCount}")
-phsp_write_replay_macro("${OUTPUT_DIR}/other-seed.mac" "${PHSP}" ${otherSeed} "" "0 ${historyCount}")
+set(chemOff "/phsp/chem/enable false")
+phsp_write_replay_macro("${OUTPUT_DIR}/full.mac" "${PHSP}" ${BASE_SEED} "${chemOff}" "0 ${historyCount}")
+phsp_write_replay_macro("${OUTPUT_DIR}/split.mac" "${PHSP}" ${BASE_SEED} "${chemOff}" "0 ${splitAt}" "${splitAt} ${secondCount}")
+phsp_write_replay_macro("${OUTPUT_DIR}/run-seeds.mac" "${PHSP}" ${BASE_SEED} "${chemOff}\n/random/setSeeds 987654 321" "0 ${historyCount}")
+phsp_write_replay_macro("${OUTPUT_DIR}/second-part.mac" "${PHSP}" ${BASE_SEED} "${chemOff}" "${splitAt} ${secondCount}")
+phsp_write_replay_macro("${OUTPUT_DIR}/other-seed.mac" "${PHSP}" ${otherSeed} "${chemOff}" "0 ${historyCount}")
 
 phsp_run_replay(a "${OUTPUT_DIR}/full.mac" 1 doneA)
 phsp_run_replay(b "${OUTPUT_DIR}/full.mac" 1 doneB)
