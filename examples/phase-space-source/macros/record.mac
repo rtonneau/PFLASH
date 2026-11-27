@@ -1,0 +1,53 @@
+# phsp-record default macro: 500 keV e- along +z into a 5 mm water phantom,
+# one 4 um scoring box per 50 um lattice cell at 1 mm depth.
+#
+#   phsp-record macros/record.mac --threads 4 --seed 1 --output <dir>/<name>
+#
+# 3 x 10^4 primaries give about 310 histories (hit fraction about 0.0103),
+# about 80 thread-seconds. macros/replay.mac replays the first 100 of them, and
+# scripts/acceptance.py records this macro for its ENERGY, REPEAT and
+# CHEMVARIANT checks (its LATTICE check takes the geometry and the pitch from
+# here).
+#
+# Defaults (README.md, "Defaults: shell and pitch"): shell 1 um, about 20 times
+# the range of the lowest-energy condensed-history delta ray (990 eV); pitch
+# 50 um, within 15 % of the cheapest cost per history with under 1 % of the hit
+# primaries entering two boxes.
+#
+# Broad-beam equivalence (ADR 0014): the beam is uniform over ONE lattice cell
+# (a P x P square centred on the axis, P = latticePitch), so the fluence is
+# primaries / P^2. Keep /gps/pos/halfx and halfy = P / 2 when changing the
+# pitch, and the source z on the phantom's -z face (-phantomSide / 2) when
+# changing the phantom. For pitch 0 (single box), use a square wider than the
+# lateral reach of the beam at the box depth instead (fluence primaries / its
+# area); at 1 mm depth the backscattered electrons reach about 1 mm sideways.
+#
+# No /random/ commands, nested macros (/control/execute, loop, foreach,
+# macroPath), aliases or /run/beamOn macro arguments: the seed is phsp-record's
+# --seed.
+
+/control/verbose 1
+/run/verbose 1
+/process/em/verbose 0
+
+# ---- Geometry (PreInit) ----
+/phsp/geom/phantomSide 5 mm
+/phsp/geom/depth 1 mm
+/phsp/geom/boxSide 4 um
+/phsp/geom/shell 1 um
+/phsp/geom/latticePitch 50 um
+
+/run/initialize
+
+# ---- Beam: 500 keV e-, +z, uniform over one 50 um x 50 um cell ----
+/gps/particle e-
+/gps/ene/type Mono
+/gps/ene/mono 500 keV
+/gps/direction 0 0 1
+/gps/pos/type Plane
+/gps/pos/shape Square
+/gps/pos/centre 0 0 -2.5 mm
+/gps/pos/halfx 25 um
+/gps/pos/halfy 25 um
+
+/run/beamOn 30000

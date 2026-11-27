@@ -1,0 +1,7 @@
+# RecordRejectsTouchingBoxes (CTest): a lattice pitch equal to the box side
+# makes neighbouring boxes share faces; phsp-record must refuse it before
+# /run/initialize.
+/phsp/geom/boxSide 4 um
+/phsp/geom/latticePitch 4 um
+/run/initialize
+/run/beamOn 1

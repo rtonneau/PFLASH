@@ -1,0 +1,47 @@
+# phsp-replay default macro: replay the first 100 Phase-space histories of the
+# file written by macros/record.mac, physics + chemistry (IRT_syn, PureWater
+# network, pH 7, no dissolved O2, 1 us). That file holds about 310 histories
+# (311 with --seed 1); a range past its end is fatal.
+#
+#   phsp-record macros/record.mac --threads 4 --seed 1 --output phsp/record
+#   phsp-replay macros/replay.mac --threads 4 --output replay
+#
+# Paths in /phsp/source/addFile are relative to the working directory. The
+# global history index runs over the files in the order given, then over each
+# file's history index; /phsp/source/first k + /run/beamOn N replays global
+# histories k..k+N-1 (past the end is fatal). Several first/beamOn pairs may
+# follow each other, but their ranges must not overlap. The physical stage of a
+# history (Histories.csv: deposit, pre-chemical counts) depends on the base
+# seed and the history IDs only (ADR 0015), not on /random/ commands, the
+# thread count, the chemistry settings or how the range is split. The
+# chemistry stage (Species.csv) is not bit-reproducible from one process to
+# the next (README.md, "Chemistry reproducibility").
+
+/control/verbose 1
+/run/verbose 1
+/process/em/verbose 0
+
+# ---- Source (PreInit) ----
+/phsp/source/addFile phsp/record.phsp
+/phsp/source/baseSeed 1
+# Optional: the expected box side; a mismatch with the file is fatal.
+#/phsp/geom/boxSide 4 um
+# Water margin around the box for the molecules (default 2 um; physics tracks
+# never enter it). A warning asks for more when sqrt(6 D t_end) > margin / 3.
+#/phsp/geom/chemMargin 2 um
+
+# ---- Chemistry (PreInit) ----
+# false: physics only (no molecule, Histories.csv as without chemistry).
+/phsp/chem/enable true
+/phsp/chem/pH 7
+# Dissolved O2: M, mM, uM or % of O2 saturation (kH = 1.3 mM; 21 % = 0.273 mM).
+#/phsp/chem/o2 21 %
+
+/run/initialize
+
+# Chemistry end time (after /run/initialize; default 1 us).
+#/scheduler/endTime 1 us
+
+# ---- Replay ----
+/phsp/source/first 0
+/run/beamOn 100

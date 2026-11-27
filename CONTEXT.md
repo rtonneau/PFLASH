@@ -289,3 +289,28 @@ machine, `${STUDIES_ROOT}` path, report link). The only trace of study data in g
 The fixed primary-arrival window length, equal to nominal dose divided by requested
 mean dose rate. Poisson arrivals make each history's actual deposited dose fluctuate;
 actual dose is measured from deposited energy rather than forced to the nominal dose.
+
+**Phase-space file** (phase-space-source):
+The stage-1 output of `examples/phase-space-source`: a binary `.phsp` file of fixed-size
+records plus a `.json` header (format version, unique file ID, digest, beam, depth, box,
+lattice pitch, physics, seed, number of primaries fired, number of histories written).
+One record is one **Inward crossing**. Read once per stage-2 run; any number of runs may
+read it.
+_Avoid_: "track packet" (that is a species cloud at 1 ps, not particles).
+
+**Phase-space history** (phase-space-source):
+All records of one stage-1 primary in one scoring box (lattice box index ix, iy),
+identified by (file ID, history index), the index counting written histories 0..N-1 in
+file order (sorted by stage-1 event ID, then box). A primary entering several lattice
+boxes gives several histories. Primaries with no crossing are not written but are
+counted in the header. One phase-space history is one stage-2 event.
+_Avoid_: "track" for the group (a history holds many tracks).
+
+**Inward crossing** (phase-space-source):
+A step of any track that starts outside a scoring box and ends inside it in stage 1. The
+same track can cross inward several times; each crossing is one record (ADR 0014).
+
+**Scoring lattice** (phase-space-source):
+Identical scoring boxes on a lateral square lattice of pitch P at the scoring depth,
+used to represent a broad uniform beam; each record is shifted into its own box's frame.
+Pitch 0 means a single box on the axis.
